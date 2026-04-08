@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 const hoisted = vi.hoisted(() => ({
   db: {
     deal: {
+      findMany: vi.fn(),
       findFirst: vi.fn(),
       findUnique: vi.fn(),
       update: vi.fn(),
@@ -27,6 +28,7 @@ const hoisted = vi.hoisted(() => ({
   logError: vi.fn(),
   maybeCreatePricingSuggestionFromConfirmedJob: vi.fn(),
   createTask: vi.fn(),
+  requireCurrentWorkspaceAccess: vi.fn(),
   requireDealInCurrentWorkspace: vi.fn(),
   syncGoogleCalendarEventForDeal: vi.fn(),
   recordWorkspaceAuditEvent: vi.fn(),
@@ -57,6 +59,7 @@ vi.mock("@/actions/task-actions", () => ({
   createTask: hoisted.createTask,
 }));
 vi.mock("@/lib/workspace-access", () => ({
+  requireCurrentWorkspaceAccess: hoisted.requireCurrentWorkspaceAccess,
   requireDealInCurrentWorkspace: hoisted.requireDealInCurrentWorkspace,
 }));
 vi.mock("@/lib/workspace-calendar", () => ({
@@ -74,7 +77,7 @@ vi.mock("@/lib/logging", () => ({
   },
 }));
 
-import { generateQuote, markInvoicePaid, sendOnMyWaySMS } from "@/actions/tradie-actions";
+import { generateQuote, getNextJob, getTodaySchedule, getTradieJobs, markInvoicePaid, sendOnMyWaySMS } from "@/actions/tradie-actions";
 
 describe("tradie-actions", () => {
   beforeEach(() => {
@@ -83,6 +86,11 @@ describe("tradie-actions", () => {
       actor: { id: "user_1", workspaceId: "ws_1" },
       deal: { id: "deal_1", workspaceId: "ws_1" },
     });
+    hoisted.requireCurrentWorkspaceAccess.mockResolvedValue({
+      id: "user_1",
+      workspaceId: "ws_1",
+      role: "TEAM_MEMBER",
+    });
     hoisted.allocateWorkspaceInvoiceNumber.mockResolvedValue("INV-100");
     hoisted.db.deal.findFirst.mockResolvedValue({
       id: "deal_1",
@@ -90,6 +98,83 @@ describe("tradie-actions", () => {
       contactId: "contact_1",
       metadata: { source: "chat" },
     });
+  });
+
+  it("scopes tradie jobs to the assigned team member", async () => {
+    hoisted.db.deal.findMany.mockResolvedValue([]);
+
+    await getTradieJobs("ws_1");
+
+    expect(hoisted.requireCurrentWorkspaceAccess).toHaveBeenCalled();
+    expect(hoisted.db.deal.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          workspaceId: "ws_1",
+          assignedToId: "user_1",
+        }),
+      }),
+    );
+  });
+
+  it("scopes today's schedule to the assigned team member", async () => {
+    hoisted.db.deal.findMany.mockResolvedValue([]);
+
+    await getTodaySchedule("ws_1");
+
+    expect(hoisted.db.deal.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          workspaceId: "ws_1",
+          assignedToId: "user_1",
+        }),
+      }),
+    );
+  });
+
+  it("scopes the next job query to the assigned team member", async () => {
+    hoisted.db.deal.findFirst.mockResolvedValue(null);
+
+    await getNextJob("ws_1");
+
+    expect(hoisted.db.deal.findFirst).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        where: expect.objectContaining({
+          workspaceId: "ws_1",
+          assignedToId: "user_1",
+          jobStatus: { in: ["TRAVELING", "ON_SITE"] },
+        }),
+      }),
+    );
+    expect(hoisted.db.deal.findFirst).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: expect.objectContaining({
+          workspaceId: "ws_1",
+          assignedToId: "user_1",
+        }),
+      }),
+    );
+  });
+
+  it("lets managers keep the full workspace tradie view", async () => {
+    hoisted.requireCurrentWorkspaceAccess.mockResolvedValue({
+      id: "owner_1",
+      workspaceId: "ws_1",
+      role: "OWNER",
+    });
+    hoisted.db.deal.findMany.mockResolvedValue([]);
+
+    await getTradieJobs("ws_1");
+
+    expect(hoisted.db.deal.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          workspaceId: "ws_1",
+        }),
+      }),
+    );
+    expect(hoisted.db.deal.findMany.mock.calls[0]?.[0]?.where).not.toHaveProperty("assignedToId");
   });
 
   it("generates a GST-inclusive quote, updates the deal, and creates a draft invoice", async () => {

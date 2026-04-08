@@ -4135,3 +4135,18 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/team-page.test.tsx`
   - `npx next build`
+
+## 2026-04-08 - Tradie loaders now show the right jobs to the right person
+
+- Files:
+  - `actions/tradie-actions.ts`
+  - `__tests__/tradie-actions.test.ts`
+- What changed:
+  - Removed the old broad workspace-wide "demo" filtering from the shared tradie job loaders.
+  - `getTradieJobs()`, `getTodaySchedule()`, and `getNextJob()` now resolve the current authenticated workspace actor first.
+  - TEAM_MEMBER users are now scoped to their own assigned jobs; manager-level roles keep the full workspace tradie view.
+- Why:
+  - This is a product-truth fix, not just data hygiene. A tradie dashboard that quietly shows someone else's jobs makes the whole experience feel wrong even if the UI looks polished.
+- Verified with:
+  - `npx vitest run __tests__/tradie-actions.test.ts __tests__/tradie-job-detail-view.test.tsx __tests__/job-bottom-sheet.test.tsx __tests__/tradie-job-completion-modal.test.tsx`
+  - `npx next build`

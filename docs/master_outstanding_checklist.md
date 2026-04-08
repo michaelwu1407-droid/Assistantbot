@@ -128,6 +128,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Map view future-job UX: All Jobs view now sorted (upcoming first/soonest first, past jobs below). Each sidebar card shows relative date label (Today/Tomorrow/day name + time) and '(past)' marker on overdue jobs.
 - `fixed` Route mode no longer dead-ends after today is complete. If there are upcoming jobs, the sidebar now surfaces the next upcoming booking and offers `Show all upcoming jobs` so the user can keep planning ahead.
 - `fixed` Google-map route mode now matches the main map route-mode behavior: when today is done, it also surfaces the next upcoming booking and offers `Show all upcoming jobs` instead of stopping at a dead-end `All Done!` card.
+- `fixed` Tradie dashboard/map/schedule loaders no longer use a broad workspace-wide demo filter for team members. Shared tradie actions now scope TEAM_MEMBER users to their own assigned jobs while leaving manager-level views workspace-wide.
 
 ### Inbox / Messaging UX
 

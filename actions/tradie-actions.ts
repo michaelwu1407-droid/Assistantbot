@@ -10,7 +10,7 @@ import { createNotification } from "./notification-actions";
 import { MonitoringService } from "@/lib/monitoring";
 import { maybeCreatePricingSuggestionFromConfirmedJob } from "@/lib/pricing-learning";
 import { createTask } from "./task-actions";
-import { requireDealInCurrentWorkspace } from "@/lib/workspace-access";
+import { requireCurrentWorkspaceAccess, requireDealInCurrentWorkspace } from "@/lib/workspace-access";
 import { syncGoogleCalendarEventForDeal } from "@/lib/workspace-calendar";
 import { recordWorkspaceAuditEvent } from "@/lib/workspace-audit";
 import { allocateWorkspaceInvoiceNumber } from "@/lib/invoice-number";
@@ -102,20 +102,35 @@ export interface QuoteResult {
   error?: string;
 }
 
+async function getTradieAccessWhere(workspaceId: string) {
+  const actor = await requireCurrentWorkspaceAccess();
+
+  if (actor.workspaceId !== workspaceId) {
+    throw new Error("Workspace access mismatch");
+  }
+
+  return actor.role === "TEAM_MEMBER"
+    ? {
+        workspaceId,
+        assignedToId: actor.id,
+      }
+    : {
+        workspaceId,
+      };
+}
+
 // ─── Server Actions ─────────────────────────────────────────
 
 /**
- * Fetch active jobs for the Tradie view.
- * "Jobs" are typically Deals in 'WON' (Scheduled) or 'INVOICED' (Completed/Billing) state,
- * or any active state depending on workflow. 
- * For this demo, we'll fetch all deals that aren't LOST or ARCHIVED.
+ * Fetch active jobs for the tradie surfaces.
+ * Team members only see their own assigned jobs; managers keep the full workspace view.
  */
 export async function getTradieJobs(workspaceId: string) {
+  const accessWhere = await getTradieAccessWhere(workspaceId);
   const deals = await db.deal.findMany({
     where: {
-      workspaceId,
-      stage: { in: ["WON", "INVOICED", "NEGOTIATION", "CONTACTED", "NEW"] }, // Broad filter for demo
-      // In a real app, we'd filter by assigned user or specific "Job" status field
+      ...accessWhere,
+      stage: { in: ["WON", "INVOICED", "NEGOTIATION", "CONTACTED", "NEW"] },
     },
     include: {
       contact: true,
@@ -146,6 +161,7 @@ export async function getTradieJobs(workspaceId: string) {
  * Filters jobs scheduled for the current day.
  */
 export async function getTodaySchedule(workspaceId: string) {
+  const accessWhere = await getTradieAccessWhere(workspaceId);
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
 
@@ -154,7 +170,7 @@ export async function getTodaySchedule(workspaceId: string) {
 
   const jobs = await db.deal.findMany({
     where: {
-      workspaceId,
+      ...accessWhere,
       OR: [
         // Jobs for today
         {
@@ -232,10 +248,11 @@ export async function getTradieJobById(jobId: string) {
  * Finds the first job scheduled in the future.
  */
 export async function getNextJob(workspaceId: string) {
+  const accessWhere = await getTradieAccessWhere(workspaceId);
   // 1. Check for any currently active job (TRAVELING or ON_SITE)
   const activeJob = await db.deal.findFirst({
     where: {
-      workspaceId,
+      ...accessWhere,
       jobStatus: { in: ["TRAVELING", "ON_SITE"] }
     },
     include: { contact: true },
@@ -259,7 +276,7 @@ export async function getNextJob(workspaceId: string) {
   const now = new Date();
   const nextJob = await db.deal.findFirst({
     where: {
-      workspaceId,
+      ...accessWhere,
       scheduledAt: { gt: now },
       jobStatus: { notIn: ["COMPLETED", "CANCELLED", "TRAVELING", "ON_SITE"] } // Exclude statuses we checked above
     },
