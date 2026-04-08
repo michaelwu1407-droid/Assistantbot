@@ -1765,7 +1765,7 @@ async function findDealForInvoiceLookup(
 export async function runCreateDraftInvoice(
   workspaceId: string,
   params: { dealTitle: string }
-): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[]; alreadyExists?: boolean; created?: boolean }> {
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[]; alreadyExists?: boolean; created?: boolean; resolvedDealTitle?: string }> {
   const resolution = await resolveDealForInvoiceTarget(workspaceId, params.dealTitle.trim());
   const deal = resolution.deal;
   if (!deal) {
@@ -1789,6 +1789,7 @@ export async function runCreateDraftInvoice(
         { label: "Invoice status", prompt: `Show invoice status for "${deal.title}"` },
       ],
       alreadyExists: true,
+      resolvedDealTitle: deal.title,
     };
   }
 
@@ -1843,6 +1844,7 @@ export async function runCreateDraftInvoice(
       { label: "Update amount", prompt: `Update invoice amount for "${fullDeal.title}"` },
     ],
     created: true,
+    resolvedDealTitle: fullDeal.title,
   };
 }
 

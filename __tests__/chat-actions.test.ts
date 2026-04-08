@@ -797,6 +797,7 @@ describe("chat-actions", () => {
     );
     expect(result.success).toBe(true);
     expect(result.message).toContain('Draft invoice INV-1001 created for "Blocked Drain"');
+    expect(result.resolvedDealTitle).toBe("Blocked Drain");
   });
 
   it("creates a draft invoice when the target includes a QA prefix before the contact name", async () => {
@@ -829,6 +830,7 @@ describe("chat-actions", () => {
     expect(hoisted.searchContacts).toHaveBeenNthCalledWith(2, "ws_1", "Alex Harper");
     expect(result.success).toBe(true);
     expect(result.message).toContain('Draft invoice INV-1001 created for "Blocked Drain"');
+    expect(result.resolvedDealTitle).toBe("Blocked Drain");
   });
 
   it("prefers a later matching contact that actually has an active deal", async () => {
