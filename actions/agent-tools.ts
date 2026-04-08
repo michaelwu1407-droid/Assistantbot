@@ -233,6 +233,13 @@ export async function runGetClientContext(
     scheduledAt: string | null;
     value: number;
   }[];
+  ambiguousMatches?: {
+    id: string;
+    name: string;
+    phone: string | null;
+    email: string | null;
+    company: string | null;
+  }[];
 }> {
   const contactMap = new Map<string, Awaited<ReturnType<typeof searchContacts>>[number]>();
   for (const query of getLooseContactSearchQueries(params.clientName)) {
@@ -256,6 +263,25 @@ export async function runGetClientContext(
       recentNotes: [],
       recentMessages: [],
       recentJobs: [],
+      ambiguousMatches: [],
+    };
+  }
+
+  const bestScore = contacts[0]?.score ?? 0;
+  const ambiguousContacts = contacts.filter((entry) => entry.score === bestScore && entry.score >= 70);
+  if (ambiguousContacts.length > 1) {
+    return {
+      client: null,
+      recentNotes: [],
+      recentMessages: [],
+      recentJobs: [],
+      ambiguousMatches: ambiguousContacts.slice(0, 4).map(({ contact }) => ({
+        id: contact.id,
+        name: contact.name,
+        phone: contact.phone,
+        email: contact.email,
+        company: contact.company,
+      })),
     };
   }
 

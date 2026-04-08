@@ -73,4 +73,54 @@ describe("agent tools", () => {
     expect(result.client?.id).toBe("contact_exact");
     expect(result.client?.name).toBe("ZZZ AUTO LIVE Alex Harper");
   });
+
+  it("returns ambiguous matches when multiple equally strong contacts exist", async () => {
+    searchContacts
+      .mockResolvedValueOnce([
+        {
+          id: "contact_1",
+          name: "Alex Harper",
+          email: "alex.one@example.com",
+          phone: "0400000001",
+          company: "Alpha Plumbing",
+          address: null,
+        },
+        {
+          id: "contact_2",
+          name: "Alex Harper",
+          email: "alex.two@example.com",
+          phone: "0400000002",
+          company: "Beta Electrical",
+          address: null,
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: "contact_1",
+          name: "Alex Harper",
+          email: "alex.one@example.com",
+          phone: "0400000001",
+          company: "Alpha Plumbing",
+          address: null,
+        },
+        {
+          id: "contact_2",
+          name: "Alex Harper",
+          email: "alex.two@example.com",
+          phone: "0400000002",
+          company: "Beta Electrical",
+          address: null,
+        },
+      ]);
+
+    const result = await runGetClientContext("ws_1", { clientName: "Alex Harper" });
+
+    expect(result.client).toBeNull();
+    expect(result.ambiguousMatches).toHaveLength(2);
+    expect(result.ambiguousMatches?.[0]).toMatchObject({
+      name: "Alex Harper",
+      phone: "0400000001",
+      company: "Alpha Plumbing",
+    });
+  });
 });

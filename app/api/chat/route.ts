@@ -519,7 +519,20 @@ async function buildResolvedEntitiesBlock(
   if (likelyContact) {
     try {
       const context = await runGetClientContext(workspaceId, { clientName: likelyContact });
-      if (context.client) {
+      if (context.ambiguousMatches?.length) {
+        lines.push(
+          `Ambiguous contacts for "${likelyContact}": ${context.ambiguousMatches
+            .map((match) => {
+              const details = [
+                match.company ? `company ${match.company}` : null,
+                match.phone ? `phone ${match.phone}` : null,
+                match.email ? `email ${match.email}` : null,
+              ].filter(Boolean);
+              return `${match.name}${details.length ? ` (${details.join(", ")})` : ""}`;
+            })
+            .join("; ")}. Ask the user which one they mean instead of guessing.`,
+        );
+      } else if (context.client) {
         lines.push(
           `Likely contact: ${context.client.name}${context.client.phone ? `, phone ${context.client.phone}` : ""}${context.client.email ? `, email ${context.client.email}` : ""}`,
         );
@@ -610,6 +623,20 @@ function buildWorkspaceContextBlocks(
 }
 
 function formatClientContextResult(result: Awaited<ReturnType<typeof runGetClientContext>>): string {
+  if (result.ambiguousMatches?.length) {
+    const lines = ["I found multiple contacts that match. Tell me which one you mean:"];
+    for (const match of result.ambiguousMatches) {
+      const details = [
+        match.company ? `company ${match.company}` : null,
+        match.phone ? `phone ${match.phone}` : null,
+        match.email ? `email ${match.email}` : null,
+      ].filter(Boolean);
+      lines.push(`- ${match.name}${details.length ? ` (${details.join(", ")})` : ""}`);
+    }
+    lines.push("Reply with the phone number, email, company name, or full contact name and I’ll open the right record.");
+    return lines.join("\n");
+  }
+
   if (!result.client) {
     return "I couldn't find that contact in the CRM.";
   }

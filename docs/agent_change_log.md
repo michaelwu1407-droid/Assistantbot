@@ -1,3 +1,19 @@
+## 2026-04-08 (Codex) - Tracey contact ambiguity shortlist
+
+- Files changed:
+  - `actions/agent-tools.ts`
+  - `app/api/chat/route.ts`
+  - `__tests__/agent-tools.test.ts`
+  - `__tests__/chat-route.test.ts`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Duplicate-contact lookups are now more truthful and useful**: when `runGetClientContext()` sees multiple equally strong contact matches, it no longer silently picks one. It returns an ambiguity shortlist instead.
+  - **The LLM now gets better disambiguation context**: the resolved-entities block in the live chat route now includes `Ambiguous contacts for "..."` with company, phone, and email clues, plus an explicit instruction to ask the user which contact they mean instead of guessing.
+  - **Verification**: targeted suites passed for `agent-tools`, `chat-route`, and `pre-classifier`. `next build` is clean locally.
+- Why:
+  - The next real Tracey quality issue after the quote/invoice trust fix was contact ambiguity in production test data. This keeps Tracey LLM-first while making the contact-context tool truthful enough to support a good disambiguation turn.
+
 ## 2026-04-08 (Codex) - WhatsApp outstanding logged, quote/invoice trust tightened
 
 - Files changed:

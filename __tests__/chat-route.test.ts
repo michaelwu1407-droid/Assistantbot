@@ -411,6 +411,60 @@ describe("POST /api/chat", () => {
     expect(await response.json()).toEqual({ text: "model response" });
   });
 
+  it("formats ambiguous contact context with useful disambiguation details", async () => {
+    hoisted.preClassify.mockReturnValue({
+      intent: "contact_lookup",
+      confidence: 0.9,
+      contextHints: ["CONTACT QUERY: Use searchContacts or getClientContext to find the person first."],
+      suggestedTools: ["searchContacts", "getClientContext"],
+      requiresCalculator: false,
+    });
+    hoisted.runGetClientContext.mockResolvedValue({
+      client: null,
+      ambiguousMatches: [
+        {
+          id: "contact_1",
+          name: "Alex Harper",
+          phone: "0400000001",
+          email: "alex.one@example.com",
+          company: "Alpha Plumbing",
+        },
+        {
+          id: "contact_2",
+          name: "Alex Harper",
+          phone: "0400000002",
+          email: "alex.two@example.com",
+          company: "Beta Electrical",
+        },
+      ],
+      recentNotes: [],
+      recentMessages: [],
+      recentJobs: [],
+    });
+
+    const response = await POST(
+      new Request("https://app.example.com/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          messages: [{ role: "user", parts: [{ type: "text", text: "Find contact Alex Harper" }] }],
+        }),
+      }),
+    );
+
+    expect(hoisted.streamText).toHaveBeenCalledTimes(1);
+    expect(hoisted.buildCrmChatSystemPrompt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resolvedEntitiesBlock: expect.stringContaining('Ambiguous contacts for "Alex Harper":'),
+      }),
+    );
+    const promptArgs = hoisted.buildCrmChatSystemPrompt.mock.calls.at(-1)?.[0];
+    expect(promptArgs.resolvedEntitiesBlock).toContain("phone 0400000001");
+    expect(promptArgs.resolvedEntitiesBlock).toContain("email alex.two@example.com");
+    expect(promptArgs.resolvedEntitiesBlock).toContain("Ask the user which one they mean instead of guessing.");
+  });
+
   it("injects current workspace date and likely job context for next-step completion questions", async () => {
     hoisted.preClassify.mockReturnValue({
       intent: "crm_action",
