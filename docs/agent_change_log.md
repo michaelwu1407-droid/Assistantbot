@@ -3867,3 +3867,17 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/chat-route.test.ts __tests__/agent-tools.test.ts __tests__/pre-classifier.test.ts`
   - `npx next build`
+
+## 2026-04-08 - Internal health-route truth documented
+
+- Files:
+  - `docs/master_outstanding_checklist.md`
+  - `docs/REAL_INTEGRATION_VERIFICATION.md`
+- What changed:
+  - Closed the old `re-verify` note about public `/api/health` and `/api/check-env` returning `404` in production.
+  - Documented the real behavior: middleware intentionally rewrites those routes to `/404` in production unless `ENABLE_INTERNAL_DEBUG_ROUTES=true`.
+  - Updated the real-integration verification guide to use the protected/internal readiness surfaces rather than assuming those endpoints are public.
+- Why:
+  - This was no longer a code bug. The routes exist and are tested, but the docs still described them as public production probes, which created false uncertainty during live ops checks.
+- Verified with:
+  - existing middleware coverage in `__tests__/middleware.test.ts`

@@ -32,9 +32,17 @@ npx tsx scripts/verify-real-integrations.ts
 
 Expected result:
 
-- `/api/health` responds successfully
-- `/api/check-env` reports provisioning-ready for the integrations you want to verify
+- the protected readiness surfaces respond successfully for your staging environment
+- provisioning/integration readiness reports the integrations you want to verify as ready
 - no required Stripe/Twilio/Resend/LiveKit/auth env vars are missing
+
+Important:
+
+- In production, middleware intentionally rewrites `/api/health` and `/api/check-env` to `404` unless `ENABLE_INTERNAL_DEBUG_ROUTES=true`.
+- For production-like verification, prefer:
+  - `/api/internal/launch-readiness`
+  - `/admin/ops-status`
+  - any explicitly authenticated internal verifier route you are using for the environment
 
 ## Stripe
 
@@ -75,7 +83,7 @@ Verify in a dedicated staging Twilio setup:
 Important:
 
 - use staging numbers only
-- verify the expected callback URLs from `/api/check-env`
+- verify the expected callback URLs from your authenticated readiness/config surface, not public debug routes
 
 ## Resend
 
@@ -93,7 +101,7 @@ Important:
 1. Verify app env and worker env point at the same LiveKit project.
 2. Generate a real token and connect a client.
 3. Verify room join succeeds.
-4. Verify SIP trunk config and routing via `/api/check-env`.
+4. Verify SIP trunk config and routing via the authenticated readiness/config surface for the environment.
 5. Run one real inbound or synthetic voice flow against staging.
 6. Confirm:
    - worker release and app release match expectations
