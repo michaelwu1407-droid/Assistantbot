@@ -16,6 +16,7 @@ import { recordWorkspaceAuditEvent } from "@/lib/workspace-audit";
 import { allocateWorkspaceInvoiceNumber } from "@/lib/invoice-number";
 import { logger } from "@/lib/logging";
 import { Prisma } from "@prisma/client";
+import { formatTimeInTimezone, getZonedDateParts, parseDateTimeLocalInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone";
 
 const GST_RATE = new Prisma.Decimal("0.10");
 
@@ -116,7 +117,16 @@ async function getTradieAccessWhere(workspaceId: string) {
       }
     : {
         workspaceId,
-      };
+    };
+}
+
+async function getWorkspaceTimezoneForTradie(workspaceId: string) {
+  const workspace = await db.workspace.findUnique({
+    where: { id: workspaceId },
+    select: { workspaceTimezone: true },
+  });
+
+  return resolveWorkspaceTimezone(workspace?.workspaceTimezone);
 }
 
 // ─── Server Actions ─────────────────────────────────────────
@@ -161,12 +171,15 @@ export async function getTradieJobs(workspaceId: string) {
  * Filters jobs scheduled for the current day.
  */
 export async function getTodaySchedule(workspaceId: string) {
-  const accessWhere = await getTradieAccessWhere(workspaceId);
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-
-  const endOfDay = new Date();
-  endOfDay.setHours(23, 59, 59, 999);
+  const [accessWhere, workspaceTimezone] = await Promise.all([
+    getTradieAccessWhere(workspaceId),
+    getWorkspaceTimezoneForTradie(workspaceId),
+  ]);
+  const now = new Date();
+  const todayParts = getZonedDateParts(now, workspaceTimezone);
+  const dayKey = `${String(todayParts.year).padStart(4, "0")}-${String(todayParts.month).padStart(2, "0")}-${String(todayParts.day).padStart(2, "0")}`;
+  const startOfDay = parseDateTimeLocalInTimezone(`${dayKey}T00:00`, workspaceTimezone) ?? now;
+  const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1);
 
   const jobs = await db.deal.findMany({
     where: {
@@ -203,7 +216,7 @@ export async function getTodaySchedule(workspaceId: string) {
     status: job.jobStatus || "SCHEDULED",
     value: Number(job.value),
     scheduledAt: job.scheduledAt || new Date(),
-    time: job.scheduledAt ? job.scheduledAt.toLocaleTimeString("en-AU", { hour: 'numeric', minute: '2-digit' }) : "All Day",
+    time: job.scheduledAt ? formatTimeInTimezone(job.scheduledAt, workspaceTimezone) : "All Day",
     description: (job.metadata as any)?.description || "No description",
     safetyCheckCompleted: job.safetyCheckCompleted,
     contactPhone: job.contact.phone || undefined,
@@ -218,6 +231,7 @@ export async function getTodaySchedule(workspaceId: string) {
  */
 export async function getTradieJobById(jobId: string) {
   const { deal } = await requireDealInCurrentWorkspace(jobId);
+  const workspaceTimezone = await getWorkspaceTimezoneForTradie(deal.workspaceId);
   const job = await db.deal.findFirst({
     where: { id: deal.id, workspaceId: deal.workspaceId },
     include: { contact: true }
@@ -234,7 +248,7 @@ export async function getTradieJobById(jobId: string) {
     status: job.jobStatus || "SCHEDULED",
     value: Number(job.value),
     scheduledAt: job.scheduledAt || new Date(),
-    time: job.scheduledAt ? job.scheduledAt.toLocaleTimeString("en-AU", { hour: 'numeric', minute: '2-digit' }) : "All Day",
+    time: job.scheduledAt ? formatTimeInTimezone(job.scheduledAt, workspaceTimezone) : "All Day",
     description: (job.metadata as any)?.description || "No description",
     safetyCheckCompleted: job.safetyCheckCompleted,
     contactPhone: job.contact.phone || undefined,

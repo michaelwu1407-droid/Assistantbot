@@ -9,6 +9,9 @@ const hoisted = vi.hoisted(() => ({
       findUnique: vi.fn(),
       update: vi.fn(),
     },
+    workspace: {
+      findUnique: vi.fn(),
+    },
     invoice: {
       create: vi.fn(),
       findUnique: vi.fn(),
@@ -92,6 +95,9 @@ describe("tradie-actions", () => {
       role: "TEAM_MEMBER",
     });
     hoisted.allocateWorkspaceInvoiceNumber.mockResolvedValue("INV-100");
+    hoisted.db.workspace.findUnique.mockResolvedValue({
+      workspaceTimezone: "Australia/Sydney",
+    });
     hoisted.db.deal.findFirst.mockResolvedValue({
       id: "deal_1",
       workspaceId: "ws_1",
@@ -129,6 +135,36 @@ describe("tradie-actions", () => {
         }),
       }),
     );
+  });
+
+  it("formats today's schedule times in the workspace timezone", async () => {
+    hoisted.db.deal.findMany.mockResolvedValue([
+      {
+        id: "deal_1",
+        title: "Blocked drain",
+        jobStatus: "SCHEDULED",
+        value: new Prisma.Decimal("120.00"),
+        scheduledAt: new Date("2026-04-14T23:30:00.000Z"),
+        metadata: {},
+        safetyCheckCompleted: false,
+        latitude: null,
+        longitude: null,
+        address: "12 King St",
+        contact: {
+          name: "Alex",
+          phone: "0400000000",
+          address: "12 King St",
+        },
+      },
+    ]);
+
+    const result = await getTodaySchedule("ws_1");
+
+    expect(hoisted.db.workspace.findUnique).toHaveBeenCalledWith({
+      where: { id: "ws_1" },
+      select: { workspaceTimezone: true },
+    });
+    expect(result[0]?.time).toBe("9:30 AM");
   });
 
   it("scopes the next job query to the assigned team member", async () => {

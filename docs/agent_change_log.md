@@ -4184,3 +4184,17 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/tradie-job-page.test.tsx __tests__/tradie-job-detail-view.test.tsx`
   - `npx next build`
+
+## 2026-04-08 - Tradie day logic now follows the workspace timezone
+
+- Files:
+  - `actions/tradie-actions.ts`
+  - `__tests__/tradie-actions.test.ts`
+- What changed:
+  - `getTodaySchedule()` now resolves the workspace timezone and computes day boundaries from that timezone instead of the server clock.
+  - Tradie time strings now use the shared timezone formatter for both today-schedule rows and deep-linked job rows.
+- Why:
+  - This was a real end-to-end trust issue. If “today” and the displayed job times follow the server instead of the workspace, the tradie workflow can feel randomly wrong even when nothing crashes.
+- Verified with:
+  - `npx vitest run __tests__/tradie-actions.test.ts __tests__/job-map.test.tsx __tests__/tradie-job-page.test.tsx`
+  - `npx next build`
