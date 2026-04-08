@@ -29,6 +29,18 @@
 - Why:
   - Draft review is part of the CRM promise. Rejecting a draft should never fall into the completion-approval workflow.
 
+## 2026-04-08 (Codex) - Live production verification: draft rejection
+
+- Files changed:
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Draft rejection is now proven live**: after the `rejectDraft` wiring shipped to production `aa3b6d15`, the exact failing prompt `Reject the draft for ... because the customer details are incomplete.` now invokes `rejectDraft` instead of `rejectCompletion`.
+  - **Persisted CRM state changed correctly**: the fake production draft ended with `isDraft: false` and `stage: DELETED`, which matches the intended reject-draft behavior.
+  - **User-facing response is truthful**: Tracey now says the draft was rejected and preserves the manager-supplied reason instead of incorrectly saying the job is not pending approval.
+- Why:
+  - This closes a real production bug in the draft-review workflow and removes one more case where Tracey previously looked confused about CRM state.
+
 ## 2026-04-08 (Codex) - Live production verification: attention filtering
 
 - Files changed:
