@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Phone, MessageSquare, Wrench, Camera, Navigation, Plus, Search, ExternalLink } from "lucide-react"
+import { Phone, MessageSquare, Wrench, Navigation, Plus, Search, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
@@ -185,12 +185,22 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
                                     )}
 
                                     {activeTab === 'PHOTOS' && (
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="aspect-square bg-slate-900 rounded-xl border-2 border-dashed border-slate-800 flex flex-col items-center justify-center text-slate-500 hover:text-[#ccff00] hover:border-[#ccff00]/50 transition-colors cursor-pointer">
-                                                <Camera className="w-8 h-8 mb-2" />
-                                                <span className="text-xs font-bold uppercase">Add Photo</span>
+                                        <div className="space-y-4">
+                                            <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4 space-y-3">
+                                                <div>
+                                                    <h4 className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Site Photos</h4>
+                                                    <p className="text-sm text-slate-300 leading-relaxed">
+                                                        Capture photos from the full job mode so they save against the right job and stay available for billing, handover, and office review.
+                                                    </p>
+                                                </div>
+                                                <Link
+                                                    href={`/tradie/jobs/${job.id}`}
+                                                    className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-100 transition-colors hover:bg-slate-800 hover:text-white"
+                                                >
+                                                    Open Full Job Mode
+                                                    <ExternalLink className="h-4 w-4" />
+                                                </Link>
                                             </div>
-                                            {/* Photos would map here */}
                                         </div>
                                     )}
 

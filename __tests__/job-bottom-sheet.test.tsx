@@ -168,4 +168,34 @@ describe("JobBottomSheet", () => {
     expect(screen.queryByRole("button", { name: /add video explanation/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/tap to sign on glass/i)).not.toBeInTheDocument();
   });
+
+  it("replaces the fake photo tile with an honest link into full job mode", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <JobBottomSheet
+        job={{
+          id: "deal_5",
+          title: "Photo Follow-up",
+          clientName: "Morgan Reed",
+          address: "5 Test St, Sydney",
+          status: "SCHEDULED",
+          value: 260,
+          scheduledAt: new Date(),
+          description: "Take site photos",
+          contactPhone: "0400000000",
+        }}
+        isOpen
+        setIsOpen={vi.fn()}
+        onAddVariation={vi.fn()}
+        safetyCheckCompleted={false}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /photos/i }));
+
+    expect(screen.getByText(/capture photos from the full job mode so they save against the right job/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /open full job mode/i })).toHaveAttribute("href", "/tradie/jobs/deal_5");
+    expect(screen.queryByText(/add photo/i)).not.toBeInTheDocument();
+  });
 });

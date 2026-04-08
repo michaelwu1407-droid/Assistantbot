@@ -56,7 +56,7 @@ describe("settings route redirects", () => {
   });
 
   it("redirects legacy settings routes to their canonical destinations", () => {
-    expect(() => PhoneSettingsPage()).toThrow("REDIRECT:/crm/settings");
+    expect(() => PhoneSettingsPage()).toThrow("REDIRECT:/crm/settings/call-settings");
     expect(() => SupportPage()).toThrow("REDIRECT:/crm/settings/help");
     expect(() => DataPrivacySettingsPage()).toThrow("REDIRECT:/crm/settings/privacy");
     expect(() => SmsTemplatesPage()).toThrow("REDIRECT:/crm/settings/call-settings");

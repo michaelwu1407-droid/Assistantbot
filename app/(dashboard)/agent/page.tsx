@@ -2,6 +2,8 @@ import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { getAuthUserId } from "@/lib/auth"
 import { CommissionCalculator } from "@/components/agent/commission-calculator"
 import { VendorReportCard } from "@/components/agent/vendor-report-card"
+import { Button } from "@/components/ui/button"
+import Link from "next/link"
 import { PulseWidget } from "@/components/dashboard/pulse-widget"
 import { redirect } from "next/navigation"
 
@@ -36,8 +38,14 @@ export default async function AgentPage() {
                 financialStats={financialStats}
                 vendorReport={null}
             /> */}
-            <div className="text-center text-muted-foreground">
-                <p>Agent Dashboard temporarily disabled due to TypeScript error</p>
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-slate-600 shadow-sm">
+                <h2 className="text-lg font-semibold text-slate-900">Agent pipeline workspace</h2>
+                <p className="mt-2 text-sm">
+                    The legacy agent dashboard is not the primary workflow right now. Use the CRM dashboard for day-to-day pipeline work while the dedicated agent canvas is being rebuilt.
+                </p>
+                <Button asChild className="mt-4">
+                    <Link href="/crm/dashboard">Open CRM Dashboard</Link>
+                </Button>
             </div>
         </div>
     )

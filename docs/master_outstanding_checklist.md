@@ -37,6 +37,8 @@ Status meanings:
 - `fixed` Invoice-related actions revalidate key CRM surfaces more reliably.
 - `fixed` Address input no longer silently rewrites typed addresses.
 - `fixed` Held-review triage now surfaces in notes, digests, and deal-card UI.
+- `fixed` Legacy `/crm/settings/phone-settings` now lands on `/crm/settings/call-settings` instead of the generic settings home.
+- `fixed` Tradie bottom-sheet `Photos` tab no longer fakes uploads; it now points field users into the real full-job photo workflow.
 
 ## Highest-Priority Open Product Work
 

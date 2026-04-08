@@ -1,3 +1,31 @@
+## 2026-04-09 (Codex) - Legacy phone settings now land on the real call-handling screen
+
+- Files changed:
+  - `app/crm/settings/phone-settings/page.tsx`
+  - `__tests__/settings-route-redirects.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Improved an old-settings dead end**: the legacy `/crm/settings/phone-settings` route no longer dumps people on the broad settings home.
+  - **Redirect now matches user intent**: it lands on `/crm/settings/call-settings`, which is the real phone and call-handling workflow.
+  - **Verification**: reran the settings redirect/layout/call-settings suites and confirmed a clean production build.
+- Why:
+  - Old links should still feel intentional. If a user or bookmark asks for phone settings, they should land on phone settings, not a generic menu page.
+
+## 2026-04-09 (Codex) - Tradie bottom-sheet photo tab no longer fakes uploads
+
+- Files changed:
+  - `components/tradie/job-bottom-sheet.tsx`
+  - `__tests__/job-bottom-sheet.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Removed a fake photo workflow**: the tradie bottom-sheet `Photos` tab no longer shows a clickable `Add Photo` tile that doesn’t actually save anything.
+  - **Replaced it with the real next step**: the tab now explains that photos should be captured from full job mode and links directly to `/tradie/jobs/[id]` with `Open Full Job Mode`.
+  - **Verification**: added focused UI coverage for the new tab state and reran the bottom-sheet/tradie suites plus a clean production build.
+- Why:
+  - A fake upload affordance is worse than no affordance. Field users need a truthful path that takes them to the screen where photo capture really works.
+
 ## 2026-04-08 (Codex) - Live production verification: rescheduling, approvals, and daily summary
 
 - Files changed:
