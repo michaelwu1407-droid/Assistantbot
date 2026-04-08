@@ -2,11 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const hoisted = vi.hoisted(() => ({
   processAgentCommand: vi.fn(),
-  classifyMessage: vi.fn(),
   db: {
-    activity: {
-      create: vi.fn(),
-    },
     webhookEvent: {
       create: vi.fn().mockResolvedValue({}),
     },
@@ -17,9 +13,6 @@ const hoisted = vi.hoisted(() => ({
 
 vi.mock("@/lib/services/ai-agent", () => ({
   processAgentCommand: hoisted.processAgentCommand,
-}));
-vi.mock("@/lib/spam-classifier", () => ({
-  classifyMessage: hoisted.classifyMessage,
 }));
 vi.mock("@/lib/db", () => ({ db: hoisted.db }));
 vi.mock("@/lib/workspace-routing", () => ({
@@ -71,14 +64,9 @@ describe("POST /api/webhooks/whatsapp", () => {
     });
   });
 
-  it("records inbound traffic immediately and filters spam using the workspace id", async () => {
+  it("records inbound traffic immediately before handling an authorized assistant command", async () => {
     hoisted.findUserByPhone.mockResolvedValue({ id: "user_1", workspaceId: "ws_1" });
-    hoisted.classifyMessage.mockResolvedValue({
-      classification: "spam",
-      reason: "known spam pattern",
-      confidence: 0.92,
-    });
-    hoisted.db.activity.create.mockResolvedValue({});
+    hoisted.processAgentCommand.mockResolvedValue("Handled.");
     const { POST } = await import("@/app/api/webhooks/whatsapp/route");
 
     const body = new URLSearchParams({
@@ -105,23 +93,11 @@ describe("POST /api/webhooks/whatsapp", () => {
         }),
       }),
     });
-    expect(hoisted.classifyMessage).toHaveBeenCalledWith("ws_1", "cheap seo offer", "whatsapp:+61400000000");
-    expect(hoisted.db.activity.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        title: "💬 SMS/WhatsApp Filtered: Spam",
-        userId: "user_1",
-      }),
-    });
-    expect(hoisted.processAgentCommand).not.toHaveBeenCalled();
+    expect(hoisted.processAgentCommand).toHaveBeenCalledWith("user_1", "cheap seo offer");
   });
 
   it("processes real commands inline and logs a successful outbound reply", async () => {
     hoisted.findUserByPhone.mockResolvedValue({ id: "user_1", workspaceId: "ws_1" });
-    hoisted.classifyMessage.mockResolvedValue({
-      classification: "lead",
-      reason: "",
-      confidence: 0.1,
-    });
     hoisted.processAgentCommand.mockResolvedValue("Booked it in.");
     hoisted.twilioMessagesCreate.mockResolvedValue({ sid: "SM123" });
     const { POST } = await import("@/app/api/webhooks/whatsapp/route");
@@ -139,7 +115,6 @@ describe("POST /api/webhooks/whatsapp", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(hoisted.classifyMessage).toHaveBeenCalledWith("ws_1", "book Alex for tomorrow", "whatsapp:+61400000000");
     expect(hoisted.processAgentCommand).toHaveBeenCalledWith("user_1", "book Alex for tomorrow");
     expect(hoisted.twilioMessagesCreate).toHaveBeenCalledWith({
       from: "whatsapp:+61485010634",
@@ -161,11 +136,6 @@ describe("POST /api/webhooks/whatsapp", () => {
 
   it("logs processing failures and sends a fallback reply when the agent errors", async () => {
     hoisted.findUserByPhone.mockResolvedValue({ id: "user_1", workspaceId: "ws_1" });
-    hoisted.classifyMessage.mockResolvedValue({
-      classification: "lead",
-      reason: "",
-      confidence: 0.02,
-    });
     hoisted.processAgentCommand.mockRejectedValue(new Error("agent timeout"));
     const { POST } = await import("@/app/api/webhooks/whatsapp/route");
 

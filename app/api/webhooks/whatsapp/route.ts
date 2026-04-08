@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import twilio from "twilio";
 import { processAgentCommand } from "@/lib/services/ai-agent";
-import { classifyMessage } from "@/lib/spam-classifier";
 import { db } from "@/lib/db";
 import { findUserByPhone } from "@/lib/workspace-routing";
 
@@ -74,21 +73,6 @@ export async function POST(req: Request) {
       });
 
     try {
-      const spamResult = await classifyMessage(user.workspaceId, body, `whatsapp:${cleanNumber}`);
-
-      if (spamResult.classification === "spam") {
-        console.log(`[WhatsApp Webhook] Spam filtered: ${spamResult.reason}`);
-        await db.activity.create({
-          data: {
-            type: "NOTE",
-            title: "💬 SMS/WhatsApp Filtered: Spam",
-            userId: user.id,
-            content: `From: ${cleanNumber}\nMessage: ${body}\nReason: ${spamResult.reason}\nConfidence: ${(spamResult.confidence * 100).toFixed(0)}%\n\nIf this was a real message, tell Tracey: "A message from ${cleanNumber} was marked as spam — it's actually real, please learn from it."`,
-          },
-        });
-        return new NextResponse("OK", { status: 200 });
-      }
-
       const aiResponse = await processAgentCommand(user.id, body);
 
       try {

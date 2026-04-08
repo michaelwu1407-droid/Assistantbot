@@ -3703,3 +3703,14 @@ Rule: every agent change commit must include an entry in this file.
   - `whatsapp.inbound`
   - either `whatsapp.outbound success` or `whatsapp.processing error`
   - a corresponding Twilio WhatsApp message record if outbound send succeeds
+
+## 2026-04-08 - WhatsApp assistant no longer spam-filters authenticated user commands
+
+- Live verification on `9b5fdd3b` showed the route was now choosing the correct user/workspace, but the authorized WhatsApp assistant message was still being classified as spam because the route reused the inbound lead spam classifier.
+- Removed spam classification from the authenticated WhatsApp assistant path in `app/api/webhooks/whatsapp/route.ts`.
+- Product reasoning: this channel is explicitly for authenticated internal users talking to the CRM assistant, not for unknown inbound leads. Internal assistant commands should never be dropped as spam before they reach Tracey.
+- Updated `__tests__/whatsapp-route.test.ts` to reflect the new policy: authorized messages go straight to `processAgentCommand()` after inbound logging.
+- Re-verified with:
+  - `npx vitest run __tests__/whatsapp-route.test.ts __tests__/workspace-routing.test.ts`
+  - `npx next build`
+- Next step after deploy: rerun the live WhatsApp probe and confirm a real `whatsapp.outbound success` event and Twilio WhatsApp message are produced for Miguel's provisioned workspace.
