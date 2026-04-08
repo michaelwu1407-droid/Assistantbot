@@ -4212,3 +4212,19 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/job-detail-view.test.tsx`
   - `npx next build`
+
+## 2026-04-08 - Tradie navigation now stays inside the tradie experience
+
+- Files:
+  - `components/tradie/job-detail-view.tsx`
+  - `components/tradie/tradie-dashboard-client.tsx`
+  - `__tests__/tradie-job-detail-view.test.tsx`
+  - `__tests__/tradie-dashboard-client.test.tsx`
+- What changed:
+  - Fixed the tradie job-detail back link to return to `/tradie` instead of `/crm/tradie`.
+  - Fixed the tradie empty-state CTA to go to `/tradie/map` instead of `/crm/map`.
+- Why:
+  - These were real navigation coherence bugs. A tradie hitting “back” or “return to map” could be dumped into the wrong product surface even though the page itself looked correct.
+- Verified with:
+  - `npx vitest run __tests__/tradie-job-detail-view.test.tsx __tests__/tradie-dashboard-client.test.tsx`
+  - `npx next build`

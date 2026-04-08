@@ -134,6 +134,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` The deep-link tradie job route (`/tradie/jobs/[id]`) now uses the shared scoped job-details loader instead of its own raw DB query, so access rules and displayed data stay consistent with the rest of the tradie experience.
 - `fixed` Tradie schedule/day logic is now workspace-timezone aware. The shared tradie loaders compute “today” and display job times from the workspace timezone instead of the server’s local clock.
 - `fixed` The older non-tradie job detail surface now uses user-facing status labels and only offers completion actions for real field-work states instead of leaking raw internal stages like `INVOICED`.
+- `fixed` Tradie empty-state and back-navigation links now stay inside the tradie flow (`/tradie`, `/tradie/map`) instead of bouncing users into `/crm/tradie`, which redirected to the main CRM dashboard.
 
 ### Inbox / Messaging UX
 

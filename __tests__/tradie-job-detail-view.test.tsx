@@ -76,6 +76,7 @@ describe("Tradie JobDetailView", () => {
 
     await user.click(screen.getByRole("tab", { name: /handover/i }));
     expect(screen.getByRole("link", { name: /open full job in crm/i })).toHaveAttribute("href", "/crm/deals/deal_1");
+    expect(screen.getByRole("link", { name: "" })).toHaveAttribute("href", "/tradie");
     expect(screen.queryByRole("button", { name: /send handover pack to client/i })).not.toBeInTheDocument();
     expect(screen.getByText(/handover documents and customer-ready attachments are managed from the full crm job view/i)).toBeInTheDocument();
     expect(screen.queryByText(/maintenance guide/i)).not.toBeInTheDocument();
