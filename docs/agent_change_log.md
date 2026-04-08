@@ -3670,3 +3670,19 @@ Rule: every agent change commit must include an entry in this file.
   - invoice intent gets a larger adaptive step budget
   - combined quote/create/send requests carry the expected multi-step execution guidance through the actual chat route
 - This closes the previous production deploy/readiness blocker. The next outstanding work is now product-level: live CRM workflow trust/polish, Tracey quality on real CRM operations, and remaining real provider/device verification (especially WhatsApp assistant and the 3 Tracey call modes).
+
+## 2026-04-08 - WhatsApp webhook observability and workspace classification fix
+
+- Fixed `app/api/webhooks/whatsapp/route.ts` so internal-user WhatsApp processing classifies messages against the user's `workspaceId`, not the `user.id`.
+- Added synchronous inbound `webhookEvent` logging before the background AI path starts, so production probes are observable even if later processing fails.
+- Added durable error logging for background processing failures (`whatsapp.processing`) and outbound-send failures (`whatsapp.outbound` with `status: error`).
+- Simplified the route into a cleaner `sendWhatsApp()` helper and verified that unknown-number replies, spam handling, real command replies, and fallback-error replies all still return `200 OK` to Twilio.
+- Replaced and strengthened `__tests__/whatsapp-route.test.ts` to assert:
+  - workspace-scoped spam classification
+  - immediate inbound event logging
+  - successful outbound event logging
+  - processing-error event logging
+- Verified with:
+  - `npx vitest run __tests__/whatsapp-route.test.ts`
+  - `npx next build`
+- Next step after deploy: rerun the real production webhook probe and confirm `whatsapp.inbound` / `whatsapp.outbound` events appear in the production database.

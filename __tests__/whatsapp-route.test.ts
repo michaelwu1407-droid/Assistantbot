@@ -76,8 +76,8 @@ describe("POST /api/webhooks/whatsapp", () => {
     expect(hoisted.waitUntil).not.toHaveBeenCalled();
   });
 
-  it("filters spam in the background and logs an activity note", async () => {
-    hoisted.findUserByPhone.mockResolvedValue({ id: "user_1" });
+  it("records inbound traffic immediately and filters spam using the workspace id", async () => {
+    hoisted.findUserByPhone.mockResolvedValue({ id: "user_1", workspaceId: "ws_1" });
     hoisted.classifyMessage.mockResolvedValue({
       classification: "spam",
       reason: "known spam pattern",
@@ -99,8 +99,20 @@ describe("POST /api/webhooks/whatsapp", () => {
     );
 
     expect(response.status).toBe(200);
+    expect(hoisted.db.webhookEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        eventType: "whatsapp.inbound",
+        status: "received",
+        payload: expect.objectContaining({
+          userId: "user_1",
+          workspaceId: "ws_1",
+          from: "+61400000000",
+        }),
+      }),
+    });
     expect(hoisted.waitUntil).toHaveBeenCalledTimes(1);
     await hoisted.waitUntil.mock.calls[0][0];
+    expect(hoisted.classifyMessage).toHaveBeenCalledWith("ws_1", "cheap seo offer", "whatsapp:+61400000000");
     expect(hoisted.db.activity.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         title: "💬 SMS/WhatsApp Filtered: Spam",
@@ -110,14 +122,15 @@ describe("POST /api/webhooks/whatsapp", () => {
     expect(hoisted.processAgentCommand).not.toHaveBeenCalled();
   });
 
-  it("processes real commands in the background and replies via Twilio WhatsApp", async () => {
-    hoisted.findUserByPhone.mockResolvedValue({ id: "user_1" });
+  it("processes real commands in the background and logs a successful outbound reply", async () => {
+    hoisted.findUserByPhone.mockResolvedValue({ id: "user_1", workspaceId: "ws_1" });
     hoisted.classifyMessage.mockResolvedValue({
-      classification: "ham",
+      classification: "lead",
       reason: "",
       confidence: 0.1,
     });
     hoisted.processAgentCommand.mockResolvedValue("Booked it in.");
+    hoisted.twilioMessagesCreate.mockResolvedValue({ sid: "SM123" });
     const { POST } = await import("@/app/api/webhooks/whatsapp/route");
 
     const body = new URLSearchParams({
@@ -135,18 +148,30 @@ describe("POST /api/webhooks/whatsapp", () => {
     expect(response.status).toBe(200);
     expect(hoisted.waitUntil).toHaveBeenCalledTimes(1);
     await hoisted.waitUntil.mock.calls[0][0];
+    expect(hoisted.classifyMessage).toHaveBeenCalledWith("ws_1", "book Alex for tomorrow", "whatsapp:+61400000000");
     expect(hoisted.processAgentCommand).toHaveBeenCalledWith("user_1", "book Alex for tomorrow");
     expect(hoisted.twilioMessagesCreate).toHaveBeenCalledWith({
       from: "whatsapp:+61485010634",
       to: "whatsapp:+61400000000",
       body: "Booked it in.",
     });
+    expect(hoisted.db.webhookEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        eventType: "whatsapp.outbound",
+        status: "success",
+        payload: expect.objectContaining({
+          sid: "SM123",
+          userId: "user_1",
+          workspaceId: "ws_1",
+        }),
+      }),
+    });
   });
 
-  it("authenticates users with the cleaned phone number and sends a fallback reply on agent failure", async () => {
-    hoisted.findUserByPhone.mockResolvedValue({ id: "user_1" });
+  it("logs processing failures and sends a fallback reply when the agent errors", async () => {
+    hoisted.findUserByPhone.mockResolvedValue({ id: "user_1", workspaceId: "ws_1" });
     hoisted.classifyMessage.mockResolvedValue({
-      classification: "ham",
+      classification: "lead",
       reason: "",
       confidence: 0.02,
     });
@@ -173,6 +198,17 @@ describe("POST /api/webhooks/whatsapp", () => {
       from: "whatsapp:+61485010634",
       to: "whatsapp:+61411112222",
       body: "⚠️ The system encountered an error while processing your request. Please try again later.",
+    });
+    expect(hoisted.db.webhookEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        eventType: "whatsapp.processing",
+        status: "error",
+        payload: expect.objectContaining({
+          userId: "user_1",
+          workspaceId: "ws_1",
+          from: "+61411112222",
+        }),
+      }),
     });
   });
 });
