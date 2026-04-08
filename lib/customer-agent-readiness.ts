@@ -25,6 +25,7 @@ import {
 } from "@/lib/voice-agent-runtime";
 import { getInboundLeadEmailReadiness } from "@/lib/inbound-lead-email-readiness";
 import { getLivekitSipHealth, type LivekitSipHealth } from "@/lib/livekit-sip-health";
+import { db } from "@/lib/db";
 
 export type ReadinessStatus = "healthy" | "degraded" | "unhealthy";
 
@@ -47,6 +48,12 @@ type ReadinessDependencies = {
   voiceFleet?: VoiceFleetHealth;
   voiceLatency?: VoiceLatencyHealth;
   livekitSip?: LivekitSipHealth;
+};
+
+type WhatsAppAssistantHealth = {
+  status: ReadinessStatus;
+  summary: string;
+  warnings: string[];
 };
 
 function summarize(status: ReadinessStatus, missing: string[], warnings: string[]) {
@@ -208,6 +215,52 @@ function buildResultCheck(result: {
   };
 }
 
+async function getWhatsAppAssistantHealth(): Promise<WhatsAppAssistantHealth> {
+  const recentEvents = await db.webhookEvent.findMany({
+    where: {
+      eventType: { in: ["whatsapp.outbound", "whatsapp.processing"] },
+      createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 10,
+    select: {
+      eventType: true,
+      status: true,
+      payload: true,
+      createdAt: true,
+    },
+  });
+
+  const latestSuccess = recentEvents.find((event) => event.eventType === "whatsapp.outbound" && event.status === "success");
+  const latestError = recentEvents.find(
+    (event) =>
+      (event.eventType === "whatsapp.outbound" || event.eventType === "whatsapp.processing") &&
+      event.status === "error",
+  );
+
+  if (latestError && (!latestSuccess || latestSuccess.createdAt < latestError.createdAt)) {
+    const payload = (latestError.payload ?? {}) as Record<string, unknown>;
+    const errorMessage =
+      typeof payload.error === "string" && payload.error.trim()
+        ? payload.error.trim()
+        : "Recent WhatsApp assistant sends are failing.";
+
+    return {
+      status: "degraded",
+      summary: "Recent WhatsApp assistant sends are failing.",
+      warnings: [errorMessage],
+    };
+  }
+
+  return {
+    status: "healthy",
+    summary: latestSuccess
+      ? "Recent WhatsApp assistant replies succeeded."
+      : "No recent WhatsApp assistant delivery failures were observed.",
+    warnings: [],
+  };
+}
+
 function buildInboundVoiceCheck(twilioVoiceRouting: TwilioVoiceRoutingDrift): AgentReadinessCheck {
   const required = [
     "TWILIO_ACCOUNT_SID",
@@ -284,7 +337,16 @@ export async function getCustomerAgentReadiness(
     ]),
   };
 
-  const [twilioVoiceRouting, twilioMessagingRouting, voiceWorker, voiceFleet, voiceLatency, livekitSip, emailLeadCaptureReadiness] = await Promise.all([
+  const [
+    twilioVoiceRouting,
+    twilioMessagingRouting,
+    voiceWorker,
+    voiceFleet,
+    voiceLatency,
+    livekitSip,
+    emailLeadCaptureReadiness,
+    whatsAppAssistantHealth,
+  ] = await Promise.all([
     dependencies.twilioVoiceRouting
       ? Promise.resolve(dependencies.twilioVoiceRouting)
       : runOpsAuditWithTimeout(
@@ -328,6 +390,7 @@ export async function getCustomerAgentReadiness(
           buildLivekitSipFailure,
         ),
     getInboundLeadEmailReadiness(),
+    getWhatsAppAssistantHealth(),
   ]);
 
   checks.inboundVoice = buildInboundVoiceCheck(twilioVoiceRouting);
@@ -337,6 +400,14 @@ export async function getCustomerAgentReadiness(
       checks.smsInbound,
       normalizeWarnings(twilioMessagingRouting.status, twilioMessagingRouting.summary, twilioMessagingRouting.warnings),
       twilioMessagingRouting.status,
+    );
+  }
+
+  if (whatsAppAssistantHealth.status !== "healthy") {
+    mergeCheckWarnings(
+      checks.whatsappAssistant,
+      normalizeWarnings(whatsAppAssistantHealth.status, whatsAppAssistantHealth.summary, whatsAppAssistantHealth.warnings),
+      whatsAppAssistantHealth.status,
     );
   }
 

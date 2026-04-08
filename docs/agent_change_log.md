@@ -3727,3 +3727,19 @@ Rule: every agent change commit must include an entry in this file.
 - Re-verified with:
   - `npx vitest run __tests__/ai-agent.test.ts __tests__/whatsapp-route.test.ts __tests__/workspace-routing.test.ts`
 - If the next live probe still fails, the remaining issue should be provider-side Twilio/WhatsApp configuration rather than a blank app response body.
+
+## 2026-04-08 - WhatsApp readiness now reflects real provider failures
+
+- After the latest live probe, the app-side WhatsApp assistant path is proven to work up to outbound delivery:
+  - `whatsapp.inbound` is logged on the correct provisioned workspace
+  - Tracey processing runs
+  - non-empty outbound text is generated
+- The remaining failure is provider-side Twilio/WhatsApp configuration:
+  - Twilio error `63007`
+  - message: `Twilio could not find a Channel with the specified From address`
+- Updated `lib/customer-agent-readiness.ts` so the `whatsappAssistant` readiness check looks at recent `whatsapp.outbound` / `whatsapp.processing` events and degrades when recent sends are failing.
+- Added readiness coverage in `__tests__/customer-agent-readiness.test.ts`.
+- Re-verified with:
+  - `npx vitest run __tests__/customer-agent-readiness.test.ts __tests__/ai-agent.test.ts __tests__/whatsapp-route.test.ts __tests__/workspace-routing.test.ts`
+  - `npx next build`
+- Next step after deploy: confirm `/api/internal/launch-readiness` stops calling WhatsApp healthy, and then fix the Twilio WhatsApp sender configuration outside the repo.

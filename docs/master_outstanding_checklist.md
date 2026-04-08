@@ -193,7 +193,8 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` WhatsApp assistant processing now runs inline instead of depending on `waitUntil()`, because live production probes showed the background path was not completing reliably.
 - `fixed` Authenticated WhatsApp assistant messages no longer run through the inbound lead spam classifier; internal user commands now go straight to Tracey after identity resolution.
 - `fixed` Headless WhatsApp assistant replies now get a non-empty fallback summary if the LLM/tool run returns blank text, preventing Twilio body-empty error `21619`.
-- `re-verify` After the next deploy, rerun the live WhatsApp probe and confirm production `whatsapp.inbound` and `whatsapp.outbound` webhookEvent rows appear as expected.
+- `fixed` Launch/readiness now degrades the WhatsApp assistant when recent `whatsapp.outbound` / `whatsapp.processing` events show real Twilio delivery failures.
+- `open` Remaining WhatsApp blocker is provider-side Twilio configuration: current live sends fail with `63007` (`Twilio could not find a Channel with the specified From address`).
 
 ### Product Truth Already Established
 
