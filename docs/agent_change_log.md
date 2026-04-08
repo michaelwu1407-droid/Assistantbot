@@ -54,6 +54,20 @@
 - Why:
   - This keeps the manual quote flow honest. If the product tells the user the next step is issuing the draft invoice from billing, it should give them a direct path to do exactly that.
 
+## 2026-04-08 (Codex) - Tradie parts shortcut is now a real shortcut
+
+- Files changed:
+  - `components/tradie/job-bottom-sheet.tsx`
+  - `__tests__/job-bottom-sheet.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Removed a fake quick action**: the `Parts` button in the tradie bottom sheet no longer sits there without behavior.
+  - **Made it useful**: it now opens the billing tab directly so the tradie lands on the variation/materials area with `Search Material Database` ready to use.
+  - **Verification**: added focused UI coverage proving the button switches the sheet into the billing/materials view, and the app still passes `next build`.
+- Why:
+  - Quick actions on the tradie surface need to be immediate and trustworthy. A dead `Parts` button in a mobile-first workflow erodes confidence fast.
+
 ## 2026-04-08 (Codex) - Draft rejection routed correctly
 
 - Files changed:

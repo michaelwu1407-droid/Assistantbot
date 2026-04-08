@@ -148,6 +148,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Manual estimator quoting is now better explained and covered: the estimator surfaces real failure toasts, explains that it creates a GST-inclusive draft invoice linked to the selected job, and explains the next step after success.
 - `fixed` Manual estimator success state now gives a real next step too: after quote generation, it links straight to the selected deal’s billing panel instead of showing a disabled `Download PDF (Coming Soon)` placeholder.
 - `fixed` Tradie/mobile job-detail billing no longer dead-ends on a fake `Generate Invoice` button. When a job has no invoices, the empty state now explains that billing lives in the full CRM panel and links directly to `/crm/deals/[id]` via `Open Full Billing`.
+- `fixed` Tradie/mobile job bottom-sheet `Parts` quick action is now a real shortcut into the billing/materials tab instead of a dead button with no behavior.
 - `fixed` Post-job review-request flow: requestReview tool wired to sendReviewRequestSMS. 'Request review' quick action buttons now backed by a real tool. Returns structured success/error with quickAction to view customer responses.
 
 ### Search / Notifications / Quick Actions

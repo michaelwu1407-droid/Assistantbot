@@ -129,7 +129,15 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
                                         <MessageSquare className="w-6 h-6" />
                                         <span className="text-[10px] font-bold uppercase tracking-wider">Text</span>
                                     </Button>
-                                    <Button variant="outline" className="h-20 flex flex-col gap-2 bg-slate-900 border-slate-800 hover:bg-slate-800 hover:text-orange-400 hover:border-orange-500/50 transition-all text-slate-400">
+                                    <Button
+                                        variant="outline"
+                                        className="h-20 flex flex-col gap-2 bg-slate-900 border-slate-800 hover:bg-slate-800 hover:text-orange-400 hover:border-orange-500/50 transition-all text-slate-400"
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            setIsOpen(true)
+                                            setActiveTab('BILLING')
+                                        }}
+                                    >
                                         <Wrench className="w-6 h-6" />
                                         <span className="text-[10px] font-bold uppercase tracking-wider">Parts</span>
                                     </Button>
