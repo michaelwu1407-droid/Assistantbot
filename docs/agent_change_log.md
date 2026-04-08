@@ -126,6 +126,20 @@
 - Why:
   - Operational headers need to be trustworthy at a glance. A hard-coded time on a field-work screen undermines confidence even if the rest of the data is correct.
 
+## 2026-04-08 (Codex) - CRM completion-review photo action is now honest
+
+- Files changed:
+  - `components/crm/job-completion-modal.tsx`
+  - `__tests__/crm-job-completion-modal.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Removed dummy photo follow-up state**: the CRM-side completion review no longer fakes attached photos by toggling `["photo1", "photo2"]` in local state.
+  - **Replaced it with a real path**: the follow-up section now tells the truth and links to the full CRM job view for photo attachment/sending, where messaging and files actually belong.
+  - **Verification**: added focused coverage in `crm-job-completion-modal.test.tsx` and reran the production build.
+- Why:
+  - This was a subtle but important trust bug: the UI implied there were real photos queued for sending when there were not. It’s better to route the user to the real photo/messaging surface than to simulate the behavior locally.
+
 ## 2026-04-08 (Codex) - Draft rejection routed correctly
 
 - Files changed:

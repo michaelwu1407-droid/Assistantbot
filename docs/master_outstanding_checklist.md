@@ -153,6 +153,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Tradie/mobile job bottom-sheet `Call` and `Text` actions now fail honestly too: when there is no customer phone number, they disable themselves and relabel to `No Phone` instead of trying to open blank `tel:` / `sms:` links.
 - `fixed` Tradie/mobile job bottom-sheet collapsed header now shows the real scheduled time and real company context instead of a hard-coded `8:00 AM • Company` placeholder.
 - `fixed` The older alternate tradie job-detail surface no longer dead-ends either: its billing tab now links to full CRM billing, its handover section now links to the full CRM job view instead of a fake send button, and its call/map actions now disable honestly when data is missing.
+- `fixed` CRM-side job completion review no longer fakes photo follow-up state with dummy values. It now routes users to the full CRM job view to attach/send photos where that workflow actually exists.
 - `fixed` Post-job review-request flow: requestReview tool wired to sendReviewRequestSMS. 'Request review' quick action buttons now backed by a real tool. Returns structured success/error with quickAction to view customer responses.
 
 ### Search / Notifications / Quick Actions
