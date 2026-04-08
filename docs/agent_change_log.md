@@ -1,3 +1,17 @@
+## 2026-04-08 (Codex) - Live production verification: rescheduling, approvals, and daily summary
+
+- Files changed:
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Schedule/reschedule path proven live**: through the real authorized `/api/chat` route on production `9f6fe25f`, a fake scheduled job was moved to `tomorrow at 3pm`. The persisted production deal stayed in `SCHEDULED`, kept its assignee, updated `scheduledAt` to the new time, and had `lastReminderSentAt` cleared as expected.
+  - **Completion approval path proven live**: `Approve the completion for ...` invoked `approveCompletion`, returned a truthful success message with invoice/review follow-ups, and the persisted production deal moved from `PENDING_COMPLETION` to `WON`.
+  - **Completion rejection path proven live**: `Reject the completion for ... because the photos are missing.` invoked `rejectCompletion`, preserved the manager-provided reason in the response, and reverted the persisted production deal out of `PENDING_COMPLETION` as expected.
+  - **Morning briefing / today-summary path proven live**: `What's on my plate today?` invoked `getTodaySummary` and returned today’s scheduled jobs plus overdue tasks from production CRM state. This confirms the workspace-timezone-aware summary path is functioning in the live app.
+  - **Ops truth refreshed**: reran the spoken PSTN canary and refreshed the voice/passive monitors. Production `launch-readiness` on `9f6fe25f` is now only degraded for the intentionally skipped WhatsApp provider error; voice, scheduling, and passive comms are otherwise healthy.
+- Why:
+  - This closes more of the “real CRM work” loop in production. The remaining gaps are increasingly about UX polish, duplicate QA data, and real-device/provider verification rather than basic orchestration failures.
+
 ## 2026-04-08 (Codex) - Tracey contact ambiguity shortlist
 
 - Files changed:
