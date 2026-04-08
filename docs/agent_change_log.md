@@ -3714,3 +3714,16 @@ Rule: every agent change commit must include an entry in this file.
   - `npx vitest run __tests__/whatsapp-route.test.ts __tests__/workspace-routing.test.ts`
   - `npx next build`
 - Next step after deploy: rerun the live WhatsApp probe and confirm a real `whatsapp.outbound success` event and Twilio WhatsApp message are produced for Miguel's provisioned workspace.
+
+## 2026-04-08 - Headless WhatsApp assistant replies can no longer be blank
+
+- Live production verification on `d5d480f8` proved the internal WhatsApp assistant was now:
+  - hitting the correct provisioned workspace
+  - logging `whatsapp.inbound`
+  - reaching the outbound send attempt
+- The remaining app-side failure was Twilio error `21619` (`A text message body or media urls must be specified.`), which showed `processAgentCommand()` could still return an empty string on some tool-only turns.
+- Added `ensureHeadlessReply()` to `lib/services/ai-agent.ts` so headless assistant replies always have a non-empty fallback summary.
+- Added `__tests__/ai-agent.test.ts` to lock that behavior.
+- Re-verified with:
+  - `npx vitest run __tests__/ai-agent.test.ts __tests__/whatsapp-route.test.ts __tests__/workspace-routing.test.ts`
+- If the next live probe still fails, the remaining issue should be provider-side Twilio/WhatsApp configuration rather than a blank app response body.

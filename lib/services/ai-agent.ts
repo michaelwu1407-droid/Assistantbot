@@ -39,6 +39,12 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: 
   return result;
 }
 
+function ensureHeadlessReply(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed) return trimmed;
+  return "I processed that in Earlymark, but I don't have a text summary to send back yet.";
+}
+
 /**
  * Processes a command received from a user via the WhatsApp Assistant (Headless UI).
  *
@@ -146,7 +152,7 @@ export async function processAgentCommand(userId: string, message: string): Prom
     recordLatencyMetric("chat.headless.model_ms", modelMs);
     recordLatencyMetric("chat.headless.total_ms", totalMs);
 
-    return result.text;
+    return ensureHeadlessReply(result.text);
   } catch (error) {
     console.error("Error in processAgentCommand:", error);
     return "I encountered an error trying to process your request. Please try again or contact support if the issue persists.";
