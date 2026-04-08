@@ -145,6 +145,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `re-verify` Full end-to-end quote→issue→paid flow on live CRM still needs usability validation to confirm the multi-step sequence works correctly in production.
 - `open` Full quoting and estimate-approval workflows still need deeper live testing.
 - `fixed` Manual estimator quoting is now better explained and covered: the estimator surfaces real failure toasts, explains that it creates a GST-inclusive draft invoice linked to the selected job, and explains the next step after success.
+- `fixed` Tradie/mobile job-detail billing no longer dead-ends on a fake `Generate Invoice` button. When a job has no invoices, the empty state now explains that billing lives in the full CRM panel and links directly to `/crm/deals/[id]` via `Open Full Billing`.
 - `fixed` Post-job review-request flow: requestReview tool wired to sendReviewRequestSMS. 'Request review' quick action buttons now backed by a real tool. Returns structured success/error with quickAction to view customer responses.
 
 ### Search / Notifications / Quick Actions

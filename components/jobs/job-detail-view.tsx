@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Phone, MapPin, CheckCircle2 } from "lucide-react"
+import { Phone, MapPin, CheckCircle2, ExternalLink } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { updateJobStatus } from "@/actions/tradie-actions"
 import { toast } from "sonner"
@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation"
 import { InvoiceGenerator } from "@/components/invoicing/invoice-generator"
 import { JobMedia } from "./job-media"
 import { formatInvoiceStatusLabel, formatJobHeaderStatus } from "@/lib/job-portal-status-labels"
+import Link from "next/link"
 
 // Define types locally or import (ideally import shared types)
 interface JobDetail {
@@ -154,7 +155,18 @@ export default function JobDetailView({ job }: JobDetailViewProps) {
                             </CardHeader>
                             <CardContent className="space-y-2">
                                 {job.invoices.length === 0 ? (
-                                    <p className="text-sm text-muted-foreground">No invoices generated.</p>
+                                    <div className="space-y-3">
+                                        <p className="text-sm text-muted-foreground">No invoices generated yet.</p>
+                                        <p className="text-xs text-muted-foreground">
+                                            Create and issue invoices from the full CRM billing panel so totals, status, and customer sends stay in sync.
+                                        </p>
+                                        <Button asChild className="w-full mt-2" variant="secondary">
+                                            <Link href={`/crm/deals/${job.id}`}>
+                                                <ExternalLink className="mr-2 h-4 w-4" />
+                                                Open Full Billing
+                                            </Link>
+                                        </Button>
+                                    </div>
                                 ) : (
                                     job.invoices.map(inv => (
                                         <div key={inv.id} className="flex justify-between items-center p-2 border rounded bg-white">
@@ -171,7 +183,6 @@ export default function JobDetailView({ job }: JobDetailViewProps) {
                                         </div>
                                     ))
                                 )}
-                                <Button className="w-full mt-4" variant="secondary">Generate Invoice</Button>
                             </CardContent>
                         </Card>
                     </TabsContent>

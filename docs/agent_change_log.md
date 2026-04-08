@@ -12,6 +12,20 @@
 - Why:
   - This closes more of the “real CRM work” loop in production. The remaining gaps are increasingly about UX polish, duplicate QA data, and real-device/provider verification rather than basic orchestration failures.
 
+## 2026-04-08 (Codex) - Job-detail billing dead end removed
+
+- Files changed:
+  - `components/jobs/job-detail-view.tsx`
+  - `__tests__/job-detail-view.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Removed a dead-end billing action**: the tradie/mobile job-detail view no longer shows a non-functional `Generate Invoice` button when a job has no invoices.
+  - **Replaced it with a real next step**: the empty state now explains that billing lives in the full CRM panel and links directly to `/crm/deals/[id]` with `Open Full Billing`.
+  - **Verification**: added focused UI coverage and confirmed the route target with `job-detail-view.test.tsx`; production build is clean.
+- Why:
+  - This was a real trust gap. Users on the job-detail screen were being invited to take a billing action that didn’t actually exist there. Routing them to the canonical billing surface is a better product path than pretending inline invoice generation is available.
+
 ## 2026-04-08 (Codex) - Draft rejection routed correctly
 
 - Files changed:
