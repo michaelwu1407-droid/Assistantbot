@@ -3853,3 +3853,17 @@ Rule: every agent change commit must include an entry in this file.
   - The remaining non-provider product gaps are mostly trust/coherence issues. These two surfaces were already functionally working, but they still left room for "what mode am I in?" and "what do I do next?" confusion.
 - Verified with:
   - `npx vitest run __tests__/inbox-view.test.tsx __tests__/map-view.test.tsx __tests__/inbox-page.test.tsx`
+
+## 2026-04-08 - Tracey contact disambiguation prompt polish
+
+- Files:
+  - `app/api/chat/route.ts`
+  - `__tests__/chat-route.test.ts`
+- What changed:
+  - Tightened the ambiguity instruction Tracey receives when multiple equally strong contact matches exist.
+  - The resolved-entities block now explicitly tells the model to ask the user which option they mean and suggests concrete clarifiers like phone number, company, email, or option number instead of a vague follow-up.
+- Why:
+  - The contact ambiguity path was truthful but still too basic. This keeps Tracey LLM-first while making the next-step clarification more actionable and less noisy for real users.
+- Verified with:
+  - `npx vitest run __tests__/chat-route.test.ts __tests__/agent-tools.test.ts __tests__/pre-classifier.test.ts`
+  - `npx next build`

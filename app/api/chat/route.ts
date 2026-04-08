@@ -530,7 +530,7 @@ async function buildResolvedEntitiesBlock(
               ].filter(Boolean);
               return `${match.name}${details.length ? ` (${details.join(", ")})` : ""}`;
             })
-            .join("; ")}. Ask the user which one they mean instead of guessing.`,
+            .join("; ")}. Ask the user which one they mean instead of guessing, and suggest they reply with a phone number, company, email, or option number.`,
         );
       } else if (context.client) {
         lines.push(
@@ -625,14 +625,14 @@ function buildWorkspaceContextBlocks(
 function formatClientContextResult(result: Awaited<ReturnType<typeof runGetClientContext>>): string {
   if (result.ambiguousMatches?.length) {
     const lines = ["I found multiple contacts that match. Tell me which one you mean:"];
-    for (const match of result.ambiguousMatches) {
+    result.ambiguousMatches.forEach((match, index) => {
       const details = [
         match.company ? `company ${match.company}` : null,
         match.phone ? `phone ${match.phone}` : null,
         match.email ? `email ${match.email}` : null,
       ].filter(Boolean);
-      lines.push(`- ${match.name}${details.length ? ` (${details.join(", ")})` : ""}`);
-    }
+      lines.push(`${index + 1}. ${match.name}${details.length ? ` (${details.join(", ")})` : ""}`);
+    });
     lines.push("Reply with the phone number, email, company name, or full contact name and I’ll open the right record.");
     return lines.join("\n");
   }

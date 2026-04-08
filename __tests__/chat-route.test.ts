@@ -462,7 +462,8 @@ describe("POST /api/chat", () => {
     const promptArgs = hoisted.buildCrmChatSystemPrompt.mock.calls.at(-1)?.[0];
     expect(promptArgs.resolvedEntitiesBlock).toContain("phone 0400000001");
     expect(promptArgs.resolvedEntitiesBlock).toContain("email alex.two@example.com");
-    expect(promptArgs.resolvedEntitiesBlock).toContain("Ask the user which one they mean instead of guessing.");
+    expect(promptArgs.resolvedEntitiesBlock).toContain("Ask the user which one they mean instead of guessing");
+    expect(promptArgs.resolvedEntitiesBlock).toContain("option number");
   });
 
   it("injects current workspace date and likely job context for next-step completion questions", async () => {
