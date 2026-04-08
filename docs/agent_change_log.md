@@ -4058,3 +4058,21 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/tradie-job-completion-modal.test.tsx`
   - `npx next build`
+
+## 2026-04-08 - Contacts and deals POST APIs now use the real create actions
+
+- Files:
+  - `app/api/contacts/route.ts`
+  - `app/api/deals/route.ts`
+  - `__tests__/contact-api-route.test.ts`
+  - `__tests__/deal-api-route.test.ts`
+- What changed:
+  - Wired `POST /api/contacts` to `createContact()` instead of returning a placeholder `501`.
+  - Wired `POST /api/deals` to `createDeal()` instead of returning a placeholder `501`.
+  - Both routes now scope creation to the authenticated workspace even if a spoofed `workspaceId` is sent in the request body.
+  - Added route-level verification for both success paths.
+- Why:
+  - These endpoints already existed publicly in the app surface, but they still lied about being unimplemented even though the underlying server actions were real. That is backend trust debt waiting to surprise future UI or integration work.
+- Verified with:
+  - `npx vitest run __tests__/contact-api-route.test.ts __tests__/deal-api-route.test.ts`
+  - `npx next build`

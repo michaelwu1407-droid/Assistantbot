@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const hoisted = vi.hoisted(() => ({
   requireDealInCurrentWorkspace: vi.fn(),
+  requireCurrentWorkspaceAccess: vi.fn(),
+  createDeal: vi.fn(),
   loggerError: vi.fn(),
   db: {
     deal: {
@@ -13,6 +15,11 @@ const hoisted = vi.hoisted(() => ({
 
 vi.mock("@/lib/workspace-access", () => ({
   requireDealInCurrentWorkspace: hoisted.requireDealInCurrentWorkspace,
+  requireCurrentWorkspaceAccess: hoisted.requireCurrentWorkspaceAccess,
+}));
+
+vi.mock("@/actions/deal-actions", () => ({
+  createDeal: hoisted.createDeal,
 }));
 
 vi.mock("@/lib/logging", () => ({
@@ -25,6 +32,7 @@ vi.mock("@/lib/db", () => ({
   db: hoisted.db,
 }));
 
+import { POST } from "@/app/api/deals/route";
 import { GET } from "@/app/api/deals/[id]/route";
 
 describe("GET /api/deals/[id]", () => {
@@ -33,6 +41,15 @@ describe("GET /api/deals/[id]", () => {
     hoisted.requireDealInCurrentWorkspace.mockResolvedValue({
       actor: { id: "user_1", workspaceId: "ws_1", role: "TEAM_MEMBER" },
       deal: { id: "deal_1", workspaceId: "ws_1" },
+    });
+    hoisted.requireCurrentWorkspaceAccess.mockResolvedValue({
+      id: "user_1",
+      workspaceId: "ws_1",
+      role: "OWNER",
+    });
+    hoisted.createDeal.mockResolvedValue({
+      success: true,
+      dealId: "deal_created",
     });
     hoisted.db.deal.findUnique.mockResolvedValue({
       id: "deal_1",
@@ -62,6 +79,37 @@ describe("GET /api/deals/[id]", () => {
       orderBy: { updatedAt: "desc" },
       take: 10,
       include: { contact: true },
+    });
+  });
+
+  it("POST /api/deals creates deals through the real action instead of returning a placeholder 501", async () => {
+    const request = new Request("https://app.example.com/api/deals", {
+      method: "POST",
+      body: JSON.stringify({
+        title: "Blocked Drain",
+        contactId: "contact_1",
+        stage: "new_request",
+        workspaceId: "spoofed_ws",
+      }),
+      headers: {
+        "content-type": "application/json",
+      },
+    });
+
+    const response = await POST(request as Request & { nextUrl?: URL });
+    const payload = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(hoisted.createDeal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Blocked Drain",
+        contactId: "contact_1",
+        workspaceId: "ws_1",
+      })
+    );
+    expect(payload).toEqual({
+      success: true,
+      dealId: "deal_created",
     });
   });
 });
