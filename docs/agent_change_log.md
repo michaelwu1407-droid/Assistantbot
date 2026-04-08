@@ -12,6 +12,17 @@
 - Why:
   - This closes more of the “real CRM work” loop in production. The remaining gaps are increasingly about UX polish, duplicate QA data, and real-device/provider verification rather than basic orchestration failures.
 
+## 2026-04-08 (Codex) - Live production verification: attention filtering
+
+- Files changed:
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Filtered stale/incomplete queries are working live**: on production, `What jobs for ZZZ ATTN FLOW ... look incomplete or blocked?` returned a direct-response answer with the exact fake job and the correct user-facing labels: `New request; Stale`.
+  - **No noisy leakage in the filtered path**: the response stayed scoped to the matching fake job instead of surfacing unrelated `livefull_*` / `liveprobe_*` records, confirming the stricter whole-word filtering still holds under a fresh live probe.
+- Why:
+  - This is a key manager workflow. The filtered attention path had previously been noisy and misleading, so a fresh production proof matters more than just code-level confidence.
+
 ## 2026-04-08 (Codex) - Tracey contact ambiguity shortlist
 
 - Files changed:
