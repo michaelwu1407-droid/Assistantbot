@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { waitUntil } from "@vercel/functions";
 import twilio from "twilio";
 import { processAgentCommand } from "@/lib/services/ai-agent";
 import { classifyMessage } from "@/lib/spam-classifier";
@@ -74,84 +73,81 @@ export async function POST(req: Request) {
         return null;
       });
 
-    const processPromise = (async () => {
+    try {
+      const spamResult = await classifyMessage(user.workspaceId, body, `whatsapp:${cleanNumber}`);
+
+      if (spamResult.classification === "spam") {
+        console.log(`[WhatsApp Webhook] Spam filtered: ${spamResult.reason}`);
+        await db.activity.create({
+          data: {
+            type: "NOTE",
+            title: "💬 SMS/WhatsApp Filtered: Spam",
+            userId: user.id,
+            content: `From: ${cleanNumber}\nMessage: ${body}\nReason: ${spamResult.reason}\nConfidence: ${(spamResult.confidence * 100).toFixed(0)}%\n\nIf this was a real message, tell Tracey: "A message from ${cleanNumber} was marked as spam — it's actually real, please learn from it."`,
+          },
+        });
+        return new NextResponse("OK", { status: 200 });
+      }
+
+      const aiResponse = await processAgentCommand(user.id, body);
+
       try {
-        const spamResult = await classifyMessage(user.workspaceId, body, `whatsapp:${cleanNumber}`);
-
-        if (spamResult.classification === "spam") {
-          console.log(`[WhatsApp Webhook] Spam filtered: ${spamResult.reason}`);
-          await db.activity.create({
-            data: {
-              type: "NOTE",
-              title: "💬 SMS/WhatsApp Filtered: Spam",
+        const msg = await sendWhatsApp(cleanNumber, aiResponse);
+        await db.webhookEvent.create({
+          data: {
+            provider: "twilio",
+            eventType: "whatsapp.outbound",
+            status: "success",
+            payload: {
+              sid: msg?.sid,
               userId: user.id,
-              content: `From: ${cleanNumber}\nMessage: ${body}\nReason: ${spamResult.reason}\nConfidence: ${(spamResult.confidence * 100).toFixed(0)}%\n\nIf this was a real message, tell Tracey: "A message from ${cleanNumber} was marked as spam — it's actually real, please learn from it."`,
+              workspaceId: user.workspaceId ?? undefined,
             },
-          });
-          return;
-        }
-
-        const aiResponse = await processAgentCommand(user.id, body);
-
-        try {
-          const msg = await sendWhatsApp(cleanNumber, aiResponse);
-          await db.webhookEvent.create({
-            data: {
-              provider: "twilio",
-              eventType: "whatsapp.outbound",
-              status: "success",
-              payload: {
-                sid: msg?.sid,
-                userId: user.id,
-                workspaceId: user.workspaceId ?? undefined,
-              },
-            },
-          });
-        } catch (sendErr) {
-          await db.webhookEvent
-            .create({
-              data: {
-                provider: "twilio",
-                eventType: "whatsapp.outbound",
-                status: "error",
-                payload: {
-                  userId: user.id,
-                  workspaceId: user.workspaceId ?? undefined,
-                  error: sendErr instanceof Error ? sendErr.message : String(sendErr),
-                },
-              },
-            })
-            .catch(() => {});
-          throw sendErr;
-        }
-      } catch (aiErr) {
-        console.error("[WhatsApp Webhook] Error processing AI command:", aiErr);
+          },
+        });
+      } catch (sendErr) {
         await db.webhookEvent
           .create({
             data: {
               provider: "twilio",
-              eventType: "whatsapp.processing",
+              eventType: "whatsapp.outbound",
               status: "error",
               payload: {
-                ...inboundPayload,
-                error: aiErr instanceof Error ? aiErr.message : String(aiErr),
+                userId: user.id,
+                workspaceId: user.workspaceId ?? undefined,
+                error: sendErr instanceof Error ? sendErr.message : String(sendErr),
               },
             },
           })
           .catch(() => {});
-
-        try {
-          await sendWhatsApp(
-            cleanNumber,
-            "⚠️ The system encountered an error while processing your request. Please try again later.",
-          );
-        } catch (twilioErr) {
-          console.error("[WhatsApp Webhook] Error sending fallback system error:", twilioErr);
-        }
+        throw sendErr;
       }
-    })();
+    } catch (aiErr) {
+      console.error("[WhatsApp Webhook] Error processing AI command:", aiErr);
+      await db.webhookEvent
+        .create({
+          data: {
+            provider: "twilio",
+            eventType: "whatsapp.processing",
+            status: "error",
+            payload: {
+              ...inboundPayload,
+              error: aiErr instanceof Error ? aiErr.message : String(aiErr),
+            },
+          },
+        })
+        .catch(() => {});
 
-    waitUntil(processPromise);
+      try {
+        await sendWhatsApp(
+          cleanNumber,
+          "⚠️ The system encountered an error while processing your request. Please try again later.",
+        );
+      } catch (twilioErr) {
+        console.error("[WhatsApp Webhook] Error sending fallback system error:", twilioErr);
+      }
+    }
+
     return new NextResponse("OK", { status: 200 });
   } catch (error) {
     console.error("[WhatsApp Webhook] Fatal system error:", error);

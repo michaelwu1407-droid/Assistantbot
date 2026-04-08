@@ -3686,3 +3686,20 @@ Rule: every agent change commit must include an entry in this file.
   - `npx vitest run __tests__/whatsapp-route.test.ts`
   - `npx next build`
 - Next step after deploy: rerun the real production webhook probe and confirm `whatsapp.inbound` / `whatsapp.outbound` events appear in the production database.
+
+## 2026-04-08 - WhatsApp duplicate-phone routing and inline processing fix
+
+- Production probe confirmed the webhook was executing, but it was resolving `+61434955958` to the wrong historical owner because four different user accounts share that same phone number across old workspaces.
+- Updated `lib/workspace-routing.ts` so `findUserByPhone()` no longer returns the first arbitrary match. It now prefers:
+  - workspaces with `onboardingProvisioningStatus === "provisioned"`
+  - then workspaces with a real `twilioPhoneNumber`
+  - then owner records
+- Updated `app/api/webhooks/whatsapp/route.ts` again to process the assistant request inline instead of relying on `waitUntil()`, because production showed the synchronous inbound event being written but no follow-on processing or outbound reply ever completing.
+- Added `__tests__/workspace-routing.test.ts` to lock the duplicate-phone selection behavior and refreshed `__tests__/whatsapp-route.test.ts` to match the inline route execution.
+- Verified with:
+  - `npx vitest run __tests__/whatsapp-route.test.ts __tests__/workspace-routing.test.ts`
+  - `npx next build`
+- Next step after deploy: rerun the live WhatsApp probe and confirm all three production signals appear together for the same user/workspace:
+  - `whatsapp.inbound`
+  - either `whatsapp.outbound success` or `whatsapp.processing error`
+  - a corresponding Twilio WhatsApp message record if outbound send succeeds

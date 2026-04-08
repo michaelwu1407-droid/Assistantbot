@@ -64,10 +64,38 @@ export async function findUserByPhone(phone?: string) {
       name: true,
       phone: true,
       workspaceId: true,
+      workspace: {
+        select: {
+          ownerId: true,
+          twilioPhoneNumber: true,
+          settings: true,
+        },
+      },
     },
   });
 
-  return users.find((user) => phoneMatches(user.phone, phone)) ?? null;
+  const matches = users.filter((user) => phoneMatches(user.phone, phone));
+  if (matches.length === 0) return null;
+  if (matches.length === 1) {
+    const { workspace, ...user } = matches[0];
+    return user;
+  }
+
+  const scored = matches
+    .map((user) => {
+      const settings = (user.workspace?.settings ?? {}) as Record<string, unknown>;
+      let score = 0;
+
+      if (settings.onboardingProvisioningStatus === "provisioned") score += 100;
+      if (typeof user.workspace?.twilioPhoneNumber === "string" && user.workspace.twilioPhoneNumber.trim()) score += 50;
+      if (user.workspace?.ownerId === user.id) score += 10;
+
+      return { user, score };
+    })
+    .sort((left, right) => right.score - left.score);
+
+  const { workspace, ...bestUser } = scored[0].user;
+  return bestUser;
 }
 
 export async function findContactByPhone(workspaceId: string, phone?: string) {

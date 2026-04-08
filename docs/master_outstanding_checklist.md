@@ -189,6 +189,8 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Voice latency scoring no longer over-flags healthy `inbound_demo` canary traffic: the PSTN-backed demo surface now uses an `1100ms` TTS TTFB threshold, and dominant-bottleneck warnings only trigger with enough samples plus a real threshold breach.
 - `in-progress` Real WhatsApp assistant verification for internal users on the live number.
 - `fixed` WhatsApp webhook now classifies against `workspaceId` instead of `user.id`, records `whatsapp.inbound` synchronously, and logs `whatsapp.processing` errors durably before returning `200 OK` to Twilio.
+- `fixed` Duplicate-phone-number resolution for the internal WhatsApp assistant now prefers the provisioned/twilio-backed workspace instead of the first arbitrary matching user record.
+- `fixed` WhatsApp assistant processing now runs inline instead of depending on `waitUntil()`, because live production probes showed the background path was not completing reliably.
 - `re-verify` After the next deploy, rerun the live WhatsApp probe and confirm production `whatsapp.inbound` and `whatsapp.outbound` webhookEvent rows appear as expected.
 
 ### Product Truth Already Established

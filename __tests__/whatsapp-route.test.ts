@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const hoisted = vi.hoisted(() => ({
-  waitUntil: vi.fn(),
   processAgentCommand: vi.fn(),
   classifyMessage: vi.fn(),
   db: {
@@ -16,9 +15,6 @@ const hoisted = vi.hoisted(() => ({
   twilioMessagesCreate: vi.fn(),
 }));
 
-vi.mock("@vercel/functions", () => ({
-  waitUntil: hoisted.waitUntil,
-}));
 vi.mock("@/lib/services/ai-agent", () => ({
   processAgentCommand: hoisted.processAgentCommand,
 }));
@@ -73,7 +69,6 @@ describe("POST /api/webhooks/whatsapp", () => {
       to: "whatsapp:+61400000000",
       body: "🚫 Number not recognized. Please ensure your personal mobile number is saved in your Earlymark settings.",
     });
-    expect(hoisted.waitUntil).not.toHaveBeenCalled();
   });
 
   it("records inbound traffic immediately and filters spam using the workspace id", async () => {
@@ -110,8 +105,6 @@ describe("POST /api/webhooks/whatsapp", () => {
         }),
       }),
     });
-    expect(hoisted.waitUntil).toHaveBeenCalledTimes(1);
-    await hoisted.waitUntil.mock.calls[0][0];
     expect(hoisted.classifyMessage).toHaveBeenCalledWith("ws_1", "cheap seo offer", "whatsapp:+61400000000");
     expect(hoisted.db.activity.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
@@ -122,7 +115,7 @@ describe("POST /api/webhooks/whatsapp", () => {
     expect(hoisted.processAgentCommand).not.toHaveBeenCalled();
   });
 
-  it("processes real commands in the background and logs a successful outbound reply", async () => {
+  it("processes real commands inline and logs a successful outbound reply", async () => {
     hoisted.findUserByPhone.mockResolvedValue({ id: "user_1", workspaceId: "ws_1" });
     hoisted.classifyMessage.mockResolvedValue({
       classification: "lead",
@@ -146,8 +139,6 @@ describe("POST /api/webhooks/whatsapp", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(hoisted.waitUntil).toHaveBeenCalledTimes(1);
-    await hoisted.waitUntil.mock.calls[0][0];
     expect(hoisted.classifyMessage).toHaveBeenCalledWith("ws_1", "book Alex for tomorrow", "whatsapp:+61400000000");
     expect(hoisted.processAgentCommand).toHaveBeenCalledWith("user_1", "book Alex for tomorrow");
     expect(hoisted.twilioMessagesCreate).toHaveBeenCalledWith({
@@ -192,8 +183,6 @@ describe("POST /api/webhooks/whatsapp", () => {
 
     expect(response.status).toBe(200);
     expect(hoisted.findUserByPhone).toHaveBeenCalledWith("+61411112222");
-    expect(hoisted.waitUntil).toHaveBeenCalledTimes(1);
-    await hoisted.waitUntil.mock.calls[0][0];
     expect(hoisted.twilioMessagesCreate).toHaveBeenCalledWith({
       from: "whatsapp:+61485010634",
       to: "whatsapp:+61411112222",
