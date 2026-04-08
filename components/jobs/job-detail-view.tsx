@@ -114,7 +114,18 @@ export default function JobDetailView({ job }: JobDetailViewProps) {
                                         <p className="font-medium">Call Mobile</p>
                                         <p className="text-sm text-muted-foreground">{job.client.phone || "No phone"}</p>
                                     </div>
-                                    <Button variant="outline" size="sm">Call</Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={!job.client.phone}
+                                        onClick={() => {
+                                            if (job.client.phone) {
+                                                window.open(`tel:${job.client.phone}`)
+                                            }
+                                        }}
+                                    >
+                                        {job.client.phone ? "Call" : "No phone"}
+                                    </Button>
                                 </div>
                                 <Separator />
                                 <div className="flex items-center gap-3">
@@ -125,7 +136,18 @@ export default function JobDetailView({ job }: JobDetailViewProps) {
                                         <p className="font-medium">Address</p>
                                         <p className="text-sm text-muted-foreground max-w-[200px] truncate">{job.client.address || "No address"}</p>
                                     </div>
-                                    <Button variant="outline" size="sm">Map</Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={!job.client.address}
+                                        onClick={() => {
+                                            if (job.client.address) {
+                                                window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(job.client.address)}&travelmode=driving`, "_blank")
+                                            }
+                                        }}
+                                    >
+                                        {job.client.address ? "Map" : "No address"}
+                                    </Button>
                                 </div>
                             </CardContent>
                         </Card>

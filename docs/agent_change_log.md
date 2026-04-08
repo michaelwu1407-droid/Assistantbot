@@ -82,6 +82,20 @@
 - Why:
   - On a fast-moving field workflow, a button that does nothing is worse than a disabled one that tells the truth. This makes missing contact data obvious instead of quietly broken.
 
+## 2026-04-08 (Codex) - Job-detail overview actions are now real
+
+- Files changed:
+  - `components/jobs/job-detail-view.tsx`
+  - `__tests__/job-detail-view.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Removed two inert overview buttons**: the `Call` and `Map` actions in the tradie/full job-detail view are now wired instead of sitting there as dead controls.
+  - **Handled missing data honestly**: if a job has no phone or no address, those buttons now disable and relabel to `No phone` / `No address` instead of pretending the action is available.
+  - **Verification**: expanded `job-detail-view.test.tsx` to cover both the disabled state and the happy-path `tel:` / Google Maps links, then reran the focused invoice/job-detail suites plus a full production build.
+- Why:
+  - The overview card is one of the most obvious operational surfaces. Its quick actions need to be genuinely useful or explicitly unavailable, never decorative.
+
 ## 2026-04-08 (Codex) - Draft rejection routed correctly
 
 - Files changed:

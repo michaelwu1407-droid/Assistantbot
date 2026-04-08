@@ -45,6 +45,7 @@ import JobDetailView from "@/components/jobs/job-detail-view";
 describe("JobDetailView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal("open", vi.fn());
   });
 
   it("sends users to the full CRM billing panel instead of showing a dead generate-invoice button", async () => {
@@ -78,5 +79,63 @@ describe("JobDetailView", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Open Full Billing/i })).toHaveAttribute("href", "/crm/deals/deal_1");
     expect(screen.queryByRole("button", { name: /Generate Invoice/i })).not.toBeInTheDocument();
+  });
+
+  it("makes call and map actions honest when contact details are missing", () => {
+    render(
+      <JobDetailView
+        job={{
+          id: "deal_2",
+          title: "Hot Water Service",
+          client: {
+            name: "Taylor Smith",
+            phone: null,
+            email: "taylor@example.com",
+            address: null,
+          },
+          status: "SCHEDULED",
+          value: 320,
+          description: "Hot water fault",
+          activities: [],
+          invoices: [],
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /No phone/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /No address/i })).toBeDisabled();
+  });
+
+  it("wires call and map actions when contact details exist", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <JobDetailView
+        job={{
+          id: "deal_3",
+          title: "Blocked Drain",
+          client: {
+            name: "Alex Harper",
+            phone: "0400000000",
+            email: "alex@example.com",
+            address: "1 Test St, Sydney",
+          },
+          status: "SCHEDULED",
+          value: 250,
+          description: "Drain issue",
+          activities: [],
+          invoices: [],
+        }}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /^Call$/i }));
+    expect(window.open).toHaveBeenCalledWith("tel:0400000000");
+
+    await user.click(screen.getByRole("button", { name: /^Map$/i }));
+    expect(window.open).toHaveBeenCalledWith(
+      "https://www.google.com/maps/dir/?api=1&destination=1%20Test%20St%2C%20Sydney&travelmode=driving",
+      "_blank",
+    );
   });
 });
