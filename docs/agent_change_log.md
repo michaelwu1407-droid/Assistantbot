@@ -96,6 +96,22 @@
 - Why:
   - The overview card is one of the most obvious operational surfaces. Its quick actions need to be genuinely useful or explicitly unavailable, never decorative.
 
+## 2026-04-08 (Codex) - Older tradie detail view no longer dead-ends
+
+- Files changed:
+  - `components/tradie/job-detail-view.tsx`
+  - `__tests__/tradie-job-detail-view.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Cleaned up the older tradie detail surface**: this separate job-detail component had several stale/fake paths that no longer matched the improved CRM surfaces.
+  - **Billing tab now leads somewhere real**: replaced `Billing features coming soon.` with an `Open Full Billing` link into `/crm/deals/[id]`.
+  - **Handover now leads somewhere real too**: replaced the fake `Send Handover Pack to Client` button with guidance plus `Open Full Job in CRM`.
+  - **Call and map actions now behave honestly**: they either open the real phone/maps target or disable as `No phone` / `No address` when the data is missing.
+  - **Verification**: added focused tests for billing/handover routing and missing-data states, then reran `next build`.
+- Why:
+  - Older secondary surfaces are where trust often quietly breaks. This keeps the alternate tradie detail path aligned with the newer, more truthful CRM patterns instead of leaving outdated placeholders behind.
+
 ## 2026-04-08 (Codex) - Draft rejection routed correctly
 
 - Files changed:

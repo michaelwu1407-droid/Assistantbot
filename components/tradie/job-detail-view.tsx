@@ -3,7 +3,7 @@
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, MapPin, Navigation, Phone, FileText, Send, MessageSquare, Mail, PhoneCall } from "lucide-react"
+import { ArrowLeft, MapPin, Navigation, Phone, FileText, Send, MessageSquare, Mail, PhoneCall, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
@@ -87,8 +87,18 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                                 <p className="text-sm font-medium text-slate-900">Location</p>
                                 <p className="text-sm text-slate-500">{job.client.address || "No address"}</p>
                             </div>
-                            <Button variant="outline" size="sm" className="ml-auto h-8" onClick={() => window.open(`https://maps.google.com/?q=${job.client.address}`, '_blank')}>
-                                <Navigation className="w-3 h-3" />
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="ml-auto h-8"
+                                disabled={!job.client.address}
+                                onClick={() => {
+                                    if (job.client.address) {
+                                        window.open(`https://maps.google.com/?q=${job.client.address}`, '_blank')
+                                    }
+                                }}
+                            >
+                                {job.client.address ? <Navigation className="w-3 h-3" /> : "No address"}
                             </Button>
                         </div>
                         <div className="flex items-center gap-3">
@@ -97,8 +107,18 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                                 <p className="text-sm font-medium text-slate-900">Contact</p>
                                 <p className="text-sm text-slate-500">{job.client.phone || "No phone"}</p>
                             </div>
-                            <Button variant="outline" size="sm" className="ml-auto h-8" onClick={() => window.open(`tel:${job.client.phone}`)}>
-                                <Phone className="w-3 h-3" />
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="ml-auto h-8"
+                                disabled={!job.client.phone}
+                                onClick={() => {
+                                    if (job.client.phone) {
+                                        window.open(`tel:${job.client.phone}`)
+                                    }
+                                }}
+                            >
+                                {job.client.phone ? <Phone className="w-3 h-3" /> : "No phone"}
                             </Button>
                         </div>
                     </Card>
@@ -188,8 +208,16 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                         </TabsContent>
 
                         <TabsContent value="billing" className="mt-4">
-                            <Card className="p-4 text-center text-slate-500 text-sm">
-                                Billing features coming soon.
+                            <Card className="p-4 text-center text-slate-500 text-sm space-y-3">
+                                <p>
+                                    Billing for this job lives in the full CRM panel so invoice totals, status, and customer sends stay in sync.
+                                </p>
+                                <Button asChild variant="secondary" className="w-full">
+                                    <Link href={`/crm/deals/${job.id}`}>
+                                        <ExternalLink className="w-4 h-4 mr-2" />
+                                        Open Full Billing
+                                    </Link>
+                                </Button>
                             </Card>
                         </TabsContent>
 
@@ -223,10 +251,17 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                                     </div>
                                 </div>
                             </Card>
-                            <Button className="w-full gap-2 bg-slate-900 hover:bg-slate-800">
-                                <Send className="w-4 h-4" />
-                                Send Handover Pack to Client
-                            </Button>
+                            <Card className="p-4 border-slate-200 shadow-sm">
+                                <p className="text-sm text-slate-600">
+                                    To send handover notes or attachments today, use the full CRM job view so messaging, attachments, and customer history stay together.
+                                </p>
+                                <Button asChild className="mt-4 w-full gap-2 bg-slate-900 hover:bg-slate-800">
+                                    <Link href={`/crm/deals/${job.id}`}>
+                                        <ExternalLink className="w-4 h-4" />
+                                        Open Full Job in CRM
+                                    </Link>
+                                </Button>
+                            </Card>
                         </TabsContent>
                     </Tabs>
                 </div>
