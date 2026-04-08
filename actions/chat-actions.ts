@@ -282,6 +282,8 @@ type InvoiceTargetDeal = {
   contactId?: string | null;
 };
 
+type InvoiceTargetContact = Awaited<ReturnType<typeof searchContacts>>[number];
+
 type AmbiguousInvoiceLookup = {
   __kind: "ambiguous";
   message: string;
@@ -336,13 +338,25 @@ function getLooseContactSearchQueries(rawTarget: string): string[] {
 }
 
 async function resolveContactForInvoiceTarget(workspaceId: string, rawTarget: string) {
+  const seen = new Set<string>();
+  const matches: Array<InvoiceTargetContact & { score: number }> = [];
   for (const query of getLooseContactSearchQueries(rawTarget)) {
     const contacts = await searchContacts(workspaceId, query);
-    if (contacts[0]) {
-      return contacts[0];
+    for (const contact of contacts) {
+      if (seen.has(contact.id)) continue;
+      seen.add(contact.id);
+      const name = (contact.name ?? "").toLowerCase();
+      const target = rawTarget.trim().toLowerCase();
+      let score = fuzzyScore(target, name);
+      if (target.includes(name) || name.includes(target)) score = Math.max(score, 0.92);
+      if (query.toLowerCase() !== target && (name.includes(query.toLowerCase()) || query.toLowerCase().includes(name))) {
+        score = Math.max(score, 0.88);
+      }
+      matches.push({ ...contact, score });
     }
   }
-  return null;
+  matches.sort((a, b) => b.score - a.score);
+  return matches;
 }
 
 async function resolveDealForInvoiceTarget(
@@ -358,27 +372,37 @@ async function resolveDealForInvoiceTarget(
     return { deal: directDealMatch };
   }
 
-  const contact = await resolveContactForInvoiceTarget(workspaceId, target);
-  if (!contact) {
+  const contacts = await resolveContactForInvoiceTarget(workspaceId, target);
+  if (!contacts.length) {
     return { deal: null };
   }
 
-  const candidateDeals = await db.deal.findMany({
-    where: {
-      workspaceId,
-      contactId: contact.id,
-      stage: { notIn: CLOSED_OR_REMOVED_DEAL_STAGES },
-    },
-    select: {
-      id: true,
-      title: true,
-      stage: true,
-      updatedAt: true,
-      createdAt: true,
-      contactId: true,
-    },
-    orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
-  });
+  const candidateDeals: Array<InvoiceTargetDeal & { contactName?: string | null; contactScore: number }> = [];
+  for (const contact of contacts) {
+    const dealsForContact = await db.deal.findMany({
+      where: {
+        workspaceId,
+        contactId: contact.id,
+        stage: { notIn: CLOSED_OR_REMOVED_DEAL_STAGES },
+      },
+      select: {
+        id: true,
+        title: true,
+        stage: true,
+        updatedAt: true,
+        createdAt: true,
+        contactId: true,
+      },
+      orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+    });
+    for (const deal of dealsForContact) {
+      candidateDeals.push({
+        ...deal,
+        contactName: contact.name,
+        contactScore: contact.score,
+      });
+    }
+  }
 
   if (candidateDeals.length === 0) {
     return { deal: null };
@@ -389,6 +413,8 @@ async function resolveDealForInvoiceTarget(
   }
 
   const rankedDeals = [...candidateDeals].sort((a, b) => {
+    const contactScoreDelta = b.contactScore - a.contactScore;
+    if (contactScoreDelta !== 0) return contactScoreDelta;
     const stageDelta = getDealStageRank(a.stage) - getDealStageRank(b.stage);
     if (stageDelta !== 0) return stageDelta;
     return (b.updatedAt?.getTime() ?? b.createdAt?.getTime() ?? 0) - (a.updatedAt?.getTime() ?? a.createdAt?.getTime() ?? 0);
@@ -396,13 +422,16 @@ async function resolveDealForInvoiceTarget(
 
   const best = rankedDeals[0];
   const second = rankedDeals[1];
+  if (best && second && best.contactScore > second.contactScore) {
+    return { deal: best };
+  }
   if (best && second && getDealStageRank(best.stage) < getDealStageRank(second.stage)) {
     return { deal: best };
   }
 
   return {
     deal: null,
-    ambiguityMessage: `I found multiple jobs for "${contact.name ?? target}": ${formatDealChoicesForPrompt(rankedDeals)}. Tell me which job you mean and I’ll handle the invoice from there.`,
+    ambiguityMessage: `I found multiple jobs for "${target}": ${formatDealChoicesForPrompt(rankedDeals)}. Tell me which job you mean and I’ll handle the invoice from there.`,
   };
 }
 
@@ -1664,22 +1693,7 @@ async function findInvoiceInWorkspace(
       if (resolution.ambiguityMessage) {
         return { __kind: "ambiguous", message: resolution.ambiguityMessage } as const;
       }
-      const contact = await resolveContactForInvoiceTarget(workspaceId, params.dealTitle.trim());
-      if (!contact) return null;
-      return db.invoice.findFirst({
-        where: {
-          deal: {
-            workspaceId,
-            contactId: contact.id,
-          },
-        },
-        orderBy: { createdAt: "desc" },
-        include: {
-          deal: {
-            include: { contact: true },
-          },
-        },
-      });
+      return null;
     }
     return db.invoice.findFirst({
       where: { dealId: target.id },

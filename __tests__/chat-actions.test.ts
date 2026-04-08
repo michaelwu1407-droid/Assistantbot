@@ -799,6 +799,47 @@ describe("chat-actions", () => {
     expect(result.message).toContain('Draft invoice INV-1001 created for "Blocked Drain"');
   });
 
+  it("prefers a later matching contact that actually has an active deal", async () => {
+    hoisted.getDeals.mockResolvedValue([]);
+    hoisted.searchContacts
+      .mockResolvedValueOnce([
+        { id: "contact_old", name: "ZZZ AUTO liveprobe Alex Harper", phone: null, email: null, company: null },
+        { id: "contact_live", name: "ZZZ AUTO LIVE Alex Harper", phone: null, email: null, company: null },
+      ])
+      .mockResolvedValueOnce([
+        { id: "contact_live", name: "ZZZ AUTO LIVE Alex Harper", phone: null, email: null, company: null },
+      ]);
+    hoisted.db.deal.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: "deal_live",
+          title: "Blocked Drain",
+          stage: "NEW",
+          updatedAt: new Date("2026-04-06T00:00:00.000Z"),
+          createdAt: new Date("2026-04-05T00:00:00.000Z"),
+          contactId: "contact_live",
+        },
+      ]);
+    hoisted.db.deal.findUnique.mockResolvedValue({
+      id: "deal_live",
+      title: "Blocked Drain",
+      value: 350,
+      contactId: "contact_live",
+    });
+
+    const result = await runCreateDraftInvoice("ws_1", { dealTitle: "ZZZ AUTO LIVE Alex Harper" });
+
+    expect(result.success).toBe(true);
+    expect(hoisted.db.invoice.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          dealId: "deal_live",
+        }),
+      }),
+    );
+  });
+
   it("asks for clarification when a contact has multiple active jobs for invoice creation", async () => {
     hoisted.getDeals.mockResolvedValue([]);
     hoisted.searchContacts.mockResolvedValue([
@@ -833,9 +874,18 @@ describe("chat-actions", () => {
   });
 
   it("gets invoice status when the target text is a contact name rather than a deal title", async () => {
-    hoisted.getDeals.mockResolvedValue([]);
     hoisted.searchContacts.mockResolvedValue([
       { id: "contact_42", name: "Alex Harper", phone: "0400000101", email: "alex@example.com", company: null },
+    ]);
+    hoisted.db.deal.findMany.mockResolvedValue([
+      {
+        id: "deal_99",
+        title: "Blocked Drain",
+        stage: "NEW",
+        updatedAt: new Date("2026-04-06T00:00:00.000Z"),
+        createdAt: new Date("2026-04-05T00:00:00.000Z"),
+        contactId: "contact_42",
+      },
     ]);
     hoisted.db.invoice.findFirst.mockResolvedValue({
       id: "inv_1",
@@ -857,11 +907,7 @@ describe("chat-actions", () => {
 
     expect(hoisted.db.invoice.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({
-          deal: expect.objectContaining({
-            contactId: "contact_42",
-          }),
-        }),
+        where: expect.objectContaining({ dealId: "deal_99" }),
       }),
     );
     expect(result.success).toBe(true);
