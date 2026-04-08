@@ -4228,3 +4228,16 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/tradie-job-detail-view.test.tsx __tests__/tradie-dashboard-client.test.tsx`
   - `npx next build`
+
+## 2026-04-08 - Legacy `/crm/tradie` now degrades into the right surface
+
+- Files:
+  - `app/crm/tradie/page.tsx`
+  - `__tests__/crm-tradie-page.test.tsx`
+- What changed:
+  - Changed the legacy `/crm/tradie` route redirect from `/crm/dashboard` to `/tradie`.
+- Why:
+  - This closes the loop on the tradie navigation cleanup. Even if an older link survives somewhere, it now lands the user in the right product area instead of silently switching them into the manager CRM.
+- Verified with:
+  - `npx vitest run __tests__/crm-tradie-page.test.tsx __tests__/tradie-dashboard-client.test.tsx`
+  - `npx next build`
