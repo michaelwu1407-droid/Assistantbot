@@ -49,10 +49,13 @@ Status meanings:
 
 This is the shortest truthful summary of what remains outstanding from the full session:
 
-- `fixed` Latest `main` deploy is now live in production on Vercel and `https://www.earlymark.ai` reports app SHA `594ce5a8`.
+- `fixed` Latest `main` deploy is now live in production on Vercel and `https://www.earlymark.ai` reports app SHA `ddbcf1f4`.
 - `fixed` Protected launch-readiness and monitor checks were rerun after deploy. Production now returns `200` with `status: healthy`.
 - `open` Continue live authenticated CRM workflow testing focused on real trust/coherence issues across contacts, deal/job detail, schedule/reschedule, inbox/direct message vs Ask Tracey, quote/invoice/payment, and map/route mode.
-- `open` Continue improving Tracey on real CRM operations with an output-quality-first approach. Keep Tracey LLM-first, keep using the saved live regression harnesses, and focus on whether it actually performs CRM work and explains it clearly. Quote/invoice classifier improved: short quote-creation and send/mark-paid requests now route correctly with right step budget and tool hints.
+- `open` Continue improving Tracey on real CRM operations with an output-quality-first approach. Keep Tracey LLM-first, keep using the saved live regression harnesses, and focus on whether it actually performs CRM work and explains it clearly.
+- `fixed` Production quote/invoice core flow is now proven through the real authorized `/api/chat` path: existing draft quote recognized truthfully, amount updated, deal moved to `Quote sent`, and the invoice-status / mark-paid no-invoice responses are correct.
+- `fixed` Production blocked/incomplete aggregate filtering is no longer noisy for `ZZZ AUTO LIVE`; it now returns a truthful no-match result instead of leaking `livefull_*` / `liveprobe_*` records.
+- `open` Contact lookup with duplicate QA data still needs UX polish. `Find contact ZZZ AUTO LIVE Alex Harper` now responds honestly with an ambiguity prompt instead of picking the wrong contact, but the disambiguation experience is still basic.
 - `open` Real provider/device verification still remains for WhatsApp assistant and the 3 Tracey call-handling modes on real phones/carriers.
 - `open` Keep rechecking worker/app release alignment and monitor freshness as normal ops hygiene, but it is no longer a current launch blocker.
 
@@ -153,6 +156,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Deal query extraction: extractLikelyDealQuery now recognises "what is the exact current stage of X", "what recent notes exist for X", and "what are the most important facts about X" patterns, pre-loading the deal into LIKELY CRM TARGETS before the LLM responds.
 - `open` Keep improving output quality first, not just latency.
 - `open` Continue testing Tracey with real CRM operation prompts, not toy questions.
+- `fixed` Internal production `/api/chat` probes can now run as a real workspace user when they carry both the cron bearer token and `x-user-id`, making live Tracey verification reliable without weakening normal auth.
 - `fixed` getTodaySummary and getAvailability now compute day boundaries using workspace timezone (via parseDateTimeLocalInTimezone). On UTC servers, AEST workspaces previously got wrong 'today' jobs.
 - `fixed` Pre-classifier: added daily-digest/morning-briefing patterns to scheduling intent; stale/rotting/attention to reporting patterns; ON_MY_WAY field-routing hint now names getTodaySummary as fallback contact source.
 - `fixed` System prompt messagingRuleBlock: model now instructed to extract message body from user instruction ('tell John I'm on my way' → SMS body is 'I'm on my way').

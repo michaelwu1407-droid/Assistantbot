@@ -1,3 +1,29 @@
+## 2026-04-08 (Codex) - Tracey live quote flow, internal probe auth, and route filter tightening
+
+- Files changed:
+  - `lib/auth.ts`
+  - `actions/chat-actions.ts`
+  - `actions/agent-tools.ts`
+  - `app/api/chat/route.ts`
+  - `__tests__/auth-lib.test.ts`
+  - `__tests__/agent-tools.test.ts`
+  - `__tests__/chat-actions.test.ts`
+  - `__tests__/chat-route.test.ts`
+- Summary:
+  - **Live quote/invoice flow now works through the real authorized route**: after adding a secure internal probe user override gated by `CRON_SECRET` + `x-user-id`, the production `/api/chat` probe can execute the same workspace-authorized tool path as a real signed-in user. Live production on `ddbcf1f4` now truthfully recognizes an existing draft quote for `Blocked Drain`, updates it to `$350`, and moves the job to `Quote sent` successfully.
+  - **Internal probe auth is safe and explicit**: `getAuthUserId()` / `getAuthUser()` now accept an internal user override only when the request carries the cron bearer token and a concrete `x-user-id`. This keeps normal product auth unchanged while making production verification reliable.
+  - **Invoice/deal target resolution hardened**: `runMoveDeal()` now stays on full `DealView` records, and the broader invoice/contact resolution path remains deploy-safe under `next build`.
+  - **Client context resolution improved**: `runGetClientContext()` now uses `searchContacts()` across loose query variants and scores exact whole-word matches ahead of noisy prefixed records, instead of taking the first `contains` hit.
+  - **Aggregate blocked/incomplete filters tightened**: both `runListIncompleteOrBlockedJobs()` and the route-level direct-response filter now use whole-word normalized matching instead of loose substring matching. This stops queries like `ZZZ AUTO LIVE` from leaking in `livefull_*` / `liveprobe_*` noise.
+  - **Live verification result**:
+    - `Create a quote for ZZZ AUTO LIVE Alex Harper for $350.` now succeeds end to end in production via the authorized path.
+    - `What is the latest invoice status for ZZZ AUTO LIVE Office Fitout Quote?` and `Mark the invoice paid for ZZZ AUTO LIVE Hot Water Service.` now give the correct no-invoice guidance in production.
+    - `What jobs for ZZZ AUTO LIVE look incomplete or blocked?` now returns a truthful no-match result instead of a noisy over-broad list.
+    - `Find contact ZZZ AUTO LIVE Alex Harper.` is no longer wrong, but still returns an ambiguity prompt because production contains four QA `Alex Harper` variants; that is now a data ambiguity / UX refinement issue rather than a bad match.
+  - **Readiness status**: after refreshing the monitor endpoints, `/api/internal/launch-readiness` on `https://www.earlymark.ai` is healthy on app SHA `ddbcf1f4`.
+- Why:
+  - The remaining Tracey trust problems were no longer about basic invoice logic. They were about making production verification truthful and making exact-ish CRM queries avoid noisy QA-prefix matches. This pass fixes the production quote flow and turns the remaining contact issue into a clear, bounded ambiguity case instead of a wrong answer.
+
 ## 2026-04-07 (Claude) - Pre-classifier and multi-step flow improvements
 
 - Files changed:
