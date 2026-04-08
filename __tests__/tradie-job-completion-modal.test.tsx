@@ -1,6 +1,7 @@
 import React from "react";
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 vi.mock("next/image", () => ({
   default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => <img {...props} alt={props.alt ?? ""} />,
@@ -53,6 +54,9 @@ vi.mock("@/actions/accounting-actions", () => ({
   createXeroDraftInvoice: vi.fn(),
 }));
 
+import { finalizeJobCompletion, generateQuote } from "@/actions/tradie-actions";
+import { updateDeal } from "@/actions/deal-actions";
+import { createXeroDraftInvoice } from "@/actions/accounting-actions";
 import { JobCompletionModal } from "@/components/tradie/job-completion-modal";
 
 describe("Tradie JobCompletionModal", () => {
@@ -80,5 +84,31 @@ describe("Tradie JobCompletionModal", () => {
     expect(screen.getByRole("link", { name: /open full crm job/i })).toHaveAttribute("href", "/crm/deals/deal_99");
     expect(screen.queryByLabelText(/upload photos or files/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /clear all/i })).not.toBeInTheDocument();
+  });
+
+  it("uses clearer next-step copy once the job is completed", async () => {
+    const user = userEvent.setup();
+    vi.mocked(finalizeJobCompletion).mockResolvedValue({ success: true });
+    vi.mocked(generateQuote).mockResolvedValue({ success: true });
+    vi.mocked(updateDeal).mockResolvedValue({ success: true });
+    vi.mocked(createXeroDraftInvoice).mockResolvedValue({ success: true });
+
+    render(
+      <JobCompletionModal
+        open
+        onOpenChange={vi.fn()}
+        dealId="deal_100"
+        onSuccess={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /confirm & generate invoice/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/review the ready-to-send feedback request before it goes out to the client/i)).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole("button", { name: /review feedback request/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /i'll do this later/i })).toBeInTheDocument();
   });
 });

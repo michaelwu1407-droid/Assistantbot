@@ -396,7 +396,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                 </div>
                                 <DialogTitle className="text-center">Send Feedback Request?</DialogTitle>
                                 <DialogDescription className="text-center">
-                                    Job complete! Send the client a feedback request via SMS or email?
+                                    Job complete. Review the ready-to-send feedback request before it goes out to the client.
                                 </DialogDescription>
                             </DialogHeader>
 
@@ -406,14 +406,14 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                     className="bg-amber-500 hover:bg-amber-600 text-white w-full gap-2"
                                 >
                                     <Send className="h-4 w-4" />
-                                    Preview & Send Message
+                                    Review feedback request
                                 </Button>
                                 <Button
                                     variant="ghost"
                                     onClick={handleSkipReview}
                                     className="w-full text-slate-500"
                                 >
-                                    Skip for now
+                                    I&apos;ll do this later
                                 </Button>
                             </DialogFooter>
                         </>

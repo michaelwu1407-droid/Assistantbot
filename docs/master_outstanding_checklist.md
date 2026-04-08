@@ -194,6 +194,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` `/api/contacts` and `/api/deals` POST routes no longer return placeholder `501` responses. Both now call the real create actions and scope creation to the authenticated workspace.
 - `fixed` Tradie job-detail handover no longer shows static fake resources. The tab now gives honest status and routes users to the full CRM job for real handover docs and attachments.
 - `fixed` `/api/workspace` POST no longer returns a placeholder `501`. It now updates the authenticated user's workspace through the real server action and returns the refreshed workspace payload.
+- `fixed` Tradie post-job completion flow now uses clearer next-step copy when offering the feedback request, making the final review/send step more obvious in the field workflow.
 
 ### Specific Tracey Use Cases Still To Prove Well
 

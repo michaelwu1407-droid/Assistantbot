@@ -4106,3 +4106,18 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/workspace-route.test.ts`
   - `npx next build`
+
+## 2026-04-08 - Tradie post-job review step is clearer
+
+- Files:
+  - `components/tradie/job-completion-modal.tsx`
+  - `__tests__/tradie-job-completion-modal.test.tsx`
+- What changed:
+  - Tightened the completed-state wording after invoice generation so the next step is explicit.
+  - The modal now says the user is reviewing a ready-to-send feedback request, not just a vague message.
+  - Updated the buttons to `Review feedback request` and `I'll do this later`.
+- Why:
+  - The old copy was technically correct, but it still made the last step feel ambiguous. This is a real UX improvement in an important live workflow, not just wording polish for its own sake.
+- Verified with:
+  - `npx vitest run __tests__/tradie-job-completion-modal.test.tsx`
+  - `npx next build`
