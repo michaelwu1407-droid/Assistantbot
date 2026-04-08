@@ -131,6 +131,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Tradie dashboard/map/schedule loaders no longer use a broad workspace-wide demo filter for team members. Shared tradie actions now scope TEAM_MEMBER users to their own assigned jobs while leaving manager-level views workspace-wide.
 - `fixed` Tradie dashboard "Up Next" data is now coherent: the first job card keeps the real value and customer phone instead of falling back to `$0` and empty contact details.
 - `fixed` Tradie dashboard map now uses the actual `lat`/`lng` values coming from tradie job loaders instead of silently dropping to default Sydney coordinates.
+- `fixed` The deep-link tradie job route (`/tradie/jobs/[id]`) now uses the shared scoped job-details loader instead of its own raw DB query, so access rules and displayed data stay consistent with the rest of the tradie experience.
 
 ### Inbox / Messaging UX
 

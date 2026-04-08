@@ -19,13 +19,13 @@ interface JobActivity {
     type: string
     title: string
     content: string | null
-    createdAt: string
+    createdAt: string | Date
 }
 
 interface JobInvoice {
     id: string
     total?: number | null
-    createdAt?: string
+    createdAt?: string | Date
 }
 
 interface JobPhoto {

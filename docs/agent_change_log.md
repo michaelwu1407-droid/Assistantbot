@@ -4168,3 +4168,19 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/tradie-actions.test.ts __tests__/job-map.test.tsx`
   - `npx next build`
+
+## 2026-04-08 - Deep-link tradie job page now uses the shared scoped job loader
+
+- Files:
+  - `app/(dashboard)/tradie/jobs/[id]/page.tsx`
+  - `components/tradie/job-detail-view.tsx`
+  - `__tests__/tradie-job-page.test.tsx`
+- What changed:
+  - Replaced the old raw `db.deal.findUnique()` page query with the shared `getJobDetails()` action.
+  - That means `/tradie/jobs/[id]` now inherits the same workspace scoping and shared job model as the rest of the tradie experience.
+  - Tightened the page wiring so broader CRM statuses are normalized into the tradie status model instead of forcing a fake narrower type.
+- Why:
+  - This route was a quiet trust gap: it could drift from the rest of the product because it bypassed the shared access/data path even though it looked like a normal tradie page.
+- Verified with:
+  - `npx vitest run __tests__/tradie-job-page.test.tsx __tests__/tradie-job-detail-view.test.tsx`
+  - `npx next build`
