@@ -487,6 +487,42 @@ describe("chat-actions", () => {
     );
   });
 
+  it("does not treat partial token prefixes as an exact blocked-job match", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      {
+        id: "deal_1",
+        title: "Office Fitout Quote",
+        company: "",
+        contactName: "ZZZ AUTO livefull_after_fastpath Charlie Dental",
+        stage: "quote_sent",
+        health: { status: "STALE" },
+        scheduledAt: null,
+        actualOutcome: null,
+        metadata: null,
+      },
+      {
+        id: "deal_2",
+        title: "ZZZ AUTO LIVE Blocked Drain",
+        company: "",
+        contactName: "Alex Harper",
+        stage: "scheduled",
+        health: { status: "STALE" },
+        scheduledAt: null,
+        actualOutcome: null,
+        metadata: null,
+      },
+    ]);
+    hoisted.getAttentionSignalsForDeal
+      .mockReturnValueOnce([{ key: "stale", label: "Stale" }])
+      .mockReturnValueOnce([{ key: "stale", label: "Stale" }]);
+
+    const result = await runListIncompleteOrBlockedJobs("ws_1", { query: "ZZZ AUTO LIVE" });
+
+    expect(result).toBe(
+      'Jobs matching "ZZZ AUTO LIVE" that still look incomplete or blocked:\n- ZZZ AUTO LIVE Blocked Drain (Scheduled; Stale)',
+    );
+  });
+
   it("creates a contact on demand before creating a deal from chat", async () => {
     const result = await runCreateDeal("ws_1", {
       title: "Blocked Drain",

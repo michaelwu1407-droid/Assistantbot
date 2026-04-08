@@ -681,12 +681,32 @@ function matchesDealQuery(
   deal: { title?: string; company?: string; contactName?: string },
   query: string,
 ) {
-  const cleaned = query.trim().toLowerCase();
+  const cleaned = normalizeSearchPhrase(query);
   if (!cleaned) return true;
+  const queryTokens = cleaned.split(" ").filter(Boolean);
   return [deal.title, deal.company, deal.contactName]
     .filter(Boolean)
-    .map((value) => String(value).toLowerCase())
-    .some((field) => field.includes(cleaned));
+    .map((value) => normalizeSearchPhrase(String(value)))
+    .some((field) => {
+      if (
+        field === cleaned ||
+        field.startsWith(`${cleaned} `) ||
+        field.endsWith(` ${cleaned}`) ||
+        field.includes(` ${cleaned} `)
+      ) {
+        return true;
+      }
+      const fieldTokens = field.split(" ").filter(Boolean);
+      return queryTokens.every((token) => fieldTokens.includes(token));
+    });
+}
+
+function normalizeSearchPhrase(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
 }
 
 export async function runListInvoiceReadyJobs(

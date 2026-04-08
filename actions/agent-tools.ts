@@ -1,5 +1,6 @@
 "use server";
 
+import { searchContacts } from "@/actions/contact-actions";
 import { db } from "@/lib/db";
 import { findHoursForDate, type WeeklyHours } from "@/lib/working-hours";
 import { listWorkspaceCalendarEventsForRange } from "@/lib/workspace-calendar";
@@ -13,6 +14,41 @@ const AGENT_STAGE_LABELS: Record<string, string> = {
   ready_to_invoice: "Awaiting payment", pending_approval: "Pending approval",
   completed: "Completed", lost: "Lost",
 };
+
+function normalizeSearchPhrase(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function getLooseContactSearchQueries(rawTarget: string): string[] {
+  const normalized = normalizeSearchPhrase(rawTarget);
+  const queries = new Set<string>();
+  if (normalized) queries.add(normalized);
+
+  const tokens = normalized.split(" ").filter(Boolean);
+  if (tokens.length >= 2) queries.add(tokens.slice(-2).join(" "));
+  if (tokens.length >= 3) queries.add(tokens.slice(-3).join(" "));
+
+  return Array.from(queries);
+}
+
+function scoreContactNameMatch(contactName: string, query: string) {
+  const normalizedContact = normalizeSearchPhrase(contactName);
+  const normalizedQuery = normalizeSearchPhrase(query);
+  if (!normalizedContact || !normalizedQuery) return 0;
+  if (normalizedContact === normalizedQuery) return 100;
+  if (normalizedContact.startsWith(`${normalizedQuery} `)) return 90;
+  if (normalizedContact.includes(` ${normalizedQuery} `)) return 80;
+
+  const contactTokens = normalizedContact.split(" ").filter(Boolean);
+  const queryTokens = normalizedQuery.split(" ").filter(Boolean);
+  if (queryTokens.every((token) => contactTokens.includes(token))) return 70;
+  if (normalizedContact.includes(normalizedQuery)) return 60;
+  return 0;
+}
 
 /**
  * Tool: get_schedule
@@ -198,14 +234,21 @@ export async function runGetClientContext(
     value: number;
   }[];
 }> {
-  // Fuzzy match: find best matching contact
-  const contacts = await db.contact.findMany({
-    where: {
-      workspaceId,
-      name: { contains: params.clientName, mode: "insensitive" },
-    },
-    take: 1,
-  });
+  const contactMap = new Map<string, Awaited<ReturnType<typeof searchContacts>>[number]>();
+  for (const query of getLooseContactSearchQueries(params.clientName)) {
+    const matches = await searchContacts(workspaceId, query);
+    for (const match of matches) {
+      contactMap.set(match.id, match);
+    }
+  }
+
+  const contacts = Array.from(contactMap.values())
+    .map((contact) => ({
+      contact,
+      score: scoreContactNameMatch(contact.name, params.clientName),
+    }))
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score);
 
   if (!contacts.length) {
     return {
@@ -216,7 +259,7 @@ export async function runGetClientContext(
     };
   }
 
-  const contact = contacts[0];
+  const contact = contacts[0].contact;
 
   // Fetch last 5 notes (activities of type NOTE)
   const notes = await db.activity.findMany({
