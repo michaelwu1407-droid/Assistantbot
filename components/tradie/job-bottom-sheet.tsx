@@ -118,16 +118,18 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
                                         <span className="text-[10px] font-bold uppercase tracking-wider">Nav</span>
                                     </Button>
                                     <Button variant="outline" className="h-20 flex flex-col gap-2 bg-slate-900 border-slate-800 hover:bg-slate-800 hover:text-blue-400 hover:border-blue-500/50 transition-all text-slate-400"
+                                        disabled={!job.contactPhone}
                                         onClick={(e) => { e.stopPropagation(); window.open(`tel:${job.contactPhone || ''}`); }}
                                     >
                                         <Phone className="w-6 h-6" />
-                                        <span className="text-[10px] font-bold uppercase tracking-wider">Call</span>
+                                        <span className="text-[10px] font-bold uppercase tracking-wider">{job.contactPhone ? "Call" : "No Phone"}</span>
                                     </Button>
                                     <Button variant="outline" className="h-20 flex flex-col gap-2 bg-slate-900 border-slate-800 hover:bg-slate-800 hover:text-purple-400 hover:border-purple-500/50 transition-all text-slate-400"
+                                        disabled={!job.contactPhone}
                                         onClick={(e) => { e.stopPropagation(); window.open(`sms:${job.contactPhone || ''}`); }}
                                     >
                                         <MessageSquare className="w-6 h-6" />
-                                        <span className="text-[10px] font-bold uppercase tracking-wider">Text</span>
+                                        <span className="text-[10px] font-bold uppercase tracking-wider">{job.contactPhone ? "Text" : "No Phone"}</span>
                                     </Button>
                                     <Button
                                         variant="outline"

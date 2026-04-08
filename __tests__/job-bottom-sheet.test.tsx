@@ -74,4 +74,31 @@ describe("JobBottomSheet", () => {
     expect(screen.getByText(/Current Total/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /search material database/i })).toBeInTheDocument();
   });
+
+  it("disables call and text quick actions when the job has no customer phone", () => {
+    const setIsOpen = vi.fn();
+
+    render(
+      <JobBottomSheet
+        job={{
+          id: "deal_2",
+          title: "Hot Water Service",
+          clientName: "Taylor Smith",
+          address: "2 Test St, Sydney",
+          status: "SCHEDULED",
+          value: 480,
+          scheduledAt: new Date(),
+          description: "Hot water fault",
+        }}
+        isOpen
+        setIsOpen={setIsOpen}
+        onAddVariation={vi.fn()}
+        safetyCheckCompleted={false}
+      />,
+    );
+
+    expect(screen.getAllByRole("button", { name: /no phone/i })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: /no phone/i })[0]).toBeDisabled();
+    expect(screen.getAllByRole("button", { name: /no phone/i })[1]).toBeDisabled();
+  });
 });

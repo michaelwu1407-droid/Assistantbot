@@ -68,6 +68,20 @@
 - Why:
   - Quick actions on the tradie surface need to be immediate and trustworthy. A dead `Parts` button in a mobile-first workflow erodes confidence fast.
 
+## 2026-04-08 (Codex) - Tradie call/text actions now fail honestly
+
+- Files changed:
+  - `components/tradie/job-bottom-sheet.tsx`
+  - `__tests__/job-bottom-sheet.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Removed a silent failure path**: the tradie bottom-sheet `Call` and `Text` actions no longer try to open blank `tel:` / `sms:` links when the job has no customer phone number.
+  - **Made the state explicit**: both actions now disable themselves and relabel to `No Phone` when there is no contact number on the job.
+  - **Verification**: expanded `job-bottom-sheet.test.tsx` to prove both no-phone buttons are disabled, and reran the build.
+- Why:
+  - On a fast-moving field workflow, a button that does nothing is worse than a disabled one that tells the truth. This makes missing contact data obvious instead of quietly broken.
+
 ## 2026-04-08 (Codex) - Draft rejection routed correctly
 
 - Files changed:
