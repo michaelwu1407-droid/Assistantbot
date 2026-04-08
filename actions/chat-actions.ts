@@ -526,11 +526,11 @@ export async function runMoveDeal(
   if (!deal) {
     const resolution = await resolveDealForInvoiceTarget(workspaceId, dealTitle);
     if (resolution.deal) {
-      const fallback = deals.find((candidate) => candidate.id === resolution.deal?.id);
+      const fallback =
+        deals.find((candidate) => candidate.id === resolution.deal?.id) ??
+        findDealByTitle(deals, resolution.deal.title);
       if (fallback) {
         deal = fallback;
-      } else {
-        deal = resolution.deal;
       }
     } else if (resolution.ambiguityMessage) {
       return {
