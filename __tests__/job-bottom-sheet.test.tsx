@@ -3,6 +3,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+vi.mock("next/link", () => ({
+  default: ({ children, href, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+}));
+
 vi.mock("framer-motion", () => ({
   motion: {
     div: ({
@@ -128,5 +136,36 @@ describe("JobBottomSheet", () => {
     expect(screen.getAllByRole("button", { name: /no phone/i })).toHaveLength(2);
     expect(screen.getAllByRole("button", { name: /no phone/i })[0]).toBeDisabled();
     expect(screen.getAllByRole("button", { name: /no phone/i })[1]).toBeDisabled();
+  });
+
+  it("replaces fake capture actions with honest guidance into the full CRM completion flow", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <JobBottomSheet
+        job={{
+          id: "deal_4",
+          title: "Leak Investigation",
+          clientName: "Jamie Rivers",
+          address: "4 Test St, Sydney",
+          status: "SCHEDULED",
+          value: 210,
+          scheduledAt: new Date(),
+          description: "Find leak source",
+          contactPhone: "0400000000",
+        }}
+        isOpen
+        setIsOpen={vi.fn()}
+        onAddVariation={vi.fn()}
+        safetyCheckCompleted={false}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /billing/i }));
+
+    expect(screen.getByText(/video explanations and customer signatures are captured from the full completion flow/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /open full crm job/i })).toHaveAttribute("href", "/crm/deals/deal_4");
+    expect(screen.queryByRole("button", { name: /add video explanation/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/tap to sign on glass/i)).not.toBeInTheDocument();
   });
 });

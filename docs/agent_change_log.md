@@ -4028,3 +4028,18 @@ Rule: every agent change commit must include an entry in this file.
   - Quote/invoice core logic was already strong, but the estimator surface still felt under-explained and under-tested compared with Tracey and the billing tab. This closes a real trust gap in the manual quoting flow.
 - Verified with:
   - `npx vitest run __tests__/estimator-form.test.tsx __tests__/job-billing-tab.test.tsx __tests__/tradie-actions.test.ts`
+
+## 2026-04-08 - Tradie bottom sheet capture actions made honest
+
+- Files:
+  - `components/tradie/job-bottom-sheet.tsx`
+  - `__tests__/job-bottom-sheet.test.tsx`
+- What changed:
+  - Removed the fake local `Add Video Explanation` recording flow and fake tap-to-sign signature state from the tradie bottom sheet billing tab.
+  - Replaced them with honest guidance explaining that video explanations and signatures belong in the real completion flow so they save against the job properly.
+  - Added a concrete `Open Full CRM Job` link back to `/crm/deals/[id]` instead of pretending those captures already work inside the bottom sheet.
+- Why:
+  - This was a trust problem, not just a missing feature. The UI was simulating successful capture with temporary local state even though nothing persisted and no real workflow was being triggered.
+- Verified with:
+  - `npx vitest run __tests__/job-bottom-sheet.test.tsx`
+  - `npx next build`

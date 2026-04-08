@@ -1,8 +1,9 @@
 "use client"
 
+import Link from "next/link"
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Phone, MessageSquare, Wrench, Camera, Navigation, Plus, Video, PenTool, Search } from "lucide-react"
+import { Phone, MessageSquare, Wrench, Camera, Navigation, Plus, Search, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
@@ -37,24 +38,12 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
     const [activeTab, setActiveTab] = useState<'DETAILS' | 'PHOTOS' | 'BILLING'>('DETAILS')
     const [variationDesc, setVariationDesc] = useState("")
     const [variationPrice, setVariationPrice] = useState("")
-    const [isRecording, setIsRecording] = useState(false)
-    const [hasSignature, setHasSignature] = useState(false)
 
     const handleAddVariation = async () => {
         if (!variationDesc || !variationPrice) return
         await onAddVariation(variationDesc, Number(variationPrice))
         setVariationDesc("")
         setVariationPrice("")
-    }
-
-    const toggleRecording = () => {
-        if (isRecording) {
-            setIsRecording(false)
-            // Logic for saving would happen here
-        } else {
-            setIsRecording(true)
-            setTimeout(() => setIsRecording(false), 3000)
-        }
     }
 
     // Colors
@@ -247,36 +236,20 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
                                                 </div>
                                             </div>
 
-                                            <Button
-                                                variant="outline"
-                                                className={cn(
-                                                    "w-full h-12 border-slate-700 text-slate-300 transition-all hover:bg-slate-800 hover:text-white",
-                                                    isRecording && "bg-red-900/20 text-red-400 border-red-900 animate-pulse"
-                                                )}
-                                                onClick={toggleRecording}
-                                            >
-                                                <Video className="w-4 h-4 mr-2" />
-                                                {isRecording ? "Recording... (Tap to stop)" : "Add Video Explanation"}
-                                            </Button>
-
-                                            <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800">
-                                                <h4 className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-3 flex items-center gap-2">
-                                                    <PenTool className="w-3 h-3" />
-                                                    Client Signature
-                                                </h4>
-                                                <div
-                                                    className={cn(
-                                                        "h-24 bg-slate-950 border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer transition-colors",
-                                                        hasSignature ? "border-[#ccff00]/50" : "border-slate-800 hover:border-slate-600"
-                                                    )}
-                                                    onClick={() => setHasSignature(true)}
-                                                >
-                                                    {hasSignature ? (
-                                                        <span className="font-serif italic text-2xl text-[#ccff00] -rotate-2">Signed</span>
-                                                    ) : (
-                                                        <span className="text-slate-600 text-sm font-medium">Tap to sign on glass</span>
-                                                    )}
+                                            <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800 space-y-3">
+                                                <div>
+                                                    <h4 className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-2">Completion Capture</h4>
+                                                    <p className="text-sm text-slate-300 leading-relaxed">
+                                                        Video explanations and customer signatures are captured from the full completion flow so they save against the job properly.
+                                                    </p>
                                                 </div>
+                                                <Link
+                                                    href={`/crm/deals/${job.id}`}
+                                                    className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-100 transition-colors hover:bg-slate-800 hover:text-white"
+                                                >
+                                                    Open Full CRM Job
+                                                    <ExternalLink className="h-4 w-4" />
+                                                </Link>
                                             </div>
                                         </div>
                                     )}

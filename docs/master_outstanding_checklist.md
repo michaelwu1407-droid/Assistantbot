@@ -189,6 +189,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Tracey truthfulness: uncertaintyBlock now instructs model to check success field of all tool results and report failures honestly, never claiming Done when success:false.
 - `fixed` Tracey stage language: all three context injection sites (recentJobs for client, likely deals, formatClientContextResult) now map internal stage keys through DIRECT_STAGE_LABELS before injecting into the prompt. Model no longer sees PIPELINE/INVOICED/SCHEDULED.
 - `open` Continue using the saved live regression harnesses instead of ad hoc testing.
+- `fixed` Tradie bottom-sheet billing no longer fakes local video/signature capture. The fake `Add Video Explanation` and `Tap to sign on glass` interactions were replaced with honest guidance and a real link back to the full CRM job/completion flow.
 
 ### Specific Tracey Use Cases Still To Prove Well
 
