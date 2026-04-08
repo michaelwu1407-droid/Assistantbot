@@ -26,6 +26,20 @@
 - Why:
   - This was a real trust gap. Users on the job-detail screen were being invited to take a billing action that didn’t actually exist there. Routing them to the canonical billing surface is a better product path than pretending inline invoice generation is available.
 
+## 2026-04-08 (Codex) - Google-map route mode kept in sync
+
+- Files changed:
+  - `components/map/google-map-view.tsx`
+  - `__tests__/google-map-view.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Closed a parallel map dead end**: the Google Maps variant of the route-planning view was still ending on a dead-end `All Done!` card after today’s jobs were complete.
+  - **Matched the primary map experience**: it now surfaces the next upcoming job and offers `Show all upcoming jobs`, just like the Leaflet-based map view.
+  - **Verification**: added focused coverage in `google-map-view.test.tsx` and reran the shared map tests.
+- Why:
+  - Alternate surfaces should not quietly lag behind the primary one. This keeps route-mode behavior consistent no matter which map implementation is active.
+
 ## 2026-04-08 (Codex) - Draft rejection routed correctly
 
 - Files changed:
