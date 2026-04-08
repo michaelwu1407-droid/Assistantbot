@@ -178,6 +178,7 @@ import {
   runCreateTask,
   runGetDealContext,
   runGetInvoiceStatusAction,
+  runMarkInvoicePaidAction,
   runListDeals,
   runListIncompleteOrBlockedJobs,
   runListInvoiceReadyJobs,
@@ -915,6 +916,58 @@ describe("chat-actions", () => {
     expect(result.message).toContain("Deal: Blocked Drain");
     expect(result.message).toContain("Contact: Alex Harper");
     expect(result.message).toContain("Accounting sync: synced via xero");
+  });
+
+  it("gives a specific no-invoice message when a matching deal exists for invoice status", async () => {
+    hoisted.searchContacts.mockResolvedValue([
+      { id: "contact_42", name: "Alex Harper", phone: "0400000101", email: "alex@example.com", company: null },
+    ]);
+    hoisted.db.deal.findMany.mockResolvedValue([
+      {
+        id: "deal_99",
+        title: "Blocked Drain",
+        stage: "NEW",
+        updatedAt: new Date("2026-04-06T00:00:00.000Z"),
+        createdAt: new Date("2026-04-05T00:00:00.000Z"),
+        contactId: "contact_42",
+      },
+    ]);
+    hoisted.db.invoice.findFirst.mockResolvedValue(null);
+
+    const result = await runGetInvoiceStatusAction("ws_1", { dealTitle: "Alex Harper" });
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('There isn’t an invoice yet for "Blocked Drain"');
+    expect(result.quickActions[0]).toMatchObject({
+      label: "Create draft invoice",
+      prompt: 'Create a draft invoice for "Blocked Drain"',
+    });
+  });
+
+  it("gives a specific no-invoice message when marking paid on a deal with no invoice", async () => {
+    hoisted.searchContacts.mockResolvedValue([
+      { id: "contact_42", name: "Alex Harper", phone: "0400000101", email: "alex@example.com", company: null },
+    ]);
+    hoisted.db.deal.findMany.mockResolvedValue([
+      {
+        id: "deal_99",
+        title: "Blocked Drain",
+        stage: "NEW",
+        updatedAt: new Date("2026-04-06T00:00:00.000Z"),
+        createdAt: new Date("2026-04-05T00:00:00.000Z"),
+        contactId: "contact_42",
+      },
+    ]);
+    hoisted.db.invoice.findFirst.mockResolvedValue(null);
+
+    const result = await runMarkInvoicePaidAction("ws_1", { dealTitle: "Alex Harper" });
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('There isn’t an invoice yet for "Blocked Drain"');
+    expect(result.quickActions[0]).toMatchObject({
+      label: "Create draft invoice",
+      prompt: 'Create a draft invoice for "Blocked Drain"',
+    });
   });
 
   it("unassignDeal resolves by dealTitle and removes assignee", async () => {

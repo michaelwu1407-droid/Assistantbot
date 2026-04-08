@@ -1729,6 +1729,23 @@ async function findInvoiceInWorkspace(
   return null;
 }
 
+async function findDealForInvoiceLookup(
+  workspaceId: string,
+  params: { dealTitle?: string; contactName?: string }
+): Promise<InvoiceTargetDeal | null> {
+  if (params.dealTitle?.trim()) {
+    const resolution = await resolveDealForInvoiceTarget(workspaceId, params.dealTitle.trim());
+    return resolution.deal;
+  }
+
+  if (params.contactName?.trim()) {
+    const resolution = await resolveDealForInvoiceTarget(workspaceId, params.contactName.trim());
+    return resolution.deal;
+  }
+
+  return null;
+}
+
 export async function runCreateDraftInvoice(
   workspaceId: string,
   params: { dealTitle: string }
@@ -1820,6 +1837,14 @@ export async function runIssueInvoiceAction(
     return { success: false, message: invoiceLookup.message, quickActions: [] };
   }
   if (!invoiceLookup) {
+    const deal = await findDealForInvoiceLookup(workspaceId, params);
+    if (deal) {
+      return {
+        success: false,
+        message: `There isn’t an invoice yet for "${deal.title}". Create a draft invoice first, then issue it to the client.`,
+        quickActions: [{ label: "Create draft invoice", prompt: `Create a draft invoice for "${deal.title}"` }],
+      };
+    }
     return { success: false, message: "Couldn't find an invoice for that deal/contact.", quickActions: [] };
   }
   const invoice = invoiceLookup;
@@ -1861,6 +1886,14 @@ export async function runMarkInvoicePaidAction(
     return { success: false, message: invoiceLookup.message, quickActions: [] };
   }
   if (!invoiceLookup) {
+    const deal = await findDealForInvoiceLookup(workspaceId, params);
+    if (deal) {
+      return {
+        success: false,
+        message: `There isn’t an invoice yet for "${deal.title}", so there’s nothing to mark as paid yet.`,
+        quickActions: [{ label: "Create draft invoice", prompt: `Create a draft invoice for "${deal.title}"` }],
+      };
+    }
     return { success: false, message: "Couldn't find an invoice for that deal/contact.", quickActions: [] };
   }
   const invoice = invoiceLookup;
@@ -1995,6 +2028,14 @@ export async function runGetInvoiceStatusAction(
     return { success: false, message: invoiceLookup.message, quickActions: [] };
   }
   if (!invoiceLookup) {
+    const deal = await findDealForInvoiceLookup(workspaceId, params);
+    if (deal) {
+      return {
+        success: false,
+        message: `There isn’t an invoice yet for "${deal.title}".`,
+        quickActions: [{ label: "Create draft invoice", prompt: `Create a draft invoice for "${deal.title}"` }],
+      };
+    }
     return { success: false, message: "Couldn't find an invoice for that deal/contact.", quickActions: [] };
   }
   const invoice = invoiceLookup;
