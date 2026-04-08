@@ -192,6 +192,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Tradie bottom-sheet billing no longer fakes local video/signature capture. The fake `Add Video Explanation` and `Tap to sign on glass` interactions were replaced with honest guidance and a real link back to the full CRM job/completion flow.
 - `fixed` Tradie completion modal no longer fakes local photo/file attachment. The old local-only file picker was replaced with honest guidance and a real link into the full CRM job where uploads persist properly.
 - `fixed` `/api/contacts` and `/api/deals` POST routes no longer return placeholder `501` responses. Both now call the real create actions and scope creation to the authenticated workspace.
+- `fixed` Tradie job-detail handover no longer shows static fake resources. The tab now gives honest status and routes users to the full CRM job for real handover docs and attachments.
 
 ### Specific Tracey Use Cases Still To Prove Well
 

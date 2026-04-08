@@ -225,29 +225,17 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                             <Card className="p-4">
                                 <h3 className="font-semibold mb-3 text-sm text-slate-900 flex items-center gap-2">
                                     <FileText className="w-4 h-4" />
-                                    Handover Resources
+                                    Handover Status
                                 </h3>
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100">
-                                        <FileText className="w-5 h-5 text-blue-500" />
-                                        <div className="flex-1">
-                                            <p className="text-sm font-medium text-slate-900">Maintenance Guide</p>
-                                            <p className="text-xs text-slate-500">General care instructions</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100">
-                                        <FileText className="w-5 h-5 text-emerald-500" />
-                                        <div className="flex-1">
-                                            <p className="text-sm font-medium text-slate-900">Warranty Card</p>
-                                            <p className="text-xs text-slate-500">12 month parts warranty</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100">
-                                        <FileText className="w-5 h-5 text-amber-500" />
-                                        <div className="flex-1">
-                                            <p className="text-sm font-medium text-slate-900">Before / After Photos</p>
-                                            <p className="text-xs text-slate-500">{job.photos.length} photos attached</p>
-                                        </div>
+                                <div className="space-y-3">
+                                    <p className="text-sm text-slate-600 leading-relaxed">
+                                        Handover documents and customer-ready attachments are managed from the full CRM job view so files, notes, and message history stay together.
+                                    </p>
+                                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Current job assets</p>
+                                        <p className="mt-1 text-sm text-slate-900">
+                                            {job.photos.length > 0 ? `${job.photos.length} job photo${job.photos.length === 1 ? "" : "s"} ready to review in CRM.` : "No handover files attached yet."}
+                                        </p>
                                     </div>
                                 </div>
                             </Card>

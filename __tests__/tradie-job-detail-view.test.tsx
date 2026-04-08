@@ -77,6 +77,9 @@ describe("Tradie JobDetailView", () => {
     await user.click(screen.getByRole("tab", { name: /handover/i }));
     expect(screen.getByRole("link", { name: /open full job in crm/i })).toHaveAttribute("href", "/crm/deals/deal_1");
     expect(screen.queryByRole("button", { name: /send handover pack to client/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/handover documents and customer-ready attachments are managed from the full crm job view/i)).toBeInTheDocument();
+    expect(screen.queryByText(/maintenance guide/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/warranty card/i)).not.toBeInTheDocument();
   });
 
   it("makes call and map actions honest when contact data is missing", () => {

@@ -4076,3 +4076,18 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/contact-api-route.test.ts __tests__/deal-api-route.test.ts`
   - `npx next build`
+
+## 2026-04-08 - Tradie handover tab no longer shows fake resources
+
+- Files:
+  - `components/tradie/job-detail-view.tsx`
+  - `__tests__/tradie-job-detail-view.test.tsx`
+- What changed:
+  - Removed the static fake handover resource cards (`Maintenance Guide`, `Warranty Card`, `Before / After Photos`) from the tradie job detail handover tab.
+  - Replaced them with honest status copy that explains handover documents and attachments are managed from the full CRM job view.
+  - Kept a lightweight real status summary by surfacing whether there are actual job photos attached.
+- Why:
+  - The old UI implied that job-specific handover assets already existed even when they were just static placeholders. That made the product feel more complete than it really was.
+- Verified with:
+  - `npx vitest run __tests__/tradie-job-detail-view.test.tsx`
+  - `npx next build`
