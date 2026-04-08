@@ -769,7 +769,28 @@ If the request is to contact the customer, use the appropriate customer-contact 
                   </button>
                 </div>
 
-                <div className="mb-2 rounded-lg border border-border/50 bg-background/40 px-3 py-2" role="region" aria-live="polite">
+                <div
+                  className={cn(
+                    "mb-2 rounded-lg border px-3 py-2 transition-colors",
+                    messageMode === "direct"
+                      ? "border-teal-200 bg-teal-50/70"
+                      : "border-blue-200 bg-blue-50/70",
+                  )}
+                  role="region"
+                  aria-live="polite"
+                >
+                  <div className="mb-1 flex items-center gap-2">
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide",
+                        messageMode === "direct"
+                          ? "bg-teal-100 text-teal-700"
+                          : "bg-blue-100 text-blue-700",
+                      )}
+                    >
+                      {messageMode === "direct" ? "Sends immediately" : "AI handles next step"}
+                    </span>
+                  </div>
                   <p className="text-xs font-medium text-foreground">
                     {messageMode === "direct"
                       ? "Direct SMS: sends now from your workspace Twilio number as a normal outbound text."
@@ -807,7 +828,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
                     onClick={handleSendMessage}
                   >
                     <Send className="h-4 w-4" />
-                    <span className="ml-1 text-xs">{messageMode === "direct" ? "Send SMS" : "Ask Tracey"}</span>
+                    <span className="ml-1 text-xs">{messageMode === "direct" ? "Send now" : "Ask Tracey to act"}</span>
                   </Button>
                 </div>
                 {messageMode === "direct" && !selectedContact.phone && (

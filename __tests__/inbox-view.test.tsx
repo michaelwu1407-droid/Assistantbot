@@ -283,7 +283,7 @@ describe("InboxView", () => {
 
     const directInput = screen.getByPlaceholderText(/Send an SMS to Alice Example yourself/i);
     await user.type(directInput, "Direct note");
-    expect(screen.getByRole("button", { name: /Send SMS/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Send now/i })).toBeInTheDocument();
 
     await user.click(screen.getByRole("tab", { name: /Ask Tracey/i }));
     const traceyInput = screen.getByPlaceholderText(/Ask Tracey to reply or update the CRM for Alice Example/i);
@@ -326,9 +326,13 @@ describe("InboxView", () => {
     expect(directTab).toHaveAttribute("aria-selected", "true");
 
     expect(screen.getByText(/Direct SMS: sends now from your workspace Twilio number/i)).toBeInTheDocument();
+    expect(screen.getByText(/Sends immediately/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Send now/i })).toBeInTheDocument();
 
     await user.click(traceyTab);
     expect(traceyTab).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText(/Ask Tracey: the AI reads your instruction/i)).toBeInTheDocument();
+    expect(screen.getByText(/AI handles next step/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Ask Tracey to act/i })).toBeInTheDocument();
   });
 });

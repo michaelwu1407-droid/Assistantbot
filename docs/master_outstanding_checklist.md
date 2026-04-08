@@ -125,10 +125,12 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Dashboard create-into-`Scheduled`: new-deal-modal now validates `scheduledAt` client-side when stage is "scheduled", matching the server-side check. Error is surfaced immediately as a toast rather than an uninformative failure.
 - `fixed` Map view Today Only empty state: when no jobs today, shows the next upcoming job with date/time and a 'Show all upcoming jobs' button; if none exist, shows 'Switch to All Jobs view'.
 - `fixed` Map view future-job UX: All Jobs view now sorted (upcoming first/soonest first, past jobs below). Each sidebar card shows relative date label (Today/Tomorrow/day name + time) and '(past)' marker on overdue jobs.
+- `fixed` Route mode no longer dead-ends after today is complete. If there are upcoming jobs, the sidebar now surfaces the next upcoming booking and offers `Show all upcoming jobs` so the user can keep planning ahead.
 
 ### Inbox / Messaging UX
 
 - `fixed` Inbox composer mode ambiguity resolved: Direct SMS tab moved to first position to match default mode; explanation card clearly states which tab uses AI vs sends raw SMS.
+- `fixed` Inbox composer mode distinction is now visually stronger too: `Direct SMS` carries a `Sends immediately` state badge and `Send now` CTA, while `Ask Tracey` carries an `AI handles next step` badge and `Ask Tracey to act` CTA.
 - `fixed` Inbox `Conversations` vs `System Activity` split: `isSystemEvent` now correctly classifies assignee changes, deal updates, stage moves, invoice ops, portal views, and post-job follow-ups as System Activity instead of surfacing them in Conversations.
 - `fixed` Ask Tracey success test is stable in batch.
 

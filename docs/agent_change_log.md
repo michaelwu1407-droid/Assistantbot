@@ -3838,3 +3838,18 @@ Rule: every agent change commit must include an entry in this file.
   - WhatsApp assistant: `degraded`
   - warning: `Twilio could not find a Channel with the specified From address`
 - This closes the app-side WhatsApp debugging loop for now. Remaining WhatsApp work is external/provider-side Twilio channel configuration, not repo code.
+
+## 2026-04-08 - Inbox and map trust polish
+
+- Files:
+  - `components/crm/inbox-view.tsx`
+  - `components/map/map-view.tsx`
+  - `__tests__/inbox-view.test.tsx`
+  - `__tests__/map-view.test.tsx`
+- What changed:
+  - Made the inbox composer modes more explicit for real users, not just tests. `Direct SMS` now shows a colored `Sends immediately` badge and a `Send now` CTA, while `Ask Tracey` shows an `AI handles next step` badge and an `Ask Tracey to act` CTA.
+  - Kept route mode useful after the last scheduled job is done. Instead of ending in a dead-end `All Done!` card, the map now surfaces the next upcoming job and gives the user a clear `Show all upcoming jobs` path back into planning mode.
+- Why:
+  - The remaining non-provider product gaps are mostly trust/coherence issues. These two surfaces were already functionally working, but they still left room for "what mode am I in?" and "what do I do next?" confusion.
+- Verified with:
+  - `npx vitest run __tests__/inbox-view.test.tsx __tests__/map-view.test.tsx __tests__/inbox-page.test.tsx`
