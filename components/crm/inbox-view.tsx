@@ -201,6 +201,7 @@ export function InboxView({
     direct: "",
     tracey: "",
   })
+  const [expandedActivityIds, setExpandedActivityIds] = useState<Record<string, boolean>>({})
   const [sending, setSending] = useState(false)
   const messageText = messageDrafts[messageMode]
 
@@ -340,10 +341,49 @@ export function InboxView({
     }
   }
 
-  // User/sent messages (reply, outbound) show on the right
+  function getTimelineMeta(item: ActivityView) {
+    const system = isSystemEvent(item) || item.channel === "system" || item.direction === "system"
+    const channel =
+      item.channel ||
+      (system ? "system" : item.title?.toLowerCase().includes("sms") ? "sms" : item.type)
+    const direction =
+      system
+        ? "system"
+        : item.direction ||
+          (/^(reply|outbound|sent|sms sent|outbound call|email sent)/i.test(item.title ?? "") ||
+          (item.title ?? "").toLowerCase().includes("reply") ||
+          (item.title ?? "").toLowerCase().includes("outbound")
+            ? "outbound"
+            : "inbound")
+
+    const body = item.body ?? item.content ?? null
+    const preview = item.preview ?? body ?? item.description ?? item.title
+    const summary = item.summary ?? item.description ?? null
+    const subject = item.subject ?? (channel === "email" ? item.description || item.title : null)
+    const transcript = item.transcript ?? null
+
+    return {
+      system,
+      channel,
+      direction,
+      body,
+      preview,
+      summary,
+      subject,
+      transcript,
+      durationLabel: item.durationLabel ?? null,
+    }
+  }
+
+  function shouldExpandByDefault(item: ActivityView) {
+    const meta = getTimelineMeta(item)
+    if (meta.channel === "call") return false
+    if (meta.channel === "email") return (meta.body?.length ?? 0) <= 320
+    return true
+  }
+
   function isOutbound(item: ActivityView) {
-    const title = (item.title ?? "").toLowerCase()
-    return /^(reply|outbound|sent|sms sent|outbound call|email sent)/i.test(title) || title.includes("reply") || title.includes("outbound")
+    return getTimelineMeta(item).direction === "outbound"
   }
 
   const handleSendMessage = async () => {
@@ -689,16 +729,20 @@ If the request is to contact the customer, use the appropriate customer-contact 
                   </div>
                 ) : (
                   detailInteractions.map((item) => {
-                    const outbound = isOutbound(item)
-                    const effectiveType = isSystemEvent(item) ? "system"
-                      : (item.title?.toLowerCase().includes("sms") ? "sms" : item.type)
-                    const { icon, containerClass, label } = channelIconAndStyle(effectiveType)
+                    const meta = getTimelineMeta(item)
+                    const outbound = meta.direction === "outbound"
+                    const expanded = expandedActivityIds[item.id] ?? shouldExpandByDefault(item)
+                    const { icon, containerClass, label } = channelIconAndStyle(meta.channel)
+                    const timelineSummary =
+                      meta.channel === "call"
+                        ? meta.summary || meta.preview || "Call details available"
+                        : meta.preview || "Activity"
                     return (
                       <div
                         key={item.id}
                         className={cn(
                           "flex gap-3 items-start",
-                          outbound && "flex-row-reverse justify-end"
+                          outbound && !meta.system && "flex-row-reverse justify-end"
                         )}
                       >
                         <div
@@ -707,21 +751,98 @@ If the request is to contact the customer, use the appropriate customer-contact 
                         >
                           {icon}
                         </div>
-                        <div className={cn("flex-1 min-w-0 max-w-[85%]", outbound && "flex flex-col items-end")}>
-                          <div className="flex items-baseline gap-2">
-                            <span className="app-body-primary text-xs font-medium">{item.title}</span>
-                            <span className="app-body-secondary text-xs">{item.time}</span>
-                          </div>
-                          {item.content && (
-                            <p
-                              className={cn(
-                                "text-sm mt-0.5 whitespace-pre-wrap",
-                                outbound ? "text-foreground bg-primary/10 rounded-lg rounded-br-sm px-2.5 py-1.5" : "text-muted-foreground"
+                        <div className={cn("flex-1 min-w-0 max-w-[88%]", outbound && !meta.system && "flex flex-col items-end")}>
+                          <div
+                            className={cn(
+                              "rounded-2xl border px-3 py-2.5 shadow-sm",
+                              meta.system
+                                ? "border-border/40 bg-muted/20"
+                                : outbound
+                                  ? "border-primary/20 bg-primary/10"
+                                  : "border-border/50 bg-background/80",
+                            )}
+                          >
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="app-body-primary text-xs font-semibold">{item.title}</span>
+                              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                {label}
+                              </span>
+                              {!meta.system && (
+                                <span className="rounded-full border border-border/50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                                  {meta.direction === "outbound" ? "Outbound" : "Inbound"}
+                                </span>
                               )}
-                            >
-                              {item.content}
-                            </p>
-                          )}
+                              {meta.durationLabel && (
+                                <span className="text-[10px] font-medium text-muted-foreground">{meta.durationLabel}</span>
+                              )}
+                              <span className="ml-auto app-body-secondary text-xs">{item.time}</span>
+                            </div>
+
+                            {meta.channel === "email" && meta.subject && meta.subject !== item.title && (
+                              <p className="mt-2 text-xs font-medium text-foreground/80">
+                                Subject: {meta.subject}
+                              </p>
+                            )}
+
+                            {meta.channel === "call" ? (
+                              <div className="mt-2 space-y-2">
+                                <p className="text-sm leading-relaxed text-foreground">{timelineSummary}</p>
+                                {meta.transcript ? (
+                                  <div className="space-y-2">
+                                    <button
+                                      type="button"
+                                      className="text-xs font-medium text-primary underline underline-offset-4"
+                                      aria-expanded={expanded}
+                                      onClick={() =>
+                                        setExpandedActivityIds((current) => ({
+                                          ...current,
+                                          [item.id]: !expanded,
+                                        }))
+                                      }
+                                    >
+                                      {expanded ? "Hide full transcript" : "Show full transcript"}
+                                    </button>
+                                    {expanded && (
+                                      <div className="rounded-xl bg-muted/40 p-3">
+                                        <p className="text-sm whitespace-pre-wrap leading-relaxed text-muted-foreground">
+                                          {meta.transcript}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : meta.body ? (
+                                  <p className="text-sm whitespace-pre-wrap leading-relaxed text-muted-foreground">
+                                    {meta.body}
+                                  </p>
+                                ) : null}
+                              </div>
+                            ) : meta.body ? (
+                              <div className="mt-2 space-y-2">
+                                <p className="text-sm whitespace-pre-wrap leading-relaxed text-foreground">
+                                  {expanded || meta.body.length <= 320
+                                    ? meta.body
+                                    : `${meta.body.slice(0, 317)}...`}
+                                </p>
+                                {meta.body.length > 320 && (
+                                  <button
+                                    type="button"
+                                    className="text-xs font-medium text-primary underline underline-offset-4"
+                                    aria-expanded={expanded}
+                                    onClick={() =>
+                                      setExpandedActivityIds((current) => ({
+                                        ...current,
+                                        [item.id]: !expanded,
+                                      }))
+                                    }
+                                  >
+                                    {expanded ? "Show less" : "Show full message"}
+                                  </button>
+                                )}
+                              </div>
+                            ) : meta.summary ? (
+                              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{meta.summary}</p>
+                            ) : null}
+                          </div>
                         </div>
                       </div>
                     )

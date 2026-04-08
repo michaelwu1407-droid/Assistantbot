@@ -63,6 +63,7 @@ describe("getActivities", () => {
         transcriptText: "Hi Tracey, can you help me book in next Tuesday morning?",
         summary: "Customer asked to book a job next Tuesday morning.",
         startedAt: new Date("2026-03-16T10:00:00.000Z"),
+        endedAt: new Date("2026-03-16T10:03:00.000Z"),
         contactId: "contact_1",
         contact: { name: "Alex", phone: "0400 000 000", email: "alex@example.com" },
       },
@@ -86,8 +87,12 @@ describe("getActivities", () => {
       title: "Customer call",
       contactId: "contact_1",
       contactName: "Alex",
+      channel: "call",
+      direction: "inbound",
+      durationLabel: "3m",
     });
     expect(result[0]?.content).toContain("book in next Tuesday morning");
+    expect(result[0]?.transcript).toContain("book in next Tuesday morning");
     expect(result[1]).toMatchObject({
       id: "activity_1",
       type: "note",
@@ -110,6 +115,7 @@ describe("getActivities", () => {
         transcriptText: null,
         summary: "Caller asked what Earlymark AI can do for a workshop.",
         startedAt: new Date("2026-03-16T11:00:00.000Z"),
+        endedAt: null,
         contactId: "contact_42",
         contact: {
           name: "Michael",
@@ -139,6 +145,8 @@ describe("getActivities", () => {
       contactId: "contact_42",
       contactName: "Michael",
       description: "Caller asked what Earlymark AI can do for a workshop.",
+      channel: "call",
+      summary: "Caller asked what Earlymark AI can do for a workshop.",
     });
   });
 });

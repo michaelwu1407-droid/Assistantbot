@@ -21,6 +21,14 @@ export interface ActivityView {
   contactPhone?: string | null;
   contactEmail?: string | null;
   content?: string | null;
+  channel?: "call" | "email" | "sms" | "system" | "note" | "task" | "meeting";
+  direction?: "inbound" | "outbound" | "system";
+  preview?: string | null;
+  body?: string | null;
+  transcript?: string | null;
+  summary?: string | null;
+  subject?: string | null;
+  durationLabel?: string | null;
 }
 
 type VoiceCallActivityRow = {
@@ -32,6 +40,7 @@ type VoiceCallActivityRow = {
   transcriptText: string | null;
   summary: string | null;
   startedAt: Date;
+  endedAt: Date | null;
   contactId: string | null;
   contact?: {
     name: string | null;
@@ -86,6 +95,20 @@ function formatVoiceCallTitle(callType: string) {
   }
 }
 
+function formatDurationLabel(startedAt: Date, endedAt?: Date | null) {
+  if (!endedAt) return null;
+  const seconds = Math.max(0, Math.round((endedAt.getTime() - startedAt.getTime()) / 1000));
+  if (seconds <= 0) return null;
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+}
+
+function inferVoiceDirection(callType: string): "inbound" | "outbound" {
+  return (callType || "").toLowerCase().includes("outbound") ? "outbound" : "inbound";
+}
+
 function mapVoiceCallToActivity(call: VoiceCallActivityRow): ActivityView {
   const transcriptSnippet = snippet(call.transcriptText, 220);
   const summary = snippet(call.summary, 140);
@@ -108,6 +131,14 @@ function mapVoiceCallToActivity(call: VoiceCallActivityRow): ActivityView {
     contactName: call.contact?.name || call.callerName || call.businessName || undefined,
     contactPhone: call.contact?.phone || call.callerPhone || undefined,
     contactEmail: call.contact?.email || undefined,
+    channel: "call",
+    direction: inferVoiceDirection(call.callType),
+    preview: summary || transcriptSnippet,
+    body: transcriptSnippet || summary,
+    transcript: call.transcriptText,
+    summary: call.summary,
+    subject: null,
+    durationLabel: formatDurationLabel(call.startedAt, call.endedAt),
   };
 }
 
@@ -172,6 +203,14 @@ async function fetchVoicemailActivities(workspaceId: string, limit: number): Pro
           contactName: contact?.name || undefined,
           contactPhone: contact?.phone || callerPhone || undefined,
           contactEmail: contact?.email || undefined,
+          channel: "call",
+          direction: "inbound",
+          preview: transcription || `${duration} voicemail`,
+          body: transcription,
+          transcript: p.transcriptionText || null,
+          summary: `${duration} voicemail from ${contact?.name || callerPhone || "unknown"}`,
+          subject: null,
+          durationLabel: duration || null,
         } satisfies ActivityView;
       })
     );
@@ -255,6 +294,7 @@ export async function getActivities(options?: {
             transcriptText: true,
             summary: true,
             startedAt: true,
+            endedAt: true,
             contactId: true,
             contact: {
               select: {
@@ -271,9 +311,31 @@ export async function getActivities(options?: {
       const contactName = a.contact?.name ?? a.deal?.contact?.name ?? null;
       const contactPhone = a.contact?.phone ?? a.deal?.contact?.phone ?? null;
       const contactEmail = a.contact?.email ?? a.deal?.contact?.email ?? null;
+      const normalizedType = a.type.toLowerCase();
+      const normalizedTitle = (a.title || "").toLowerCase();
+      const inferredChannel: NonNullable<ActivityView["channel"]> =
+        normalizedType === "email"
+          ? "email"
+          : normalizedType === "call"
+            ? "call"
+            : normalizedTitle.includes("sms")
+              ? "sms"
+              : normalizedType === "task"
+                ? "task"
+                : normalizedType === "meeting"
+                  ? "meeting"
+                  : "note";
+      const inferredDirection: NonNullable<ActivityView["direction"]> =
+        normalizedTitle.includes("reply") ||
+        normalizedTitle.includes("outbound") ||
+        normalizedTitle.includes("sent")
+          ? "outbound"
+          : inferredChannel === "note" && !a.content
+            ? "system"
+            : "inbound";
       return {
         id: a.id,
-        type: a.type.toLowerCase(),
+        type: normalizedType,
         title: a.title,
         description: a.description,
         content: a.content,
@@ -284,6 +346,14 @@ export async function getActivities(options?: {
         contactName: contactName ?? undefined,
         contactPhone,
         contactEmail,
+        channel: inferredChannel,
+        direction: inferredDirection,
+        preview: snippet(a.content || a.description || a.title, 180),
+        body: a.content,
+        transcript: null,
+        summary: a.description,
+        subject: inferredChannel === "email" ? a.description || a.title : null,
+        durationLabel: null,
       };
     });
 

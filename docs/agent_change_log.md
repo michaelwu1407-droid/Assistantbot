@@ -4339,3 +4339,20 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/new-deal-page.test.tsx __tests__/new-deal-modal-standalone.test.tsx`
   - `npx next build`
+
+## 2026-04-09 - Inbox now behaves like a unified customer communication timeline
+
+- Files:
+  - `actions/activity-actions.ts`
+  - `components/crm/inbox-view.tsx`
+  - `__tests__/activity-actions.test.ts`
+  - `__tests__/inbox-view.test.tsx`
+- What changed:
+  - Enriched `ActivityView` so inbox rendering can distinguish channel, direction, transcript, summary, subject, and duration instead of treating everything like a generic note row.
+  - Voice calls now enter the inbox timeline with compact summary-first metadata and optional full transcript detail, while SMS/email keep their message bodies readable inline.
+  - Reworked the inbox thread renderer into a single chronological customer timeline with per-item channel badges, inbound/outbound labels, inline message bodies for lighter channels, and expandable long-form detail for calls and long emails.
+- Why:
+  - This is the product-correct model for a multi-channel customer inbox: users should be able to follow one coherent relationship history without bouncing between separate medium-specific views, but long call transcripts still need to stay out of the way unless expanded.
+- Verified with:
+  - `npx vitest run __tests__/inbox-view.test.tsx __tests__/inbox-page.test.tsx __tests__/activity-actions.test.ts`
+  - `npx next build`

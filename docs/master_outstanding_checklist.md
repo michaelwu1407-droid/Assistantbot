@@ -211,6 +211,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` `/api/workspace` POST no longer returns a placeholder `501`. It now updates the authenticated user's workspace through the real server action and returns the refreshed workspace payload.
 - `fixed` Tradie post-job completion flow now uses clearer next-step copy when offering the feedback request, making the final review/send step more obvious in the field workflow.
 - `fixed` Team page no longer contains `fake-` fixture logic in real role-management UI. Permissions now reflect only actual product rules.
+- `fixed` Customer inbox now follows the intended multi-channel product model: one unified timeline per customer with SMS/email inline by default and calls shown as compact summary rows that expand into full transcripts only when needed.
 
 ### Specific Tracey Use Cases Still To Prove Well
 

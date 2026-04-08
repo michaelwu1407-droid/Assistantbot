@@ -127,7 +127,7 @@ describe("InboxView", () => {
 
     const input = screen.getByPlaceholderText(/Send an SMS to Alice Example yourself/i);
     await user.type(input, "On my way");
-    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+    await user.click(screen.getByRole("button", { name: /Send now/i }));
 
     await waitFor(() => expect(sendSMS).toHaveBeenCalledWith("contact_a", "On my way"));
     expect(toastSuccess).toHaveBeenCalledWith("SMS sent");
@@ -162,7 +162,7 @@ describe("InboxView", () => {
 
     const input = screen.getByPlaceholderText(/Send an SMS to Alice Example yourself/i);
     await user.type(input, "On my way");
-    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+    await user.click(screen.getByRole("button", { name: /Send now/i }));
 
     await waitFor(() => expect(toastError).toHaveBeenCalledWith("Twilio offline"));
   });
@@ -203,7 +203,7 @@ describe("InboxView", () => {
     await user.click(screen.getByRole("tab", { name: /Ask Tracey/i }));
     const input = screen.getByPlaceholderText(/Ask Tracey to reply or update the CRM for Alice Example/i);
     await user.type(input, "Please let them know we'll be there at 3.");
-    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+    await user.click(screen.getByRole("button", { name: /Ask Tracey to act/i }));
 
     await waitFor(() =>
       expect(fetch).toHaveBeenCalledWith(
@@ -248,7 +248,7 @@ describe("InboxView", () => {
     await user.click(screen.getByRole("tab", { name: /Ask Tracey/i }));
     const input = screen.getByPlaceholderText(/Ask Tracey to reply or update the CRM for Alice Example/i);
     await user.type(input, "Please let them know we'll be there at 3.");
-    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+    await user.click(screen.getByRole("button", { name: /Ask Tracey to act/i }));
 
     await waitFor(() =>
       expect(toastError).toHaveBeenCalledWith("Could not reach Tracey. Check your connection and try again."),
@@ -334,5 +334,45 @@ describe("InboxView", () => {
     expect(screen.getByText(/Ask Tracey: the AI reads your instruction/i)).toBeInTheDocument();
     expect(screen.getByText(/AI handles next step/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Ask Tracey to act/i })).toBeInTheDocument();
+  });
+
+  it("keeps calls compact by default and expands to show the full transcript on demand", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <InboxView
+        workspaceId="ws_1"
+        initialInteractions={[
+          {
+            id: "call_1",
+            type: "call",
+            channel: "call",
+            direction: "inbound",
+            title: "Customer call",
+            description: "Caller asked about moving tomorrow's booking.",
+            summary: "Caller asked about moving tomorrow's booking.",
+            transcript: "Caller: Hi, can we move tomorrow's booking to Friday morning?\nTracey: I can help with that.",
+            content: "Caller: Hi, can we move tomorrow's booking to Friday morning?",
+            preview: "Caller asked about moving tomorrow's booking.",
+            time: "Just now",
+            createdAt: new Date("2026-04-03T10:00:00.000Z"),
+            contactId: "contact_a",
+            contactName: "Alice Example",
+            contactPhone: "0400000001",
+            contactEmail: "alice@example.com",
+          },
+        ]}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Alice Example" })).toBeInTheDocument());
+
+    expect(screen.getByText(/Caller asked about moving tomorrow's booking/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Tracey: I can help with that\./i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Show full transcript/i }));
+
+    expect(screen.getByText(/Tracey: I can help with that\./i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Hide full transcript/i })).toBeInTheDocument();
   });
 });
