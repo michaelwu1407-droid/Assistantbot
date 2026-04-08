@@ -12,6 +12,23 @@
 - Why:
   - This closes more of the “real CRM work” loop in production. The remaining gaps are increasingly about UX polish, duplicate QA data, and real-device/provider verification rather than basic orchestration failures.
 
+## 2026-04-08 (Codex) - Draft rejection routed correctly
+
+- Files changed:
+  - `actions/chat-actions.ts`
+  - `lib/ai/tools.ts`
+  - `lib/ai/pre-classifier.ts`
+  - `__tests__/chat-actions.test.ts`
+  - `__tests__/pre-classifier.test.ts`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Fixed a real production misroute**: `Reject the draft for ...` was going to `rejectCompletion` instead of a draft-specific path, which produced the wrong “not pending approval” response and left the draft untouched.
+  - **Added first-class draft rejection support**: Tracey now has a dedicated `runRejectDraft()` action, the model can call `rejectDraft`, and the pre-classifier now explicitly steers draft-rejection language toward `rejectDraft`.
+  - **Verification**: focused suites passed for `chat-actions`, `pre-classifier`, and `chat-route`. `next build` is clean locally. The next step is a production rerun of the exact live prompt that previously failed.
+- Why:
+  - Draft review is part of the CRM promise. Rejecting a draft should never fall into the completion-approval workflow.
+
 ## 2026-04-08 (Codex) - Live production verification: attention filtering
 
 - Files changed:

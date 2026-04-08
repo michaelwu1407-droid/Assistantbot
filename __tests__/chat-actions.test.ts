@@ -43,6 +43,7 @@ const hoisted = vi.hoisted(() => ({
   updateDealStage: vi.fn(),
   updateDealMetadata: vi.fn(),
   updateDealAssignedTo: vi.fn(),
+  rejectDraft: vi.fn(),
   appendTicketNote: vi.fn(),
   logActivity: vi.fn(),
   createContact: vi.fn(),
@@ -96,6 +97,7 @@ vi.mock("@/actions/deal-actions", () => ({
   updateDealStage: hoisted.updateDealStage,
   updateDealMetadata: hoisted.updateDealMetadata,
   updateDealAssignedTo: hoisted.updateDealAssignedTo,
+  rejectDraft: hoisted.rejectDraft,
 }));
 vi.mock("@/actions/activity-actions", () => ({
   appendTicketNote: hoisted.appendTicketNote,
@@ -183,6 +185,7 @@ import {
   runGetDealContext,
   runGetInvoiceStatusAction,
   runMarkInvoicePaidAction,
+  runRejectDraft,
   runUpdateInvoiceAmount,
   runListDeals,
   runListIncompleteOrBlockedJobs,
@@ -204,6 +207,7 @@ describe("chat-actions", () => {
     hoisted.updateDealStage.mockResolvedValue({ success: true });
     hoisted.createDeal.mockResolvedValue({ success: true, dealId: "deal_1" });
     hoisted.updateDeal.mockResolvedValue({ success: true });
+    hoisted.rejectDraft.mockResolvedValue({ success: true });
     hoisted.createContact.mockResolvedValue({ success: true, contactId: "contact_1" });
     hoisted.searchContacts.mockResolvedValue([]);
     hoisted.resendSend.mockResolvedValue({ data: { id: "email_1" }, error: null });
@@ -1085,6 +1089,22 @@ describe("chat-actions", () => {
     expect(result.quickActions).toEqual([
       { label: "Request review", prompt: 'Send a review request to the client for "Blocked Drain"' },
     ]);
+  });
+
+  it("rejects a draft through the dedicated draft path", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      { id: "deal_77", title: "Blocked Drain Draft", contactId: "contact_42" },
+    ]);
+
+    const result = await runRejectDraft("ws_1", {
+      dealTitle: "Blocked Drain Draft",
+      reason: "Customer details incomplete",
+    });
+
+    expect(hoisted.rejectDraft).toHaveBeenCalledWith("deal_77", "Customer details incomplete");
+    expect(result.success).toBe(true);
+    expect(result.message).toContain('Draft "Blocked Drain Draft" rejected and removed from the active draft queue.');
+    expect(result.message).toContain('Reason: "Customer details incomplete"');
   });
 
   it("unassignDeal resolves by dealTitle and removes assignee", async () => {

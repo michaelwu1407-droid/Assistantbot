@@ -278,7 +278,7 @@ function getContextHints(intent: IntentHint, text: string): string[] {
         "For job/deal updates, resolve the existing record first, then mutate it and report the actual outcome.",
         "For notes, reminders, assignments, and stage changes, use the dedicated CRM tools instead of giving advice only.",
         /\b(approve|reject|decline)\b/i.test(text) && /\b(completion|done|finished|complete|draft|job|booking)\b/i.test(text)
-          ? "APPROVAL/REJECTION: Use approveCompletion or rejectCompletion for job completion requests. Use approveDraft for draft job approvals. Include a reason if the user provided one."
+          ? "APPROVAL/REJECTION: Use approveCompletion or rejectCompletion for job completion requests. Use approveDraft or rejectDraft for draft job approvals. Include a reason if the user provided one."
           : null,
         /\b(what still needs to happen before .+ can be completed)\b/i.test(text)
           ? "For blockers or next-step questions, use getDealContext first, then explain what is still missing instead of asking the user what action they want to take."
@@ -355,6 +355,10 @@ function getSuggestedTools(intent: IntentHint, text: string): string[] {
         "assignTeamMember",
         "unassignDeal",
         "restoreDeal",
+        "approveDraft",
+        "rejectDraft",
+        "approveCompletion",
+        "rejectCompletion",
         "createDeal",
         "createContact",
         "updateContactFields",

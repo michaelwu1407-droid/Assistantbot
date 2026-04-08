@@ -47,6 +47,7 @@ import {
     runRestoreDeal,
     runAssignTeamMember,
     runApproveDraft,
+    runRejectDraft,
     runApproveCompletion,
     runRejectCompletion,
     runRequestReview,
@@ -498,6 +499,14 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
             }),
             execute: async ({ dealTitle }) => runApproveDraft(workspaceId, { dealTitle }),
         }),
+        rejectDraft: tool({
+            description: "Reject a job draft, removing it from the active draft queue. Use when a manager rejects a pending draft job.",
+            inputSchema: z.object({
+                dealTitle: z.string().describe("Draft job title (fuzzy matched)"),
+                reason: z.string().optional().describe("Short reason for rejecting the draft"),
+            }),
+            execute: async ({ dealTitle, reason }) => runRejectDraft(workspaceId, { dealTitle, reason }),
+        }),
         approveCompletion: tool({
             description: "Approve a job completion request (PENDING_COMPLETION), marking the job as fully completed. Use when a manager approves a team member's completion request.",
             inputSchema: z.object({
@@ -751,6 +760,7 @@ const CRM_CORE_TOOLS = [
     'unassignDeal',
     'restoreDeal',
     'approveDraft',
+    'rejectDraft',
     'approveCompletion',
     'rejectCompletion',
     'requestReview',

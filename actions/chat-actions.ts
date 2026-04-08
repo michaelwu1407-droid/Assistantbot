@@ -3316,6 +3316,36 @@ export async function runApproveDraft(
 }
 
 /**
+ * Reject a job draft (moves it out of the active draft queue).
+ */
+export async function runRejectDraft(
+  workspaceId: string,
+  params: { dealTitle: string; reason?: string }
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
+  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+  const deal = findDealByTitle(deals, params.dealTitle.trim());
+  if (!deal) {
+    return { success: false, message: `Couldn't find a job draft matching "${params.dealTitle}".`, quickActions: [] };
+  }
+
+  const { rejectDraft } = await import("./deal-actions");
+  const result = await rejectDraft(deal.id, params.reason?.trim());
+  if (!result.success) {
+    return { success: false, message: result.error ?? `Couldn't reject draft for "${deal.title}".`, quickActions: [] };
+  }
+  revalidatePath("/crm", "layout");
+  const reasonSuffix = params.reason?.trim() ? ` Reason: "${params.reason.trim()}"` : "";
+  return {
+    success: true,
+    message: `Draft "${deal.title}" rejected and removed from the active draft queue.${reasonSuffix}`,
+    quickActions: [
+      { label: "View job", prompt: `Show me the deal "${deal.title}"` },
+      { label: "Add note", prompt: `Add a note to "${deal.title}" explaining why the draft was rejected` },
+    ],
+  };
+}
+
+/**
  * Approve a completion request (moves PENDING_COMPLETION deal to WON).
  */
 export async function runApproveCompletion(

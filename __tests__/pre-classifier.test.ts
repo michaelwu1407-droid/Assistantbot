@@ -141,4 +141,12 @@ describe("pre-classifier", () => {
     expect(result.suggestedTools).not.toContain("moveDeal");
     expect(result.contextHints.join(" ")).toContain("do not call moveDeal separately");
   });
+
+  it("routes draft rejection requests toward the dedicated rejectDraft tool", () => {
+    const result = preClassify("Reject the draft for Blocked Drain because the customer details are incomplete.");
+
+    expect(result.intent).toBe("crm_action");
+    expect(result.suggestedTools).toContain("rejectDraft");
+    expect(result.contextHints.join(" ")).toContain("approveDraft or rejectDraft");
+  });
 });
