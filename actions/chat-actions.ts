@@ -522,7 +522,23 @@ export async function runMoveDeal(
   assignedTo?: string
 ): Promise<{ success: boolean; message: string; dealId?: string; stage?: string; requiresAssignment?: boolean; requiresSchedule?: boolean }> {
   const deals = await getDeals(workspaceId, undefined, { unbounded: true });
-  const deal = findDealByTitle(deals, dealTitle);
+  let deal = findDealByTitle(deals, dealTitle);
+  if (!deal) {
+    const resolution = await resolveDealForInvoiceTarget(workspaceId, dealTitle);
+    if (resolution.deal) {
+      const fallback = deals.find((candidate) => candidate.id === resolution.deal?.id);
+      if (fallback) {
+        deal = fallback;
+      } else {
+        deal = resolution.deal;
+      }
+    } else if (resolution.ambiguityMessage) {
+      return {
+        success: false,
+        message: resolution.ambiguityMessage,
+      };
+    }
+  }
   if (!deal) {
     const suggestions = deals.slice(0, 5).map(d => `"${d.title}"`).join(", ");
     return {

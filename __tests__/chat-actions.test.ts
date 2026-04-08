@@ -232,6 +232,37 @@ describe("chat-actions", () => {
     expect(hoisted.revalidatePath).toHaveBeenCalledWith("/crm/deals");
   });
 
+  it("moves a deal when the target text is a customer name with one active job", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      {
+        id: "deal_1",
+        title: "Blocked Drain",
+        assignedToId: "user_2",
+        contactId: "contact_42",
+        scheduledAt: new Date("2026-04-10T10:00:00.000Z"),
+      },
+    ]);
+    hoisted.searchContacts.mockResolvedValue([
+      { id: "contact_42", name: "Alex Harper", phone: "0400000101", email: null, company: null },
+    ]);
+    hoisted.db.deal.findMany.mockResolvedValue([
+      {
+        id: "deal_1",
+        title: "Blocked Drain",
+        stage: "NEW",
+        updatedAt: new Date("2026-04-06T00:00:00.000Z"),
+        createdAt: new Date("2026-04-05T00:00:00.000Z"),
+        contactId: "contact_42",
+      },
+    ]);
+
+    const result = await runMoveDeal("ws_1", "ZZZ AUTO LIVE Alex Harper", "quote sent");
+
+    expect(result.success).toBe(true);
+    expect(result.message).toContain('Moved "Blocked Drain" to Quote sent.');
+    expect(hoisted.updateDealStage).toHaveBeenCalledWith("deal_1", "quote_sent");
+  });
+
   it("returns requiresAssignment and a helpful message when moving unassigned deal to Scheduled", async () => {
     hoisted.getDeals.mockResolvedValue([
       {
