@@ -313,6 +313,38 @@ function formatDealChoicesForPrompt(deals: Array<Pick<InvoiceTargetDeal, "title"
     .join(", ");
 }
 
+function getLooseContactSearchQueries(rawTarget: string): string[] {
+  const trimmed = rawTarget.trim().replace(/^["']|["']$/g, "");
+  const normalized = trimmed.replace(/\s+/g, " ");
+  const queries = new Set<string>([normalized]);
+  const tokens = normalized.split(" ").filter(Boolean);
+
+  if (tokens.length >= 2) {
+    queries.add(tokens.slice(-2).join(" "));
+  }
+  if (tokens.length >= 3) {
+    queries.add(tokens.slice(-3).join(" "));
+  }
+
+  // Common QA/test prefixes like "ZZZ AUTO LIVE Alex Harper" should still resolve to "Alex Harper".
+  const capitalisedTail = tokens.filter((token) => /^[A-Z][a-z]+(?:'[A-Z][a-z]+)?$/.test(token));
+  if (capitalisedTail.length >= 2) {
+    queries.add(capitalisedTail.slice(-2).join(" "));
+  }
+
+  return [...queries].filter(Boolean);
+}
+
+async function resolveContactForInvoiceTarget(workspaceId: string, rawTarget: string) {
+  for (const query of getLooseContactSearchQueries(rawTarget)) {
+    const contacts = await searchContacts(workspaceId, query);
+    if (contacts[0]) {
+      return contacts[0];
+    }
+  }
+  return null;
+}
+
 async function resolveDealForInvoiceTarget(
   workspaceId: string,
   rawTarget: string,
@@ -326,8 +358,7 @@ async function resolveDealForInvoiceTarget(
     return { deal: directDealMatch };
   }
 
-  const contacts = await searchContacts(workspaceId, target);
-  const contact = contacts[0];
+  const contact = await resolveContactForInvoiceTarget(workspaceId, target);
   if (!contact) {
     return { deal: null };
   }
@@ -1633,8 +1664,7 @@ async function findInvoiceInWorkspace(
       if (resolution.ambiguityMessage) {
         return { __kind: "ambiguous", message: resolution.ambiguityMessage } as const;
       }
-      const contacts = await searchContacts(workspaceId, params.dealTitle.trim());
-      const contact = contacts[0];
+      const contact = await resolveContactForInvoiceTarget(workspaceId, params.dealTitle.trim());
       if (!contact) return null;
       return db.invoice.findFirst({
         where: {

@@ -306,7 +306,7 @@ function getContextHints(intent: IntentHint, text: string): string[] {
           ? "SEND/ISSUE: Use issueInvoice to send a draft invoice to the customer. If no invoice exists yet, create the draft first with createDraftInvoice, set the amount, then issue it."
           : null,
         /\b(mark.*paid|payment received|paid)\b/i.test(text)
-          ? "PAYMENT: Use markInvoicePaid to record payment. After marking paid, move the deal to 'Completed' if it is not already there."
+          ? "PAYMENT: Use markInvoicePaid to record payment. markInvoicePaid already updates the job to Completed when payment is successfully recorded, so do not call moveDeal separately unless markInvoicePaid succeeded and explicitly says more cleanup is needed."
           : null,
         "Use the pricingCalculator tool for any amount calculations. NEVER calculate in your head.",
         "Resolve relative dates using the workspace's current date/time. Do not assume an old year or month.",
@@ -371,7 +371,7 @@ function getSuggestedTools(intent: IntentHint, text: string): string[] {
         return ["listInvoiceReadyJobs", "getInvoiceStatus", "listDeals"];
       }
       if (/\b(mark|set|record).{0,15}\b(invoice|payment).{0,15}\b(paid|as paid)\b/i.test(text) || /\b(payment received|paid)\b/i.test(text)) {
-        return ["markInvoicePaid", "getInvoiceStatus", "moveDeal"];
+        return ["markInvoicePaid", "getInvoiceStatus"];
       }
       if (/\b(send|issue).{0,15}\b(invoice|quote)\b/i.test(text)) {
         return ["issueInvoice", "createDraftInvoice", "getInvoiceStatus"];

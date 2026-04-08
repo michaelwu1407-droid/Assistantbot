@@ -767,6 +767,38 @@ describe("chat-actions", () => {
     expect(result.message).toContain('Draft invoice INV-1001 created for "Blocked Drain"');
   });
 
+  it("creates a draft invoice when the target includes a QA prefix before the contact name", async () => {
+    hoisted.getDeals.mockResolvedValue([]);
+    hoisted.searchContacts
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        { id: "contact_42", name: "Alex Harper", phone: "0400000101", email: null, company: null },
+      ]);
+    hoisted.db.deal.findMany.mockResolvedValue([
+      {
+        id: "deal_99",
+        title: "Blocked Drain",
+        stage: "NEW",
+        updatedAt: new Date("2026-04-06T00:00:00.000Z"),
+        createdAt: new Date("2026-04-05T00:00:00.000Z"),
+        contactId: "contact_42",
+      },
+    ]);
+    hoisted.db.deal.findUnique.mockResolvedValue({
+      id: "deal_99",
+      title: "Blocked Drain",
+      value: 350,
+      contactId: "contact_42",
+    });
+
+    const result = await runCreateDraftInvoice("ws_1", { dealTitle: "ZZZ AUTO LIVE Alex Harper" });
+
+    expect(hoisted.searchContacts).toHaveBeenNthCalledWith(1, "ws_1", "ZZZ AUTO LIVE Alex Harper");
+    expect(hoisted.searchContacts).toHaveBeenNthCalledWith(2, "ws_1", "Alex Harper");
+    expect(result.success).toBe(true);
+    expect(result.message).toContain('Draft invoice INV-1001 created for "Blocked Drain"');
+  });
+
   it("asks for clarification when a contact has multiple active jobs for invoice creation", async () => {
     hoisted.getDeals.mockResolvedValue([]);
     hoisted.searchContacts.mockResolvedValue([

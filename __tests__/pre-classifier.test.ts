@@ -137,5 +137,7 @@ describe("pre-classifier", () => {
     expect(result.intent).toBe("invoice");
     expect(result.contextHints.join(" ")).toContain("PAYMENT");
     expect(result.suggestedTools).toContain("markInvoicePaid");
+    expect(result.suggestedTools).not.toContain("moveDeal");
+    expect(result.contextHints.join(" ")).toContain("do not call moveDeal separately");
   });
 });
