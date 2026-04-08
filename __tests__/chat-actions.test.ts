@@ -39,6 +39,7 @@ const hoisted = vi.hoisted(() => ({
   getWorkspaceSettingsById: vi.fn(),
   getDeals: vi.fn(),
   createDeal: vi.fn(),
+  updateDeal: vi.fn(),
   updateDealStage: vi.fn(),
   updateDealMetadata: vi.fn(),
   updateDealAssignedTo: vi.fn(),
@@ -57,6 +58,7 @@ const hoisted = vi.hoisted(() => ({
   renderTemplate: vi.fn(),
   findDuplicateContacts: vi.fn(),
   generateQuote: vi.fn(),
+  markInvoicePaid: vi.fn(),
   fuzzyScore: vi.fn(),
   recordWorkspaceAuditEventForCurrentActor: vi.fn(),
   allocateWorkspaceInvoiceNumber: vi.fn(),
@@ -90,6 +92,7 @@ vi.mock("@/actions/settings-actions", () => ({
 vi.mock("@/actions/deal-actions", () => ({
   getDeals: hoisted.getDeals,
   createDeal: hoisted.createDeal,
+  updateDeal: hoisted.updateDeal,
   updateDealStage: hoisted.updateDealStage,
   updateDealMetadata: hoisted.updateDealMetadata,
   updateDealAssignedTo: hoisted.updateDealAssignedTo,
@@ -124,6 +127,7 @@ vi.mock("@/actions/dedup-actions", () => ({
 }));
 vi.mock("@/actions/tradie-actions", () => ({
   generateQuote: hoisted.generateQuote,
+  markInvoicePaid: hoisted.markInvoicePaid,
 }));
 vi.mock("@/lib/search", () => ({
   fuzzyScore: hoisted.fuzzyScore,
@@ -179,6 +183,7 @@ import {
   runGetDealContext,
   runGetInvoiceStatusAction,
   runMarkInvoicePaidAction,
+  runUpdateInvoiceAmount,
   runListDeals,
   runListIncompleteOrBlockedJobs,
   runListInvoiceReadyJobs,
@@ -198,6 +203,7 @@ describe("chat-actions", () => {
     hoisted.getDeals.mockResolvedValue([]);
     hoisted.updateDealStage.mockResolvedValue({ success: true });
     hoisted.createDeal.mockResolvedValue({ success: true, dealId: "deal_1" });
+    hoisted.updateDeal.mockResolvedValue({ success: true });
     hoisted.createContact.mockResolvedValue({ success: true, contactId: "contact_1" });
     hoisted.searchContacts.mockResolvedValue([]);
     hoisted.resendSend.mockResolvedValue({ data: { id: "email_1" }, error: null });
@@ -205,6 +211,7 @@ describe("chat-actions", () => {
     hoisted.db.invoice.create.mockResolvedValue({});
     hoisted.db.invoice.update.mockResolvedValue({});
     hoisted.db.deal.findMany.mockResolvedValue([]);
+    hoisted.markInvoicePaid.mockResolvedValue({ success: true });
     hoisted.allocateWorkspaceInvoiceNumber.mockResolvedValue("INV-1001");
     hoisted.getInvoiceSyncStatus.mockResolvedValue({ synced: false, provider: null });
   });
@@ -1037,6 +1044,47 @@ describe("chat-actions", () => {
       label: "Create draft invoice",
       prompt: 'Create a draft invoice for "Blocked Drain"',
     });
+  });
+
+  it("syncs both quoted value and invoiced amount when updating an invoice amount", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      { id: "deal_99", title: "Blocked Drain", contactId: "contact_42" },
+    ]);
+
+    const result = await runUpdateInvoiceAmount("ws_1", { dealTitle: "Blocked Drain", amount: 450 });
+
+    expect(hoisted.updateDeal).toHaveBeenCalledWith("deal_99", {
+      value: 450,
+      invoicedAmount: 450,
+    });
+    expect(result).toContain('Successfully updated the invoiced amount for "Blocked Drain" to $450.');
+  });
+
+  it("shows review as the next paid-invoice follow-up instead of a redundant stage move", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      { id: "deal_99", title: "Blocked Drain", contactId: "contact_42" },
+    ]);
+    hoisted.db.invoice.findFirst.mockResolvedValue({
+      id: "inv_1",
+      number: "INV-1002",
+      status: "PAID",
+      total: 450,
+      dealId: "deal_99",
+      deal: {
+        id: "deal_99",
+        title: "Blocked Drain",
+        contact: { id: "contact_42", name: "Alex Harper" },
+      },
+    });
+    hoisted.getInvoiceSyncStatus.mockResolvedValue({ synced: true, provider: "xero" });
+
+    const result = await runGetInvoiceStatusAction("ws_1", { dealTitle: "Blocked Drain" });
+
+    expect(result.success).toBe(true);
+    expect(result.message).toContain("Status: PAID");
+    expect(result.quickActions).toEqual([
+      { label: "Request review", prompt: 'Send a review request to the client for "Blocked Drain"' },
+    ]);
   });
 
   it("unassignDeal resolves by dealTitle and removes assignee", async () => {

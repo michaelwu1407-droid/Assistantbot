@@ -57,6 +57,8 @@ This is the shortest truthful summary of what remains outstanding from the full 
 - `fixed` Production blocked/incomplete aggregate filtering is no longer noisy for `ZZZ AUTO LIVE`; it now returns a truthful no-match result instead of leaking `livefull_*` / `liveprobe_*` records.
 - `open` Contact lookup with duplicate QA data still needs UX polish. `Find contact ZZZ AUTO LIVE Alex Harper` now responds honestly with an ambiguity prompt instead of picking the wrong contact, but the disambiguation experience is still basic.
 - `open` Real provider/device verification still remains for WhatsApp assistant and the 3 Tracey call-handling modes on real phones/carriers.
+- `open` WhatsApp is app-complete but still provider-blocked in production. The remaining live blocker is Twilio error `63007` (`Twilio could not find a Channel with the specified From address`) for `whatsapp:+61485010634`.
+- `fixed` Quote/invoice trust fix is now in repo: Tracey invoice amount updates sync both `deal.value` and `deal.invoicedAmount`, and paid-invoice follow-ups now point to `Request review` instead of a redundant `Move to Completed`.
 - `open` Keep rechecking worker/app release alignment and monitor freshness as normal ops hygiene, but it is no longer a current launch blocker.
 
 ## Latest Upstream Review Snapshot
@@ -125,6 +127,8 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 
 ### Billing / Quotes / Invoices
 
+- `fixed` In repo, Tracey quote amount updates now sync both `deal.value` and `deal.invoicedAmount`, so CRM surfaces that still render `deal.value` no longer drift away from invoice reality.
+- `fixed` In repo, paid-invoice follow-ups now point to `Request review` instead of suggesting `Move to Completed` after `markInvoicePaid` has already completed the job.
 - `fixed` Stage label consistency: tutorial-view.tsx replaced 'Invoiced' with 'Awaiting payment' to match live kanban column. job-billing-tab.tsx missing Badge import fixed. Stage label helpers verified consistent.
 - `fixed` Invoice creation clarity: billing tab now shows a hint below Create Invoice button explaining that new invoices start as Draft until issued.
 - `fixed` Pre-classifier now fast-paths quote/invoice creation, send/issue, and mark-paid to the correct intent with the right tool suggestions and step budget. Quote creation (create→set amount→move to Quote Sent) can now complete in one turn.
@@ -205,8 +209,8 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 
 ## Provider / Delivery / Observability Work
 
-- `open` Launch-readiness had been reduced to a latency-only degradation after the provider fixes. The remaining repo-side fix for that degradation is implemented in `7eedf797`, but production verification is blocked until Vercel accepts a new production deploy.
-- `open` Current Vercel blocker: recent production deploy attempts for `7eedf797` fail before build start with a generic platform error (`Unexpected error. Please try again later.` / `Builds: . [0ms]`). Re-attempt deployment, then rerun `/api/internal/launch-readiness` and refresh monitors if needed.
+- `fixed` Production launch-readiness is now truthful after the latest provider and monitor passes. The app is live on `edeee7cf` and no longer claims WhatsApp is healthy when Twilio is rejecting the configured sender.
+- `open` Current launch-readiness degradation is intentional/truthful: WhatsApp assistant is degraded because recent live sends fail with Twilio error `63007` (`Twilio could not find a Channel with the specified From address`).
 - `fixed` Inbound email readiness truth now requires a recent successful `email.received` webhook before marking the feature ready, instead of trusting static provider metadata alone. `resendDomainStatus` is still exposed for diagnostics.
 - `re-verify` Public `/api/health` and `/api/check-env` return `404` in production while protected internal readiness works. Confirm whether that is intentional long-term or an observability gap.
 - `fixed` Delivery observability: sendViaTwilio now logs every SMS send (success + failure) to webhookEvent with provider “twilio”. getWebhookDiagnostics covers stripe, resend, twilio, resend_inbound. Admin ops dashboard shows Twilio SMS counts and last-seen timestamps.

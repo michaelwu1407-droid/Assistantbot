@@ -1291,7 +1291,10 @@ export async function runUpdateInvoiceAmount(
     if (!target) return `Could not find a job matching "${params.dealTitle}". Try asking for the list of jobs.`;
 
     const { updateDeal } = await import("./deal-actions");
-    await updateDeal(target.id, { invoicedAmount: params.amount });
+    await updateDeal(target.id, {
+      value: params.amount,
+      invoicedAmount: params.amount,
+    });
     return `Successfully updated the invoiced amount for "${target.title}" to $${params.amount}.`;
   } catch (err) {
     return `Error updating invoice amount: ${err instanceof Error ? err.message : String(err)}`;
@@ -1952,7 +1955,6 @@ export async function runMarkInvoicePaidAction(
     success: true,
     message: `Invoice ${invoice.number} marked as paid for "${dealTitle}". Job is complete.`,
     quickActions: [
-      { label: "Move to Completed", prompt: `Move deal "${dealTitle}" to Completed stage` },
       { label: "Request review", prompt: `Send a review request to the client for "${dealTitle}"` },
     ],
   };
@@ -2102,7 +2104,7 @@ export async function runGetInvoiceStatusAction(
       { label: "Send reminder", prompt: `Send payment reminder for invoice ${invoice.number} to "${invoice.deal.contact.name}"` },
     ],
     PAID: [
-      { label: "Move to Completed", prompt: `Move deal "${invoice.deal.title}" to Completed` },
+      { label: "Request review", prompt: `Send a review request to the client for "${invoice.deal.title}"` },
     ],
   };
 

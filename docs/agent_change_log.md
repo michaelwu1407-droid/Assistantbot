@@ -1,3 +1,18 @@
+## 2026-04-08 (Codex) - WhatsApp outstanding logged, quote/invoice trust tightened
+
+- Files changed:
+  - `actions/chat-actions.ts`
+  - `__tests__/chat-actions.test.ts`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **WhatsApp outstanding logged clearly**: the repo docs now state the live WhatsApp assistant is app-complete but still blocked by provider-side Twilio WhatsApp sender configuration. Current production error remains `63007` (`Twilio could not find a Channel with the specified From address`) for `whatsapp:+61485010634`.
+  - **Quote amount updates now keep CRM money coherent**: `runUpdateInvoiceAmount()` now updates both `deal.value` and `deal.invoicedAmount`, so Tracey-driven quote changes stop leaving the deal card/value surfaces at `$0` while only the invoice field changes.
+  - **Paid-invoice next steps are now truthful**: Tracey no longer suggests `Move to Completed` after a successful paid-invoice path, because `markInvoicePaid()` already completes the job. Paid follow-ups now point to `Request review` instead.
+  - **Verification**: targeted suites passed for `chat-actions`, `chat-route`, and `pre-classifier`. `next build` is clean locally on this change set.
+- Why:
+  - The next product-quality issue after WhatsApp was a real trust bug in the quote/invoice flow: the CRM was functionally processing invoice actions, but some visible value surfaces could drift from invoice reality and one follow-up action was redundant/misleading.
+
 ## 2026-04-08 (Codex) - Tracey live quote flow, internal probe auth, and route filter tightening
 
 - Files changed:
@@ -3743,3 +3758,13 @@ Rule: every agent change commit must include an entry in this file.
   - `npx vitest run __tests__/customer-agent-readiness.test.ts __tests__/ai-agent.test.ts __tests__/whatsapp-route.test.ts __tests__/workspace-routing.test.ts`
   - `npx next build`
 - Next step after deploy: confirm `/api/internal/launch-readiness` stops calling WhatsApp healthy, and then fix the Twilio WhatsApp sender configuration outside the repo.
+
+## 2026-04-08 - WhatsApp outstanding state finalized
+
+- Confirmed production is now live on `edeee7cf`.
+- Refreshed the voice/passive monitors and rechecked `/api/internal/launch-readiness`.
+- Current truthful production status:
+  - overall readiness: `degraded`
+  - WhatsApp assistant: `degraded`
+  - warning: `Twilio could not find a Channel with the specified From address`
+- This closes the app-side WhatsApp debugging loop for now. Remaining WhatsApp work is external/provider-side Twilio channel configuration, not repo code.
