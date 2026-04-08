@@ -4241,3 +4241,20 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/crm-tradie-page.test.tsx __tests__/tradie-dashboard-client.test.tsx`
   - `npx next build`
+
+## 2026-04-09 - Estimator routes now lead to a real workflow instead of the dashboard
+
+- Files:
+  - `app/(dashboard)/tradie/estimator/page.tsx`
+  - `app/crm/estimator/page.tsx`
+  - `__tests__/tradie-estimator-page.test.tsx`
+  - `__tests__/crm-estimator-page.test.tsx`
+- What changed:
+  - Replaced both legacy estimator redirects with real pages built around the existing `EstimatorForm`.
+  - Both routes now load the current workspace, pull active deals, and scope team members down to their own assigned jobs.
+  - Each route also has an honest empty state when there is nothing ready to estimate.
+- Why:
+  - This was a true workflow gap: the estimator form already existed, but both public entry points still dumped users onto the dashboard instead of letting them complete the task they clicked into.
+- Verified with:
+  - `npx vitest run __tests__/crm-estimator-page.test.tsx __tests__/tradie-estimator-page.test.tsx __tests__/estimator-form.test.tsx`
+  - `npx next build`
