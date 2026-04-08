@@ -325,17 +325,17 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                     <div>
                                         <label className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-2">
                                             <FileText className="h-4 w-4 text-slate-500" />
-                                            Job Files & Photos
+                                            Job Photos
                                         </label>
                                         <p className="text-sm text-slate-600 leading-relaxed">
-                                            Uploading photos and files from this modal is not supported yet. Add them from the full CRM job so they save to the customer timeline and stay attached to the invoice record.
+                                            Capture site photos from full job mode so they save against the right job before billing and office follow-up.
                                         </p>
                                     </div>
                                     <Link
-                                        href={`/crm/deals/${dealId}`}
+                                        href={`/tradie/jobs/${dealId}`}
                                         className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition-colors hover:bg-slate-100"
                                     >
-                                        Open Full CRM Job
+                                        Open Full Job Mode
                                         <ExternalLink className="h-4 w-4" />
                                     </Link>
                                 </div>

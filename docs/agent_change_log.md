@@ -1,3 +1,16 @@
+## 2026-04-09 (Codex) - Tradie completion modal now keeps photo capture in field workflow
+
+- Files changed:
+  - `components/tradie/job-completion-modal.tsx`
+  - `__tests__/tradie-job-completion-modal.test.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - **Removed another field-workflow detour**: the tradie completion modal no longer tells field users to jump into the full CRM just to add site photos.
+  - **Photo follow-up now stays in tradie flow**: it points to `/tradie/jobs/[id]` with `Open Full Job Mode`, which is where the real field photo capture actually exists.
+  - **Verification**: reran the tradie/completion/bottom-sheet suites and confirmed a clean production build.
+- Why:
+  - Field users should stay in the field workflow whenever possible. Sending them into office-side CRM screens for a simple site-photo task adds friction and makes the product feel less coherent.
+
 ## 2026-04-09 (Codex) - Legacy phone settings now land on the real call-handling screen
 
 - Files changed:

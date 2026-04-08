@@ -60,7 +60,7 @@ import { createXeroDraftInvoice } from "@/actions/accounting-actions";
 import { JobCompletionModal } from "@/components/tradie/job-completion-modal";
 
 describe("Tradie JobCompletionModal", () => {
-  it("routes file and photo follow-up into the full CRM job instead of pretending uploads are attached locally", () => {
+  it("routes photo follow-up into full job mode instead of pretending uploads happen inside the modal", () => {
     render(
       <JobCompletionModal
         open
@@ -80,8 +80,8 @@ describe("Tradie JobCompletionModal", () => {
       />,
     );
 
-    expect(screen.getByText(/uploading photos and files from this modal is not supported yet/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /open full crm job/i })).toHaveAttribute("href", "/crm/deals/deal_99");
+    expect(screen.getByText(/capture site photos from full job mode so they save against the right job/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /open full job mode/i })).toHaveAttribute("href", "/tradie/jobs/deal_99");
     expect(screen.queryByLabelText(/upload photos or files/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /clear all/i })).not.toBeInTheDocument();
   });
