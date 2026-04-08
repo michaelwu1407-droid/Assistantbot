@@ -40,6 +40,7 @@ Status meanings:
 - `fixed` Legacy `/crm/settings/phone-settings` now lands on `/crm/settings/call-settings` instead of the generic settings home.
 - `fixed` Tradie bottom-sheet `Photos` tab no longer fakes uploads; it now points field users into the real full-job photo workflow.
 - `fixed` Tradie completion-modal photo follow-up now stays in full job mode instead of bouncing field users into the office CRM.
+- `fixed` The older command palette/search surface now routes contacts and settings into canonical CRM paths instead of stale `/contacts` and `/settings` URLs.
 
 ## Highest-Priority Open Product Work
 

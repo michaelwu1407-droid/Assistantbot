@@ -1,3 +1,16 @@
+## 2026-04-09 (Codex) - Legacy command palette now routes into the real CRM
+
+- Files changed:
+  - `components/core/search-command.tsx`
+  - `__tests__/search-command.test.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - **Fixed stale legacy routing**: the older command palette no longer sends contact results to `/contacts/[id]` or settings to `/settings`.
+  - **Canonical CRM destinations restored**: contact results now open `/crm/contacts/[id]`, the Contacts shortcut opens `/crm/contacts`, and Settings opens `/crm/settings`.
+  - **Verification**: added dedicated regression coverage for the legacy command palette and reran the broader search suites plus a clean production build.
+- Why:
+  - Search and command surfaces need to be trustworthy everywhere, not just in the newest component. An old palette that silently navigates to stale routes undermines the whole “find anything quickly” workflow.
+
 ## 2026-04-09 (Codex) - Tradie completion modal now keeps photo capture in field workflow
 
 - Files changed:

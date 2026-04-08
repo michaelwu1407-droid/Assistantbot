@@ -112,7 +112,7 @@ export function SearchCommand() {
               {contacts.map(contact => (
                 <CommandItem
                   key={contact.id}
-                  onSelect={() => runCommand(() => router.push(`/contacts/${contact.id}`))}
+                  onSelect={() => runCommand(() => router.push(`/crm/contacts/${contact.id}`))}
                 >
                   <User className="mr-2 h-4 w-4" />
                   <span>{contact.name}</span>
@@ -133,15 +133,14 @@ export function SearchCommand() {
               <Briefcase className="mr-2 h-4 w-4" />
               <span>Pipeline</span>
             </CommandItem>
-            {/* We don't have a dedicated contacts list page yet, just details, but lets assume */}
-            <CommandItem onSelect={() => runCommand(() => router.push("/crm/dashboard"))}>
+            <CommandItem onSelect={() => runCommand(() => router.push("/crm/contacts"))}>
               <Users className="mr-2 h-4 w-4" />
               <span>Contacts</span>
             </CommandItem>
           </CommandGroup>
 
           <CommandGroup heading="System">
-            <CommandItem onSelect={() => runCommand(() => router.push("/settings"))}>
+            <CommandItem onSelect={() => runCommand(() => router.push("/crm/settings"))}>
               <Settings className="mr-2 h-4 w-4" />
               <span>Settings</span>
               <CommandShortcut>⌘S</CommandShortcut>
