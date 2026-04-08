@@ -8,6 +8,18 @@ const { generateQuote, toastError } = vi.hoisted(() => ({
   toastError: vi.fn(),
 }));
 
+vi.mock("next/link", () => ({
+  default: ({
+    href,
+    children,
+    ...props
+  }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string; children: React.ReactNode }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+}));
+
 vi.mock("@/actions/tradie-actions", () => ({
   generateQuote,
 }));
@@ -125,5 +137,6 @@ describe("EstimatorForm", () => {
     expect(
       screen.getByText(/Next step: issue the draft invoice from the job billing panel when you're ready to send it/i),
     ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Open Billing Panel/i })).toHaveAttribute("href", "/crm/deals/deal_1");
   });
 });

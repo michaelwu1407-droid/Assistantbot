@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Trash2, FileText, Loader2, DollarSign, Calculator } from "lucide-react"
+import Link from "next/link"
+import { Plus, Trash2, FileText, Loader2, DollarSign, Calculator, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -94,9 +95,11 @@ export function EstimatorForm({ deals = [], workspaceId }: EstimatorFormProps) {
                     </p>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-3">
-                    <Button className="w-full bg-slate-900 hover:bg-slate-800" disabled>
-                        <FileText className="w-4 h-4 mr-2" />
-                        Download PDF (Coming Soon)
+                    <Button asChild className="w-full bg-slate-900 hover:bg-slate-800">
+                        <Link href={`/crm/deals/${selectedDealId}`}>
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            Open Billing Panel
+                        </Link>
                     </Button>
                     <Button variant="ghost" className="w-full" onClick={() => setQuoteResult(null)}>
                         Create Another Quote

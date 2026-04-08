@@ -40,6 +40,20 @@
 - Why:
   - Alternate surfaces should not quietly lag behind the primary one. This keeps route-mode behavior consistent no matter which map implementation is active.
 
+## 2026-04-08 (Codex) - Estimator success path now leads somewhere real
+
+- Files changed:
+  - `components/tradie/estimator-form.tsx`
+  - `__tests__/estimator-form.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Removed a placeholder CTA**: the estimator success state no longer shows a disabled `Download PDF (Coming Soon)` button.
+  - **Replaced it with a real next step**: after generating a quote, users now get an `Open Billing Panel` link that takes them straight to the selected deal’s CRM billing surface.
+  - **Verification**: updated estimator tests to assert the new link target and reran the estimator/billing/tradie suites plus a full production build.
+- Why:
+  - This keeps the manual quote flow honest. If the product tells the user the next step is issuing the draft invoice from billing, it should give them a direct path to do exactly that.
+
 ## 2026-04-08 (Codex) - Draft rejection routed correctly
 
 - Files changed:
