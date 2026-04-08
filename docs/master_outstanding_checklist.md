@@ -133,6 +133,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Tradie dashboard map now uses the actual `lat`/`lng` values coming from tradie job loaders instead of silently dropping to default Sydney coordinates.
 - `fixed` The deep-link tradie job route (`/tradie/jobs/[id]`) now uses the shared scoped job-details loader instead of its own raw DB query, so access rules and displayed data stay consistent with the rest of the tradie experience.
 - `fixed` Tradie schedule/day logic is now workspace-timezone aware. The shared tradie loaders compute “today” and display job times from the workspace timezone instead of the server’s local clock.
+- `fixed` The older non-tradie job detail surface now uses user-facing status labels and only offers completion actions for real field-work states instead of leaking raw internal stages like `INVOICED`.
 
 ### Inbox / Messaging UX
 

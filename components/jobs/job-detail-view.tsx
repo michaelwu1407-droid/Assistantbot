@@ -46,6 +46,7 @@ export default function JobDetailView({ job }: JobDetailViewProps) {
     const router = useRouter()
     const [status, setStatus] = useState(job.status)
     const [isUpdating, setIsUpdating] = useState(false)
+    const canCompleteFromHere = status === "SCHEDULED" || status === "TRAVELING" || status === "ON_SITE"
 
     const handleStatusChange = async (newStatus: 'TRAVELING' | 'ON_SITE' | 'COMPLETED') => {
         setIsUpdating(true)
@@ -71,15 +72,15 @@ export default function JobDetailView({ job }: JobDetailViewProps) {
                     <h1 className="text-2xl font-bold">{job.client.name}</h1>
                     <p className="text-muted-foreground text-sm">{job.title}</p>
                 </div>
-                <Badge variant={status === 'WON' ? 'default' : 'secondary'} className="text-sm">
-                    {status}
+                <Badge variant={status === 'COMPLETED' ? 'default' : 'secondary'} className="text-sm">
+                    {formatJobHeaderStatus(status)}
                 </Badge>
             </header>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
                 {/* Status Actions */}
                 <div className="grid grid-cols-1 gap-4">
-                    {status !== 'COMPLETED' && status !== 'INVOICED' && (
+                    {canCompleteFromHere && (
                         <Button
                             size="lg"
                             className="w-full text-lg h-14 bg-green-600 hover:bg-green-700 text-white"

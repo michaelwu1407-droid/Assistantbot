@@ -138,4 +138,29 @@ describe("JobDetailView", () => {
       "_blank",
     );
   });
+
+  it("uses user-facing status labels and hides completion for non-field stages", () => {
+    render(
+      <JobDetailView
+        job={{
+          id: "deal_4",
+          title: "Quote request",
+          client: {
+            name: "Morgan",
+            phone: "0400000000",
+            email: "morgan@example.com",
+            address: "2 Quote St",
+          },
+          status: "INVOICED",
+          value: 250,
+          description: "Quoted job",
+          activities: [],
+          invoices: [],
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Awaiting payment")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Mark Job Complete/i })).not.toBeInTheDocument();
+  });
 });

@@ -4198,3 +4198,17 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/tradie-actions.test.ts __tests__/job-map.test.tsx __tests__/tradie-job-page.test.tsx`
   - `npx next build`
+
+## 2026-04-08 - Older job detail view now matches the product’s visible stage language
+
+- Files:
+  - `components/jobs/job-detail-view.tsx`
+  - `__tests__/job-detail-view.test.tsx`
+- What changed:
+  - The header badge now uses the shared user-facing status formatter instead of leaking raw internal stage values.
+  - The page only offers `Mark Job Complete` for actual field-work states (`Scheduled`, `On the way`, `On site`) instead of broadly for unrelated CRM stages.
+- Why:
+  - This was another subtle trust problem: the page looked complete, but it still spoke in internal pipeline language and suggested actions that did not always make sense for the current state.
+- Verified with:
+  - `npx vitest run __tests__/job-detail-view.test.tsx`
+  - `npx next build`
