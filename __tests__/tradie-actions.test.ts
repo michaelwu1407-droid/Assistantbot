@@ -157,6 +157,36 @@ describe("tradie-actions", () => {
     );
   });
 
+  it("returns the next job with real value and contact phone details", async () => {
+    hoisted.db.deal.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        id: "deal_2",
+        title: "Hot water service",
+        scheduledAt: new Date("2026-04-08T01:00:00.000Z"),
+        address: "44 George St",
+        jobStatus: "SCHEDULED",
+        safetyCheckCompleted: true,
+        value: new Prisma.Decimal("275.00"),
+        metadata: { description: "Annual service" },
+        contact: {
+          name: "Jordan",
+          phone: "0400111222",
+          address: "44 George St",
+        },
+      });
+
+    const result = await getNextJob("ws_1");
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: "deal_2",
+        value: 275,
+        contactPhone: "0400111222",
+      }),
+    );
+  });
+
   it("lets managers keep the full workspace tradie view", async () => {
     hoisted.requireCurrentWorkspaceAccess.mockResolvedValue({
       id: "owner_1",

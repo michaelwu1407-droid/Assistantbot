@@ -267,6 +267,8 @@ export async function getNextJob(workspaceId: string) {
       time: activeJob.scheduledAt,
       address: activeJob.address || activeJob.contact.address,
       status: activeJob.jobStatus,
+      value: activeJob.value ? Number(activeJob.value) : 0,
+      contactPhone: activeJob.contact.phone || undefined,
       safetyCheckCompleted: activeJob.safetyCheckCompleted,
       description: (activeJob.metadata as any)?.description
     };
@@ -293,6 +295,8 @@ export async function getNextJob(workspaceId: string) {
     time: nextJob.scheduledAt,
     address: nextJob.address || nextJob.contact.address,
     status: nextJob.jobStatus,
+    value: nextJob.value ? Number(nextJob.value) : 0,
+    contactPhone: nextJob.contact.phone || undefined,
     safetyCheckCompleted: nextJob.safetyCheckCompleted,
     description: (nextJob.metadata as any)?.description
   };

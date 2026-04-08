@@ -4150,3 +4150,21 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/tradie-actions.test.ts __tests__/tradie-job-detail-view.test.tsx __tests__/job-bottom-sheet.test.tsx __tests__/tradie-job-completion-modal.test.tsx`
   - `npx next build`
+
+## 2026-04-08 - Tradie dashboard now keeps real next-job data and map coordinates
+
+- Files:
+  - `actions/tradie-actions.ts`
+  - `app/(dashboard)/tradie/page.tsx`
+  - `components/tradie/job-map.tsx`
+  - `__tests__/tradie-actions.test.ts`
+  - `__tests__/job-map.test.tsx`
+- What changed:
+  - `getNextJob()` now returns the real job value and customer phone, not just title/time/address.
+  - The tradie dashboard now carries those real fields into the initial bottom-sheet job instead of silently showing `$0` and an empty phone.
+  - The tradie dashboard map now respects `lat` / `lng` from the tradie loaders instead of defaulting to the Sydney fallback unless `latitude` / `longitude` are already present.
+- Why:
+  - These were quiet product-trust bugs. The dashboard looked polished, but the first job card and map could still be subtly wrong in ways a tradie would feel immediately.
+- Verified with:
+  - `npx vitest run __tests__/tradie-actions.test.ts __tests__/job-map.test.tsx`
+  - `npx next build`
