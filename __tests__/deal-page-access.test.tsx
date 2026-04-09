@@ -128,10 +128,11 @@ describe("deal page access", () => {
     render(await DealDetailPage({ params: Promise.resolve({ id: "deal_1" }) }));
 
     expect(screen.getAllByText("Blocked Drain").length).toBeGreaterThan(0);
-    expect(screen.getByRole("link", { name: /contact them/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /open customer timeline/i })).toHaveAttribute(
       "href",
       "/crm/inbox?contact=contact_1",
     );
+    expect(screen.getByText(/full SMS, email, and call correspondence/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /edit contact/i })).toHaveAttribute(
       "href",
       "/crm/contacts/contact_1/edit",

@@ -817,12 +817,22 @@ function DealDetailContent({
                 <MessageSquare className="w-4 h-4" />
                 Customer & job history
               </span>
-              <Link href={`/crm/inbox?contact=${deal.contactId}`}>
-                <Button size="sm" variant="outline" className="gap-1 text-xs">
+              {deal.contactId ? (
+                <Link href={`/crm/inbox?contact=${deal.contactId}`}>
+                  <Button size="sm" variant="outline" className="gap-1 text-xs">
+                    <MessageSquare className="w-3 h-3" />
+                    Open customer timeline
+                  </Button>
+                </Link>
+              ) : (
+                <Button size="sm" variant="outline" className="gap-1 text-xs" disabled>
                   <MessageSquare className="w-3 h-3" />
-                  Contact them
+                  No contact linked
                 </Button>
-              </Link>
+              )}
+            </div>
+            <div className="border-b border-slate-100 bg-white px-3 py-2 text-xs text-slate-500">
+              Recent activity stays here. Open the customer timeline for the full SMS, email, and call correspondence.
             </div>
             <div className="flex bg-slate-100/50 p-1 border-b border-slate-100 shrink-0" role="tablist" aria-label="Deal detail sections">
               {(["activities", "jobs", "notes"] as const).map((t) => (

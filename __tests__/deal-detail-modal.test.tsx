@@ -153,6 +153,8 @@ describe("DealDetailModal", () => {
     expect(screen.getAllByText(/pending approval/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText("Acme Plumbing").length).toBeGreaterThan(0);
     expect(screen.getByText("Activity Feed")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /open customer timeline/i })).toHaveAttribute("href", "/crm/inbox?contact=contact_1");
+    expect(screen.getByText(/full SMS, email, and call correspondence/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole("tab", { name: "notes" }));
 
@@ -209,6 +211,25 @@ describe("DealDetailModal", () => {
 
     await user.click(screen.getByRole("button", { name: "Edit contact" }));
     expect(routerPush).toHaveBeenCalledWith("/crm/contacts/contact_1/edit");
+  });
+
+  it("shows an honest disabled timeline action when no contact is linked", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(() =>
+        Promise.resolve(
+          makeDealResponse({
+            contactId: null,
+            contact: null,
+          }),
+        ),
+      ),
+    );
+
+    render(<DealDetailModal dealId="deal_1" open onOpenChange={vi.fn()} currentUserRole="OWNER" />);
+
+    await screen.findAllByText("Blocked Drain");
+    expect(screen.getByRole("button", { name: /no contact linked/i })).toBeDisabled();
   });
 
   it("sends a quick update when clicking the send button", async () => {

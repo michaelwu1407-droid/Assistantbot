@@ -4417,3 +4417,21 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/chat-route.test.ts __tests__/agent-tools.test.ts`
   - `npx next build`
+
+## 2026-04-09 - Deal communication surfaces now point to the real customer timeline
+
+- Files:
+  - `app/crm/deals/[id]/page.tsx`
+  - `components/crm/deal-detail-modal.tsx`
+  - `__tests__/deal-detail-modal.test.tsx`
+  - `__tests__/deal-page-access.test.tsx`
+- What changed:
+  - The deal page and deal modal no longer use the vague `Contact them` CTA above the activity panel.
+  - That action now says `Open customer timeline`, which is what the workflow actually does: it sends the user into the unified inbox thread for full SMS, email, and call correspondence.
+  - Both surfaces now explain that the local panel is recent activity and that the full cross-channel story lives in the customer timeline.
+  - If a job has no linked contact, the CTA now disables honestly as `No contact linked` instead of implying there is somewhere valid to go.
+- Why:
+  - This keeps the product mentally clean. The job page should show recent context, but it should not pretend to be a second full inbox.
+- Verified with:
+  - `npx vitest run __tests__/deal-detail-modal.test.tsx __tests__/deal-page-access.test.tsx`
+  - `npx next build`
