@@ -235,7 +235,7 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                         Create Invoice
                     </Button>
                     <p className="text-xs text-slate-400 text-center">
-                        Creates a draft — click <strong>Issue</strong> on the invoice below to send it to the client.
+                        Creates a draft — mark it as <strong>Issued</strong> when it is ready, then use <strong>Email customer</strong> to send it.
                     </p>
                 </CardContent>
             </Card>
@@ -263,16 +263,16 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                             </>
                         ) : latestInvoice.status === "DRAFT" ? (
                             <>
-                                <p className="text-sm font-medium text-slate-900">Issue the draft invoice when it is ready to send.</p>
+                                <p className="text-sm font-medium text-slate-900">Finish the draft, then mark it as issued.</p>
                                 <p className="text-xs text-slate-500">
-                                    You can still edit the line items first. When ready, use <strong>Issue</strong> to send it to the customer.
+                                    You can still edit the line items first. When ready, use <strong>Mark issued</strong>, then <strong>Email customer</strong> to send it.
                                 </p>
                             </>
                         ) : latestInvoice.status === "ISSUED" ? (
                             <>
-                                <p className="text-sm font-medium text-slate-900">Wait for payment, then mark the invoice as paid.</p>
+                                <p className="text-sm font-medium text-slate-900">Email the invoice if needed, then mark it as paid once payment lands.</p>
                                 <p className="text-xs text-slate-500">
-                                    The invoice has already been sent. Use <strong>Mark Paid</strong> once payment lands.
+                                    This invoice is already marked as issued. Use <strong>Email customer</strong> to send or resend it, then <strong>Mark Paid</strong> once payment lands.
                                 </p>
                             </>
                         ) : latestInvoice.status === "PAID" ? (
@@ -373,7 +373,7 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                                             <>
                                                 <Button size="sm" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs h-8" disabled={busy} onClick={() => handleIssue(inv.id)}>
                                                     {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3 mr-1" />}
-                                                    Issue
+                                                    Mark issued
                                                 </Button>
                                                 <Button size="sm" variant="outline" className="text-xs h-8" disabled={busy} onClick={() => setEditingId(inv.id)}>
                                                     <Pencil className="w-3 h-3 mr-1" /> Edit
@@ -402,7 +402,7 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                                         {(inv.status === "DRAFT" || inv.status === "ISSUED") && (
                                             <Button size="sm" variant="outline" className="text-xs h-8" disabled={busy} onClick={() => handleEmail(inv.id)}>
                                                 {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Mail className="w-3 h-3 mr-1" />}
-                                                Email
+                                                Email customer
                                             </Button>
                                         )}
 

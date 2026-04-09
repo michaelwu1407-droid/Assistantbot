@@ -4469,3 +4469,21 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/job-billing-tab.test.tsx`
   - `npx next build`
+
+## 2026-04-09 - Billing actions now describe the real send flow truthfully
+
+- Files:
+  - `components/tradie/job-billing-tab.tsx`
+  - `__tests__/job-billing-tab.test.tsx`
+- What changed:
+  - The billing panel no longer implies that `Issue` sends the invoice to the customer.
+  - Draft guidance now tells the user to finish the draft, mark it as issued, and then use `Email customer` to actually send it.
+  - Issued guidance now truthfully explains that the invoice is marked as issued, and that `Email customer` is the send/resend action while `Mark Paid` is the payment action.
+  - The action labels now match that workflow:
+    - `Issue` -> `Mark issued`
+    - `Email` -> `Email customer`
+- Why:
+  - This was a real workflow-truth bug. The UI should never teach a user the wrong mental model for how quoting and invoicing works.
+- Verified with:
+  - `npx vitest run __tests__/job-billing-tab.test.tsx`
+  - `npx next build`

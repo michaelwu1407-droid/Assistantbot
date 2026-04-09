@@ -115,9 +115,9 @@ describe("JobBillingTab", () => {
 
     render(<JobBillingTab dealId="deal_1" />);
 
-    expect(await screen.findByText("Issue the draft invoice when it is ready to send.")).toBeInTheDocument();
+    expect(await screen.findByText("Finish the draft, then mark it as issued.")).toBeInTheDocument();
     const nextActionCard = screen.getByText("Next best action").parentElement;
-    expect(nextActionCard).toHaveTextContent("You can still edit the line items first. When ready, use Issue to send it to the customer.");
+    expect(nextActionCard).toHaveTextContent("You can still edit the line items first. When ready, use Mark issued, then Email customer to send it.");
   });
 
   it("shows the next best action for an issued invoice", async () => {
@@ -136,8 +136,8 @@ describe("JobBillingTab", () => {
 
     render(<JobBillingTab dealId="deal_1" />);
 
-    expect(await screen.findByText("Wait for payment, then mark the invoice as paid.")).toBeInTheDocument();
+    expect(await screen.findByText("Email the invoice if needed, then mark it as paid once payment lands.")).toBeInTheDocument();
     const nextActionCard = screen.getByText("Next best action").parentElement;
-    expect(nextActionCard).toHaveTextContent("The invoice has already been sent. Use Mark Paid once payment lands.");
+    expect(nextActionCard).toHaveTextContent("This invoice is already marked as issued. Use Email customer to send or resend it, then Mark Paid once payment lands.");
   });
 });
