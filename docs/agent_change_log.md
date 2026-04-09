@@ -4547,3 +4547,14 @@ Rule: every agent change commit must include an entry in this file.
   - This closes the last visible wording gap in the quote/invoice workflow. The same user should not get three different explanations depending on which page they happen to be on.
 - Verified with:
   - `npx next build`
+
+## 2026-04-09 - Contact detail CTA copy no longer reads like placeholder text
+
+- Files:
+  - `app/crm/contacts/[id]/page.tsx`
+- What changed:
+  - The current-job CTA on contact detail now says `Open job` instead of `Open job ->`.
+- Why:
+  - Small copy polish matters on high-traffic workflow pages. This removes another leftover dev-style label so the page feels intentionally designed rather than half-finished.
+- Verified with:
+  - `npx next build`

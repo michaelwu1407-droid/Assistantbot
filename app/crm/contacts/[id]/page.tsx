@@ -251,7 +251,7 @@ export default async function ContactDetailPage({ params }: PageProps) {
               </div>
               <Button variant="outline" size="sm" className="mt-2" asChild>
                 <Link href={`/crm/deals/${currentDeal.id}`}>
-                  Open job {"->"}
+                  Open job
                 </Link>
               </Button>
             </div>
