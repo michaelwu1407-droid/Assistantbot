@@ -75,6 +75,11 @@ describe("ContactDetailPage", () => {
     render(await ContactDetailPage({ params: Promise.resolve({ id: "contact_1" }) }));
 
     expect(screen.getByRole("heading", { name: "Acme Plumbing" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /open customer timeline/i })).toHaveAttribute(
+      "href",
+      "/crm/inbox?contact=contact_1",
+    );
+    expect(screen.getByText(/full SMS, email, and call correspondence/i)).toBeInTheDocument();
     expect(screen.getByText("Contact notes")).toBeInTheDocument();
     const detailsCard = screen.getByText("Contact details").closest("div")?.parentElement;
     expect(detailsCard).toBeTruthy();

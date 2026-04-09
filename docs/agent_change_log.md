@@ -4435,3 +4435,17 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/deal-detail-modal.test.tsx __tests__/deal-page-access.test.tsx`
   - `npx next build`
+
+## 2026-04-09 - Contact detail now links into the real customer timeline too
+
+- Files:
+  - `app/crm/contacts/[id]/page.tsx`
+  - `__tests__/contact-page-access.test.tsx`
+- What changed:
+  - The real contact detail page now has an explicit `Open customer timeline` action in the header.
+  - It also explains that the page is for notes/job context, while the full SMS, email, and call correspondence lives in the customer timeline.
+- Why:
+  - This removes another split-brain workflow. Users should not have to guess whether communications belong on the contact page, deal page, or inbox.
+- Verified with:
+  - `npx vitest run __tests__/contact-page-access.test.tsx`
+  - `npx next build`

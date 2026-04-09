@@ -109,12 +109,24 @@ export default async function ContactDetailPage({ params }: PageProps) {
             </div>
           </div>
         </div>
-        <Button variant="secondary" asChild>
-          <Link href={`/crm/contacts/${id}/edit`}>
-            <Edit className="w-4 h-4 mr-2" />
-            Edit
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" asChild>
+            <Link href={`/crm/inbox?contact=${id}`}>
+              <MessageSquare className="w-4 h-4 mr-2" />
+              Open customer timeline
+            </Link>
+          </Button>
+          <Button variant="secondary" asChild>
+            <Link href={`/crm/contacts/${id}/edit`}>
+              <Edit className="w-4 h-4 mr-2" />
+              Edit
+            </Link>
+          </Button>
+        </div>
+      </div>
+
+      <div className="shrink-0 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500 shadow-sm">
+        Recent notes and jobs stay on this page. Open the customer timeline for the full SMS, email, and call correspondence.
       </div>
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0 overflow-y-auto">
