@@ -211,7 +211,7 @@ export async function runGetFinancialReport(
  */
 export async function runGetClientContext(
   workspaceId: string,
-  params: { clientName: string }
+  params: { clientName: string; clientId?: string }
 ): Promise<{
   client: {
     id: string;
@@ -241,6 +241,89 @@ export async function runGetClientContext(
     company: string | null;
   }[];
 }> {
+  if (params.clientId) {
+    const contact = await db.contact.findFirst({
+      where: {
+        id: params.clientId,
+        workspaceId,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        company: true,
+        address: true,
+      },
+    });
+
+    if (!contact) {
+      return {
+        client: null,
+        recentNotes: [],
+        recentMessages: [],
+        recentJobs: [],
+        ambiguousMatches: [],
+      };
+    }
+
+    const notes = await db.activity.findMany({
+      where: { contactId: contact.id, type: "NOTE" },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: { title: true, content: true, createdAt: true },
+    });
+
+    const messages = await db.chatMessage.findMany({
+      where: {
+        workspaceId,
+        metadata: { path: ["contactId"], equals: contact.id },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: { role: true, content: true, createdAt: true },
+    });
+
+    const jobs = await db.deal.findMany({
+      where: { contactId: contact.id },
+      orderBy: { createdAt: "desc" },
+      take: 3,
+      select: {
+        title: true,
+        stage: true,
+        scheduledAt: true,
+        value: true,
+      },
+    });
+
+    return {
+      client: {
+        id: contact.id,
+        name: contact.name,
+        email: contact.email,
+        phone: contact.phone,
+        company: contact.company,
+        address: contact.address,
+      },
+      recentNotes: notes.map((n) => ({
+        title: n.title,
+        content: n.content,
+        createdAt: n.createdAt.toISOString(),
+      })),
+      recentMessages: messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+        createdAt: m.createdAt.toISOString(),
+      })),
+      recentJobs: jobs.map((j) => ({
+        title: j.title,
+        stage: AGENT_STAGE_LABELS[j.stage] ?? AGENT_STAGE_LABELS[String(j.stage).toUpperCase()] ?? j.stage,
+        scheduledAt: j.scheduledAt?.toISOString() || null,
+        value: j.value ? Number(j.value) : 0,
+      })),
+    };
+  }
+
   const contactMap = new Map<string, Awaited<ReturnType<typeof searchContacts>>[number]>();
   for (const query of getLooseContactSearchQueries(params.clientName)) {
     const matches = await searchContacts(workspaceId, query);

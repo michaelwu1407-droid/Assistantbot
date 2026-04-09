@@ -466,6 +466,90 @@ describe("POST /api/chat", () => {
     expect(promptArgs.resolvedEntitiesBlock).toContain("option number");
   });
 
+  it("resolves numbered contact disambiguation replies into the selected contact record", async () => {
+    hoisted.runGetClientContext
+      .mockResolvedValueOnce({
+        client: {
+          id: "contact_2",
+          name: "Alex Harper",
+          email: "alex.two@example.com",
+          phone: "0400000002",
+          company: "Beta Electrical",
+          address: null,
+        },
+        recentNotes: [],
+        recentMessages: [],
+        recentJobs: [],
+        ambiguousMatches: [],
+      })
+      .mockResolvedValueOnce({
+        client: {
+          id: "contact_2",
+          name: "Alex Harper",
+          email: "alex.two@example.com",
+          phone: "0400000002",
+          company: "Beta Electrical",
+          address: "22 Harbour Road",
+        },
+        recentNotes: [{ title: "Latest note", content: "Prefers afternoons.", createdAt: "2026-04-04T00:00:00.000Z" }],
+        recentMessages: [],
+        recentJobs: [],
+        ambiguousMatches: [],
+      });
+
+    const response = await POST(
+      new Request("https://app.example.com/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          messages: [
+            { role: "user", parts: [{ type: "text", text: "Find contact Alex Harper" }] },
+            {
+              role: "assistant",
+              content:
+                "I found multiple contacts that match. Tell me which one you mean:\n1. Alex Harper (company Alpha Plumbing, phone 0400000001, email alex.one@example.com)\n2. Alex Harper (company Beta Electrical, phone 0400000002, email alex.two@example.com)\nReply with the option number, phone number, email, company name, or full contact name and I'll open the right record.",
+            },
+            { role: "user", parts: [{ type: "text", text: "2" }] },
+          ],
+        }),
+      }),
+    );
+
+    expect(hoisted.streamText).not.toHaveBeenCalled();
+    expect(hoisted.runGetClientContext).toHaveBeenNthCalledWith(1, "ws_1", { clientName: "0400000002" });
+    expect(hoisted.runGetClientContext).toHaveBeenNthCalledWith(2, "ws_1", { clientId: "contact_2", clientName: "Alex Harper" });
+    expect(await response.json()).toEqual({
+      text: expect.stringContaining("Beta Electrical"),
+    });
+  });
+
+  it("asks for a valid option number when a numbered disambiguation reply is out of range", async () => {
+    const response = await POST(
+      new Request("https://app.example.com/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          messages: [
+            { role: "user", parts: [{ type: "text", text: "Find contact Alex Harper" }] },
+            {
+              role: "assistant",
+              content:
+                "I found multiple contacts that match. Tell me which one you mean:\n1. Alex Harper (company Alpha Plumbing, phone 0400000001, email alex.one@example.com)\n2. Alex Harper (company Beta Electrical, phone 0400000002, email alex.two@example.com)\nReply with the option number, phone number, email, company name, or full contact name and I'll open the right record.",
+            },
+            { role: "user", parts: [{ type: "text", text: "5" }] },
+          ],
+        }),
+      }),
+    );
+
+    expect(hoisted.streamText).not.toHaveBeenCalled();
+    expect(await response.json()).toEqual({
+      text: "I only listed 2 contact options. Reply with a number from that list and I'll open the right record.",
+    });
+  });
+
   it("injects current workspace date and likely job context for next-step completion questions", async () => {
     hoisted.preClassify.mockReturnValue({
       intent: "crm_action",

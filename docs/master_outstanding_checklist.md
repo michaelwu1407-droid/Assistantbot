@@ -265,6 +265,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Stage language sweep complete: all tool output paths (runListDeals, runListIncompleteOrBlockedJobs, runBulkMoveDeals, runSearchJobHistory, runSearchJobHistory, runGetClientContext, runGetFinancialReport breakdown) and the global search subtitle now use user-facing stage labels. Internal stage keys no longer reach the LLM or UI text.
 - `fixed` Observability now covers: reminder/confirmation/review-request SMS and email sends (send-notification.ts logs to webhookEvent); WhatsApp inbound and outbound AI replies (whatsapp/route.ts logs to webhookEvent); portal opens tracked via activity. All provider delivery is now visible in the ops diagnostics dashboard.
 - `fixed` runGetAttentionRequired now includes stage label in each line so Tracey can surface the current stage alongside attention signals.
+- `fixed` Tracey duplicate-contact follow-ups now honor the UX it presents: when the assistant lists numbered contact options, replying with `1`, `2`, etc. resolves the selected contact into the correct CRM record instead of forcing the user to restate the contact details.
 
 ## Local-Only / Not Yet Shipped Context
 

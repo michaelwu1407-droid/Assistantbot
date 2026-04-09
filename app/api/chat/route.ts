@@ -187,6 +187,50 @@ function getUserMessageText(message: unknown): string {
   return (textPart?.text ?? (typeof m.content === "string" ? m.content : "") ?? "").trim();
 }
 
+function getAssistantMessageText(message: unknown): string {
+  const m = message as { role?: string; parts?: { type?: string; text?: string }[]; content?: string };
+  if (m?.role !== "assistant") return "";
+  const textParts = Array.isArray(m.parts)
+    ? m.parts
+        .filter((p) => p?.type === "text" && typeof p.text === "string")
+        .map((p) => p.text?.trim() ?? "")
+        .filter(Boolean)
+    : [];
+  if (textParts.length) return textParts.join("\n");
+  return typeof m.content === "string" ? m.content.trim() : "";
+}
+
+type AmbiguousContactOption = {
+  index: number;
+  name: string;
+  company: string | null;
+  phone: string | null;
+  email: string | null;
+};
+
+function parseAmbiguousContactPrompt(message: unknown): AmbiguousContactOption[] {
+  const text = getAssistantMessageText(message);
+  if (!text.startsWith("I found multiple contacts that match.")) return [];
+  const options: AmbiguousContactOption[] = [];
+  for (const line of text.split(/\r?\n/)) {
+    const match = line.match(/^(\d+)\.\s+(.+?)(?:\s+\((.+)\))?$/);
+    if (!match) continue;
+    const details = match[3]
+      ? match[3].split(",").map((part) => part.trim()).filter(Boolean)
+      : [];
+    const detailValue = (prefix: string) =>
+      details.find((part) => part.toLowerCase().startsWith(`${prefix} `))?.slice(prefix.length + 1) ?? null;
+    options.push({
+      index: Number(match[1]),
+      name: match[2].trim(),
+      company: detailValue("company"),
+      phone: detailValue("phone"),
+      email: detailValue("email"),
+    });
+  }
+  return options;
+}
+
 function findMostRecentMultiJobCandidate(messages: unknown[]): string | null {
   for (let i = messages.length - 1; i >= 0; i--) {
     const text = getUserMessageText(messages[i]);
@@ -413,6 +457,55 @@ function filterDealsByQuery(
   });
 }
 
+async function resolveAmbiguousContactFollowUp(
+  workspaceId: string,
+  content: string,
+  messages: unknown[],
+): Promise<string | null> {
+  const trimmed = content.trim();
+  if (!/^\d+$/.test(trimmed)) return null;
+  const lastUserIndex = Array.isArray(messages) ? [...messages].map((m: any) => m?.role).lastIndexOf("user") : -1;
+  if (lastUserIndex <= 0) return null;
+  const previousAssistant = [...messages]
+    .slice(0, lastUserIndex)
+    .reverse()
+    .find((m: any) => m?.role === "assistant");
+  const options = parseAmbiguousContactPrompt(previousAssistant);
+  if (!options.length) return null;
+  const selected = options.find((option) => option.index === Number(trimmed));
+  if (!selected) {
+    return `I only listed ${options.length} contact option${options.length === 1 ? "" : "s"}. Reply with a number from that list and I'll open the right record.`;
+  }
+
+  const queryCandidates = [selected.phone, selected.email, selected.company, selected.name].filter(
+    (value): value is string => Boolean(value?.trim()),
+  );
+
+  let resolvedContactId: string | null = null;
+  for (const candidate of queryCandidates) {
+    const context = await runGetClientContext(workspaceId, { clientName: candidate });
+    if (!context.client) continue;
+    const sameName = context.client.name.trim().toLowerCase() === selected.name.trim().toLowerCase();
+    const samePhone = selected.phone && context.client.phone === selected.phone;
+    const sameEmail = selected.email && context.client.email === selected.email;
+    const sameCompany = selected.company && context.client.company === selected.company;
+    if (sameName || samePhone || sameEmail || sameCompany) {
+      resolvedContactId = context.client.id;
+      break;
+    }
+  }
+
+  if (!resolvedContactId) {
+    return "I couldn't confidently match that option to a single contact anymore. Reply with the phone number, email, or company name and I'll open the right record.";
+  }
+
+  const exactContext = await runGetClientContext(workspaceId, {
+    clientId: resolvedContactId,
+    clientName: selected.name,
+  });
+  return formatClientContextResult(exactContext);
+}
+
 function normalizeRouteSearchPhrase(value: string) {
   return value
     .toLowerCase()
@@ -633,7 +726,7 @@ function formatClientContextResult(result: Awaited<ReturnType<typeof runGetClien
       ].filter(Boolean);
       lines.push(`${index + 1}. ${match.name}${details.length ? ` (${details.join(", ")})` : ""}`);
     });
-    lines.push("Reply with the phone number, email, company name, or full contact name and I’ll open the right record.");
+    lines.push("Reply with the option number, phone number, email, company name, or full contact name and I'll open the right record.");
     return lines.join("\n");
   }
 
@@ -1345,6 +1438,21 @@ export async function POST(req: Request) {
     if (content) saveUserMessage(workspaceId, content).catch((err) => {
       logger.error("Failed to save user message", { component: "chat-api", workspaceId }, err as Error);
     });
+
+    const ambiguousContactFollowUp = await resolveAmbiguousContactFollowUp(workspaceId, content, messages);
+    if (ambiguousContactFollowUp) {
+      const textId = "contact-disambiguation";
+      const stream = createUIMessageStream({
+        execute: ({ writer }) => {
+          writer.write({ type: "start" });
+          writer.write({ type: "text-start", id: textId });
+          writer.write({ type: "text-delta", id: textId, delta: ambiguousContactFollowUp });
+          writer.write({ type: "text-end", id: textId });
+          writer.write({ type: "finish" });
+        },
+      });
+      return createUIMessageStreamResponse({ stream });
+    }
 
     // "Next" in multi-job flow: use persisted multi-job state from previous tool outputs.
     const isNextMessage = /^\s*next\s*(job)?\s*(please)?\s*$/i.test(content.trim()) || content.trim().toLowerCase() === "next";

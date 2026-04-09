@@ -4400,3 +4400,20 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/tradie-job-detail-view.test.tsx`
   - `npx next build`
+
+## 2026-04-09 - Tracey numbered contact disambiguation now actually works
+
+- Files:
+  - `app/api/chat/route.ts`
+  - `actions/agent-tools.ts`
+  - `__tests__/chat-route.test.ts`
+- What changed:
+  - Tracey no longer just tells users to “reply with the option number” when duplicate contacts exist.
+  - If the user replies with `1`, `2`, etc. on the next turn, the chat route now resolves that exact option back to a single contact and returns the right CRM context directly.
+  - Out-of-range numeric replies now get an honest “pick one of the listed options” response instead of falling through into generic model behavior.
+  - `runGetClientContext()` now supports exact `clientId` resolution so the follow-up path can fetch the real contact record without a second fuzzy search.
+- Why:
+  - This fixes a core trust gap in the chat experience. The assistant should never tell the user to respond in a particular way unless that follow-up actually works.
+- Verified with:
+  - `npx vitest run __tests__/chat-route.test.ts __tests__/agent-tools.test.ts`
+  - `npx next build`
