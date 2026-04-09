@@ -40,6 +40,22 @@ vi.mock("@/components/invoicing/invoice-generator", () => ({
   InvoiceGenerator: ({ invoiceNumber }: { invoiceNumber: string }) => <button>Invoice {invoiceNumber}</button>,
 }));
 
+vi.mock("@/components/tradie/job-completion-modal", () => ({
+  JobCompletionModal: ({
+    open,
+    onOpenChange,
+  }: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+  }) =>
+    open ? (
+      <div>
+        <p>Completion modal</p>
+        <button onClick={() => onOpenChange(false)}>Close completion modal</button>
+      </div>
+    ) : null,
+}));
+
 import JobDetailView from "@/components/jobs/job-detail-view";
 
 describe("JobDetailView", () => {
@@ -162,5 +178,58 @@ describe("JobDetailView", () => {
 
     expect(screen.getByText("Awaiting payment")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Mark Job Complete/i })).not.toBeInTheDocument();
+  });
+
+  it("routes scheduled jobs into the real field workflow instead of allowing instant completion", () => {
+    render(
+      <JobDetailView
+        job={{
+          id: "deal_5",
+          title: "Blocked Drain",
+          client: {
+            name: "Alex Harper",
+            phone: "0400000000",
+            email: "alex@example.com",
+            address: "1 Test St",
+          },
+          status: "SCHEDULED",
+          value: 250,
+          description: "Drain issue",
+          activities: [],
+          invoices: [],
+        }}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: /Mark Job Complete/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/Finish this job from the field workflow/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Open Field Workflow/i })).toHaveAttribute("href", "/tradie/jobs/deal_5");
+  });
+
+  it("opens the shared completion modal when an on-site job is finished", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <JobDetailView
+        job={{
+          id: "deal_6",
+          title: "Blocked Drain",
+          client: {
+            name: "Alex Harper",
+            phone: "0400000000",
+            email: "alex@example.com",
+            address: "1 Test St",
+          },
+          status: "ON_SITE",
+          value: 250,
+          description: "Drain issue",
+          activities: [],
+          invoices: [],
+        }}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Mark Job Complete/i }));
+    expect(screen.getByText("Completion modal")).toBeInTheDocument();
   });
 });

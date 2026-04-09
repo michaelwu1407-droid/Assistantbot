@@ -4356,3 +4356,18 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/inbox-view.test.tsx __tests__/inbox-page.test.tsx __tests__/activity-actions.test.ts`
   - `npx next build`
+
+## 2026-04-09 - Legacy job detail no longer bypasses the field completion workflow
+
+- Files:
+  - `components/jobs/job-detail-view.tsx`
+  - `__tests__/job-detail-view.test.tsx`
+- What changed:
+  - The older job-detail surface no longer lets scheduled or traveling jobs jump straight to completed.
+  - Only `ON_SITE` jobs can complete from this view, and that now opens the shared tradie completion modal instead of directly flipping status.
+  - Earlier-stage jobs now show an honest explanation plus a real `Open Field Workflow` link into `/tradie/jobs/[id]`.
+- Why:
+  - This removes a workflow contradiction. Users should not see one screen telling them to travel/arrive/safety-check and another screen letting them bypass all of that with one click.
+- Verified with:
+  - `npx vitest run __tests__/job-detail-view.test.tsx __tests__/tradie-job-completion-modal.test.tsx`
+  - `npx next build`

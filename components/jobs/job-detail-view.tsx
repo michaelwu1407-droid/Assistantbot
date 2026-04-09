@@ -14,6 +14,7 @@ import { InvoiceGenerator } from "@/components/invoicing/invoice-generator"
 import { JobMedia } from "./job-media"
 import { formatInvoiceStatusLabel, formatJobHeaderStatus } from "@/lib/job-portal-status-labels"
 import Link from "next/link"
+import { JobCompletionModal } from "@/components/tradie/job-completion-modal"
 
 // Define types locally or import (ideally import shared types)
 interface JobDetail {
@@ -46,7 +47,9 @@ export default function JobDetailView({ job }: JobDetailViewProps) {
     const router = useRouter()
     const [status, setStatus] = useState(job.status)
     const [isUpdating, setIsUpdating] = useState(false)
-    const canCompleteFromHere = status === "SCHEDULED" || status === "TRAVELING" || status === "ON_SITE"
+    const [completionModalOpen, setCompletionModalOpen] = useState(false)
+    const canCompleteFromHere = status === "ON_SITE"
+    const needsFieldWorkflow = status === "SCHEDULED" || status === "TRAVELING"
 
     const handleStatusChange = async (newStatus: 'TRAVELING' | 'ON_SITE' | 'COMPLETED') => {
         setIsUpdating(true)
@@ -84,12 +87,30 @@ export default function JobDetailView({ job }: JobDetailViewProps) {
                         <Button
                             size="lg"
                             className="w-full text-lg h-14 bg-green-600 hover:bg-green-700 text-white"
-                            onClick={() => handleStatusChange('COMPLETED')}
+                            onClick={() => setCompletionModalOpen(true)}
                             disabled={isUpdating}
                         >
                             <CheckCircle2 className="mr-2 h-6 w-6" />
                             Mark Job Complete
                         </Button>
+                    )}
+                    {needsFieldWorkflow && (
+                        <Card className="border-amber-200 bg-amber-50/70">
+                            <CardContent className="flex flex-col gap-3 p-4">
+                                <div>
+                                    <p className="text-sm font-semibold text-amber-900">Finish this job from the field workflow</p>
+                                    <p className="mt-1 text-sm text-amber-800">
+                                        Move through travel, arrival, safety, and completion in the tradie flow so notes, sign-off, invoicing, and review requests stay in sync.
+                                    </p>
+                                </div>
+                                <Button asChild variant="secondary" className="w-full">
+                                    <Link href={`/tradie/jobs/${job.id}`}>
+                                        <ExternalLink className="mr-2 h-4 w-4" />
+                                        Open Field Workflow
+                                    </Link>
+                                </Button>
+                            </CardContent>
+                        </Card>
                     )}
                 </div>
 
@@ -211,6 +232,17 @@ export default function JobDetailView({ job }: JobDetailViewProps) {
                     </TabsContent>
                 </Tabs>
             </div>
+
+            <JobCompletionModal
+                open={completionModalOpen}
+                onOpenChange={setCompletionModalOpen}
+                dealId={job.id}
+                onSuccess={() => {
+                    setStatus("COMPLETED")
+                    router.refresh()
+                    toast.success("Job completion saved")
+                }}
+            />
         </div>
     )
 }
