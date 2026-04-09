@@ -965,7 +965,7 @@ function ChatWithHistory({
                   ) : digestModal.agentMode === "DRAFT" ? (
                     <>
                       <li>Review and approve the follow-up drafts I&apos;ve queued from today&apos;s jobs.</li>
-                      <li>Approve any invoice drafts so I can send reminders tomorrow.</li>
+                      <li>Review any draft invoices, mark the ready ones as issued, and email them before tomorrow&apos;s reminder run.</li>
                     </>
                   ) : (
                     <>

@@ -4558,3 +4558,15 @@ Rule: every agent change commit must include an entry in this file.
   - Small copy polish matters on high-traffic workflow pages. This removes another leftover dev-style label so the page feels intentionally designed rather than half-finished.
 - Verified with:
   - `npx next build`
+
+## 2026-04-09 - Daily digest invoice guidance now matches the real billing workflow
+
+- Files:
+  - `components/chatbot/chat-interface.tsx`
+- What changed:
+  - The evening digest `Next steps` card in Draft mode no longer says to approve invoice drafts “so I can send reminders tomorrow”.
+  - It now tells the user to review draft invoices, mark the ready ones as issued, and email them before the next reminder run.
+- Why:
+  - The daily briefing should reinforce the same billing workflow the rest of the product teaches, not resurrect older language that implies issuing/sending are interchangeable.
+- Verified with:
+  - `npx next build`

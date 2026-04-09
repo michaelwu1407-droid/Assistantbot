@@ -275,6 +275,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` The estimator success state now matches the same truthful invoice sequence, so quote generation no longer reintroduces the old “issue means send” confusion.
 - `fixed` The tradie estimator landing-page copy now matches that same sequence, closing the last obvious invoice-flow wording mismatch across the quote surfaces.
 - `fixed` Contact detail no longer shows a leftover `Open job ->` label; that CTA now reads like a finished product action.
+- `fixed` Daily digest guidance now matches the same truthful invoice sequence, so briefing copy no longer conflicts with billing and Tracey follow-ups.
 
 ## Local-Only / Not Yet Shipped Context
 
