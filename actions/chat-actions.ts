@@ -1808,7 +1808,7 @@ export async function runCreateDraftInvoice(
       success: false,
       message: `Draft invoice ${existingDraft.number} already exists for "${deal.title}". Do not say a new quote was created.`,
       quickActions: [
-        { label: "Issue to client", prompt: `Issue invoice ${existingDraft.number} for "${deal.title}"` },
+        { label: "Mark issued", prompt: `Issue invoice ${existingDraft.number} for "${deal.title}"` },
         { label: "Invoice status", prompt: `Show invoice status for "${deal.title}"` },
       ],
       alreadyExists: true,
@@ -1863,7 +1863,7 @@ export async function runCreateDraftInvoice(
     success: true,
     message: `Draft invoice ${invoiceNumber} created for "${fullDeal.title}" — total $${total.toLocaleString("en-AU")}. Open the Billing tab to review.`,
     quickActions: [
-      { label: "Issue to client", prompt: `Issue invoice ${invoiceNumber} for "${fullDeal.title}"` },
+      { label: "Mark issued", prompt: `Issue invoice ${invoiceNumber} for "${fullDeal.title}"` },
       { label: "Update amount", prompt: `Update invoice amount for "${fullDeal.title}"` },
     ],
     created: true,
@@ -1884,7 +1884,7 @@ export async function runIssueInvoiceAction(
     if (deal) {
       return {
         success: false,
-        message: `There isn’t an invoice yet for "${deal.title}". Create a draft invoice first, then issue it to the client.`,
+        message: `There isn’t an invoice yet for "${deal.title}". Create a draft invoice first, then mark it as issued when it is ready to go out.`,
         quickActions: [{ label: "Create draft invoice", prompt: `Create a draft invoice for "${deal.title}"` }],
       };
     }
@@ -1912,10 +1912,10 @@ export async function runIssueInvoiceAction(
   revalidatePath("/crm", "layout");
   return {
     success: true,
-    message: `Invoice ${invoice.number} issued for "${invoice.deal.title}". The client can now be sent the payment link.`,
+    message: `Invoice ${invoice.number} is now marked as issued for "${invoice.deal.title}". If you still need to send it, email it from the billing workflow, then mark it as paid once payment lands.`,
     quickActions: [
       { label: "Mark as paid", prompt: `Mark invoice ${invoice.number} as paid for "${invoice.deal.title}"` },
-      { label: "Send reminder", prompt: `Send payment reminder for invoice ${invoice.number} to "${invoice.deal.title}"` },
+      { label: "Invoice status", prompt: `Show invoice status for "${invoice.deal.title}"` },
     ],
   };
 }
@@ -2096,7 +2096,7 @@ export async function runGetInvoiceStatusAction(
 
   const followUpByStatus: Record<string, { label: string; prompt: string }[]> = {
     DRAFT: [
-      { label: "Issue to client", prompt: `Issue invoice ${invoice.number} for "${invoice.deal.title}"` },
+      { label: "Mark issued", prompt: `Issue invoice ${invoice.number} for "${invoice.deal.title}"` },
       { label: "Update amount", prompt: `Update invoice amount for "${invoice.deal.title}"` },
     ],
     ISSUED: [

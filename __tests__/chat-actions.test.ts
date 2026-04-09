@@ -59,6 +59,7 @@ const hoisted = vi.hoisted(() => ({
   renderTemplate: vi.fn(),
   findDuplicateContacts: vi.fn(),
   generateQuote: vi.fn(),
+  issueInvoice: vi.fn(),
   markInvoicePaid: vi.fn(),
   fuzzyScore: vi.fn(),
   recordWorkspaceAuditEventForCurrentActor: vi.fn(),
@@ -129,6 +130,7 @@ vi.mock("@/actions/dedup-actions", () => ({
 }));
 vi.mock("@/actions/tradie-actions", () => ({
   generateQuote: hoisted.generateQuote,
+  issueInvoice: hoisted.issueInvoice,
   markInvoicePaid: hoisted.markInvoicePaid,
 }));
 vi.mock("@/lib/search", () => ({
@@ -184,6 +186,7 @@ import {
   runCreateTask,
   runGetDealContext,
   runGetInvoiceStatusAction,
+  runIssueInvoiceAction,
   runMarkInvoicePaidAction,
   runRejectDraft,
   runUpdateInvoiceAmount,
@@ -996,6 +999,10 @@ describe("chat-actions", () => {
     expect(result.message).toContain("Deal: Blocked Drain");
     expect(result.message).toContain("Contact: Alex Harper");
     expect(result.message).toContain("Accounting sync: synced via xero");
+    expect(result.quickActions[0]).toMatchObject({
+      label: "Mark as paid",
+      prompt: 'Mark invoice INV-1002 as paid',
+    });
   });
 
   it("gives a specific no-invoice message when a matching deal exists for invoice status", async () => {
@@ -1021,6 +1028,39 @@ describe("chat-actions", () => {
     expect(result.quickActions[0]).toMatchObject({
       label: "Create draft invoice",
       prompt: 'Create a draft invoice for "Blocked Drain"',
+    });
+  });
+
+  it("describes issuing an invoice truthfully and offers the next sensible follow-up", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      { id: "deal_99", title: "Blocked Drain", contactId: "contact_42" },
+    ]);
+    hoisted.db.invoice.findFirst.mockResolvedValue({
+      id: "inv_1",
+      number: "INV-1002",
+      status: "DRAFT",
+      total: 350,
+      dealId: "deal_99",
+      deal: {
+        id: "deal_99",
+        title: "Blocked Drain",
+        contact: { id: "contact_42", name: "Alex Harper" },
+      },
+    });
+    hoisted.issueInvoice.mockResolvedValue({ success: true });
+
+    const result = await runIssueInvoiceAction("ws_1", { dealTitle: "Blocked Drain" });
+
+    expect(result.success).toBe(true);
+    expect(result.message).toContain("marked as issued");
+    expect(result.message).toContain("email it from the billing workflow");
+    expect(result.quickActions[0]).toMatchObject({
+      label: "Mark as paid",
+      prompt: 'Mark invoice INV-1002 as paid for "Blocked Drain"',
+    });
+    expect(result.quickActions[1]).toMatchObject({
+      label: "Invoice status",
+      prompt: 'Show invoice status for "Blocked Drain"',
     });
   });
 

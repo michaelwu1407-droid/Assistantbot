@@ -270,6 +270,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Tracey duplicate-contact follow-ups now honor the UX it presents: when the assistant lists numbered contact options, replying with `1`, `2`, etc. resolves the selected contact into the correct CRM record instead of forcing the user to restate the contact details.
 - `fixed` Job billing now guides the user through the invoice lifecycle with a dynamic `Next best action` card instead of making them infer the right next step from raw buttons alone.
 - `fixed` Job billing no longer teaches the wrong send flow: `Mark issued` and `Email customer` are now distinct, truthful actions, and the guidance explains the real order.
+- `fixed` Tracey invoice quick actions now teach the same truthful workflow as billing: draft invoices are `Mark issued`, and the issue response no longer implies that issuing itself sends the invoice.
 
 ## Local-Only / Not Yet Shipped Context
 

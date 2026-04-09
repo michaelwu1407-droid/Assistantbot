@@ -4487,3 +4487,19 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/job-billing-tab.test.tsx`
   - `npx next build`
+
+## 2026-04-09 - Tracey quote and invoice follow-ups now match the real billing workflow
+
+- Files:
+  - `actions/chat-actions.ts`
+  - `__tests__/chat-actions.test.ts`
+- What changed:
+  - Tracey no longer uses the misleading quick-action label `Issue to client` for draft invoices.
+  - Draft invoice follow-ups now use the truthful label `Mark issued`.
+  - The issue-invoice success message now explains the real workflow: the invoice is marked as issued, and if it still needs to be sent, that happens from the billing workflow.
+  - The issue-invoice follow-up card now suggests `Invoice status` instead of jumping straight to `Send reminder`, which only makes sense once the send flow has actually happened.
+- Why:
+  - The chat assistant and the billing UI should teach the same mental model. If those two surfaces disagree, the product feels unreliable even when the backend logic is correct.
+- Verified with:
+  - `npx vitest run __tests__/chat-actions.test.ts __tests__/job-billing-tab.test.tsx`
+  - `npx next build`
