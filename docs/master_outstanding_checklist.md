@@ -174,7 +174,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 ### Search / Notifications / Quick Actions
 
 - `fixed` Global search mouse-click: contacts `CommandItem` now has `onClick` handler, consistent with all other result types.
-- `fixed` Invoice chat actions (createDraftInvoice, issueInvoice, markInvoicePaid, voidInvoice, getInvoiceStatus) now return structured {message, success, quickActions} objects. The chat UI renders a green success card with follow-up action buttons (e.g. 'Issue to client', 'Mark as paid', 'Move to Completed').
+- `fixed` Invoice chat actions (createDraftInvoice, issueInvoice, markInvoicePaid, voidInvoice, getInvoiceStatus) now return structured {message, success, quickActions} objects. The chat UI renders a green success card with follow-up action buttons that match the real workflow (for example `Mark issued`, `Mark as paid`, and `Request review`).
 
 ### Team / Analytics / Settings / Integrations
 

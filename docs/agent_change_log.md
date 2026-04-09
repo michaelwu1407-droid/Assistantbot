@@ -4570,3 +4570,17 @@ Rule: every agent change commit must include an entry in this file.
   - The daily briefing should reinforce the same billing workflow the rest of the product teaches, not resurrect older language that implies issuing/sending are interchangeable.
 - Verified with:
   - `npx next build`
+
+## 2026-04-09 - Stale invoice wording removed from chat actions and checklist docs
+
+- Files:
+  - `actions/chat-actions.ts`
+  - `docs/master_outstanding_checklist.md`
+- What changed:
+  - The remaining `runIssueInvoiceAction` no-invoice guidance no longer says “ready to go out”; it now simply says to mark the draft as issued when it is ready.
+  - The master checklist no longer cites outdated invoice quick actions like `Issue to client` or `Move to Completed` in its summary of the current chat workflow.
+- Why:
+  - The product and the source-of-truth docs should reinforce the same language. Once the workflow changed, stale checklist examples became misleading too.
+- Verified with:
+  - `npx vitest run __tests__/chat-actions.test.ts`
+  - `npx next build`

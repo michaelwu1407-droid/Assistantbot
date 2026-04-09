@@ -1884,7 +1884,7 @@ export async function runIssueInvoiceAction(
     if (deal) {
       return {
         success: false,
-        message: `There isn’t an invoice yet for "${deal.title}". Create a draft invoice first, then mark it as issued when it is ready to go out.`,
+        message: `There isn’t an invoice yet for "${deal.title}". Create a draft invoice first, then mark it as issued when it is ready.`,
         quickActions: [{ label: "Create draft invoice", prompt: `Create a draft invoice for "${deal.title}"` }],
       };
     }
