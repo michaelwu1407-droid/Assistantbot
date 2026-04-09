@@ -224,14 +224,14 @@ function getDealNextStepGuidance(input: {
         : "Complete the work, record any field notes or materials, and generate the invoice when the job is finished.";
     case "ready_to_invoice":
       return input.hasInvoice
-        ? "The invoice has been issued. Follow up with the customer on payment and mark it paid when received."
-        : "Generate the invoice and send it to the customer so they can pay.";
+        ? "The invoice is marked as issued. Email it to the customer if it still needs to go out, then follow up on payment and mark it paid when received."
+        : "Generate the invoice, mark it as issued when it is ready, and email it to the customer so they can pay.";
     case "pending_approval":
       return "Review the completion details, then approve it to move to completed or reject it with a reason.";
     case "completed":
       return input.hasInvoice
         ? "The job is completed. The main remaining step is making sure the invoice and payment status are correct."
-        : "The job is completed. Generate or issue the invoice if billing is still outstanding.";
+        : "The job is completed. Generate the invoice, mark it as issued when ready, and email it if billing is still outstanding.";
     default:
       return null;
   }

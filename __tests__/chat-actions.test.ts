@@ -430,6 +430,40 @@ describe("chat-actions", () => {
     expect(result).toContain("Next steps: Review the request, then either send a quote or assign a team member and set a scheduled date before moving it forward.");
   });
 
+  it("uses the truthful issue-then-email billing guidance for invoice-ready jobs", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      {
+        id: "deal_1",
+        title: "Blocked Drain",
+        assignedToId: "user_1",
+        contactId: "contact_1",
+      },
+    ]);
+    hoisted.db.deal.findUnique.mockResolvedValue({
+      id: "deal_1",
+      title: "Blocked Drain",
+      stage: "INVOICED",
+      value: 650,
+      address: "8 Harbour Road Manly",
+      scheduledAt: null,
+      assignedTo: null,
+      contact: {
+        name: "Delta Cafe",
+        phone: "0290011002",
+        email: "ops@deltacafe.example.com",
+        company: null,
+        address: "8 Harbour Road Manly",
+      },
+      invoices: [],
+    });
+    hoisted.db.activity.findMany.mockResolvedValue([]);
+
+    const result = await runGetDealContext("ws_1", { dealTitle: "Blocked Drain" });
+
+    expect(result).toContain("Stage: Awaiting payment");
+    expect(result).toContain("Next steps: Generate the invoice, mark it as issued when it is ready, and email it to the customer so they can pay.");
+  });
+
   it("lists only matching jobs that are awaiting payment or already invoiced", async () => {
     hoisted.getDeals.mockResolvedValue([
       {

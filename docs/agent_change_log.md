@@ -4503,3 +4503,21 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/chat-actions.test.ts __tests__/job-billing-tab.test.tsx`
   - `npx next build`
+
+## 2026-04-09 - Deal context next-step guidance now teaches the real invoice flow too
+
+- Files:
+  - `actions/chat-actions.ts`
+  - `__tests__/chat-actions.test.ts`
+- What changed:
+  - The deal-context `Next steps` guidance for invoice-ready and completed jobs no longer says to simply “send” or “issue” an invoice as if those are the same action.
+  - It now explains the real order:
+    - generate the invoice
+    - mark it as issued when ready
+    - email it to the customer
+    - then mark it paid once payment lands
+- Why:
+  - This keeps the CRM page guidance, Tracey follow-ups, and billing panel all teaching the same workflow instead of giving users three different mental models.
+- Verified with:
+  - `npx vitest run __tests__/chat-actions.test.ts`
+  - `npx next build`
