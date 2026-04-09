@@ -4535,3 +4535,15 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/estimator-form.test.tsx`
   - `npx next build`
+
+## 2026-04-09 - Tradie estimator page intro now matches the real billing flow
+
+- Files:
+  - `app/(dashboard)/tradie/estimator/page.tsx`
+- What changed:
+  - The estimator landing-page copy no longer says the draft invoice goes back to billing “when you are ready to send it”.
+  - It now explains the truthful sequence: billing is where the draft gets marked as issued and emailed to the customer.
+- Why:
+  - This closes the last visible wording gap in the quote/invoice workflow. The same user should not get three different explanations depending on which page they happen to be on.
+- Verified with:
+  - `npx next build`

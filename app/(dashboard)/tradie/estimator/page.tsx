@@ -31,7 +31,7 @@ export default async function TradieEstimatorPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Tradie Tools</p>
           <h1 className="text-3xl font-bold text-slate-900">Estimator</h1>
           <p className="max-w-2xl text-sm text-slate-600">
-            Build a quote against a real job, check the GST-inclusive total, and hand the draft invoice back to the main CRM billing flow when you are ready to send it.
+            Build a quote against a real job, check the GST-inclusive total, then hand the draft invoice back to billing so it can be marked as issued and emailed to the customer.
           </p>
         </div>
 
