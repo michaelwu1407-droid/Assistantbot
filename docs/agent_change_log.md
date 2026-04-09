@@ -4584,3 +4584,15 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/chat-actions.test.ts`
   - `npx next build`
+
+## 2026-04-10 - Xero settings copy no longer overclaims automatic sync behavior
+
+- Files:
+  - `app/crm/settings/integrations/page.tsx`
+- What changed:
+  - The Xero card in Settings → Integrations no longer claims draft invoices are created automatically whenever jobs are ready to invoice.
+  - It now explains the real product behavior: Xero draft invoices are created from the job-completion workflow and then reviewed in Xero.
+- Why:
+  - This was a product-truth issue. The integration page should describe what the app actually does today, not the broader automatic-sync behavior we may want later.
+- Verified with:
+  - `npx next build`
