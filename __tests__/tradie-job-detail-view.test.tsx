@@ -109,4 +109,32 @@ describe("Tradie JobDetailView", () => {
     expect(screen.getByRole("button", { name: /no address/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: /no phone/i })).toBeDisabled();
   });
+
+  it("uses user-facing status labels and explicit action text when details exist", () => {
+    render(
+      <JobDetailView
+        job={{
+          id: "deal_3",
+          title: "Hot Water Service",
+          client: {
+            name: "Taylor Smith",
+            phone: "0400000000",
+            email: "taylor@example.com",
+            address: "9 Test St, Sydney",
+          },
+          status: "TRAVELING",
+          value: 480,
+          description: "Hot water fault",
+          safetyCheckCompleted: false,
+          activities: [],
+          invoices: [],
+          photos: [],
+        }}
+      />,
+    );
+
+    expect(screen.getByText("On the way")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Call$/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Navigate/i })).toBeInTheDocument();
+  });
 });

@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { JobStatusBar } from "./job-status-bar"
 import { CameraFAB } from "./camera-fab"
 import { VoiceNoteInput } from "./voice-note-input"
+import { formatJobHeaderStatus } from "@/lib/job-portal-status-labels"
 
 type JobStatus = "SCHEDULED" | "TRAVELING" | "ON_SITE" | "COMPLETED" | "CANCELLED"
 
@@ -68,7 +69,7 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                         <ArrowLeft className="w-5 h-5" />
                     </Link>
                     <Badge variant={job.status === 'COMPLETED' ? 'secondary' : 'default'} className="uppercase">
-                        {job.status.replace('_', ' ')}
+                        {formatJobHeaderStatus(job.status)}
                     </Badge>
                 </div>
                 <h1 className="text-2xl font-bold text-slate-900 leading-tight">{job.title}</h1>
@@ -98,7 +99,12 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                                     }
                                 }}
                             >
-                                {job.client.address ? <Navigation className="w-3 h-3" /> : "No address"}
+                                {job.client.address ? (
+                                    <>
+                                        <Navigation className="w-3 h-3 mr-1" />
+                                        Navigate
+                                    </>
+                                ) : "No address"}
                             </Button>
                         </div>
                         <div className="flex items-center gap-3">
@@ -118,7 +124,12 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                                     }
                                 }}
                             >
-                                {job.client.phone ? <Phone className="w-3 h-3" /> : "No phone"}
+                                {job.client.phone ? (
+                                    <>
+                                        <Phone className="w-3 h-3 mr-1" />
+                                        Call
+                                    </>
+                                ) : "No phone"}
                             </Button>
                         </div>
                     </Card>

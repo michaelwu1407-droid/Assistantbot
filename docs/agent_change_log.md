@@ -4371,3 +4371,17 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/job-detail-view.test.tsx __tests__/tradie-job-completion-modal.test.tsx`
   - `npx next build`
+
+## 2026-04-09 - Tradie job detail now uses clearer labels and actions
+
+- Files:
+  - `components/tradie/job-detail-view.tsx`
+  - `__tests__/tradie-job-detail-view.test.tsx`
+- What changed:
+  - The tradie job page now uses shared user-facing status labels instead of leaking raw internal keys like `TRAVELING`.
+  - Contact/location actions now say `Call` and `Navigate` instead of icon-only buttons, which is clearer in field use.
+- Why:
+  - These are small but high-impact clarity fixes. A field workflow should be obvious at a glance; tradies should not have to infer action meaning from icons or internal stage words.
+- Verified with:
+  - `npx vitest run __tests__/tradie-job-detail-view.test.tsx`
+  - `npx next build`
