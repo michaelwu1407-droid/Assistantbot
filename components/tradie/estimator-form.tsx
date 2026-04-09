@@ -91,7 +91,7 @@ export function EstimatorForm({ deals = [], workspaceId }: EstimatorFormProps) {
                         Quote has been attached to the deal and invoice created in Draft status.
                     </p>
                     <p className="text-xs text-slate-400">
-                        Next step: issue the draft invoice from the job billing panel when you&apos;re ready to send it.
+                        Next step: mark the draft as issued from the job billing panel when it is ready, then email it to the customer.
                     </p>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-3">

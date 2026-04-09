@@ -135,7 +135,7 @@ describe("EstimatorForm", () => {
     await waitFor(() => expect(screen.getByText("Quote Generated!")).toBeInTheDocument());
     expect(screen.getByText(/Invoice #INV-101/i)).toBeInTheDocument();
     expect(
-      screen.getByText(/Next step: issue the draft invoice from the job billing panel when you're ready to send it/i),
+      screen.getByText(/Next step: mark the draft as issued from the job billing panel when it is ready, then email it to the customer/i),
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Open Billing Panel/i })).toHaveAttribute("href", "/crm/deals/deal_1");
   });

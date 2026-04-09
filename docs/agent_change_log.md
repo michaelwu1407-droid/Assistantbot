@@ -4521,3 +4521,17 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/chat-actions.test.ts`
   - `npx next build`
+
+## 2026-04-09 - Estimator success state now teaches the same invoice sequence
+
+- Files:
+  - `components/tradie/estimator-form.tsx`
+  - `__tests__/estimator-form.test.tsx`
+- What changed:
+  - The estimator success state no longer says to issue the draft invoice “when you’re ready to send it,” which implied issuing and sending were the same thing.
+  - It now tells the user to mark the draft as issued when ready and then email it to the customer.
+- Why:
+  - The estimator, billing panel, deal-context guidance, and Tracey follow-ups now all teach the same invoice lifecycle instead of contradicting each other.
+- Verified with:
+  - `npx vitest run __tests__/estimator-form.test.tsx`
+  - `npx next build`
