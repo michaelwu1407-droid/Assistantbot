@@ -52,6 +52,7 @@ describe("Tradie JobDetailView", () => {
       <JobDetailView
         job={{
           id: "deal_1",
+          contactId: "contact_1",
           title: "Blocked Drain",
           client: {
             name: "Alex Harper",
@@ -88,6 +89,7 @@ describe("Tradie JobDetailView", () => {
       <JobDetailView
         job={{
           id: "deal_2",
+          contactId: null,
           title: "Hot Water Service",
           client: {
             name: "Taylor Smith",
@@ -115,6 +117,7 @@ describe("Tradie JobDetailView", () => {
       <JobDetailView
         job={{
           id: "deal_3",
+          contactId: "contact_3",
           title: "Hot Water Service",
           client: {
             name: "Taylor Smith",
@@ -136,5 +139,36 @@ describe("Tradie JobDetailView", () => {
     expect(screen.getByText("On the way")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^Call$/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Navigate/i })).toBeInTheDocument();
+  });
+
+  it("routes the chat tab into the real unified customer timeline", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <JobDetailView
+        job={{
+          id: "deal_4",
+          contactId: "contact_4",
+          title: "Blocked Drain",
+          client: {
+            name: "Alex Harper",
+            phone: "0400000000",
+            email: "alex@example.com",
+            address: "1 Test St, Sydney",
+          },
+          status: "SCHEDULED",
+          value: 250,
+          description: "Drain issue",
+          safetyCheckCompleted: false,
+          activities: [],
+          invoices: [],
+          photos: [],
+        }}
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: /chat/i }));
+    expect(screen.getByText(/Open the full customer timeline to see calls, emails, texts, and system history together/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Open Customer Timeline/i })).toHaveAttribute("href", "/crm/inbox?contact=contact_4");
   });
 });

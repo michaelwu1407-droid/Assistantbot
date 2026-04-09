@@ -214,6 +214,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Customer inbox now follows the intended multi-channel product model: one unified timeline per customer with SMS/email inline by default and calls shown as compact summary rows that expand into full transcripts only when needed.
 - `fixed` Legacy job detail no longer bypasses the shared field completion flow. Scheduled/traveling jobs now route users into the real tradie workflow, and only on-site jobs can complete from that surface via the shared completion modal.
 - `fixed` Tradie job detail now uses explicit `Call` / `Navigate` actions and shared user-facing status labels instead of icon-only actions and leaked internal stage keys.
+- `fixed` Tradie job detail chat now routes into the real unified customer timeline via scoped `contactId`, so the field view no longer dead-ends when the communication history lives in the inbox.
 
 ### Specific Tracey Use Cases Still To Prove Well
 

@@ -37,6 +37,7 @@ interface JobPhoto {
 // Define the type locally based on what getJobDetails returns
 interface JobDetail {
     id: string
+    contactId?: string | null
     title: string
     client: {
         name: string
@@ -162,42 +163,67 @@ export function JobDetailView({ job }: JobDetailViewProps) {
 
                                 if (chatActivities.length === 0) {
                                     return (
-                                        <Card className="p-6 text-center text-slate-400 text-sm">
-                                            <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                                            No conversation history yet for this job.
+                                        <Card className="p-6 text-center text-slate-400 text-sm space-y-3">
+                                            <div>
+                                                <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                                                <p>No conversation history yet for this job.</p>
+                                                <p className="mt-2 text-xs text-slate-500">
+                                                    Open the full customer timeline to see calls, emails, texts, and system history together.
+                                                </p>
+                                            </div>
+                                            {job.contactId ? (
+                                                <Button asChild variant="secondary" className="w-full">
+                                                    <Link href={`/crm/inbox?contact=${job.contactId}`}>
+                                                        <ExternalLink className="w-4 h-4 mr-2" />
+                                                        Open Customer Timeline
+                                                    </Link>
+                                                </Button>
+                                            ) : null}
                                         </Card>
                                     )
                                 }
 
-                                return chatActivities.map((activity) => {
-                                    const Icon = activity.type === "CALL" ? PhoneCall
-                                        : activity.type === "EMAIL" ? Mail
-                                        : MessageSquare
-                                    const colorClass = activity.type === "CALL" ? "text-blue-500 bg-blue-50"
-                                        : activity.type === "EMAIL" ? "text-purple-500 bg-purple-50"
-                                        : "text-emerald-500 bg-emerald-50"
-                                    const time = new Date(activity.createdAt)
-                                    const timeStr = time.toLocaleDateString("en-AU", { day: "numeric", month: "short" }) + " " + time.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" })
+                                return (
+                                    <>
+                                        {chatActivities.map((activity) => {
+                                            const Icon = activity.type === "CALL" ? PhoneCall
+                                                : activity.type === "EMAIL" ? Mail
+                                                : MessageSquare
+                                            const colorClass = activity.type === "CALL" ? "text-blue-500 bg-blue-50"
+                                                : activity.type === "EMAIL" ? "text-purple-500 bg-purple-50"
+                                                : "text-emerald-500 bg-emerald-50"
+                                            const time = new Date(activity.createdAt)
+                                            const timeStr = time.toLocaleDateString("en-AU", { day: "numeric", month: "short" }) + " " + time.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" })
 
-                                    return (
-                                        <Card key={activity.id} className="p-3 border-slate-200 shadow-sm">
-                                            <div className="flex gap-3">
-                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${colorClass}`}>
-                                                    <Icon className="w-4 h-4" />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center justify-between gap-2">
-                                                        <p className="text-sm font-medium text-slate-900 truncate">{activity.title}</p>
-                                                        <span className="text-[11px] text-slate-400 whitespace-nowrap">{timeStr}</span>
+                                            return (
+                                                <Card key={activity.id} className="p-3 border-slate-200 shadow-sm">
+                                                    <div className="flex gap-3">
+                                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${colorClass}`}>
+                                                            <Icon className="w-4 h-4" />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center justify-between gap-2">
+                                                                <p className="text-sm font-medium text-slate-900 truncate">{activity.title}</p>
+                                                                <span className="text-[11px] text-slate-400 whitespace-nowrap">{timeStr}</span>
+                                                            </div>
+                                                            {activity.content && (
+                                                                <p className="text-sm text-slate-600 mt-1 whitespace-pre-wrap">{activity.content}</p>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                    {activity.content && (
-                                                        <p className="text-sm text-slate-600 mt-1 whitespace-pre-wrap">{activity.content}</p>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </Card>
-                                    )
-                                })
+                                                </Card>
+                                            )
+                                        })}
+                                        {job.contactId ? (
+                                            <Button asChild variant="secondary" className="w-full">
+                                                <Link href={`/crm/inbox?contact=${job.contactId}`}>
+                                                    <ExternalLink className="w-4 h-4 mr-2" />
+                                                    Open Customer Timeline
+                                                </Link>
+                                            </Button>
+                                        ) : null}
+                                    </>
+                                )
                             })()}
                         </TabsContent>
 

@@ -4385,3 +4385,18 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/tradie-job-detail-view.test.tsx`
   - `npx next build`
+
+## 2026-04-09 - Tradie chat tab now links back into the real customer timeline
+
+- Files:
+  - `actions/tradie-actions.ts`
+  - `components/tradie/job-detail-view.tsx`
+  - `__tests__/tradie-job-detail-view.test.tsx`
+- What changed:
+  - `getJobDetails()` now returns the scoped `contactId` so field views can route into the correct customer record.
+  - The tradie `Chat` tab now explains that the full call/email/SMS/system story lives in the unified inbox and provides a real `Open Customer Timeline` link.
+- Why:
+  - An empty chat pane is not a usable workflow. When the real correspondence lives elsewhere, the product should route the user to it explicitly instead of making them hunt.
+- Verified with:
+  - `npx vitest run __tests__/tradie-job-detail-view.test.tsx`
+  - `npx next build`

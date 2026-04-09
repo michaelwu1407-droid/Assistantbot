@@ -339,10 +339,11 @@ export async function getJobDetails(jobId: string) {
 
   if (!deal) return null;
 
-  return {
-    id: deal.id,
-    title: deal.title,
-    client: {
+    return {
+      id: deal.id,
+      contactId: deal.contactId,
+      title: deal.title,
+      client: {
       name: deal.contact.name,
       phone: deal.contact.phone,
       email: deal.contact.email,
