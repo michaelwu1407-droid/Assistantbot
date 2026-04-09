@@ -107,6 +107,7 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
     const [priceError, setPriceError] = useState<string | null>(null)
     const [editingId, setEditingId] = useState<string | null>(null)
     const [syncCache, setSyncCache] = useState<Record<string, { synced: boolean; provider: string | null }>>({})
+    const latestInvoice = invoices[0] ?? null
 
     const fetchInvoices = useCallback(async () => {
         setLoading(true)
@@ -247,6 +248,50 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                         <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
                     </Button>
                 </div>
+
+                <Card className="border-slate-200 bg-slate-50 shadow-none">
+                    <CardContent className="flex flex-col gap-1.5 p-3">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                            Next best action
+                        </div>
+                        {!latestInvoice ? (
+                            <>
+                                <p className="text-sm font-medium text-slate-900">Create the first draft invoice for this job.</p>
+                                <p className="text-xs text-slate-500">
+                                    Add the job total or variation above, then create the draft so it appears in the workflow below.
+                                </p>
+                            </>
+                        ) : latestInvoice.status === "DRAFT" ? (
+                            <>
+                                <p className="text-sm font-medium text-slate-900">Issue the draft invoice when it is ready to send.</p>
+                                <p className="text-xs text-slate-500">
+                                    You can still edit the line items first. When ready, use <strong>Issue</strong> to send it to the customer.
+                                </p>
+                            </>
+                        ) : latestInvoice.status === "ISSUED" ? (
+                            <>
+                                <p className="text-sm font-medium text-slate-900">Wait for payment, then mark the invoice as paid.</p>
+                                <p className="text-xs text-slate-500">
+                                    The invoice has already been sent. Use <strong>Mark Paid</strong> once payment lands.
+                                </p>
+                            </>
+                        ) : latestInvoice.status === "PAID" ? (
+                            <>
+                                <p className="text-sm font-medium text-slate-900">Payment is recorded.</p>
+                                <p className="text-xs text-slate-500">
+                                    This job is financially complete. If needed, you can still reverse the invoice status from the card below.
+                                </p>
+                            </>
+                        ) : (
+                            <>
+                                <p className="text-sm font-medium text-slate-900">This invoice is no longer active.</p>
+                                <p className="text-xs text-slate-500">
+                                    Void invoices stay in the record for history, but they should not be sent or marked paid.
+                                </p>
+                            </>
+                        )}
+                    </CardContent>
+                </Card>
 
                 {loading && invoices.length === 0 ? (
                     <div className="text-center py-4 text-slate-400 text-xs">Loading invoices...</div>

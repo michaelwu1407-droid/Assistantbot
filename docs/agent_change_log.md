@@ -4449,3 +4449,23 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/contact-page-access.test.tsx`
   - `npx next build`
+
+## 2026-04-09 - Billing panel now tells the user the next real invoice step
+
+- Files:
+  - `components/tradie/job-billing-tab.tsx`
+  - `__tests__/job-billing-tab.test.tsx`
+- What changed:
+  - The job billing panel now includes a `Next best action` card above the invoice history.
+  - The guidance changes with the actual latest invoice state:
+    - no invoice yet -> create the first draft
+    - draft -> issue it when ready
+    - issued -> wait for payment and mark paid
+    - paid -> payment is recorded
+    - void -> invoice is no longer active
+  - This makes the quote/invoice workflow explicit instead of assuming the user already knows the right next button to press.
+- Why:
+  - The product goal is not just to expose invoice actions, but to make the billing workflow feel obvious and low-friction for a real user in the moment.
+- Verified with:
+  - `npx vitest run __tests__/job-billing-tab.test.tsx`
+  - `npx next build`

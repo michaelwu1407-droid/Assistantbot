@@ -98,4 +98,46 @@ describe("JobBillingTab", () => {
     await waitFor(() => expect(getDealInvoices).toHaveBeenCalledTimes(2));
     expect(toastSuccess).toHaveBeenCalledWith("Invoice created");
   });
+
+  it("shows the next best action for a draft invoice", async () => {
+    getDealInvoices.mockResolvedValue([
+      {
+        id: "inv_1",
+        number: "INV-001",
+        status: "DRAFT",
+        total: 220,
+        createdAt: "2026-04-09T10:00:00.000Z",
+        issuedAt: null,
+        paidAt: null,
+        lineItems: [{ desc: "Labour", price: 220 }],
+      },
+    ]);
+
+    render(<JobBillingTab dealId="deal_1" />);
+
+    expect(await screen.findByText("Issue the draft invoice when it is ready to send.")).toBeInTheDocument();
+    const nextActionCard = screen.getByText("Next best action").parentElement;
+    expect(nextActionCard).toHaveTextContent("You can still edit the line items first. When ready, use Issue to send it to the customer.");
+  });
+
+  it("shows the next best action for an issued invoice", async () => {
+    getDealInvoices.mockResolvedValue([
+      {
+        id: "inv_2",
+        number: "INV-002",
+        status: "ISSUED",
+        total: 220,
+        createdAt: "2026-04-09T10:00:00.000Z",
+        issuedAt: "2026-04-09T10:05:00.000Z",
+        paidAt: null,
+        lineItems: [{ desc: "Labour", price: 220 }],
+      },
+    ]);
+
+    render(<JobBillingTab dealId="deal_1" />);
+
+    expect(await screen.findByText("Wait for payment, then mark the invoice as paid.")).toBeInTheDocument();
+    const nextActionCard = screen.getByText("Next best action").parentElement;
+    expect(nextActionCard).toHaveTextContent("The invoice has already been sent. Use Mark Paid once payment lands.");
+  });
 });
