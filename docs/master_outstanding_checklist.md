@@ -300,6 +300,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` The schedule now has a real empty state with next steps instead of a blank calendar grid when nothing is booked yet.
 - `fixed` Schedule drag/drop now tells the user when a moved booking also sent a customer update, so rescheduling no longer feels like a silent internal-only action.
 - `fixed` Legacy job-detail screens no longer strand users with disabled `No phone` / `No address` buttons; they now route missing customer details back into the CRM record so the user can fix the blocker.
+- `fixed` The older tradie job-detail screen now routes missing phone/address fixes to the linked contact form when possible, keeping field and office recovery paths consistent.
 - `fixed` The tradie bottom sheet now follows the same pattern: missing customer phone shortcuts no longer dead-end and instead route the user back into the CRM job record to fix the data gap.
 - `fixed` The stale-deal follow-up modal now defaults to a usable channel and explains unavailable contact methods instead of starting users on a broken SMS path.
 - `fixed` Kanban automation now uses the real CRM stage model and user-facing stage labels instead of outdated generic sales-pipeline terminology.

@@ -4982,3 +4982,17 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/contact-profile.test.tsx`
   - `npx next build`
+
+## 2026-04-10 - Tradie job detail now routes missing-data fixes to the same CRM source of truth
+
+- Files:
+  - `components/tradie/job-detail-view.tsx`
+  - `__tests__/tradie-job-detail-view.test.tsx`
+- What changed:
+  - The older tradie job-detail screen no longer sends missing phone/address fixes through the deal page when a linked contact exists.
+  - It now routes those fixes straight to the contact edit form, matching the newer CRM and inbox recovery patterns.
+- Why:
+  - Field users should not be taught a different repair path from office users. Missing customer phone/address data belongs on the contact record, so both surfaces should send the user to the same source of truth.
+- Verified with:
+  - `npx vitest run __tests__/tradie-job-detail-view.test.tsx`
+  - `npx next build`

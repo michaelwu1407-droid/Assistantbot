@@ -89,7 +89,7 @@ describe("Tradie JobDetailView", () => {
       <JobDetailView
         job={{
           id: "deal_2",
-          contactId: null,
+          contactId: "contact_2",
           title: "Hot Water Service",
           client: {
             name: "Taylor Smith",
@@ -108,8 +108,8 @@ describe("Tradie JobDetailView", () => {
       />,
     );
 
-    expect(screen.getByRole("link", { name: /add address in crm/i })).toHaveAttribute("href", "/crm/deals/deal_2");
-    expect(screen.getByRole("link", { name: /add phone in crm/i })).toHaveAttribute("href", "/crm/deals/deal_2");
+    expect(screen.getByRole("link", { name: /add address in crm/i })).toHaveAttribute("href", "/crm/contacts/contact_2/edit");
+    expect(screen.getByRole("link", { name: /add phone in crm/i })).toHaveAttribute("href", "/crm/contacts/contact_2/edit");
   });
 
   it("uses user-facing status labels and explicit action text when details exist", () => {

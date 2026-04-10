@@ -60,6 +60,7 @@ interface JobDetailViewProps {
 
 export function JobDetailView({ job }: JobDetailViewProps) {
     const router = useRouter()
+    const crmRecoveryHref = job.contactId ? `/crm/contacts/${job.contactId}/edit` : `/crm/deals/${job.id}`
 
     return (
         <div className="flex flex-col h-full bg-slate-50 pb-28">
@@ -103,7 +104,7 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                                 </Button>
                             ) : (
                                 <Button asChild variant="outline" size="sm" className="ml-auto h-8">
-                                    <Link href={`/crm/deals/${job.id}`}>Add address in CRM</Link>
+                                    <Link href={crmRecoveryHref}>Add address in CRM</Link>
                                 </Button>
                             )}
                         </div>
@@ -127,7 +128,7 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                                 </Button>
                             ) : (
                                 <Button asChild variant="outline" size="sm" className="ml-auto h-8">
-                                    <Link href={`/crm/deals/${job.id}`}>Add phone in CRM</Link>
+                                    <Link href={crmRecoveryHref}>Add phone in CRM</Link>
                                 </Button>
                             )}
                         </div>
