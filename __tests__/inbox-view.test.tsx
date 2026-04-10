@@ -367,6 +367,34 @@ describe("InboxView", () => {
     expect(screen.getByRole("button", { name: /Ask Tracey to act/i })).toBeInTheDocument();
   }, 10000);
 
+  it("shows an email recovery path when the selected contact has no email address", async () => {
+    render(
+      <InboxView
+        workspaceId="ws_1"
+        initialInteractions={[
+          {
+            id: "activity_1",
+            type: "NOTE",
+            title: "Inbound",
+            description: null,
+            time: "Just now",
+            createdAt: new Date("2026-04-03T10:00:00.000Z"),
+            contactId: "contact_a",
+            contactName: "Alice Example",
+            contactPhone: "0400000001",
+            contactEmail: null,
+            content: "Can you update my booking?",
+          },
+        ]}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Alice Example" })).toBeInTheDocument());
+
+    expect(screen.getByText(/No email address is on file yet/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Add email in CRM/i })).toHaveAttribute("href", "/crm/contacts/contact_a/edit");
+  }, 10000);
+
   it("keeps calls compact by default and expands to show the full transcript on demand", async () => {
     const user = userEvent.setup();
 

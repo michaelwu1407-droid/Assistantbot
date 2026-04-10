@@ -942,6 +942,16 @@ If the request is to contact the customer, use the appropriate customer-contact 
                       </Button>
                     </div>
                   )}
+                  {!selectedContact.email && (
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      <p className="text-xs text-amber-700">
+                        No email address is on file yet, so email follow-up is unavailable from this customer timeline.
+                      </p>
+                      <Button asChild size="sm" variant="outline" className="h-7 text-xs">
+                        <Link href={`/crm/contacts/${selectedContact.id}/edit`}>Add email in CRM</Link>
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Message input */}

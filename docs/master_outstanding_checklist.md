@@ -288,6 +288,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Contact profile now teaches the same communication model as the rest of the app: native phone/email actions when details exist, and `Open customer timeline` for CRM-managed communication.
 - `fixed` Deal detail no longer dead-ends when direct SMS is blocked by missing customer phone data; it now routes the user straight into CRM to add the phone number.
 - `fixed` Inbox fallback mode now still exposes the missing-data fix: when direct SMS is unavailable, users can jump straight to `Add phone in CRM` instead of being stranded in Ask Tracey mode.
+- `fixed` The inbox now exposes the missing email fix too, so the customer timeline can recover blocked email follow-up directly with `Add email in CRM`.
 - `fixed` The full CRM job page now uses that same recovery pattern: missing customer phone data is explained in place and linked straight to `Add phone in CRM`.
 - `fixed` The stale follow-up modal now exposes direct CRM fix actions for missing phone/email/contact details instead of only warning that a channel is unavailable.
 - `fixed` The stale-job reconciliation modal now explains what each outcome will do next and gives explicit success/error feedback instead of silently saving or failing.

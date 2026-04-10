@@ -4893,3 +4893,18 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/deal-actions.test.ts __tests__/schedule-calendar.test.tsx`
   - `npx next build`
+
+## 2026-04-10 - Inbox timeline now exposes the email recovery path too
+
+- Files:
+  - `components/crm/inbox-view.tsx`
+  - `__tests__/inbox-view.test.tsx`
+- What changed:
+  - The customer timeline now tells the truth when a contact has no email on file, not just when they are missing a phone number.
+  - It surfaces `Add email in CRM` directly in the inbox so users can fix the blocker from the same workflow instead of discovering it only through a disabled header button.
+  - The composer helper copy was also cleaned up to remove malformed punctuation in the user-facing text.
+- Why:
+  - The inbox is supposed to be the source of truth for customer communication. If a channel is unavailable, the fix path should be just as obvious there as it is in the contact and deal screens.
+- Verified with:
+  - `npx vitest run __tests__/inbox-view.test.tsx`
+  - `npx next build`
