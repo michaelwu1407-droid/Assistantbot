@@ -4758,3 +4758,20 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/stale-deal-follow-up-modal.test.tsx`
   - `npx next build`
+
+## 2026-04-10 - Kanban automation now uses the real CRM stage model
+
+- Files:
+  - `components/crm/kanban-automation-modal.tsx`
+  - `actions/kanban-automation-actions.ts`
+  - `__tests__/kanban-automation-modal.test.tsx`
+  - `__tests__/kanban-automation-actions.test.ts`
+- What changed:
+  - The Kanban automation modal no longer shows old generic sales-pipeline stages like `Qualified` or `Closed Won`.
+  - It now offers the real Earlymark CRM stages with the same user-facing labels used across the app.
+  - Stage-move activity logs now also use those user-facing labels instead of leaking raw internal values.
+- Why:
+  - This was a product-model mismatch. Automation surfaces should teach the same pipeline language as the dashboard, deal cards, and Tracey, otherwise users learn the wrong workflow.
+- Verified with:
+  - `npx vitest run __tests__/kanban-automation-actions.test.ts __tests__/kanban-automation-modal.test.tsx`
+  - `npx next build`

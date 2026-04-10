@@ -177,6 +177,13 @@ describe("kanban-automation-actions", () => {
       where: { id: "deal_1" },
       data: { stage: "WON", stageChangedAt: expect.any(Date) },
     });
+    expect(logActivity).toHaveBeenCalledWith({
+      type: "NOTE",
+      title: "Stage changed to Completed",
+      content: "Deal moved to Completed",
+      dealId: "deal_1",
+      contactId: "contact_1",
+    });
   });
 
   it("creates a next-day follow-up task when no date is provided", async () => {

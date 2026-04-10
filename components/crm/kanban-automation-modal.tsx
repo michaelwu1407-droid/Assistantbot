@@ -1,15 +1,22 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Badge } from "@/components/ui/badge"
-import { AlertTriangle, Clock, MessageSquare, Calendar, Target, Zap } from "lucide-react"
+import { AlertTriangle, Calendar, Clock, MessageSquare, Target, Zap } from "lucide-react"
 import { toast } from "sonner"
 import { executeKanbanAction } from "@/actions/kanban-automation-actions"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 import { getUserFacingDealStageLabel } from "@/lib/deal-utils"
 
 interface KanbanAutomationModalProps {
@@ -43,57 +50,69 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
       name: "Send Follow-up",
       description: "Send a personalized follow-up message",
       icon: MessageSquare,
-      color: "text-blue-600"
+      color: "text-blue-600",
     },
     {
       id: "schedule-call",
       name: "Schedule Call",
       description: "Schedule a follow-up call with the client",
       icon: Calendar,
-      color: "text-green-600"
+      color: "text-green-600",
     },
     {
       id: "nudge",
       name: "Send Nudge",
       description: "Send a gentle nudge to re-engage",
       icon: Zap,
-      color: "text-amber-600"
+      color: "text-amber-600",
     },
     {
       id: "escalate",
       name: "Escalate",
       description: "Flag for manager review",
       icon: AlertTriangle,
-      color: "text-red-600"
+      color: "text-red-600",
     },
     {
       id: "move-stage",
       name: "Move Stage",
       description: "Move to a different pipeline stage",
       icon: Target,
-      color: "text-purple-600"
-    }
+      color: "text-purple-600",
+    },
   ]
+
+  const stageOptions = [
+    { value: "NEW", label: getUserFacingDealStageLabel("NEW") },
+    { value: "CONTACTED", label: getUserFacingDealStageLabel("CONTACTED") },
+    { value: "NEGOTIATION", label: getUserFacingDealStageLabel("NEGOTIATION") },
+    { value: "SCHEDULED", label: getUserFacingDealStageLabel("SCHEDULED") },
+    { value: "PIPELINE", label: getUserFacingDealStageLabel("PIPELINE") },
+    { value: "INVOICED", label: getUserFacingDealStageLabel("INVOICED") },
+    { value: "PENDING_COMPLETION", label: getUserFacingDealStageLabel("PENDING_COMPLETION") },
+    { value: "WON", label: getUserFacingDealStageLabel("WON") },
+    { value: "LOST", label: getUserFacingDealStageLabel("LOST") },
+  ].filter((option) => option.value !== deal.currentStage)
 
   const handleActionSelect = (actionId: string) => {
     setSelectedAction(actionId)
-    
-    // Set default message based on action
-    const action = automationActions.find(a => a.id === actionId)
-    if (action) {
-      switch (actionId) {
-        case "follow-up":
-          setCustomMessage(`Hi ${deal.contactName}, I wanted to follow up on ${deal.title}. Is this still something you're interested in? Let me know if you have any questions or if there's anything I can help with!`)
-          break
-        case "nudge":
-          setCustomMessage(`Hi ${deal.contactName}, just checking in about ${deal.title}. The market is quite active right now and I want to make sure you don't miss any opportunities. Are you still interested?`)
-          break
-        case "escalate":
-          setCustomMessage(`This deal has been stale for ${daysSinceLastActivity} days and requires manager attention. Value: $${deal.value.toLocaleString()}`)
-          break
-        default:
-          setCustomMessage("")
-      }
+
+    switch (actionId) {
+      case "follow-up":
+        setCustomMessage(
+          `Hi ${deal.contactName}, I wanted to follow up on ${deal.title}. Is this still something you're interested in? Let me know if you have any questions or if there's anything I can help with!`,
+        )
+        break
+      case "nudge":
+        setCustomMessage(
+          `Hi ${deal.contactName}, just checking in about ${deal.title}. The market is quite active right now and I want to make sure you don't miss any opportunities. Are you still interested?`,
+        )
+        break
+      case "escalate":
+        setCustomMessage(`This deal has been stale for ${daysSinceLastActivity} days and requires manager attention. Value: $${deal.value.toLocaleString()}`)
+        break
+      default:
+        setCustomMessage("")
     }
   }
 
@@ -104,7 +123,6 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
     }
 
     setIsExecuting(true)
-
     try {
       const result = await executeKanbanAction(selectedAction, {
         dealId: deal.id,
@@ -119,9 +137,8 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
       }
 
       onAction(selectedAction, { dealId: deal.id, ...result })
-      toast.success(`${automationActions.find(a => a.id === selectedAction)?.name} executed successfully`)
-      
-      // Reset form
+      toast.success(`${automationActions.find((action) => action.id === selectedAction)?.name} executed successfully`)
+
       setSelectedAction("")
       setCustomMessage("")
       setFollowUpDate("")
@@ -154,35 +171,31 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
             <Zap className="h-5 w-5 text-amber-600" />
             <DialogTitle>Kanban Automation</DialogTitle>
           </div>
-          <DialogDescription>
-            Automate follow-up actions for stale deals in your pipeline.
-          </DialogDescription>
+          <DialogDescription>Automate follow-up actions for stale deals in your pipeline.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Deal Summary */}
-          <div className="bg-gray-50 rounded-lg p-4">
+          <div className="rounded-lg bg-gray-50 p-4">
             <div className="flex items-start justify-between">
               <div>
                 <h4 className="font-medium text-gray-900">{deal.title}</h4>
                 <p className="text-sm text-gray-600">{deal.contactName}</p>
-                <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
                   <span>Value: ${deal.value.toLocaleString()}</span>
                   <span>•</span>
                   <span>Stage: {getUserFacingDealStageLabel(deal.currentStage)}</span>
                 </div>
               </div>
               <Badge className={getStalenessColor()}>
-                <Clock className="h-3 w-3 mr-1" />
+                <Clock className="mr-1 h-3 w-3" />
                 {getStalenessText()}
               </Badge>
             </div>
-            <div className="text-sm text-gray-600 mt-2">
+            <div className="mt-2 text-sm text-gray-600">
               Last activity: {deal.lastActivity.toLocaleDateString("en-AU")} ({daysSinceLastActivity} days ago)
             </div>
           </div>
 
-          {/* Automation Actions */}
           <div className="space-y-3">
             <Label>Available Actions</Label>
             <div className="grid grid-cols-1 gap-2">
@@ -192,10 +205,8 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
                   <button
                     key={action.id}
                     onClick={() => handleActionSelect(action.id)}
-                    className={`p-3 border rounded-lg text-left transition-all hover:shadow-md ${
-                      selectedAction === action.id
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 hover:border-gray-300"
+                    className={`rounded-lg border p-3 text-left transition-all hover:shadow-md ${
+                      selectedAction === action.id ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -211,7 +222,6 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
             </div>
           </div>
 
-          {/* Action Configuration */}
           {selectedAction && (
             <div className="space-y-4">
               <div className="space-y-2">
@@ -223,9 +233,7 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
                   placeholder="Enter your message..."
                   rows={3}
                 />
-                <p className="text-xs text-gray-500">
-                  {customMessage.length} characters
-                </p>
+                <p className="text-xs text-gray-500">{customMessage.length} characters</p>
               </div>
 
               {(selectedAction === "follow-up" || selectedAction === "schedule-call") && (
@@ -236,7 +244,7 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
                     type="datetime-local"
                     value={followUpDate}
                     onChange={(e) => setFollowUpDate(e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded-md"
+                    className="w-full rounded-md border border-gray-300 p-2"
                   />
                 </div>
               )}
@@ -249,12 +257,11 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
                       <SelectValue placeholder="Select target stage" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="lead">Lead</SelectItem>
-                      <SelectItem value="qualified">Qualified</SelectItem>
-                      <SelectItem value="proposal">Proposal</SelectItem>
-                      <SelectItem value="negotiation">Negotiation</SelectItem>
-                      <SelectItem value="closed-won">Closed Won</SelectItem>
-                      <SelectItem value="closed-lost">Closed Lost</SelectItem>
+                      {stageOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -262,23 +269,19 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
             </div>
           )}
 
-          {/* Execute Button */}
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button 
-              onClick={handleExecute} 
-              disabled={!selectedAction || isExecuting}
-            >
+            <Button onClick={handleExecute} disabled={!selectedAction || isExecuting}>
               {isExecuting ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white" />
                   Executing...
                 </>
               ) : (
                 <>
-                  <Zap className="h-4 w-4 mr-2" />
+                  <Zap className="mr-2 h-4 w-4" />
                   Execute Action
                 </>
               )}

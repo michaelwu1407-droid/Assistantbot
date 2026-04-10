@@ -5,6 +5,7 @@ import { createNotification } from "./notification-actions";
 import { createTask } from "./task-actions";
 import { logActivity } from "./activity-actions";
 import { initiateOutboundCall } from "@/lib/outbound-call";
+import { getUserFacingDealStageLabel } from "@/lib/deal-utils";
 import { DealStage } from "@prisma/client";
 
 const DEAL_STAGE_VALUES = new Set<DealStage>([
@@ -202,10 +203,12 @@ export async function executeKanbanAction(
         data: { stage: prismaStage, stageChangedAt: new Date() },
       });
 
+      const targetStageLabel = getUserFacingDealStageLabel(prismaStage);
+
       await logActivity({
         type: "NOTE",
-        title: `Stage changed to ${data.targetStage}`,
-        content: data.message || `Deal moved to ${data.targetStage}`,
+        title: `Stage changed to ${targetStageLabel}`,
+        content: data.message || `Deal moved to ${targetStageLabel}`,
         dealId: data.dealId,
         contactId: deal.contact?.id,
       });
