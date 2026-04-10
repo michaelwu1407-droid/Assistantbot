@@ -4790,3 +4790,17 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/contact-header.test.tsx`
   - `npx next build`
+
+## 2026-04-10 - Deal detail direct SMS now gives a recovery path
+
+- Files:
+  - `components/crm/deal-detail-modal.tsx`
+  - `__tests__/deal-detail-modal.test.tsx`
+- What changed:
+  - The deal detail modal no longer just disables direct SMS when the customer has no phone number.
+  - It now explains the blocker in plain language and gives the user an `Add phone in CRM` action that jumps straight to the contact edit flow.
+- Why:
+  - This was another workflow dead end. If a user is trying to message a customer from a job and the contact record is incomplete, the UI should help them fix that immediately instead of leaving them stuck.
+- Verified with:
+  - `npx vitest run __tests__/deal-detail-modal.test.tsx`
+  - `npx next build`

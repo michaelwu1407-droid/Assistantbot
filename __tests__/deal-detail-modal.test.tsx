@@ -253,9 +253,10 @@ describe("DealDetailModal", () => {
     render(<DealDetailModal dealId="deal_1" open onOpenChange={vi.fn()} currentUserRole="OWNER" />);
 
     await screen.findAllByText("Blocked Drain");
-    expect(screen.getByText(/No phone number on file - add one to send direct SMS from here/i)).toBeInTheDocument();
+    expect(screen.getByText(/No phone number on file\. Add one in CRM before sending a direct SMS from here/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Send a direct SMS...")).toBeDisabled();
     expect(screen.getByRole("button", { name: "Send direct SMS" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /add phone in crm/i })).toBeInTheDocument();
   });
 
   it("sends a direct sms when clicking the send button", async () => {

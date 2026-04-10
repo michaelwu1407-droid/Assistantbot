@@ -924,7 +924,20 @@ function DealDetailContent({
                       </Button>
                     </div>
                     {!hasSmsNumber && (
-                      <p className="mt-1 text-xs text-red-500">No phone number on file - add one to send direct SMS from here.</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <p className="text-xs text-red-500">No phone number on file. Add one in CRM before sending a direct SMS from here.</p>
+                        {contact?.id ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={handleEditContact}
+                          >
+                            Add phone in CRM
+                          </Button>
+                        ) : null}
+                      </div>
                     )}
                   </div>
                 </div>
