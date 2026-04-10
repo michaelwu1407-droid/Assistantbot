@@ -4846,3 +4846,17 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/stale-deal-follow-up-modal.test.tsx`
   - `npx next build`
+
+## 2026-04-10 - Stale job reconciliation now explains the consequences and confirms save state
+
+- Files:
+  - `components/crm/stale-job-reconciliation-modal.tsx`
+  - `__tests__/stale-job-reconciliation-modal.test.tsx`
+- What changed:
+  - The stale-job reconciliation modal now explains what each selected outcome will do next before the user submits it.
+  - It also now shows real success and error toasts instead of failing silently.
+- Why:
+  - Reconciliation changes job state in a significant way. Users should know whether they are closing the job, sending it back for rescheduling, or parking it for later, and they should get explicit feedback that the save worked.
+- Verified with:
+  - `npx vitest run __tests__/stale-job-reconciliation-modal.test.tsx`
+  - `npx next build`
