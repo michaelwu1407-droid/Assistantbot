@@ -154,7 +154,7 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
               <p className="text-xs text-muted-foreground/80 max-w-xs mx-auto">
                 {filter === 'today'
                   ? "Nothing scheduled for today."
-                  : "No mapped jobs in your workspace yet. Scheduled jobs need an address; use Update Locations when addresses are missing."}
+                  : "No mapped jobs in your workspace yet. Scheduled jobs need an address before route planning can work."}
               </p>
               {filter === 'today' && nextUpcomingJob && (
                 <div className="mt-4 rounded-lg border border-border/50 bg-muted/30 p-3 text-left">
@@ -183,9 +183,26 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
                 </button>
               )}
               {pendingCount > 0 && (
-                <p className="text-xs mt-4 text-primary">
-                  You have {pendingCount} jobs waiting to be mapped.
-                </p>
+                <div className="mt-4 space-y-2">
+                  <p className="text-xs text-primary">
+                    You have {pendingCount} jobs waiting to be mapped.
+                  </p>
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <button
+                      onClick={handleBatchGeocode}
+                      disabled={isGeocoding}
+                      className="rounded-md border border-border/60 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50"
+                    >
+                      {isGeocoding ? "Geocoding..." : "Update locations"}
+                    </button>
+                    <button
+                      onClick={() => router.push("/crm/dashboard")}
+                      className="rounded-md border border-border/60 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+                    >
+                      Open dashboard to fix addresses
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           ) : (

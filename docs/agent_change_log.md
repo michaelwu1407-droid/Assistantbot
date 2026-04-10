@@ -4950,3 +4950,20 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/deal-detail-modal.test.tsx`
   - `npx next build`
+
+## 2026-04-10 - Job map now gives real next steps when locations are missing
+
+- Files:
+  - `components/crm/job-map-view.tsx`
+  - `__tests__/job-map-view.test.tsx`
+- What changed:
+  - The job-map empty state no longer just hints that jobs are waiting to be mapped.
+  - When there are pending unmapped jobs, it now gives two concrete actions:
+    - `Update locations`
+    - `Open dashboard to fix addresses`
+  - The explanatory copy was also tightened so it clearly states that route planning needs addresses, rather than vaguely referencing geocoding.
+- Why:
+  - The planning/map surface should help the user recover from missing location data directly. Passive “waiting to be mapped” text makes the problem visible but not solvable.
+- Verified with:
+  - `npx vitest run __tests__/job-map-view.test.tsx`
+  - `npx next build`
