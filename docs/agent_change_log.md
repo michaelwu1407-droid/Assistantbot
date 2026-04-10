@@ -4728,3 +4728,18 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/job-detail-view.test.tsx __tests__/tradie-job-detail-view.test.tsx`
   - `npx next build`
+
+## 2026-04-10 - Tradie bottom sheet no longer dead-ends on missing phone details
+
+- Files:
+  - `components/tradie/job-bottom-sheet.tsx`
+  - `__tests__/job-bottom-sheet.test.tsx`
+- What changed:
+  - The tradie bottom sheet no longer shows disabled `No Phone` quick actions.
+  - When customer phone details are missing, the quick actions now route back into the CRM job record so the tradie has a clear recovery path.
+  - The collapsed header now uses a clean bullet separator instead of malformed text.
+- Why:
+  - Mobile field workflows need the same standard as the CRM: if a shortcut cannot run, the user should get a simple path to fix the blocker instead of a dead-end button.
+- Verified with:
+  - `npx vitest run __tests__/job-bottom-sheet.test.tsx __tests__/tradie-job-detail-view.test.tsx`
+  - `npx next build`

@@ -111,7 +111,7 @@ describe("JobBottomSheet", () => {
     expect(screen.getByText(/9:30 AM • Harper Plumbing/i)).toBeInTheDocument();
   });
 
-  it("disables call and text quick actions when the job has no customer phone", () => {
+  it("routes missing phone quick actions back into CRM instead of dead-ending", () => {
     const setIsOpen = vi.fn();
 
     render(
@@ -133,9 +133,8 @@ describe("JobBottomSheet", () => {
       />,
     );
 
-    expect(screen.getAllByRole("button", { name: /no phone/i })).toHaveLength(2);
-    expect(screen.getAllByRole("button", { name: /no phone/i })[0]).toBeDisabled();
-    expect(screen.getAllByRole("button", { name: /no phone/i })[1]).toBeDisabled();
+    expect(screen.getByRole("link", { name: /add phone/i })).toHaveAttribute("href", "/crm/deals/deal_2");
+    expect(screen.getByRole("link", { name: /open crm/i })).toHaveAttribute("href", "/crm/deals/deal_2");
   });
 
   it("replaces fake capture actions with honest guidance into the full CRM completion flow", async () => {

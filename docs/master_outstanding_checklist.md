@@ -286,6 +286,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Contact header no longer shows a Twilio SMS composer when the contact has no phone number; it now gives an honest explanation and a real recovery path into the customer timeline.
 - `fixed` Contact profile now teaches the same communication model as the rest of the app: native phone/email actions when details exist, and `Open customer timeline` for CRM-managed communication.
 - `fixed` Legacy job-detail screens no longer strand users with disabled `No phone` / `No address` buttons; they now route missing customer details back into the CRM record so the user can fix the blocker.
+- `fixed` The tradie bottom sheet now follows the same pattern: missing customer phone shortcuts no longer dead-end and instead route the user back into the CRM job record to fix the data gap.
 - `fixed` Daily digest guidance now matches the same truthful invoice sequence, so briefing copy no longer conflicts with billing and Tracey follow-ups.
 - `fixed` Xero integration copy now describes the real current behavior: draft invoices are created from the job-completion workflow, not magically for every invoice-ready job.
 
