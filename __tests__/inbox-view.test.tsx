@@ -363,6 +363,7 @@ describe("InboxView", () => {
     expect(screen.getByRole("tab", { name: /Ask Tracey/i })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tab", { name: /Direct SMS/i })).toHaveAttribute("aria-disabled", "true");
     expect(screen.getByText(/This contact has no phone number, so direct SMS is unavailable/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Add phone in CRM/i })).toHaveAttribute("href", "/crm/contacts/contact_a/edit");
     expect(screen.getByRole("button", { name: /Ask Tracey to act/i })).toBeInTheDocument();
   }, 10000);
 

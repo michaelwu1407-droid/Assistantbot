@@ -933,9 +933,14 @@ If the request is to contact the customer, use the appropriate customer-contact 
                       : "Not a raw SMS—Tracey decides how to act (reply, tools, or both)."}
                   </p>
                   {!selectedContactHasPhone && (
-                    <p className="mt-1 text-xs text-amber-700">
-                      This contact has no phone number, so direct SMS is unavailable. Ask Tracey can still update the CRM or draft the next step.
-                    </p>
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      <p className="text-xs text-amber-700">
+                        This contact has no phone number, so direct SMS is unavailable. Ask Tracey can still update the CRM or draft the next step.
+                      </p>
+                      <Button asChild size="sm" variant="outline" className="h-7 text-xs">
+                        <Link href={`/crm/contacts/${selectedContact.id}/edit`}>Add phone in CRM</Link>
+                      </Button>
+                    </div>
                   )}
                 </div>
 
@@ -968,7 +973,12 @@ If the request is to contact the customer, use the appropriate customer-contact 
                   </Button>
                 </div>
                 {messageMode === "direct" && !selectedContact.phone && (
-                  <p className="app-body-secondary mt-1 text-xs text-red-400">No phone number on file — add one to send direct messages.</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <p className="app-body-secondary text-xs text-red-400">No phone number on file. Add one in CRM before sending direct messages.</p>
+                    <Button asChild size="sm" variant="outline" className="h-7 text-xs">
+                      <Link href={`/crm/contacts/${selectedContact.id}/edit`}>Add phone in CRM</Link>
+                    </Button>
+                  </div>
                 )}
                 {messageMode === "direct" && !!selectedContact.phone && (
                   <p className={cn("app-body-secondary mt-1 text-right text-xs", messageText.length > 160 ? "text-red-500 font-medium" : "text-muted-foreground")}>

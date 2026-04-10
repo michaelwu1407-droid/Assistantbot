@@ -4804,3 +4804,17 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/deal-detail-modal.test.tsx`
   - `npx next build`
+
+## 2026-04-10 - Inbox fallback mode now still helps fix missing phone data
+
+- Files:
+  - `components/crm/inbox-view.tsx`
+  - `__tests__/inbox-view.test.tsx`
+- What changed:
+  - When a contact has no phone number and the inbox falls back from `Direct SMS` to `Ask Tracey`, the composer now still shows an `Add phone in CRM` recovery action.
+  - The direct-message warning remains honest, but the user no longer has to hunt elsewhere in the app to fix the missing data.
+- Why:
+  - Falling back to AI mode is helpful, but it should not hide the actual fix. Users still need a simple path to make direct communication available again.
+- Verified with:
+  - `npx vitest run __tests__/inbox-view.test.tsx`
+  - `npx next build`

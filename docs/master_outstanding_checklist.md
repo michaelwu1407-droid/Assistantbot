@@ -287,6 +287,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Contact header wording now matches the shared communication model: CRM-managed actions route to `Open customer timeline`, while the inline composer is clearly labeled as a direct workspace-number SMS action.
 - `fixed` Contact profile now teaches the same communication model as the rest of the app: native phone/email actions when details exist, and `Open customer timeline` for CRM-managed communication.
 - `fixed` Deal detail no longer dead-ends when direct SMS is blocked by missing customer phone data; it now routes the user straight into CRM to add the phone number.
+- `fixed` Inbox fallback mode now still exposes the missing-data fix: when direct SMS is unavailable, users can jump straight to `Add phone in CRM` instead of being stranded in Ask Tracey mode.
 - `fixed` Legacy job-detail screens no longer strand users with disabled `No phone` / `No address` buttons; they now route missing customer details back into the CRM record so the user can fix the blocker.
 - `fixed` The tradie bottom sheet now follows the same pattern: missing customer phone shortcuts no longer dead-end and instead route the user back into the CRM job record to fix the data gap.
 - `fixed` The stale-deal follow-up modal now defaults to a usable channel and explains unavailable contact methods instead of starting users on a broken SMS path.
