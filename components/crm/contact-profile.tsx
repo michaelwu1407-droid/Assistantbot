@@ -14,6 +14,7 @@ import {
 import { getUserFacingDealStageLabel } from "@/lib/deal-utils"
 import { Bot, Building2, Calendar, Edit, Home, Mail, MapPin, MessageSquare, Phone } from "lucide-react"
 import type { SVGProps } from "react"
+import Link from "next/link"
 
 interface ContactProfileProps {
     contact: ContactView
@@ -67,9 +68,11 @@ export function ContactProfile({ contact }: ContactProfileProps) {
                         </div>
 
                         <div className="flex gap-3 w-full md:w-auto mt-4 md:mt-0">
-                            <Button variant="outline" className="flex-1 md:flex-none hover:bg-white/5 hover:text-foreground">
-                                <Edit className="w-4 h-4 mr-2" />
-                                Edit
+                            <Button variant="outline" className="flex-1 md:flex-none hover:bg-white/5 hover:text-foreground" asChild>
+                                <Link href={`/crm/contacts/${contact.id}/edit`}>
+                                    <Edit className="w-4 h-4 mr-2" />
+                                    Edit
+                                </Link>
                             </Button>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -94,6 +97,13 @@ export function ContactProfile({ contact }: ContactProfileProps) {
                                             <DropdownMenuSeparator />
                                         </>
                                     )}
+                                    {!hasPhone && (
+                                        <DropdownMenuItem asChild>
+                                            <Link href={`/crm/contacts/${contact.id}/edit`}>
+                                                <Edit className="mr-2 h-4 w-4" /> Add phone in CRM
+                                            </Link>
+                                        </DropdownMenuItem>
+                                    )}
                                     <DropdownMenuItem
                                         onClick={() => {
                                             window.location.href = `/crm/inbox?contact=${contact.id}`
@@ -116,6 +126,13 @@ export function ContactProfile({ contact }: ContactProfileProps) {
                                             <a href={`mailto:${contact.email}`}>
                                                 <Mail className="mr-2 h-4 w-4" /> Open in email app
                                             </a>
+                                        </DropdownMenuItem>
+                                    )}
+                                    {!hasEmail && (
+                                        <DropdownMenuItem asChild>
+                                            <Link href={`/crm/contacts/${contact.id}/edit`}>
+                                                <Edit className="mr-2 h-4 w-4" /> Add email in CRM
+                                            </Link>
                                         </DropdownMenuItem>
                                     )}
                                     <DropdownMenuItem
@@ -155,7 +172,9 @@ export function ContactProfile({ contact }: ContactProfileProps) {
                                             {contact.email}
                                         </a>
                                     ) : (
-                                        <span className="text-foreground font-medium">—</span>
+                                        <Link href={`/crm/contacts/${contact.id}/edit`} className="text-foreground font-medium hover:text-primary transition-colors">
+                                            Add email in CRM
+                                        </Link>
                                     )}
                                 </div>
                             </div>
@@ -166,7 +185,13 @@ export function ContactProfile({ contact }: ContactProfileProps) {
                                 </div>
                                 <div>
                                     <div className="text-muted-foreground text-[10px] uppercase tracking-wider font-medium">Phone</div>
-                                    <div className="text-foreground font-medium">{contact.phone || "—"}</div>
+                                    {contact.phone ? (
+                                        <div className="text-foreground font-medium">{contact.phone}</div>
+                                    ) : (
+                                        <Link href={`/crm/contacts/${contact.id}/edit`} className="text-foreground font-medium hover:text-primary transition-colors">
+                                            Add phone in CRM
+                                        </Link>
+                                    )}
                                 </div>
                             </div>
 

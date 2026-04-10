@@ -97,6 +97,8 @@ describe("ContactProfile", () => {
     expect(screen.queryByRole("link", { name: /text from my phone/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /open in email app/i })).not.toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /open customer timeline/i })).toHaveLength(2);
-    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByRole("link", { name: /add email in crm/i }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByRole("link", { name: /add phone in crm/i }).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByRole("link", { name: /^edit$/i })).toHaveAttribute("href", "/crm/contacts/contact_1/edit");
   });
 });

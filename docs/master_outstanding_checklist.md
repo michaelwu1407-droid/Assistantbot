@@ -287,6 +287,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Contact header wording now matches the shared communication model: CRM-managed actions route to `Open customer timeline`, while the inline composer is clearly labeled as a direct workspace-number SMS action.
 - `fixed` Contact header edit and missing-email actions now route into the real CRM contact form instead of leaving the user in dead-end icon/menu actions.
 - `fixed` Contact profile now teaches the same communication model as the rest of the app: native phone/email actions when details exist, and `Open customer timeline` for CRM-managed communication.
+- `fixed` Contact profile now also exposes the same direct CRM recovery actions for missing phone/email and uses a real edit route instead of passive placeholders.
 - `fixed` Deal detail no longer dead-ends when direct SMS is blocked by missing customer phone data; it now routes the user straight into CRM to add the phone number.
 - `fixed` Inbox fallback mode now still exposes the missing-data fix: when direct SMS is unavailable, users can jump straight to `Add phone in CRM` instead of being stranded in Ask Tracey mode.
 - `fixed` The inbox now exposes the missing email fix too, so the customer timeline can recover blocked email follow-up directly with `Add email in CRM`.

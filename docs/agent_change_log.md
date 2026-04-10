@@ -4967,3 +4967,18 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/job-map-view.test.tsx`
   - `npx next build`
+
+## 2026-04-10 - Contact profile now matches the newer contact recovery patterns
+
+- Files:
+  - `components/crm/contact-profile.tsx`
+  - `__tests__/contact-profile.test.tsx`
+- What changed:
+  - The profile `Edit` button now routes to the real CRM contact edit page.
+  - When phone or email is missing, the profile now surfaces `Add phone in CRM` / `Add email in CRM` instead of just showing placeholders.
+  - The email and call/text dropdowns also expose those same recovery actions when the corresponding channel data is missing.
+- Why:
+  - Users should not have to switch between the old contact profile and the newer contact header just to find the real maintenance path for missing data. Both surfaces should teach the same recovery model.
+- Verified with:
+  - `npx vitest run __tests__/contact-profile.test.tsx`
+  - `npx next build`
