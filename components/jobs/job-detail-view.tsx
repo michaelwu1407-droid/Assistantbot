@@ -132,22 +132,25 @@ export default function JobDetailView({ job }: JobDetailViewProps) {
                                     <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
                                         <Phone className="h-5 w-5 text-slate-600" />
                                     </div>
-                                    <div className="flex-1">
-                                        <p className="font-medium">Call Mobile</p>
-                                        <p className="text-sm text-muted-foreground">{job.client.phone || "No phone"}</p>
-                                    </div>
+                                <div className="flex-1">
+                                    <p className="font-medium">Call Mobile</p>
+                                    <p className="text-sm text-muted-foreground">{job.client.phone || "No phone"}</p>
+                                </div>
+                                {job.client.phone ? (
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        disabled={!job.client.phone}
                                         onClick={() => {
-                                            if (job.client.phone) {
-                                                window.open(`tel:${job.client.phone}`)
-                                            }
+                                            window.open(`tel:${job.client.phone}`)
                                         }}
                                     >
-                                        {job.client.phone ? "Call" : "No phone"}
+                                        Call
                                     </Button>
+                                ) : (
+                                    <Button variant="outline" size="sm" asChild>
+                                        <Link href={`/crm/deals/${job.id}`}>Add phone in CRM</Link>
+                                    </Button>
+                                )}
                                 </div>
                                 <Separator />
                                 <div className="flex items-center gap-3">
@@ -158,18 +161,21 @@ export default function JobDetailView({ job }: JobDetailViewProps) {
                                         <p className="font-medium">Address</p>
                                         <p className="text-sm text-muted-foreground max-w-[200px] truncate">{job.client.address || "No address"}</p>
                                     </div>
+                                {job.client.address ? (
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        disabled={!job.client.address}
                                         onClick={() => {
-                                            if (job.client.address) {
-                                                window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(job.client.address)}&travelmode=driving`, "_blank")
-                                            }
+                                            window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(job.client.address!)}&travelmode=driving`, "_blank")
                                         }}
                                     >
-                                        {job.client.address ? "Map" : "No address"}
+                                        Map
                                     </Button>
+                                ) : (
+                                    <Button variant="outline" size="sm" asChild>
+                                        <Link href={`/crm/deals/${job.id}`}>Add address in CRM</Link>
+                                    </Button>
+                                )}
                                 </div>
                             </CardContent>
                         </Card>

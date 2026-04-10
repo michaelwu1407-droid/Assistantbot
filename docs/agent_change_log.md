@@ -4712,3 +4712,19 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/contact-profile.test.tsx`
   - `npx next build`
+
+## 2026-04-10 - Legacy job detail views now recover missing customer details through CRM
+
+- Files:
+  - `components/jobs/job-detail-view.tsx`
+  - `components/tradie/job-detail-view.tsx`
+  - `__tests__/job-detail-view.test.tsx`
+  - `__tests__/tradie-job-detail-view.test.tsx`
+- What changed:
+  - Older job-detail screens no longer stop at disabled `No phone` and `No address` buttons.
+  - When those details are missing, both views now send the user back to the CRM job record to add the missing contact or address information.
+- Why:
+  - A truthful workflow should not just tell the user something is missing; it should give them the shortest sensible path to fix it.
+- Verified with:
+  - `npx vitest run __tests__/job-detail-view.test.tsx __tests__/tradie-job-detail-view.test.tsx`
+  - `npx next build`

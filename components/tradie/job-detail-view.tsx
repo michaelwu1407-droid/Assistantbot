@@ -89,24 +89,23 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                                 <p className="text-sm font-medium text-slate-900">Location</p>
                                 <p className="text-sm text-slate-500">{job.client.address || "No address"}</p>
                             </div>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="ml-auto h-8"
-                                disabled={!job.client.address}
-                                onClick={() => {
-                                    if (job.client.address) {
-                                        window.open(`https://maps.google.com/?q=${job.client.address}`, '_blank')
-                                    }
-                                }}
-                            >
-                                {job.client.address ? (
-                                    <>
-                                        <Navigation className="w-3 h-3 mr-1" />
-                                        Navigate
-                                    </>
-                                ) : "No address"}
-                            </Button>
+                            {job.client.address ? (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="ml-auto h-8"
+                                    onClick={() => {
+                                        window.open(`https://maps.google.com/?q=${job.client.address}`, "_blank")
+                                    }}
+                                >
+                                    <Navigation className="w-3 h-3 mr-1" />
+                                    Navigate
+                                </Button>
+                            ) : (
+                                <Button asChild variant="outline" size="sm" className="ml-auto h-8">
+                                    <Link href={`/crm/deals/${job.id}`}>Add address in CRM</Link>
+                                </Button>
+                            )}
                         </div>
                         <div className="flex items-center gap-3">
                             <Phone className="w-5 h-5 text-slate-400" />
@@ -114,24 +113,23 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                                 <p className="text-sm font-medium text-slate-900">Contact</p>
                                 <p className="text-sm text-slate-500">{job.client.phone || "No phone"}</p>
                             </div>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="ml-auto h-8"
-                                disabled={!job.client.phone}
-                                onClick={() => {
-                                    if (job.client.phone) {
+                            {job.client.phone ? (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="ml-auto h-8"
+                                    onClick={() => {
                                         window.open(`tel:${job.client.phone}`)
-                                    }
-                                }}
-                            >
-                                {job.client.phone ? (
-                                    <>
-                                        <Phone className="w-3 h-3 mr-1" />
-                                        Call
-                                    </>
-                                ) : "No phone"}
-                            </Button>
+                                    }}
+                                >
+                                    <Phone className="w-3 h-3 mr-1" />
+                                    Call
+                                </Button>
+                            ) : (
+                                <Button asChild variant="outline" size="sm" className="ml-auto h-8">
+                                    <Link href={`/crm/deals/${job.id}`}>Add phone in CRM</Link>
+                                </Button>
+                            )}
                         </div>
                     </Card>
 

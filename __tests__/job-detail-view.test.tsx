@@ -97,7 +97,7 @@ describe("JobDetailView", () => {
     expect(screen.queryByRole("button", { name: /Generate Invoice/i })).not.toBeInTheDocument();
   });
 
-  it("makes call and map actions honest when contact details are missing", () => {
+  it("routes missing phone and address details back into CRM instead of dead-ending", () => {
     render(
       <JobDetailView
         job={{
@@ -118,8 +118,8 @@ describe("JobDetailView", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: /No phone/i })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /No address/i })).toBeDisabled();
+    expect(screen.getByRole("link", { name: /add phone in crm/i })).toHaveAttribute("href", "/crm/deals/deal_2");
+    expect(screen.getByRole("link", { name: /add address in crm/i })).toHaveAttribute("href", "/crm/deals/deal_2");
   });
 
   it("wires call and map actions when contact details exist", async () => {

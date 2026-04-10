@@ -84,7 +84,7 @@ describe("Tradie JobDetailView", () => {
     expect(screen.queryByText(/warranty card/i)).not.toBeInTheDocument();
   });
 
-  it("makes call and map actions honest when contact data is missing", () => {
+  it("routes missing phone and address details back into CRM instead of dead-ending", () => {
     render(
       <JobDetailView
         job={{
@@ -108,8 +108,8 @@ describe("Tradie JobDetailView", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: /no address/i })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /no phone/i })).toBeDisabled();
+    expect(screen.getByRole("link", { name: /add address in crm/i })).toHaveAttribute("href", "/crm/deals/deal_2");
+    expect(screen.getByRole("link", { name: /add phone in crm/i })).toHaveAttribute("href", "/crm/deals/deal_2");
   });
 
   it("uses user-facing status labels and explicit action text when details exist", () => {
