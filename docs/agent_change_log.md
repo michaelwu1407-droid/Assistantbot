@@ -1,3 +1,16 @@
+## 2026-04-10 (Codex) - Kanban scheduling date blocker now has a real next step
+
+- Files changed:
+  - `components/crm/kanban-board.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Closed another scheduling dead end**: when a user drags a job into `Scheduled` without a booked date, the board no longer only throws an error toast.
+  - **Recovery path is now explicit**: the board opens a lightweight dialog that explains the missing prerequisite and gives the user an `Open Job` action so they can add the date immediately.
+  - **Verification**: reran the focused kanban suite and completed a clean `npx next build`.
+- Why:
+  - Blockers should always point to the fix. If the system knows exactly what’s missing, it should help the user resolve it, not just describe the problem.
+
 ## 2026-04-10 (Codex) - Kanban scheduling setup now has a real recovery path
 
 - Files changed:
