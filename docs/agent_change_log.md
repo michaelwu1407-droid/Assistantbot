@@ -4832,3 +4832,17 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/deal-page-access.test.tsx`
   - `npx next build`
+
+## 2026-04-10 - Stale follow-up modal now links straight to missing contact data fixes
+
+- Files:
+  - `components/crm/stale-deal-follow-up-modal.tsx`
+  - `__tests__/stale-deal-follow-up-modal.test.tsx`
+- What changed:
+  - The stale follow-up modal now shows `Add phone in CRM`, `Add email in CRM`, or `Add contact details in CRM` directly inside the contact details / channel guidance when customer data is missing.
+  - That recovery path is visible even when the modal automatically falls back to another available channel.
+- Why:
+  - Exception-handling flows should help the user recover from incomplete data immediately. It is not enough to warn that a channel is unavailable if the UI does not also show how to fix it.
+- Verified with:
+  - `npx vitest run __tests__/stale-deal-follow-up-modal.test.tsx`
+  - `npx next build`

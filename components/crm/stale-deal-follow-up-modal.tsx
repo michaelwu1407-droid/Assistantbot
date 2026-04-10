@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { getUserFacingDealStageLabel } from "@/lib/deal-utils"
+import Link from "next/link"
 
 interface StaleDealFollowUpModalProps {
   open: boolean
@@ -25,6 +26,7 @@ interface StaleDealFollowUpModalProps {
   deal: {
     id: string
     title: string
+    contactId?: string
     contactName: string
     contactEmail?: string
     contactPhone?: string
@@ -203,10 +205,20 @@ export function StaleDealFollowUpModal({
                 <div className="flex items-center gap-2 text-gray-600">
                   <Mail className="h-4 w-4 text-gray-400" />
                   {deal.contactEmail || <span className="italic text-gray-400">No email</span>}
+                  {!deal.contactEmail && deal.contactId ? (
+                    <Button asChild size="sm" variant="outline" className="ml-auto h-7 text-xs">
+                      <Link href={`/crm/contacts/${deal.contactId}/edit`}>Add email in CRM</Link>
+                    </Button>
+                  ) : null}
                 </div>
                 <div className="flex items-center gap-2 text-gray-600">
                   <Phone className="h-4 w-4 text-gray-400" />
                   {deal.contactPhone || <span className="italic text-gray-400">No phone</span>}
+                  {!deal.contactPhone && deal.contactId ? (
+                    <Button asChild size="sm" variant="outline" className="ml-auto h-7 text-xs">
+                      <Link href={`/crm/contacts/${deal.contactId}/edit`}>Add phone in CRM</Link>
+                    </Button>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -227,17 +239,38 @@ export function StaleDealFollowUpModal({
                 </SelectContent>
               </Select>
               {!hasPhone && !hasEmail ? (
-                <p className="text-xs text-amber-600">
-                  No phone or email is on file, so this follow-up can only be scheduled as a call reminder until contact details are added.
-                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-xs text-amber-600">
+                    No phone or email is on file, so this follow-up can only be scheduled as a call reminder until contact details are added.
+                  </p>
+                  {deal.contactId ? (
+                    <Button asChild size="sm" variant="outline" className="h-7 text-xs">
+                      <Link href={`/crm/contacts/${deal.contactId}/edit`}>Add contact details in CRM</Link>
+                    </Button>
+                  ) : null}
+                </div>
               ) : selectedChannel === "sms" && !hasPhone ? (
-                <p className="text-xs text-amber-600">
-                  No phone number is on file. Switch to email or schedule a call reminder.
-                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-xs text-amber-600">
+                    No phone number is on file. Switch to email or schedule a call reminder.
+                  </p>
+                  {deal.contactId ? (
+                    <Button asChild size="sm" variant="outline" className="h-7 text-xs">
+                      <Link href={`/crm/contacts/${deal.contactId}/edit`}>Add phone in CRM</Link>
+                    </Button>
+                  ) : null}
+                </div>
               ) : selectedChannel === "email" && !hasEmail ? (
-                <p className="text-xs text-amber-600">
-                  No email is on file. Switch to SMS or schedule a call reminder.
-                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-xs text-amber-600">
+                    No email is on file. Switch to SMS or schedule a call reminder.
+                  </p>
+                  {deal.contactId ? (
+                    <Button asChild size="sm" variant="outline" className="h-7 text-xs">
+                      <Link href={`/crm/contacts/${deal.contactId}/edit`}>Add email in CRM</Link>
+                    </Button>
+                  ) : null}
+                </div>
               ) : null}
             </div>
           </div>

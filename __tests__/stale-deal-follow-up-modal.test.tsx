@@ -44,12 +44,25 @@ vi.mock("@/components/ui/select", () => ({
   ),
 }));
 
+vi.mock("next/link", () => ({
+  default: ({
+    href,
+    children,
+    ...props
+  }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string; children: React.ReactNode }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+}));
+
 import { StaleDealFollowUpModal } from "@/components/crm/stale-deal-follow-up-modal";
 
 describe("StaleDealFollowUpModal", () => {
   const baseDeal = {
     id: "deal_1",
     title: "Blocked Drain",
+    contactId: "contact_1",
     contactName: "Alex Harper",
     contactEmail: "alex@example.com",
     contactPhone: "0400000000",
@@ -71,6 +84,10 @@ describe("StaleDealFollowUpModal", () => {
     );
 
     expect(screen.getAllByText(/No phone/i).length).toBeGreaterThan(0);
+    expect(screen.getByRole("link", { name: /add phone in crm/i })).toHaveAttribute(
+      "href",
+      "/crm/contacts/contact_1/edit",
+    );
     expect(screen.getByLabelText(/^message$/i)).toBeInTheDocument();
     expect(screen.queryByLabelText(/When to call/i)).not.toBeInTheDocument();
   });
@@ -91,6 +108,10 @@ describe("StaleDealFollowUpModal", () => {
     expect(
       screen.getByText(/this follow-up can only be scheduled as a call reminder until contact details are added/i),
     ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /add contact details in crm/i })).toHaveAttribute(
+      "href",
+      "/crm/contacts/contact_1/edit",
+    );
     expect(screen.getByLabelText(/When to call/i)).toBeInTheDocument();
     expect(screen.queryByLabelText(/^message$/i)).not.toBeInTheDocument();
   });
