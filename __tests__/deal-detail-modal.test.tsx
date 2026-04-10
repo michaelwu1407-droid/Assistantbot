@@ -232,20 +232,22 @@ describe("DealDetailModal", () => {
     expect(screen.getByRole("button", { name: /no contact linked/i })).toBeDisabled();
   });
 
-  it("sends a quick update when clicking the send button", async () => {
+  it("sends a direct sms when clicking the send button", async () => {
     const user = userEvent.setup();
 
     render(<DealDetailModal dealId="deal_1" open onOpenChange={vi.fn()} currentUserRole="OWNER" />);
 
     await screen.findAllByText("Blocked Drain");
 
-    await user.type(screen.getByPlaceholderText("Send a quick update..."), "Running 10 mins late");
-    await user.click(screen.getByRole("button", { name: "Send quick update" }));
+    expect(screen.getByText(/Send a direct SMS from your workspace number/i)).toBeInTheDocument();
+
+    await user.type(screen.getByPlaceholderText("Send a direct SMS..."), "Running 10 mins late");
+    await user.click(screen.getByRole("button", { name: "Send direct SMS" }));
 
     await waitFor(() => {
       expect(sendSMS).toHaveBeenCalledWith("contact_1", "Running 10 mins late", "deal_1");
     });
-    expect(toastSuccess).toHaveBeenCalledWith("Message sent");
+    expect(toastSuccess).toHaveBeenCalledWith("SMS sent");
     expect(routerRefresh).toHaveBeenCalled();
   });
 

@@ -1,3 +1,17 @@
+## 2026-04-10 (Codex) - Deal-detail messaging now matches the inbox model
+
+- Files changed:
+  - `components/crm/deal-detail-modal.tsx`
+  - `__tests__/deal-detail-modal.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Made the inline composer truthful**: the deal-detail modal no longer presents a vague `quick update` action that feels like a second inbox.
+  - **It is now explicitly a direct SMS shortcut**: helper copy, placeholder, button label, and success toast all say `SMS`, while the surrounding panel continues to direct users to `Open customer timeline` for the full thread.
+  - **Verification**: reran the focused deal-detail modal suite and completed a clean `npx next build`.
+- Why:
+  - The product now has a clear communication model: the inbox is the source of truth for the full customer timeline, and smaller surfaces should only expose honest shortcuts, not competing ambiguous “message” flows.
+
 ## 2026-04-10 (Codex) - Schedule and timeline trust polish
 
 - Files changed:

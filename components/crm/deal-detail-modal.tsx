@@ -308,7 +308,7 @@ function DealDetailContent({
         throw new Error(res.error || "Failed to send")
       }
       setQuickMessage("")
-      toast.success("Message sent")
+      toast.success("SMS sent")
       router.refresh()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to send")
@@ -888,9 +888,14 @@ function DealDetailContent({
                   <ActivityFeed contactId={deal.contactId} compact className="flex-1" />
                   {/* Direct message mini-box */}
                   <div className="p-3 border-t bg-slate-50/50 shrink-0">
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <p className="text-xs text-slate-500">
+                        Send a direct SMS from your workspace number. Open customer timeline for the full thread.
+                      </p>
+                    </div>
                     <div className="flex gap-2">
                       <Input
-                        placeholder="Send a quick update..."
+                        placeholder="Send a direct SMS..."
                         className="bg-white h-9 text-xs"
                         value={quickMessage}
                         onChange={(e) => setQuickMessage(e.target.value)}
@@ -906,7 +911,7 @@ function DealDetailContent({
                         size="icon"
                         variant="ghost"
                         className="h-9 w-9 text-primary hover:bg-primary/10"
-                        aria-label="Send quick update"
+                        aria-label="Send direct SMS"
                         onClick={() => void handleSendQuickUpdate()}
                         disabled={sendingQuickMessage || quickMessage.trim().length === 0}
                       >
