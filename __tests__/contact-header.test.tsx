@@ -118,4 +118,19 @@ describe("ContactHeader", () => {
       expect(toastError).toHaveBeenCalledWith("Twilio offline");
     });
   });
+
+  it("removes the Twilio composer when the contact has no phone number", () => {
+    render(
+      <ContactHeader
+        contact={{
+          ...contact,
+          phone: null,
+        } as never}
+      />,
+    );
+
+    expect(screen.queryByPlaceholderText("Type your message...")).not.toBeInTheDocument();
+    expect(screen.getByText(/Add a phone number before you can send a Twilio SMS from here/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /open customer timeline/i })).toBeInTheDocument();
+  });
 });

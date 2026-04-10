@@ -18,9 +18,10 @@ export function ContactHeader({ contact }: ContactHeaderProps) {
   const [smsOpen, setSmsOpen] = useState(false)
   const [smsMessage, setSmsMessage] = useState("")
   const [sending, setSending] = useState(false)
+  const hasPhone = Boolean(contact.phone)
 
   const handleSendSms = async () => {
-    if (!smsMessage.trim() || !contact.id) return
+    if (!smsMessage.trim() || !contact.id || !hasPhone) return
     setSending(true)
     try {
       const result = await sendSMS(contact.id, smsMessage)
@@ -111,30 +112,51 @@ export function ContactHeader({ contact }: ContactHeaderProps) {
               </>
             )}
             <div className="px-2 py-2">
-              <p className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
-                <Bot className="h-3 w-3" /> Send SMS via Twilio
-              </p>
-              <textarea
-                className="w-full text-sm border border-input rounded-md px-2 py-1.5 bg-background resize-none focus:outline-none focus:ring-1 focus:ring-primary"
-                rows={2}
-                placeholder="Type your message..."
-                value={smsMessage}
-                onChange={(e) => setSmsMessage(e.target.value)}
-                onKeyDown={(e) => e.stopPropagation()}
-              />
-              <div className="flex justify-end mt-1 px-1">
-                <span className={cn("text-[10px]", smsMessage.length > 160 ? "text-red-500 font-medium" : "text-muted-foreground")}>
-                  {smsMessage.length}/160
-                </span>
-              </div>
-              <Button
-                size="sm"
-                className="w-full mt-1.5 h-7 text-xs"
-                disabled={!smsMessage.trim() || sending}
-                onClick={handleSendSms}
-              >
-                {sending ? "Sending..." : "Send via Twilio"}
-              </Button>
+              {hasPhone ? (
+                <>
+                  <p className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
+                    <Bot className="h-3 w-3" /> Send SMS via Twilio
+                  </p>
+                  <textarea
+                    className="w-full text-sm border border-input rounded-md px-2 py-1.5 bg-background resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                    rows={2}
+                    placeholder="Type your message..."
+                    value={smsMessage}
+                    onChange={(e) => setSmsMessage(e.target.value)}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  />
+                  <div className="flex justify-end mt-1 px-1">
+                    <span className={cn("text-[10px]", smsMessage.length > 160 ? "text-red-500 font-medium" : "text-muted-foreground")}>
+                      {smsMessage.length}/160
+                    </span>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="w-full mt-1.5 h-7 text-xs"
+                    disabled={!smsMessage.trim() || sending}
+                    onClick={handleSendSms}
+                  >
+                    {sending ? "Sending..." : "Send via Twilio"}
+                  </Button>
+                </>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    Add a phone number before you can send a Twilio SMS from here.
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full h-7 text-xs"
+                    onClick={() => {
+                      window.location.href = `/crm/inbox?contact=${contact.id}`
+                    }}
+                  >
+                    <Bot className="mr-1 h-3 w-3" />
+                    Open customer timeline
+                  </Button>
+                </div>
+              )}
             </div>
           </DropdownMenuContent>
         </DropdownMenu>

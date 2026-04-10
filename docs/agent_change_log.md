@@ -4683,3 +4683,17 @@ Rule: every agent change commit must include an entry in this file.
   - This was a product-truth issue. The integration page should describe what the app actually does today, not the broader automatic-sync behavior we may want later.
 - Verified with:
   - `npx next build`
+
+## 2026-04-10 - Contact header no longer offers fake SMS when no phone exists
+
+- Files:
+  - `components/crm/contact-header.tsx`
+  - `__tests__/contact-header.test.tsx`
+- What changed:
+  - The contact-header dropdown no longer renders the Twilio SMS composer when the customer has no phone number.
+  - Instead, it tells the user to add a phone number first and offers a real recovery path into the shared customer timeline.
+- Why:
+  - This was another product-truth gap. A communication shortcut should either work honestly or guide the user to the right place, not pretend SMS is available when the contact has no number.
+- Verified with:
+  - `npx vitest run __tests__/contact-header.test.tsx`
+  - `npx next build`
