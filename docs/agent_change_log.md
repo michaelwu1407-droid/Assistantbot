@@ -4874,3 +4874,22 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/schedule-calendar.test.tsx __tests__/schedule-page.test.tsx`
   - `npx next build`
+
+## 2026-04-10 - Reschedule flow now tells the user when a customer update was sent
+
+- Files:
+  - `actions/deal-actions.ts`
+  - `app/crm/schedule/schedule-calendar.tsx`
+  - `__tests__/deal-actions.test.ts`
+  - `__tests__/schedule-calendar.test.tsx`
+- What changed:
+  - `rescheduleDeal()` now returns structured outcome flags so the UI knows whether a moved booking also triggered a customer-facing reschedule confirmation and whether the move changed assignee.
+  - The schedule drag/drop success toast now tells the truth:
+    - `Job rescheduled. Customer update sent.`
+    - `Job rescheduled and reassigned`
+    - or the generic `Job updated` fallback when neither of those special cases happened.
+- Why:
+  - Rescheduling is a high-trust workflow. Users should not have to guess whether moving a job only changed the calendar internally or also sent a customer-facing update.
+- Verified with:
+  - `npx vitest run __tests__/deal-actions.test.ts __tests__/schedule-calendar.test.tsx`
+  - `npx next build`

@@ -150,7 +150,13 @@ export function ScheduleCalendar({ deals, teamMembers, workspaceTimezone, initia
       )
 
       const { toast } = await import("sonner")
-      toast.success("Job updated")
+      if (updateResult.confirmationSent) {
+        toast.success("Job rescheduled. Customer update sent.")
+      } else if (updateResult.reassigned) {
+        toast.success("Job rescheduled and reassigned")
+      } else {
+        toast.success("Job updated")
+      }
     } catch (err) {
       console.error(err)
       const { toast } = await import("sonner")

@@ -1568,7 +1568,13 @@ export async function rescheduleDeal(
     scheduledAt: Date | string;
     assignedToId?: string | null;
   }
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{
+  success: boolean;
+  error?: string;
+  confirmationSent?: boolean;
+  reassigned?: boolean;
+  scheduledTimeChanged?: boolean;
+}> {
   const { actor, deal } = await requireDealInCurrentWorkspace(dealId);
   if (!deal) return { success: false, error: "Deal not found" };
 
@@ -1659,7 +1665,8 @@ export async function rescheduleDeal(
     });
   });
 
-  if (scheduledTimeChanged && deal.stage === "SCHEDULED") {
+  const confirmationSent = scheduledTimeChanged && deal.stage === "SCHEDULED";
+  if (confirmationSent) {
     await fireRescheduleConfirmation(dealId);
   }
 
@@ -1668,7 +1675,12 @@ export async function rescheduleDeal(
   revalidatePath("/crm/schedule");
   revalidatePath("/crm/map");
   revalidatePath(`/crm/deals/${dealId}`);
-  return { success: true };
+  return {
+    success: true,
+    confirmationSent,
+    reassigned: nextAssignedToId !== deal.assignedToId,
+    scheduledTimeChanged,
+  };
 }
 
 /**
