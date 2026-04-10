@@ -1,3 +1,16 @@
+## 2026-04-10 (Codex) - Kanban scheduling setup now has a real recovery path
+
+- Files changed:
+  - `components/crm/kanban-board.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Closed a setup dead end**: when someone drags a job into `Scheduled` with no team members available to assign, the kanban dialog no longer just explains the problem and stop there.
+  - **Recovery path is now actionable**: it gives the user a real `Open Team Settings` action so they can fix the prerequisite immediately.
+  - **Verification**: reran the focused kanban suite and completed a clean `npx next build`.
+- Why:
+  - Good workflow design does not just explain blockers - it helps users resolve them in the same moment.
+
 ## 2026-04-10 (Codex) - Inbox now falls back gracefully when direct SMS is impossible
 
 - Files changed:

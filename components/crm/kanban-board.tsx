@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import {
   DndContext,
   DragOverlay,
@@ -1204,9 +1205,16 @@ export function KanbanBoard({
               </Select>
             </div>
           ) : (
-            <p className="text-sm text-slate-500 py-2">
-              Add team members in Settings → Team first, then you can assign them to jobs.
-            </p>
+            <div className="grid gap-3 py-2">
+              <p className="text-sm text-slate-500">
+                Add team members in Settings - Team first, then you can assign them to jobs.
+              </p>
+              <Button asChild variant="outline" className="justify-start">
+                <Link href="/crm/team">
+                  Open Team Settings
+                </Link>
+              </Button>
+            </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setPendingMoveToScheduled(null)} disabled={assignModalSubmitting}>
