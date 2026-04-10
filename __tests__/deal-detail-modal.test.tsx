@@ -232,6 +232,32 @@ describe("DealDetailModal", () => {
     expect(screen.getByRole("button", { name: /no contact linked/i })).toBeDisabled();
   });
 
+  it("disables the direct sms shortcut when the customer has no phone number", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(() =>
+        Promise.resolve(
+          makeDealResponse({
+            contact: {
+              id: "contact_1",
+              name: "Acme Plumbing",
+              company: "Acme Plumbing",
+              phone: null,
+              email: "office@acme.com",
+            },
+          }),
+        ),
+      ),
+    );
+
+    render(<DealDetailModal dealId="deal_1" open onOpenChange={vi.fn()} currentUserRole="OWNER" />);
+
+    await screen.findAllByText("Blocked Drain");
+    expect(screen.getByText(/No phone number on file - add one to send direct SMS from here/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Send a direct SMS...")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Send direct SMS" })).toBeDisabled();
+  });
+
   it("sends a direct sms when clicking the send button", async () => {
     const user = userEvent.setup();
 

@@ -164,6 +164,7 @@ function DealDetailContent({
   const metadata = (deal.metadata || {}) as Record<string, unknown>
   const notes = (metadata.notes as string) || ""
   const contact = deal.contact
+  const hasSmsNumber = Boolean(contact?.phone)
   const workspaceTimezone = resolveWorkspaceTimezone(deal.workspace?.workspaceTimezone)
   const isManager = currentUserRole === "OWNER" || currentUserRole === "MANAGER"
   const isPendingApproval = deal.stage === "PENDING_COMPLETION"
@@ -296,7 +297,11 @@ function DealDetailContent({
     const message = quickMessage.trim()
     if (!message) return
     if (!deal.contactId) {
-      toast.error("No contact to message")
+      toast.error("No contact linked")
+      return
+    }
+    if (!hasSmsNumber) {
+      toast.error("No phone number on file for this customer")
       return
     }
 
@@ -905,7 +910,7 @@ function DealDetailContent({
                             await handleSendQuickUpdate()
                           }
                         }}
-                        disabled={sendingQuickMessage}
+                        disabled={sendingQuickMessage || !hasSmsNumber}
                       />
                       <Button
                         size="icon"
@@ -913,11 +918,14 @@ function DealDetailContent({
                         className="h-9 w-9 text-primary hover:bg-primary/10"
                         aria-label="Send direct SMS"
                         onClick={() => void handleSendQuickUpdate()}
-                        disabled={sendingQuickMessage || quickMessage.trim().length === 0}
+                        disabled={sendingQuickMessage || quickMessage.trim().length === 0 || !hasSmsNumber}
                       >
                         <MessageSquare className="h-4 w-4" />
                       </Button>
                     </div>
+                    {!hasSmsNumber && (
+                      <p className="mt-1 text-xs text-red-500">No phone number on file - add one to send direct SMS from here.</p>
+                    )}
                   </div>
                 </div>
               )}

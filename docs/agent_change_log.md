@@ -1,3 +1,17 @@
+## 2026-04-10 (Codex) - Deal-detail SMS shortcut now fails honestly
+
+- Files changed:
+  - `components/crm/deal-detail-modal.tsx`
+  - `__tests__/deal-detail-modal.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Closed a misleading send path**: the deal-detail modal no longer lets users type into a direct-SMS composer when the customer has no phone number on file.
+  - **The shortcut now fails honestly in the UI**: the input/button disable and the panel explains that a phone number is required before a direct SMS can be sent from there.
+  - **Verification**: reran the focused deal-detail modal suite and completed another clean `npx next build`.
+- Why:
+  - A disabled, explicit workflow is better than a composer that looks valid and only fails after the user has already typed a message.
+
 ## 2026-04-10 (Codex) - Deal-detail messaging now matches the inbox model
 
 - Files changed:
