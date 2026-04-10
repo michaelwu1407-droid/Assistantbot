@@ -1,3 +1,17 @@
+## 2026-04-10 (Codex) - Inbox now falls back gracefully when direct SMS is impossible
+
+- Files changed:
+  - `components/crm/inbox-view.tsx`
+  - `__tests__/inbox-view.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Removed another dead-end feeling**: when the selected customer has no phone number, the inbox no longer leaves users sitting in a disabled Direct SMS mode by default.
+  - **Ask Tracey becomes the graceful fallback**: the inbox auto-switches to the AI orchestration mode, keeps Direct SMS visible but unavailable, and explains why.
+  - **Verification**: reran the full inbox-view suite and completed a clean `npx next build`.
+- Why:
+  - A useful fallback keeps the workflow feeling alive. If a customer has no phone number, the best next action is still to ask Tracey to update the CRM or help decide what to do next, not to strand the user in a disabled composer.
+
 ## 2026-04-10 (Codex) - Deal-detail SMS shortcut now fails honestly
 
 - Files changed:

@@ -151,6 +151,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 
 - `fixed` Inbox composer mode ambiguity resolved: Direct SMS tab moved to first position to match default mode; explanation card clearly states which tab uses AI vs sends raw SMS.
 - `fixed` Inbox composer mode distinction is now visually stronger too: `Direct SMS` carries a `Sends immediately` state badge and `Send now` CTA, while `Ask Tracey` carries an `AI handles next step` badge and `Ask Tracey to act` CTA.
+- `fixed` Inbox now falls back to `Ask Tracey` when the selected contact has no phone number, instead of dropping users into a dead direct-SMS composer. Direct SMS is still visible, but clearly unavailable for that contact.
 - `fixed` Inbox `Conversations` vs `System Activity` split: `isSystemEvent` now correctly classifies assignee changes, deal updates, stage moves, invoice ops, portal views, and post-job follow-ups as System Activity instead of surfacing them in Conversations.
 - `fixed` Ask Tracey success test is stable in batch.
 

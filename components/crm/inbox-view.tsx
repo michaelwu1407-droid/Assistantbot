@@ -284,6 +284,14 @@ export function InboxView({
   const selectedActivity = interactions.find(a => a.id === selectedId)
   const selectedContactKey = selectedActivity?.contactId || selectedActivity?.id || ""
   const selectedContact = contactMap.get(selectedContactKey)
+  const selectedContactHasPhone = Boolean(selectedContact?.phone)
+
+  useEffect(() => {
+    if (!selectedContact) return
+    if (messageMode === "direct" && !selectedContactHasPhone) {
+      setMessageMode("tracey")
+    }
+  }, [selectedContact, selectedContactHasPhone, messageMode])
 
   // Filter interactions for the RHS based on detail tab
   const detailInteractions = selectedContact
@@ -865,9 +873,11 @@ If the request is to contact the customer, use the appropriate customer-contact 
                     role="tab"
                     aria-selected={messageMode === "direct"}
                     id="inbox-tab-direct-sms"
+                    aria-disabled={!selectedContactHasPhone}
                     onClick={() => setMessageMode("direct")}
                     className={cn("flex-1 px-3 py-1.5 app-body-secondary text-xs font-medium rounded-md transition-colors flex items-center justify-center gap-1.5",
-                      messageMode === "direct" ? "bg-background text-foreground shadow-sm ring-1 ring-border" : "text-muted-foreground hover:text-foreground"
+                      messageMode === "direct" ? "bg-background text-foreground shadow-sm ring-1 ring-border" : "text-muted-foreground hover:text-foreground",
+                      !selectedContactHasPhone && "opacity-60"
                     )}
                   >
                     <MessageSquare className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -922,6 +932,11 @@ If the request is to contact the customer, use the appropriate customer-contact 
                       ? "Not AI—only the exact characters you type below are sent."
                       : "Not a raw SMS—Tracey decides how to act (reply, tools, or both)."}
                   </p>
+                  {!selectedContactHasPhone && (
+                    <p className="mt-1 text-xs text-amber-700">
+                      This contact has no phone number, so direct SMS is unavailable. Ask Tracey can still update the CRM or draft the next step.
+                    </p>
+                  )}
                 </div>
 
                 {/* Message input */}
