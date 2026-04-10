@@ -272,7 +272,7 @@ export default async function DealDetailPage({ params }: PageProps) {
                   {deal.assignedTo ? (deal.assignedTo.name || deal.assignedTo.email) : "Unassigned"}
                 </p>
               </div>
-              {contact?.phone && (
+              {contact?.phone ? (
                 <div className="flex gap-2 pt-1">
                   <a
                     href={`tel:${contact.phone}`}
@@ -289,7 +289,14 @@ export default async function DealDetailPage({ params }: PageProps) {
                     Text client
                   </a>
                 </div>
-              )}
+              ) : contact?.id ? (
+                <div className="pt-1">
+                  <p className="text-xs text-red-500">No phone number on file. Add one in CRM before calling or texting from this job.</p>
+                  <Button variant="outline" size="sm" className="mt-2 h-8 text-xs" asChild>
+                    <Link href={`/crm/contacts/${contact.id}/edit`}>Add phone in CRM</Link>
+                  </Button>
+                </div>
+              ) : null}
               <div>
                 <p className="text-slate-500 text-xs">Created</p>
                 <p className="font-medium text-slate-900">{format(new Date(deal.createdAt), "MMM d, yyyy")}</p>

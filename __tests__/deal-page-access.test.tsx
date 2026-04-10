@@ -140,6 +140,41 @@ describe("deal page access", () => {
     expect(screen.getByText("Activity feed")).toBeInTheDocument();
   });
 
+  it("shows a CRM recovery path when the customer has no phone number", async () => {
+    db.deal.findFirst.mockResolvedValueOnce({
+      id: "deal_1",
+      title: "Blocked Drain",
+      value: 420,
+      stage: "SCHEDULED",
+      createdAt: new Date("2026-04-01T10:00:00.000Z"),
+      scheduledAt: new Date("2026-04-02T10:00:00.000Z"),
+      address: "1 King St",
+      metadata: {},
+      contactId: "contact_1",
+      assignedToId: "user_1",
+      assignedTo: { id: "user_1", name: "Jess Smith", email: "jess@example.com" },
+      contact: {
+        id: "contact_1",
+        name: "Acme Plumbing",
+        company: "Acme Plumbing",
+        phone: null,
+        email: "office@acme.com",
+      },
+      jobPhotos: [],
+      syncIssues: [],
+    });
+
+    render(await DealDetailPage({ params: Promise.resolve({ id: "deal_1" }) }));
+
+    expect(
+      screen.getByText(/No phone number on file\. Add one in CRM before calling or texting from this job\./i),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /add phone in crm/i })).toHaveAttribute(
+      "href",
+      "/crm/contacts/contact_1/edit",
+    );
+  });
+
   it("returns not found when the scoped deal lookup denies access", async () => {
     requireDealInCurrentWorkspace.mockRejectedValue(new Error("Deal not found"));
 

@@ -4818,3 +4818,17 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/inbox-view.test.tsx`
   - `npx next build`
+
+## 2026-04-10 - Full job page now gives a recovery path for missing phone data
+
+- Files:
+  - `app/crm/deals/[id]/page.tsx`
+  - `__tests__/deal-page-access.test.tsx`
+- What changed:
+  - The full CRM job page no longer silently drops the `Call client` / `Text client` actions when the contact has no phone number.
+  - It now explains the blocker and gives the user an `Add phone in CRM` action right inside the job sidebar.
+- Why:
+  - The job page is a common decision surface. If communication is blocked there, the user should not have to infer why the actions disappeared or hunt through the app to fix the record.
+- Verified with:
+  - `npx vitest run __tests__/deal-page-access.test.tsx`
+  - `npx next build`
