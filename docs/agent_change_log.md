@@ -4908,3 +4908,17 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/inbox-view.test.tsx`
   - `npx next build`
+
+## 2026-04-10 - Contact header no longer hides the email fix behind dead ends
+
+- Files:
+  - `components/crm/contact-header.tsx`
+  - `__tests__/contact-header.test.tsx`
+- What changed:
+  - The contact header edit icon now routes to the real CRM contact edit page instead of being a dead-end icon button.
+  - The email dropdown now exposes `Add email in CRM` when the contact has no email on file, instead of only showing the generic customer-timeline path.
+- Why:
+  - The header is one of the first places a user reaches for contact maintenance. Missing contact data should be fixable from there, and visible edit actions should always lead somewhere real.
+- Verified with:
+  - `npx vitest run __tests__/contact-header.test.tsx`
+  - `npx next build`

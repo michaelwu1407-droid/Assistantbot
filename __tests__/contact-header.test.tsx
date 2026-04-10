@@ -133,4 +133,24 @@ describe("ContactHeader", () => {
     expect(screen.getByText(/Add a phone number before you can send a Twilio SMS from here/i)).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /open customer timeline/i }).length).toBeGreaterThanOrEqual(1);
   });
+
+  it("routes edit and missing-email recovery into the CRM contact form", () => {
+    render(
+      <ContactHeader
+        contact={{
+          ...contact,
+          email: null,
+        } as never}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: /edit contact/i })).toHaveAttribute(
+      "href",
+      "/crm/contacts/contact_1/edit",
+    );
+    expect(screen.getByRole("link", { name: /add email in crm/i })).toHaveAttribute(
+      "href",
+      "/crm/contacts/contact_1/edit",
+    );
+  });
 });

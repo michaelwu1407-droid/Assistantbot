@@ -3,12 +3,13 @@
 import { useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Mail, Phone, MoreHorizontal, Edit, MessageSquare, Bot } from "lucide-react"
+import { Mail, Phone, Edit, MessageSquare, Bot } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu"
 import type { ContactView } from "@/actions/contact-actions"
 import { sendSMS } from "@/actions/messaging-actions"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import Link from "next/link"
 
 interface ContactHeaderProps {
   contact: ContactView
@@ -72,6 +73,14 @@ export function ContactHeader({ contact }: ContactHeaderProps) {
                   <Mail className="mr-2 h-4 w-4" />
                   Open in email app
                 </a>
+              </DropdownMenuItem>
+            )}
+            {!contact.email && (
+              <DropdownMenuItem asChild>
+                <Link href={`/crm/contacts/${contact.id}/edit`}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Add email in CRM
+                </Link>
               </DropdownMenuItem>
             )}
             <DropdownMenuItem onClick={() => {
@@ -161,11 +170,10 @@ export function ContactHeader({ contact }: ContactHeaderProps) {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-          <Edit className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-          <MoreHorizontal className="h-4 w-4" />
+        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" asChild>
+          <Link href={`/crm/contacts/${contact.id}/edit`} aria-label="Edit contact">
+            <Edit className="h-4 w-4" />
+          </Link>
         </Button>
       </div>
     </div>
