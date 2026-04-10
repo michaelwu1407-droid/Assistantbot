@@ -4743,3 +4743,18 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/job-bottom-sheet.test.tsx __tests__/tradie-job-detail-view.test.tsx`
   - `npx next build`
+
+## 2026-04-10 - Stale follow-up modal now defaults to an available channel
+
+- Files:
+  - `components/crm/stale-deal-follow-up-modal.tsx`
+  - `__tests__/stale-deal-follow-up-modal.test.tsx`
+- What changed:
+  - The stale-deal follow-up modal no longer defaults to SMS when the contact has no phone number.
+  - It now automatically falls back to email when that is the only available channel, or to a phone-call reminder when neither SMS nor email is available.
+  - The modal also explains why only certain channels are available instead of making the user discover that through a failed send.
+- Why:
+  - Re-engagement workflows should start in a sensible state. Users should not have to fight the modal just because customer contact data is incomplete.
+- Verified with:
+  - `npx vitest run __tests__/stale-deal-follow-up-modal.test.tsx`
+  - `npx next build`
