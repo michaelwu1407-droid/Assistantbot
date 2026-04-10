@@ -341,7 +341,7 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
                               className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-indigo-600 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-indigo-700"
                             >
                               <MessageSquare className="h-3.5 w-3.5" />
-                              Message
+                              Open customer timeline
                             </button>
                             <button
                               type="button"
@@ -548,7 +548,7 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
                         className="flex flex-1 items-center justify-center gap-1 rounded-md bg-indigo-600 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-indigo-700"
                       >
                         <MessageSquare className="h-3 w-3" />
-                        Message
+                        Open customer timeline
                       </button>
                       {isRouteMode && job.id === startedJobId && (
                         <button

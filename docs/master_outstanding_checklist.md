@@ -41,6 +41,9 @@ Status meanings:
 - `fixed` Tradie bottom-sheet `Photos` tab no longer fakes uploads; it now points field users into the real full-job photo workflow.
 - `fixed` Tradie completion-modal photo follow-up now stays in full job mode instead of bouncing field users into the office CRM.
 - `fixed` The older command palette/search surface now routes contacts and settings into canonical CRM paths instead of stale `/contacts` and `/settings` URLs.
+- `fixed` Tracey reschedule follow-up wording is now clearer and more professional: it logs a confirm-with-customer follow-up instead of the vague `lock it down` phrasing.
+- `fixed` Map workflow CTAs now say `Open customer timeline` where they open the unified inbox thread, instead of the vaguer `Message`.
+- `fixed` Legacy job-map labels no longer leak malformed characters like `→`/apostrophe mojibake in user-facing schedule text.
 
 ## Highest-Priority Open Product Work
 

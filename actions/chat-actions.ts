@@ -431,7 +431,7 @@ async function resolveDealForInvoiceTarget(
 
   return {
     deal: null,
-    ambiguityMessage: `I found multiple jobs for "${target}": ${formatDealChoicesForPrompt(rankedDeals)}. Tell me which job you mean and I’ll handle the invoice from there.`,
+    ambiguityMessage: `I found multiple jobs for "${target}": ${formatDealChoicesForPrompt(rankedDeals)}. Tell me which job you mean and I'll handle the invoice from there.`,
   };
 }
 
@@ -472,7 +472,7 @@ function getIndustryContext(industryType: string | null): IndustryContext {
           WON: "Under Contract",
           LOST: "Lost"
         },
-        helpExtras: "\n  \"Start open house\" — Begin kiosk mode",
+        helpExtras: '\n  "Start open house" - Begin kiosk mode',
         greeting: "Hi! I'm your real estate assistant. How can I help you today?",
         unknownFallback: "I'm not sure how to help with that. Try asking about listings, buyers, or scheduling."
       };
@@ -488,7 +488,7 @@ function getIndustryContext(industryType: string | null): IndustryContext {
           WON: "Awarded",
           LOST: "Lost"
         },
-        helpExtras: "\n  \"Site check\" — Complete safety checklist",
+        helpExtras: '\n  "Site check" - Complete safety checklist',
         greeting: "Hi! I'm your construction assistant. What can I help you with today?",
         unknownFallback: "I'm not sure how to help with that. Try asking about projects, clients, or site checks."
       };
@@ -504,7 +504,7 @@ function getIndustryContext(industryType: string | null): IndustryContext {
           WON: "Scheduled",
           LOST: "Lost"
         },
-        helpExtras: "\n  \"On my way\" — Notify client you're traveling",
+        helpExtras: '\n  "On my way" - Notify client you\'re traveling',
         greeting: "Hi! I'm your trades assistant. How can I help you today?",
         unknownFallback: "I'm not sure how to help with that. Try asking about jobs, clients, or scheduling."
       };
@@ -636,7 +636,7 @@ export async function runProposeReschedule(
   await logActivity({
     type: "NOTE",
     title: "Proposed Job Time",
-    content: `Proposed new time: ${display}. Reach out to customer to lock it down.`,
+    content: `Proposed new time: ${display}. Follow up with the customer to confirm it.`,
     dealId: deal.id,
     contactId: contactId ?? undefined,
   });
@@ -645,7 +645,7 @@ export async function runProposeReschedule(
   tomorrow9am.setHours(9, 0, 0, 0);
   await createTask({
     title: `Confirm new time with ${contactName}`,
-    description: `Proposed: ${display}. Contact them to confirm the new time.`,
+    description: `Proposed time: ${display}. Confirm with the customer and update the booking once they agree.`,
     dueAt: tomorrow9am,
     dealId: deal.id,
     contactId: contactId ?? undefined,
@@ -654,7 +654,7 @@ export async function runProposeReschedule(
   revalidatePath("/crm/deals");
   return {
     success: true,
-    message: `Proposed ${display} for "${deal.title}". I’ve logged it and added a task to confirm with ${contactName} (due tomorrow 9am).`,
+    message: `Proposed ${display} for "${deal.title}". I've logged it and added a task to confirm with ${contactName} (due tomorrow 9am).`,
   };
 }
 

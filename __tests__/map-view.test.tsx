@@ -63,7 +63,7 @@ describe("MapView", () => {
     expect(screen.getByRole("button", { name: /enable route mode/i })).toBeInTheDocument();
   });
 
-  it("lets the user select a job and exposes route and messaging actions", async () => {
+  it("lets the user select a job and exposes route and customer-timeline actions", async () => {
     const user = userEvent.setup();
     const scheduledAt = new Date();
     scheduledAt.setHours(10, 0, 0, 0);
@@ -89,7 +89,7 @@ describe("MapView", () => {
     await user.click(screen.getByRole("button", { name: /select job blocked drain for acme plumbing/i }));
 
     expect(screen.getByRole("button", { name: /view job/i })).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: /message/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: /open customer timeline/i }).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: /open in google maps/i })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /enable route mode/i }));

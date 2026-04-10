@@ -1,3 +1,22 @@
+## 2026-04-10 (Codex) - Schedule and timeline trust polish
+
+- Files changed:
+  - `actions/chat-actions.ts`
+  - `components/map/map-view.tsx`
+  - `components/map/google-map-view.tsx`
+  - `components/crm/job-map-view.tsx`
+  - `__tests__/chat-actions.test.ts`
+  - `__tests__/map-view.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Clarified Tracey’s proposed-time flow**: reschedule follow-up wording now tells users to confirm the proposed time with the customer and then update the booking, instead of the vague `lock it down` phrasing.
+  - **Aligned map CTAs with the unified inbox model**: map actions that open the full correspondence thread now say `Open customer timeline` instead of the looser `Message`.
+  - **Cleaned remaining malformed characters**: fixed the last visible apostrophe/arrow text issues in this workflow slice so schedule and planning UI reads cleanly.
+  - **Verification**: reran the focused Tracey/map suites and completed a clean `npx next build`.
+- Why:
+  - At this stage, the product gaps are mostly trust and clarity. Users should immediately understand what happens next in scheduling, and every communication CTA should use the same mental model for the inbox.
+
 ## 2026-04-09 (Codex) - Legacy command palette now routes into the real CRM
 
 - Files changed:

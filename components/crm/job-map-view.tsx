@@ -68,7 +68,7 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
     });
   }, [initialDeals, filter]);
 
-  // Next upcoming job after today — used in the "today" empty state
+  // Next upcoming job after today - used in the "today" empty state
   const nextUpcomingJob = useMemo(() => {
     if (filter !== 'today' || filteredDeals.length > 0) return null;
     const now = new Date();
@@ -170,7 +170,7 @@ export function JobMapView({ initialDeals, workspaceId, pendingCount }: JobMapVi
                     onClick={() => setFilter('all')}
                     className="mt-2 w-full text-[10px] font-medium text-primary hover:underline"
                   >
-                    Show all upcoming jobs →
+                    Show all upcoming jobs
                   </button>
                 </div>
               )}

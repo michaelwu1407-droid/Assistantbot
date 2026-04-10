@@ -194,6 +194,7 @@ import {
   runListIncompleteOrBlockedJobs,
   runListInvoiceReadyJobs,
   runMoveDeal,
+  runProposeReschedule,
   runRestoreDeal,
   runSearchContacts,
   runUnassignDeal,
@@ -312,6 +313,50 @@ describe("chat-actions", () => {
     expect(result.requiresSchedule).toBe(true);
     expect(result.message).toContain("needs a scheduled date");
     expect(hoisted.updateDealStage).not.toHaveBeenCalled();
+  });
+
+  it("logs a clear follow-up when proposing a new job time", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      {
+        id: "deal_1",
+        title: "Hot Water Fix",
+        assignedToId: "user_2",
+        contactId: "contact_1",
+      },
+    ]);
+    hoisted.resolveSchedule.mockReturnValue({
+      display: "Tomorrow at 3:00 PM",
+      iso: "2026-04-11T05:00:00.000Z",
+    });
+    hoisted.updateDealMetadata.mockResolvedValue({ success: true });
+    hoisted.db.deal.findUnique.mockResolvedValue({
+      id: "deal_1",
+      contactId: "contact_1",
+      contact: { name: "Alex Harper" },
+    });
+
+    const result = await runProposeReschedule("ws_1", {
+      dealTitle: "Hot Water Fix",
+      proposedSchedule: "tomorrow 3pm",
+    });
+
+    expect(result).toEqual({
+      success: true,
+      message: 'Proposed Tomorrow at 3:00 PM for "Hot Water Fix". I\'ve logged it and added a task to confirm with Alex Harper (due tomorrow 9am).',
+    });
+    expect(hoisted.logActivity).toHaveBeenCalledWith({
+      type: "NOTE",
+      title: "Proposed Job Time",
+      content: "Proposed new time: Tomorrow at 3:00 PM. Follow up with the customer to confirm it.",
+      dealId: "deal_1",
+      contactId: "contact_1",
+    });
+    expect(hoisted.createTask).toHaveBeenCalledWith(expect.objectContaining({
+      title: "Confirm new time with Alex Harper",
+      description: "Proposed time: Tomorrow at 3:00 PM. Confirm with the customer and update the booking once they agree.",
+      dealId: "deal_1",
+      contactId: "contact_1",
+    }));
   });
 
   it("adds a note to a deal by fuzzy title match", async () => {
