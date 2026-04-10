@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek, addWeeks, subWeeks, addDays, subDays } from "date-fns"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { DealView } from "@/actions/deal-actions"
 import { cn } from "@/lib/utils"
 import { DealDetailModal } from "@/components/crm/deal-detail-modal"
@@ -60,6 +61,8 @@ export function ScheduleCalendar({ deals, teamMembers, workspaceTimezone, initia
   const filteredDeals = filterMemberId
     ? localDeals.filter(d => d.assignedToId === filterMemberId)
     : localDeals
+  const hasAnyScheduledDeals = filteredDeals.some((deal) => Boolean(deal.scheduledAt))
+  const hasUnscheduledDeals = filteredDeals.some((deal) => !deal.scheduledAt)
 
   useEffect(() => {
     const selection = selectedDealId
@@ -166,6 +169,29 @@ export function ScheduleCalendar({ deals, teamMembers, workspaceTimezone, initia
     >
       {deal.scheduledAt && <span className="app-body-secondary mr-1 text-xs text-primary/60">{formatTimeInTimezone(deal.scheduledAt, resolvedTimezone)}</span>}
       {deal.title}
+    </div>
+  )
+
+  const renderEmptyState = (scope: string) => (
+    <div className="flex h-full items-center justify-center p-6">
+      <div className="max-w-lg rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+        <h3 className="text-lg font-semibold text-slate-900">
+          {hasUnscheduledDeals ? `No jobs are scheduled for this ${scope}` : `Nothing is booked for this ${scope}`}
+        </h3>
+        <p className="mt-2 text-sm text-slate-500">
+          {hasUnscheduledDeals
+            ? "You already have jobs in the CRM, but they need a scheduled date before they appear on the calendar."
+            : "Once a job has a scheduled time, it will show up here so the team can plan and move it around."}
+        </p>
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href="/crm/dashboard">Open dashboard</Link>
+          </Button>
+          <Button asChild size="sm">
+            <Link href="/crm/deals/new">Create job</Link>
+          </Button>
+        </div>
+      </div>
     </div>
   )
 
@@ -397,11 +423,7 @@ export function ScheduleCalendar({ deals, teamMembers, workspaceTimezone, initia
       .sort((a, b) => new Date(a.scheduledAt!).getTime() - new Date(b.scheduledAt!).getTime())
 
     if (sortedDeals.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center py-12 text-slate-500">
-          <p className="app-section-title">No jobs scheduled for this {view}.</p>
-        </div>
-      )
+      return renderEmptyState(view)
     }
 
     return (
@@ -489,9 +511,15 @@ export function ScheduleCalendar({ deals, teamMembers, workspaceTimezone, initia
       </div>
 
       <div className="flex-1 overflow-hidden min-h-0 hidden md:flex flex-col">
-        {view === "month" && renderMonth()}
-        {view === "week" && renderWeek()}
-        {view === "day" && renderDay()}
+        {hasAnyScheduledDeals ? (
+          <>
+            {view === "month" && renderMonth()}
+            {view === "week" && renderWeek()}
+            {view === "day" && renderDay()}
+          </>
+        ) : (
+          renderEmptyState(view)
+        )}
       </div>
       <div className="flex-1 overflow-y-auto min-h-0 md:hidden bg-slate-50/50">
         {renderMobileList()}

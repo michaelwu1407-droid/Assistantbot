@@ -4860,3 +4860,17 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/stale-job-reconciliation-modal.test.tsx`
   - `npx next build`
+
+## 2026-04-10 - Schedule empty state now tells the user what to do next
+
+- Files:
+  - `app/crm/schedule/schedule-calendar.tsx`
+  - `__tests__/schedule-calendar.test.tsx`
+- What changed:
+  - The schedule no longer leaves users staring at a blank grid when nothing is booked yet.
+  - It now explains whether jobs simply need a scheduled date or whether there are no jobs yet at all, and gives direct `Open dashboard` and `Create job` next steps on both desktop and mobile.
+- Why:
+  - A blank calendar is technically accurate but poor UX. The schedule is a planning surface, so when it is empty the user still needs a clear explanation and a next action.
+- Verified with:
+  - `npx vitest run __tests__/schedule-calendar.test.tsx __tests__/schedule-page.test.tsx`
+  - `npx next build`

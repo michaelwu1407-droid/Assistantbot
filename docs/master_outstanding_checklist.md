@@ -291,6 +291,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` The full CRM job page now uses that same recovery pattern: missing customer phone data is explained in place and linked straight to `Add phone in CRM`.
 - `fixed` The stale follow-up modal now exposes direct CRM fix actions for missing phone/email/contact details instead of only warning that a channel is unavailable.
 - `fixed` The stale-job reconciliation modal now explains what each outcome will do next and gives explicit success/error feedback instead of silently saving or failing.
+- `fixed` The schedule now has a real empty state with next steps instead of a blank calendar grid when nothing is booked yet.
 - `fixed` Legacy job-detail screens no longer strand users with disabled `No phone` / `No address` buttons; they now route missing customer details back into the CRM record so the user can fix the blocker.
 - `fixed` The tradie bottom sheet now follows the same pattern: missing customer phone shortcuts no longer dead-end and instead route the user back into the CRM job record to fix the data gap.
 - `fixed` The stale-deal follow-up modal now defaults to a usable channel and explains unavailable contact methods instead of starting users on a broken SMS path.

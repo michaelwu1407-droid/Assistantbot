@@ -28,6 +28,18 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
+vi.mock("next/link", () => ({
+  default: ({
+    href,
+    children,
+    ...props
+  }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string; children: React.ReactNode }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+}));
+
 vi.mock("sonner", () => ({
   toast: {
     success: toastSuccess,
@@ -231,5 +243,31 @@ describe("ScheduleCalendar", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("shows a real empty state with next steps when nothing is scheduled", () => {
+    render(
+      <ScheduleCalendar
+        workspaceTimezone="Australia/Sydney"
+        teamMembers={[{ id: "user_1", name: "Jess", email: "jess@example.com", role: "TEAM_MEMBER" }]}
+        deals={[
+          {
+            id: "deal_1",
+            title: "Blocked drain",
+            address: "12 King St",
+            contactName: "Alice",
+            assignedToId: "user_1",
+            scheduledAt: null,
+          } as never,
+        ]}
+      />,
+    );
+
+    expect(screen.getAllByText(/No jobs are scheduled for this month/i).length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText(/they need a scheduled date before they appear on the calendar/i).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /open dashboard/i })[0]).toHaveAttribute("href", "/crm/dashboard");
+    expect(screen.getAllByRole("link", { name: /create job/i })[0]).toHaveAttribute("href", "/crm/deals/new");
   });
 });
