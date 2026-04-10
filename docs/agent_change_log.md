@@ -4697,3 +4697,18 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/contact-header.test.tsx`
   - `npx next build`
+
+## 2026-04-10 - Contact profile now routes communication into the shared timeline honestly
+
+- Files:
+  - `components/crm/contact-profile.tsx`
+  - `__tests__/contact-profile.test.tsx`
+- What changed:
+  - The profile header no longer labels the shared inbox/timeline action as a fake Twilio or agent-specific send path.
+  - Native phone and email actions still appear when contact details exist, but the CRM action is now consistently `Open customer timeline`.
+  - Missing email and phone details now render honest empty states instead of malformed placeholder text.
+- Why:
+  - The contact profile should teach the same communication model as the rest of the product: use native apps for direct device actions, and use the shared customer timeline for CRM-managed communication.
+- Verified with:
+  - `npx vitest run __tests__/contact-profile.test.tsx`
+  - `npx next build`

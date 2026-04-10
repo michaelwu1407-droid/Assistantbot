@@ -2,31 +2,38 @@
 
 import { ContactView } from "@/actions/contact-actions"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Mail, Phone, Building2, Calendar, Edit, MapPin, Home, MessageSquare, Bot } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
-import type { SVGProps } from "react"
+import { Button } from "@/components/ui/button"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { getUserFacingDealStageLabel } from "@/lib/deal-utils"
+import { Bot, Building2, Calendar, Edit, Home, Mail, MapPin, MessageSquare, Phone } from "lucide-react"
+import type { SVGProps } from "react"
 
 interface ContactProfileProps {
     contact: ContactView
 }
 
 export function ContactProfile({ contact }: ContactProfileProps) {
-    // Extract unique addresses from deals as "properties"
+    const hasPhone = Boolean(contact.phone)
+    const hasEmail = Boolean(contact.email)
+
     const properties = (contact.deals ?? [])
         .filter((d) => d.address)
         .map((d) => ({
             title: d.title,
             address: d.address,
             stage: d.stage,
-            value: d.value
-        }));
+            value: d.value,
+        }))
 
     return (
         <div className="max-w-4xl mx-auto space-y-6">
-            {/* Header / Banner Card */}
             <div className="glass-card rounded-2xl overflow-hidden relative group">
                 <div className="h-32 bg-gradient-to-r from-primary/10 via-background to-secondary/10" />
                 <div className="relative pt-0 pb-6 px-6">
@@ -49,7 +56,10 @@ export function ContactProfile({ contact }: ContactProfileProps) {
                                 )}
                                 {contact.company && <span className="opacity-30">•</span>}
                                 {contact.dealCount > 0 && (
-                                    <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20 border-primary/20 transition-colors">
+                                    <Badge
+                                        variant="secondary"
+                                        className="bg-primary/10 text-primary hover:bg-primary/20 border-primary/20 transition-colors"
+                                    >
                                         {contact.dealCount} Open Deals
                                     </Badge>
                                 )}
@@ -69,7 +79,7 @@ export function ContactProfile({ contact }: ContactProfileProps) {
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                    {contact.phone && (
+                                    {hasPhone && (
                                         <>
                                             <DropdownMenuItem asChild>
                                                 <a href={`tel:${contact.phone}`}>
@@ -84,10 +94,12 @@ export function ContactProfile({ contact }: ContactProfileProps) {
                                             <DropdownMenuSeparator />
                                         </>
                                     )}
-                                    <DropdownMenuItem onClick={() => {
-                                        window.location.href = `/crm/inbox?contact=${contact.id}`
-                                    }}>
-                                        <Bot className="mr-2 h-4 w-4" /> Send SMS via Twilio
+                                    <DropdownMenuItem
+                                        onClick={() => {
+                                            window.location.href = `/crm/inbox?contact=${contact.id}`
+                                        }}
+                                    >
+                                        <Bot className="mr-2 h-4 w-4" /> Open customer timeline
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
@@ -99,17 +111,19 @@ export function ContactProfile({ contact }: ContactProfileProps) {
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                    {contact.email && (
+                                    {hasEmail && (
                                         <DropdownMenuItem asChild>
                                             <a href={`mailto:${contact.email}`}>
                                                 <Mail className="mr-2 h-4 w-4" /> Open in email app
                                             </a>
                                         </DropdownMenuItem>
                                     )}
-                                    <DropdownMenuItem onClick={() => {
-                                        window.location.href = `/crm/inbox?contact=${contact.id}`
-                                    }}>
-                                        <Bot className="mr-2 h-4 w-4" /> Send via Agent (Resend)
+                                    <DropdownMenuItem
+                                        onClick={() => {
+                                            window.location.href = `/crm/inbox?contact=${contact.id}`
+                                        }}
+                                    >
+                                        <Bot className="mr-2 h-4 w-4" /> Open customer timeline
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
@@ -118,9 +132,7 @@ export function ContactProfile({ contact }: ContactProfileProps) {
                 </div>
             </div>
 
-            {/* Layout Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Left: Info */}
                 <div className="space-y-6">
                     <div className="glass-card rounded-xl p-5 space-y-5">
                         <h3 className="font-semibold text-foreground flex items-center gap-2">
@@ -135,9 +147,16 @@ export function ContactProfile({ contact }: ContactProfileProps) {
                                 </div>
                                 <div className="flex-1 overflow-hidden">
                                     <div className="text-muted-foreground text-[10px] uppercase tracking-wider font-medium">Email</div>
-                                    <a href={`mailto:${contact.email}`} className="text-foreground truncate hover:text-primary transition-colors block font-medium">
-                                        {contact.email || "—"}
-                                    </a>
+                                    {hasEmail ? (
+                                        <a
+                                            href={`mailto:${contact.email}`}
+                                            className="text-foreground truncate hover:text-primary transition-colors block font-medium"
+                                        >
+                                            {contact.email}
+                                        </a>
+                                    ) : (
+                                        <span className="text-foreground font-medium">—</span>
+                                    )}
                                 </div>
                             </div>
 
@@ -167,7 +186,6 @@ export function ContactProfile({ contact }: ContactProfileProps) {
                         </div>
                     </div>
 
-                    {/* Properties Section (Multi-Property UC13) */}
                     {properties.length > 0 && (
                         <div className="glass-card rounded-xl p-5 space-y-4">
                             <h3 className="font-semibold text-foreground flex items-center gap-2">
@@ -176,7 +194,10 @@ export function ContactProfile({ contact }: ContactProfileProps) {
                             </h3>
                             <div className="space-y-3">
                                 {properties.map((prop, i) => (
-                                    <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-muted/20 border border-border/10 hover:bg-muted/30 transition-colors">
+                                    <div
+                                        key={i}
+                                        className="flex items-start gap-3 p-3 rounded-lg bg-muted/20 border border-border/10 hover:bg-muted/30 transition-colors"
+                                    >
                                         <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-medium text-foreground truncate">{prop.title}</p>
@@ -192,9 +213,7 @@ export function ContactProfile({ contact }: ContactProfileProps) {
                     )}
                 </div>
 
-                {/* Right: Activity Feed Placeholder */}
                 <div className="md:col-span-2 space-y-6">
-                    {/* We will render the ActivityFeed client component here in the Page */}
                     <div className="glass-card rounded-xl p-8 flex flex-col items-center justify-center text-center min-h-[300px] border-dashed border-2 bg-transparent text-muted-foreground">
                         <div className="bg-muted/30 p-4 rounded-full mb-3">
                             <Calendar className="w-8 h-8 opacity-50" />
