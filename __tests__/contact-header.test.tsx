@@ -78,7 +78,7 @@ describe("ContactHeader", () => {
     render(<ContactHeader contact={contact as never} />);
 
     await user.type(screen.getByPlaceholderText("Type your message..."), "On my way");
-    await user.click(screen.getByRole("button", { name: "Send via Twilio" }));
+    await user.click(screen.getByRole("button", { name: "Send direct SMS" }));
 
     await waitFor(() => {
       expect(sendSMS).toHaveBeenCalledWith("contact_1", "On my way");
@@ -87,7 +87,7 @@ describe("ContactHeader", () => {
     expect(screen.getByPlaceholderText("Type your message...")).toHaveValue("");
   });
 
-  it("renders the native contact actions alongside the agent send action", () => {
+  it("renders the native contact actions alongside the shared customer timeline action", () => {
     render(<ContactHeader contact={contact as never} />);
 
     expect(screen.getByRole("link", { name: /open in email app/i })).toHaveAttribute(
@@ -102,7 +102,7 @@ describe("ContactHeader", () => {
       "href",
       "sms:0400000002",
     );
-    expect(screen.getByRole("button", { name: /send via agent/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /open customer timeline/i })).toBeInTheDocument();
   });
 
   it("shows a Twilio error when SMS sending fails", async () => {
@@ -112,7 +112,7 @@ describe("ContactHeader", () => {
     render(<ContactHeader contact={contact as never} />);
 
     await user.type(screen.getByPlaceholderText("Type your message..."), "Checking in");
-    await user.click(screen.getByRole("button", { name: "Send via Twilio" }));
+    await user.click(screen.getByRole("button", { name: "Send direct SMS" }));
 
     await waitFor(() => {
       expect(toastError).toHaveBeenCalledWith("Twilio offline");
@@ -131,6 +131,6 @@ describe("ContactHeader", () => {
 
     expect(screen.queryByPlaceholderText("Type your message...")).not.toBeInTheDocument();
     expect(screen.getByText(/Add a phone number before you can send a Twilio SMS from here/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /open customer timeline/i })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /open customer timeline/i }).length).toBeGreaterThanOrEqual(1);
   });
 });

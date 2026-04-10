@@ -78,7 +78,7 @@ export function ContactHeader({ contact }: ContactHeaderProps) {
               window.location.href = `/crm/inbox?contact=${contact.id}`
             }}>
               <Bot className="mr-2 h-4 w-4" />
-              Send via Agent (Resend)
+              Open customer timeline
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -115,7 +115,7 @@ export function ContactHeader({ contact }: ContactHeaderProps) {
               {hasPhone ? (
                 <>
                   <p className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1">
-                    <Bot className="h-3 w-3" /> Send SMS via Twilio
+                    <Bot className="h-3 w-3" /> Direct SMS from workspace number
                   </p>
                   <textarea
                     className="w-full text-sm border border-input rounded-md px-2 py-1.5 bg-background resize-none focus:outline-none focus:ring-1 focus:ring-primary"
@@ -136,7 +136,7 @@ export function ContactHeader({ contact }: ContactHeaderProps) {
                     disabled={!smsMessage.trim() || sending}
                     onClick={handleSendSms}
                   >
-                    {sending ? "Sending..." : "Send via Twilio"}
+                    {sending ? "Sending..." : "Send direct SMS"}
                   </Button>
                 </>
               ) : (

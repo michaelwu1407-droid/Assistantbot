@@ -284,6 +284,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` The tradie estimator landing-page copy now matches that same sequence, closing the last obvious invoice-flow wording mismatch across the quote surfaces.
 - `fixed` Contact detail no longer shows a leftover `Open job ->` label; that CTA now reads like a finished product action.
 - `fixed` Contact header no longer shows a Twilio SMS composer when the contact has no phone number; it now gives an honest explanation and a real recovery path into the customer timeline.
+- `fixed` Contact header wording now matches the shared communication model: CRM-managed actions route to `Open customer timeline`, while the inline composer is clearly labeled as a direct workspace-number SMS action.
 - `fixed` Contact profile now teaches the same communication model as the rest of the app: native phone/email actions when details exist, and `Open customer timeline` for CRM-managed communication.
 - `fixed` Legacy job-detail screens no longer strand users with disabled `No phone` / `No address` buttons; they now route missing customer details back into the CRM record so the user can fix the blocker.
 - `fixed` The tradie bottom sheet now follows the same pattern: missing customer phone shortcuts no longer dead-end and instead route the user back into the CRM job record to fix the data gap.

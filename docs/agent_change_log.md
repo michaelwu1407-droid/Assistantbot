@@ -4775,3 +4775,18 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/kanban-automation-actions.test.ts __tests__/kanban-automation-modal.test.tsx`
   - `npx next build`
+
+## 2026-04-10 - Contact header wording now matches the shared communication model
+
+- Files:
+  - `components/crm/contact-header.tsx`
+  - `__tests__/contact-header.test.tsx`
+- What changed:
+  - The contact header no longer mixes old channel wording like `Send via Agent (Resend)` and `Send via Twilio` with the newer shared timeline model.
+  - Email dropdown actions now point users to `Open customer timeline` for CRM-managed communication.
+  - The inline SMS composer is now labeled as a direct workspace-number action with `Direct SMS from workspace number` and `Send direct SMS`.
+- Why:
+  - Communication surfaces should teach one simple model. If users see different wording in the same contact header than they see in inbox and profile surfaces, the product feels more complicated than it is.
+- Verified with:
+  - `npx vitest run __tests__/contact-header.test.tsx`
+  - `npx next build`
