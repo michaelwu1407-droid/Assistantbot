@@ -259,6 +259,38 @@ describe("DealDetailModal", () => {
     expect(screen.getByRole("button", { name: /add phone in crm/i })).toBeInTheDocument();
   });
 
+  it("shows a CRM recovery path when the job has no address", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(() =>
+        Promise.resolve(
+          makeDealResponse({
+            address: null,
+            metadata: {},
+            contact: {
+              id: "contact_1",
+              name: "Acme Plumbing",
+              company: "Acme Plumbing",
+              phone: "0400000001",
+              email: "office@acme.com",
+            },
+          }),
+        ),
+      ),
+    );
+
+    render(<DealDetailModal dealId="deal_1" open onOpenChange={vi.fn()} currentUserRole="OWNER" />);
+
+    await screen.findAllByText("Blocked Drain");
+    expect(
+      screen.getByText(/No address on file\. Add one in CRM before using route or map actions for this job\./i),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /add address in crm/i })).toHaveAttribute(
+      "href",
+      "/crm/contacts/contact_1/edit",
+    );
+  });
+
   it("sends a direct sms when clicking the send button", async () => {
     const user = userEvent.setup();
 

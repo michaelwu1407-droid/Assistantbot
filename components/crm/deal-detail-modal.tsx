@@ -558,6 +558,14 @@ function DealDetailContent({
                     </div>
                   </div>
                 )}
+                {(!(deal.address || (typeof metadata.address === "string" && metadata.address)) && contact.id) && (
+                  <div className="space-y-1.5">
+                    <p className="text-xs text-red-500">No address on file. Add one in CRM before using route or map actions for this job.</p>
+                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs" asChild>
+                      <Link href={`/crm/contacts/${contact.id}/edit`}>Add address in CRM</Link>
+                    </Button>
+                  </div>
+                )}
                 {!contact.phone && !contact.email && !contact.company && !deal.address && !(typeof metadata.address === "string" && metadata.address) && (
                   <p className="text-sm text-slate-500">Add phone, email, or address via Edit.</p>
                 )}

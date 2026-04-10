@@ -292,6 +292,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` The inbox now exposes the missing email fix too, so the customer timeline can recover blocked email follow-up directly with `Add email in CRM`.
 - `fixed` The full CRM job page now uses that same recovery pattern: missing customer phone data is explained in place and linked straight to `Add phone in CRM`.
 - `fixed` The full CRM job page now exposes the missing-address recovery path too, so route and map actions no longer just disappear when the job has no address.
+- `fixed` The deal detail modal now mirrors that same missing-address recovery path, so modal and full-page job views stay consistent.
 - `fixed` The stale follow-up modal now exposes direct CRM fix actions for missing phone/email/contact details instead of only warning that a channel is unavailable.
 - `fixed` The stale-job reconciliation modal now explains what each outcome will do next and gives explicit success/error feedback instead of silently saving or failing.
 - `fixed` The schedule now has a real empty state with next steps instead of a blank calendar grid when nothing is booked yet.

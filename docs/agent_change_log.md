@@ -4936,3 +4936,17 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/deal-page-access.test.tsx`
   - `npx next build`
+
+## 2026-04-10 - Deal detail modal now matches the full-page address recovery flow
+
+- Files:
+  - `components/crm/deal-detail-modal.tsx`
+  - `__tests__/deal-detail-modal.test.tsx`
+- What changed:
+  - The deal detail modal now mirrors the full page when a job has no address.
+  - Instead of just omitting address content, it now explains that route/map actions need an address and offers `Add address in CRM`.
+- Why:
+  - The modal and the full job page should not teach different recovery patterns for the same data problem. Users move between both surfaces during real CRM work, so the fix path has to stay consistent.
+- Verified with:
+  - `npx vitest run __tests__/deal-detail-modal.test.tsx`
+  - `npx next build`
