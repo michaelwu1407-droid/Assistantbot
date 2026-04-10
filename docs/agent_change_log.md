@@ -4922,3 +4922,17 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/contact-header.test.tsx`
   - `npx next build`
+
+## 2026-04-10 - Deal detail now exposes the route/map recovery path too
+
+- Files:
+  - `app/crm/deals/[id]/page.tsx`
+  - `__tests__/deal-page-access.test.tsx`
+- What changed:
+  - The full CRM job page no longer silently drops route/map help when the job has no address.
+  - It now explains the blocker in place and offers `Add address in CRM` so the user can fix route/navigation data from the same workflow.
+- Why:
+  - Route and map actions are only as trustworthy as the underlying address data. When that data is missing, the deal page should help the user recover immediately instead of just omitting navigation affordances.
+- Verified with:
+  - `npx vitest run __tests__/deal-page-access.test.tsx`
+  - `npx next build`

@@ -247,7 +247,7 @@ export default async function DealDetailPage({ params }: PageProps) {
                   {deal.scheduledAt ? formatDateTimeInTimezone(deal.scheduledAt, workspaceTimezone) : "Not scheduled"}
                 </p>
               </div>
-              {(deal.address || (typeof metadata.address === "string" && metadata.address)) && (
+              {deal.address || (typeof metadata.address === "string" && metadata.address) ? (
                 <div>
                   <p className="text-slate-500 text-xs">Job address</p>
                   <div className="flex items-start justify-between gap-2">
@@ -265,7 +265,15 @@ export default async function DealDetailPage({ params }: PageProps) {
                     </a>
                   </div>
                 </div>
-              )}
+              ) : contact?.id ? (
+                <div>
+                  <p className="text-slate-500 text-xs">Job address</p>
+                  <p className="text-xs text-red-500">No address on file. Add one in CRM before using route or map actions for this job.</p>
+                  <Button variant="outline" size="sm" className="mt-2 h-8 text-xs" asChild>
+                    <Link href={`/crm/contacts/${contact.id}/edit`}>Add address in CRM</Link>
+                  </Button>
+                </div>
+              ) : null}
               <div>
                 <p className="text-slate-500 text-xs">Assigned to</p>
                 <p className="font-medium text-slate-900">
