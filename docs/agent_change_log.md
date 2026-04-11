@@ -5369,3 +5369,18 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/new-deal-page.test.tsx __tests__/settings-route-redirects.test.tsx __tests__/settings-core-page-access.test.tsx __tests__/map-page-access.test.tsx __tests__/schedule-page.test.tsx __tests__/crm-estimator-page.test.tsx __tests__/inbox-page.test.tsx`
   - `npx next build`
+
+## 2026-04-12 - Dashboard shell actor state hardening
+
+- Files:
+  - `lib/dashboard-shell.ts`
+  - `__tests__/dashboard-shell.test.ts`
+- What changed:
+  - Dashboard shell state now resolves the app user through shared workspace access after workspace creation/resolution.
+  - The shell now publishes the app `User.id` and app role into `ShellInitializer`, instead of the external auth-provider ID and a raw-ID role lookup.
+  - If workspace actor resolution fails, the shell fails closed to `TEAM_MEMBER` rather than owner-level access.
+- Why:
+  - The shell state drives global header/sidebar/chat context. If it uses the wrong user ID or role, downstream notifications, role-gated navigation, and team-member views can behave incorrectly even when individual pages are fixed.
+- Verified with:
+  - `npx vitest run __tests__/dashboard-shell.test.ts __tests__/dashboard-layout.test.tsx __tests__/settings-layout.test.tsx __tests__/crm-route-guards.test.tsx __tests__/settings-core-page-access.test.tsx`
+  - `npx next build`
