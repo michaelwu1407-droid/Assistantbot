@@ -5087,5 +5087,10 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/messaging-actions.test.ts __tests__/knowledge-actions.test.ts __tests__/google-review-url-section.test.tsx __tests__/business-contact-form.test.tsx`
   - `npx next build`
+  - Live production Playwright via logged-in Chrome/CDP:
+    - `/crm/settings/my-business` loaded with no `4xx/5xx` responses.
+    - `Save service areas` succeeded with a success toast and no network failures.
+    - `/crm/settings/privacy` contained no `DRAFT` copy.
+    - `/crm/settings/call-settings` loaded with the provisioning notice and `Save contact hours` succeeded with no network failures.
 - Notes:
   - `npx tsc --noEmit --pretty false` still reports existing test-type debt outside this change (`contact-api-route`, `deal-api-route`, `map-view`, `task-actions`, `tradie-job-completion-modal`, `twilio-voice-gateway-route`). The production build passes.

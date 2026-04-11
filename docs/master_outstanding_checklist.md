@@ -320,7 +320,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Kanban automation now uses the real CRM stage model and user-facing stage labels instead of outdated generic sales-pipeline terminology.
 - `fixed` Daily digest guidance now matches the same truthful invoice sequence, so briefing copy no longer conflicts with billing and Tracey follow-ups.
 - `fixed` Xero integration copy now describes the real current behavior: draft invoices are created from the job-completion workflow, not magically for every invoice-ready job.
-- `fixed` Settings > My business no longer crashes the pricing/service-area widgets for the live Google-authenticated account. Knowledge actions now resolve workspace access through the same auth/workspace path used elsewhere instead of assuming the Supabase auth ID equals an app User row.
+- `fixed` Settings > My business no longer crashes the pricing/service-area widgets for the live Google-authenticated account. Knowledge actions now resolve workspace access through the same auth/workspace path used elsewhere instead of assuming the Supabase auth ID equals an app User row. Live Playwright verified the page loads with no network failures and `Save service areas` succeeds.
 - `fixed` Automated/customer SMS sending now matches the settings promise: if the workspace has no provisioned Tracey SMS sender, customer-facing SMS fails clearly instead of silently using a platform fallback number.
 - `fixed` Settings > Privacy no longer exposes `DRAFT` labels in the data policy summary.
 - `open` Full `tsc --noEmit` still has pre-existing test-type debt outside the latest settings/SMS changes. `next build` remains the production gate and currently passes.
