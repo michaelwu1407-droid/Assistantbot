@@ -351,6 +351,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Map, schedule, estimator, and inbox now scope from the workspace actor instead of raw auth-provider IDs, so team-member job visibility works for Google-authenticated accounts whose app user ID differs from their provider ID.
 - `fixed` New booking plus account, automations, billing, and my-business settings now pass actor app-user/workspace IDs into their forms and queries instead of raw auth-provider IDs.
 - `fixed` Dashboard shell state now initializes the app with actor app-user ID and role, failing closed to team-member access instead of defaulting to owner when role resolution fails.
+- `fixed` Settings, integrations, and SMS-template actions now resolve through the workspace actor, and customer-message preview/send is scoped to deals in the current workspace.
 
 ## Local-Only / Not Yet Shipped Context
 

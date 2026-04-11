@@ -5384,3 +5384,23 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/dashboard-shell.test.ts __tests__/dashboard-layout.test.tsx __tests__/settings-layout.test.tsx __tests__/crm-route-guards.test.tsx __tests__/settings-core-page-access.test.tsx`
   - `npx next build`
+
+## 2026-04-12 - Settings, integrations, and SMS action actor scoping
+
+- Files:
+  - `actions/settings-actions.ts`
+  - `actions/integration-actions.ts`
+  - `actions/sms-templates.ts`
+  - `__tests__/settings-actions.test.ts`
+  - `__tests__/integration-actions.test.ts`
+  - `__tests__/sms-templates.test.ts`
+- What changed:
+  - Settings actions now resolve workspace ID through shared workspace access.
+  - Integration connection/status/disconnect actions now use the actor workspace/app user instead of raw auth-provider IDs.
+  - SMS template list/save/preview/send actions now use the actor app user, and message preview/send only load deals in the actor workspace.
+- Why:
+  - The UI can look correct while server actions save/read against the wrong user or workspace. These are the actions behind business settings, OAuth connections, calendar/Xero status, and reviewed customer-message sends.
+  - Message actions must not preview or send templates for a deal outside the current workspace.
+- Verified with:
+  - `npx vitest run __tests__/settings-actions.test.ts __tests__/integration-actions.test.ts __tests__/sms-templates.test.ts __tests__/message-action-sheet.test.tsx __tests__/settings-core-page-access.test.tsx`
+  - `npx next build`

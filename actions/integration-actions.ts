@@ -1,9 +1,9 @@
 "use server";
 
-import { getAuthUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { buildXeroAuthUrl, getXeroOAuthRedirectUri } from "@/lib/xero";
 import { buildGoogleCalendarAuthUrl, disconnectGoogleCalendarIntegration, getWorkspaceCalendarStatus } from "@/lib/workspace-calendar";
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
 
 type IntegrationReadiness = {
   gmail: { ready: boolean; reason?: string };
@@ -53,19 +53,10 @@ export async function connectXero(): Promise<{ url: string | null }> {
   try {
     const readiness = await getIntegrationConnectionReadiness();
     if (!readiness.xero.ready) return { url: null };
-    const userId = await getAuthUserId();
-    if (!userId) return { url: null };
-    const workspace = await db.workspace.findFirst({
-      where: {
-        users: {
-          some: { id: userId }
-        }
-      }
-    });
+    const actor = await requireCurrentWorkspaceAccess().catch(() => null);
+    if (!actor?.workspaceId) return { url: null };
 
-    if (!workspace) return { url: null };
-
-    const url = buildXeroAuthUrl(workspace.id);
+    const url = buildXeroAuthUrl(actor.workspaceId);
     return { url };
   } catch (error) {
     console.error("[connectXero] Error:", error);
@@ -74,8 +65,8 @@ export async function connectXero(): Promise<{ url: string | null }> {
 }
 
 export async function getIntegrationStatus() {
-  const userId = await getAuthUserId();
-  if (!userId) {
+  const actor = await requireCurrentWorkspaceAccess().catch(() => null);
+  if (!actor?.workspaceId) {
     return {
       emailIntegrations: [],
       xeroConnected: false,
@@ -84,7 +75,7 @@ export async function getIntegrationStatus() {
   }
 
   const user = await db.user.findUnique({
-    where: { id: userId },
+    where: { id: actor.id },
     select: {
       workspaceId: true,
       emailIntegrations: {
@@ -104,8 +95,9 @@ export async function getIntegrationStatus() {
   });
 
   const settings = (user?.workspace.settings as Record<string, unknown> | undefined) ?? {};
-  const calendarIntegration = user?.workspaceId
-    ? await getWorkspaceCalendarStatus(user.workspaceId)
+  const workspaceId = user?.workspaceId ?? actor.workspaceId;
+  const calendarIntegration = workspaceId
+    ? await getWorkspaceCalendarStatus(workspaceId)
     : { connected: false, provider: "google", emailAddress: null, lastSyncAt: null, calendarId: null };
 
   return {
@@ -118,46 +110,33 @@ export async function getIntegrationStatus() {
 export async function connectGoogleCalendar(): Promise<{ url: string | null }> {
   const readiness = await getIntegrationConnectionReadiness();
   if (!readiness.googleCalendar.ready) return { url: null };
-  const userId = await getAuthUserId();
-  if (!userId) return { url: null };
+  const actor = await requireCurrentWorkspaceAccess().catch(() => null);
 
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    select: { workspaceId: true },
-  });
-
-  if (!user?.workspaceId) {
+  if (!actor?.workspaceId) {
     return { url: null };
   }
 
-  return { url: buildGoogleCalendarAuthUrl(user.workspaceId) };
+  return { url: buildGoogleCalendarAuthUrl(actor.workspaceId) };
 }
 
 export async function disconnectWorkspaceCalendarIntegration() {
-  const userId = await getAuthUserId();
-  if (!userId) throw new Error("Unauthorized");
+  const actor = await requireCurrentWorkspaceAccess();
 
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    select: { workspaceId: true },
-  });
-
-  if (!user?.workspaceId) {
+  if (!actor.workspaceId) {
     throw new Error("Workspace not found");
   }
 
-  await disconnectGoogleCalendarIntegration(user.workspaceId);
+  await disconnectGoogleCalendarIntegration(actor.workspaceId);
   return { success: true };
 }
 
 export async function disconnectEmailIntegration(integrationId: string) {
-  const userId = await getAuthUserId();
-  if (!userId) throw new Error("Unauthorized");
+  const actor = await requireCurrentWorkspaceAccess();
 
   await db.emailIntegration.deleteMany({
     where: {
       id: integrationId,
-      userId,
+      userId: actor.id,
     },
   });
 
