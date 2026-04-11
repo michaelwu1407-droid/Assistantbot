@@ -5282,6 +5282,9 @@ Rule: every agent change commit must include an entry in this file.
   - Live production Playwright before the fix:
     - `/crm/settings/help`, `/crm/inbox`, `/crm/map`, `/crm/dashboard`, and `/crm/settings/agent` loaded for the logged-in browser with no 4xx/5xx responses.
     - Console showed CSP blocks for `blob:` workers and Google Fonts styles on the map surface.
+  - Live production Playwright after deploy:
+    - `/crm/settings/help`, `/crm/inbox`, `/crm/map`, and `/crm/settings/agent` loaded for the logged-in browser with no 4xx/5xx responses.
+    - No CSP console errors were observed on those pages.
   - `npx vitest run __tests__/middleware.test.ts`
   - `npx next build`
 
@@ -5300,3 +5303,6 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/settings-help-page.test.tsx __tests__/support-contact-route.test.ts __tests__/support-request-panel.test.tsx`
   - `npx next build`
+  - Live production Playwright after deploy:
+    - `/crm/settings/help` showed `support@earlymark.ai`, `Contact support`, and the support request form.
+    - `1300 EARLYMARK` was not present.
