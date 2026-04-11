@@ -12,6 +12,7 @@
   - **Fixed a live Tracey correctness bug**: authenticated testing showed Tracey reporting a scheduled job's raw UTC time (`12:30 AM`) while the CRM UI correctly showed Sydney-local time (`10:30 AM`).
   - **Fixed date-only schedule queries**: Tracey's schedule tool now treats `2026-04-13` to `2026-04-13` as the workspace-local calendar day instead of a zero-length/UTC-midnight range.
   - **Grounded tool output in local time**: deal context now includes formatted workspace timezone, and schedule results include `scheduledAtLocal` plus the timezone.
+  - **Closed the second context leak**: route-level pre-resolved job/contact context and relevant tool wrappers now format scheduled jobs in workspace-local time too, so older UTC strings are not injected ahead of the model.
   - **Verification**: added regression coverage for workspace-local deal context and date-only schedule ranges, reran targeted chat/tool tests, and completed a clean `npx next build`.
 - Why:
   - Tracey can only be trusted as a CRM copilot if its answers match the same local schedule the user sees in the app.

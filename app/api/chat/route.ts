@@ -39,6 +39,7 @@ import { instrumentToolsWithLatency, nowMs, recordLatencyMetric } from "@/lib/te
 import { rateLimit } from "@/lib/rate-limit";
 import { logger } from "@/lib/logging";
 import { getAttentionSignalsForDeal } from "@/lib/deal-attention";
+import { formatDateTimeInTimezone, formatTimeInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -461,6 +462,7 @@ async function resolveAmbiguousContactFollowUp(
   workspaceId: string,
   content: string,
   messages: unknown[],
+  workspaceTimezone?: string | null,
 ): Promise<string | null> {
   const trimmed = content.trim();
   if (!/^\d+$/.test(trimmed)) return null;
@@ -503,7 +505,7 @@ async function resolveAmbiguousContactFollowUp(
     clientId: resolvedContactId,
     clientName: selected.name,
   });
-  return formatClientContextResult(exactContext);
+  return formatClientContextResult(exactContext, workspaceTimezone);
 }
 
 function normalizeRouteSearchPhrase(value: string) {
@@ -531,6 +533,11 @@ function formatDealList(
       return `- ${deal.title}${suffix.length ? ` (${suffix.join("; ")})` : ""}`;
     })
     .join("\n")}`;
+}
+
+function formatChatDateTime(date: Date | string | number, workspaceTimezone?: string | null): string {
+  const timezone = resolveWorkspaceTimezone(workspaceTimezone);
+  return `${formatDateTimeInTimezone(date, timezone)} (${timezone})`;
 }
 
 function extractLikelyContactReference(content: string, classification: PreClassification): string | null {
@@ -595,6 +602,7 @@ async function buildResolvedEntitiesBlock(
   content: string,
   classification: PreClassification,
   selectedDeals: SelectionDeal[],
+  workspaceTimezone?: string | null,
 ): Promise<string> {
   const lines: string[] = [];
   const textLower = content.toLowerCase();
@@ -662,7 +670,7 @@ async function buildResolvedEntitiesBlock(
       if (exactMatches.length > 0) {
         lines.push(
           `Likely jobs: ${exactMatches
-            .map((deal) => { const s = String(deal.stage ?? ""); return `${deal.title} (${DIRECT_STAGE_LABELS[s] ?? DIRECT_STAGE_LABELS[s.toUpperCase()] ?? s}${deal.scheduledAt ? `, ${new Date(deal.scheduledAt).toLocaleString("en-AU")}` : ""})`; })
+            .map((deal) => { const s = String(deal.stage ?? ""); return `${deal.title} (${DIRECT_STAGE_LABELS[s] ?? DIRECT_STAGE_LABELS[s.toUpperCase()] ?? s}${deal.scheduledAt ? `, ${formatChatDateTime(deal.scheduledAt, workspaceTimezone)}` : ""})`; })
             .join(", ")}`,
         );
       } else if (likelyDealQuery) {
@@ -715,7 +723,7 @@ function buildWorkspaceContextBlocks(
   return [...intentBlocks[classification.intent], includeBouncer ? context.bouncerStr : "", ...alwaysRelevant].filter(Boolean);
 }
 
-function formatClientContextResult(result: Awaited<ReturnType<typeof runGetClientContext>>): string {
+function formatClientContextResult(result: Awaited<ReturnType<typeof runGetClientContext>>, workspaceTimezone?: string | null): string {
   if (result.ambiguousMatches?.length) {
     const lines = ["I found multiple contacts that match. Tell me which one you mean:"];
     result.ambiguousMatches.forEach((match, index) => {
@@ -746,7 +754,7 @@ function formatClientContextResult(result: Awaited<ReturnType<typeof runGetClien
     lines.push("Recent jobs:");
     for (const job of result.recentJobs) {
       const stageLabel = DIRECT_STAGE_LABELS[job.stage] ?? DIRECT_STAGE_LABELS[String(job.stage).toUpperCase()] ?? job.stage;
-      lines.push(`- ${job.title} (${stageLabel}${job.scheduledAt ? `, ${new Date(job.scheduledAt).toLocaleString("en-AU")}` : ""})`);
+      lines.push(`- ${job.title} (${stageLabel}${job.scheduledAt ? `, ${formatChatDateTime(job.scheduledAt, workspaceTimezone)}` : ""})`);
     }
   }
 
@@ -758,7 +766,7 @@ function formatClientContextResult(result: Awaited<ReturnType<typeof runGetClien
   return lines.join("\n");
 }
 
-function formatTodaySummaryResult(summary: Awaited<ReturnType<typeof runGetTodaySummary>>): string {
+function formatTodaySummaryResult(summary: Awaited<ReturnType<typeof runGetTodaySummary>>, workspaceTimezone?: string | null): string {
   const lines = ["Today's CRM summary:"];
 
   if (summary.preparationAlerts.length) {
@@ -773,7 +781,7 @@ function formatTodaySummaryResult(summary: Awaited<ReturnType<typeof runGetToday
   if (summary.todayJobs.length) {
     lines.push("Today's jobs:");
     for (const job of summary.todayJobs) {
-      lines.push(`- ${job.scheduledAt}: ${job.title} for ${job.clientName}${job.assignedTo ? ` (${job.assignedTo})` : ""}`);
+      lines.push(`- ${formatChatDateTime(job.scheduledAt, workspaceTimezone)}: ${job.title} for ${job.clientName}${job.assignedTo ? ` (${job.assignedTo})` : ""}`);
     }
   } else {
     lines.push("Today's jobs: none scheduled.");
@@ -790,13 +798,13 @@ function formatTodaySummaryResult(summary: Awaited<ReturnType<typeof runGetToday
   return lines.join("\n");
 }
 
-function formatAvailabilityResult(result: Awaited<ReturnType<typeof runGetAvailability>>, phrase: string): string {
+function formatAvailabilityResult(result: Awaited<ReturnType<typeof runGetAvailability>>, phrase: string, workspaceTimezone?: string | null): string {
   const lines = [`Availability for ${phrase}:`];
 
   if (result.scheduledJobs.length) {
     lines.push("Booked:");
     for (const job of result.scheduledJobs) {
-      lines.push(`- ${job.title} at ${new Date(job.startTime).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" })} for ${job.clientName}`);
+      lines.push(`- ${job.title} at ${formatTimeInTimezone(job.startTime, resolveWorkspaceTimezone(workspaceTimezone))} for ${job.clientName}`);
     }
   } else {
     lines.push("Booked: no jobs yet.");
@@ -957,7 +965,7 @@ async function executeDirectCrmCommand({ workspaceId, content }: DirectCommandCo
       };
     }
     const jobLines = result.recentJobs.length
-      ? result.recentJobs.map((job) => `- ${job.title} (${job.stage}${job.scheduledAt ? `, ${new Date(job.scheduledAt).toLocaleString("en-AU")}` : ""})`).join("\n")
+      ? result.recentJobs.map((job) => `- ${job.title} (${job.stage}${job.scheduledAt ? `, ${formatChatDateTime(job.scheduledAt)}` : ""})`).join("\n")
       : "No jobs found for that contact.";
     return {
       text: `Jobs for ${result.client.name}:\n${jobLines}`,
@@ -1335,7 +1343,7 @@ async function executeDirectCrmCommand({ workspaceId, content }: DirectCommandCo
       workspaceTimezone: typeof settings?.workspaceTimezone === "string" ? settings.workspaceTimezone : undefined,
     });
     return {
-      text: formatAvailabilityResult(result, cleanDirectValue(match[1])),
+      text: formatAvailabilityResult(result, cleanDirectValue(match[1]), settings?.workspaceTimezone),
       metricName: "chat.web.direct.availability",
     };
   }
@@ -1790,6 +1798,7 @@ export async function POST(req: Request) {
       content,
       classification,
       selectedDeals,
+      settings?.workspaceTimezone,
     );
     const workspaceContextBlocks = buildWorkspaceContextBlocks(classification, content, {
       currentDateStr: `CURRENT DATE/TIME:\n- Today is ${new Intl.DateTimeFormat("en-AU", {

@@ -68,6 +68,7 @@ import { runPricingLookup } from "@/actions/pricing-actions";
 import { calculate } from "@/lib/ai/pricing-calculator";
 import { buildJobDraftFromParams } from "@/lib/chat-utils";
 import type { WeeklyHours } from "@/lib/working-hours";
+import { formatDateTimeInTimezone, formatTimeInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone";
 
 /**
  * Returns the record of tool definitions for the AI agent to use, bound to a specific workspace and settings.
@@ -91,6 +92,7 @@ const nullableOptionalString = () =>
         .transform((value) => value ?? undefined);
 
 export function getAgentTools(workspaceId: string, settings: AgentToolSettings | null | undefined, userId?: string) {
+    const workspaceTimezone = resolveWorkspaceTimezone(settings?.workspaceTimezone);
     return {
         listDeals: tool({
             description: "List all jobs in the pipeline (id, title, stage, value).",
@@ -600,7 +602,7 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
                 const result = await runSearchJobHistory(workspaceId, { query, limit });
                 if (!result.jobs.length) return `No past jobs found matching "${query}".`;
                 return `Found ${result.jobs.length} job(s) matching "${query}":\n` + result.jobs.map(j =>
-                    `- ${j.title} for ${j.clientName}${j.address ? ` at ${j.address}` : ""} (${j.stage}${j.scheduledAt ? `, ${new Date(j.scheduledAt).toLocaleDateString("en-AU")}` : ""}) — $${j.value.toLocaleString()}`
+                    `- ${j.title} for ${j.clientName}${j.address ? ` at ${j.address}` : ""} (${j.stage}${j.scheduledAt ? `, ${formatDateTimeInTimezone(j.scheduledAt, workspaceTimezone)} (${workspaceTimezone})` : ""}) — $${j.value.toLocaleString()}`
                 ).join("\n");
             },
         }),
@@ -662,7 +664,7 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
                 if (result.recentJobs.length) {
                     lines.push("Recent jobs:");
                     for (const job of result.recentJobs) {
-                        lines.push(`- ${job.title} (${job.stage}${job.scheduledAt ? `, ${new Date(job.scheduledAt).toLocaleString("en-AU")}` : ""})`);
+                        lines.push(`- ${job.title} (${job.stage}${job.scheduledAt ? `, ${formatDateTimeInTimezone(job.scheduledAt, workspaceTimezone)} (${workspaceTimezone})` : ""})`);
                     }
                 }
                 if (result.recentNotes.length) {
@@ -689,7 +691,7 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
                 if (summary.todayJobs.length) {
                     lines.push("Today's jobs:");
                     for (const job of summary.todayJobs) {
-                        const time = job.scheduledAt ? new Date(job.scheduledAt).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" }) : "";
+                        const time = job.scheduledAt ? formatTimeInTimezone(job.scheduledAt, workspaceTimezone) : "";
                         const prep = job.preparations.length ? ` ⚠ ${job.preparations.join("; ")}` : "";
                         lines.push(`- ${time}: ${job.title} for ${job.clientName}${job.assignedTo ? ` (${job.assignedTo})` : ""}${prep}`);
                     }
