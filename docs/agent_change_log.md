@@ -5326,3 +5326,24 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/contact-crud-page-access.test.tsx __tests__/contact-page-access.test.tsx __tests__/contact-actions.test.ts __tests__/rbac.test.ts`
   - `npx next build`
+
+## 2026-04-12 - Core CRM page actor scoping
+
+- Files:
+  - `app/crm/map/page.tsx`
+  - `app/crm/schedule/page.tsx`
+  - `app/crm/estimator/page.tsx`
+  - `app/crm/inbox/page.tsx`
+  - `__tests__/map-page-access.test.tsx`
+  - `__tests__/schedule-page.test.tsx`
+  - `__tests__/crm-estimator-page.test.tsx`
+  - `__tests__/inbox-page.test.tsx`
+- What changed:
+  - Map, schedule, estimator, and inbox pages now use the workspace actor from shared workspace access instead of mixing auth-provider IDs with app `User.id` records.
+  - Team-member filtering on map, schedule, and estimator now compares assigned jobs against `actor.id`, so Google-authenticated users whose provider ID differs from their app user row still see the correct work.
+  - Inbox now scopes activities/contacts from `actor.workspaceId` and blocks team members from the global inbox without a second RBAC lookup.
+- Why:
+  - These are common day-to-day CRM surfaces. If a tradie logs in through Google, the page should not silently show no jobs or the wrong workspace just because the external auth ID differs from the CRM user ID.
+- Verified with:
+  - `npx vitest run __tests__/map-page-access.test.tsx __tests__/schedule-page.test.tsx __tests__/crm-estimator-page.test.tsx __tests__/inbox-page.test.tsx __tests__/contact-crud-page-access.test.tsx __tests__/rbac.test.ts`
+  - `npx next build`

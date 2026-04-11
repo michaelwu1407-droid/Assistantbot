@@ -2,26 +2,16 @@ import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 
-const { getAuthUser, getOrCreateWorkspace, getCurrentUserRole, getDeals, redirect } = vi.hoisted(() => ({
-  getAuthUser: vi.fn(),
-  getOrCreateWorkspace: vi.fn(),
-  getCurrentUserRole: vi.fn(),
+const { requireCurrentWorkspaceAccess, getDeals, redirect } = vi.hoisted(() => ({
+  requireCurrentWorkspaceAccess: vi.fn(),
   getDeals: vi.fn(),
   redirect: vi.fn((path: string) => {
     throw new Error(`REDIRECT:${path}`);
   }),
 }));
 
-vi.mock("@/lib/auth", () => ({
-  getAuthUser,
-}));
-
-vi.mock("@/actions/workspace-actions", () => ({
-  getOrCreateWorkspace,
-}));
-
-vi.mock("@/lib/rbac", () => ({
-  getCurrentUserRole,
+vi.mock("@/lib/workspace-access", () => ({
+  requireCurrentWorkspaceAccess,
 }));
 
 vi.mock("@/actions/deal-actions", () => ({
@@ -45,9 +35,11 @@ import CrmEstimatorPage from "@/app/crm/estimator/page";
 describe("CrmEstimatorPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    getAuthUser.mockResolvedValue({ id: "user_1" });
-    getOrCreateWorkspace.mockResolvedValue({ id: "ws_1" });
-    getCurrentUserRole.mockResolvedValue("OWNER");
+    requireCurrentWorkspaceAccess.mockResolvedValue({
+      id: "user_1",
+      role: "OWNER",
+      workspaceId: "ws_1",
+    });
     getDeals.mockResolvedValue([
       { id: "deal_1", title: "Blocked drain", stage: "scheduled", assignedToId: "user_1" },
       { id: "deal_2", title: "Lost lead", stage: "lost", assignedToId: "user_1" },
@@ -62,9 +54,13 @@ describe("CrmEstimatorPage", () => {
   });
 
   it("scopes team members to assigned deals only", async () => {
-    getCurrentUserRole.mockResolvedValue("TEAM_MEMBER");
+    requireCurrentWorkspaceAccess.mockResolvedValue({
+      id: "app_user_1",
+      role: "TEAM_MEMBER",
+      workspaceId: "ws_1",
+    });
     getDeals.mockResolvedValue([
-      { id: "deal_1", title: "Blocked drain", stage: "scheduled", assignedToId: "user_1" },
+      { id: "deal_1", title: "Blocked drain", stage: "scheduled", assignedToId: "app_user_1" },
       { id: "deal_2", title: "Hot water", stage: "scheduled", assignedToId: "user_2" },
     ]);
 
@@ -75,7 +71,7 @@ describe("CrmEstimatorPage", () => {
   });
 
   it("redirects unauthenticated users", async () => {
-    getAuthUser.mockResolvedValue(null);
+    requireCurrentWorkspaceAccess.mockRejectedValue(new Error("Unauthorized"));
 
     await expect(CrmEstimatorPage()).rejects.toThrow("REDIRECT:/auth");
   });

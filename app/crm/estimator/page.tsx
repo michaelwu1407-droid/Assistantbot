@@ -1,27 +1,23 @@
 import { getDeals } from "@/actions/deal-actions";
-import { getOrCreateWorkspace } from "@/actions/workspace-actions";
 import { EstimatorForm } from "@/components/tradie/estimator-form";
-import { getAuthUser } from "@/lib/auth";
-import { getCurrentUserRole } from "@/lib/rbac";
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function CrmEstimatorPage() {
-  const authUser = await getAuthUser();
-  if (!authUser) {
+  let actor: Awaited<ReturnType<typeof requireCurrentWorkspaceAccess>>;
+  try {
+    actor = await requireCurrentWorkspaceAccess();
+  } catch {
     redirect("/auth");
   }
 
-  const workspace = await getOrCreateWorkspace(authUser.id);
-  const [role, deals] = await Promise.all([
-    getCurrentUserRole(),
-    getDeals(workspace.id),
-  ]);
+  const deals = await getDeals(actor.workspaceId);
 
   const visibleDeals = deals
     .filter((deal) => deal.stage !== "deleted" && deal.stage !== "lost")
-    .filter((deal) => role !== "TEAM_MEMBER" || deal.assignedToId === authUser.id)
+    .filter((deal) => actor.role !== "TEAM_MEMBER" || deal.assignedToId === actor.id)
     .map((deal) => ({ id: deal.id, title: deal.title }));
 
   return (
@@ -42,7 +38,7 @@ export default async function CrmEstimatorPage() {
           </p>
         </div>
       ) : (
-        <EstimatorForm deals={visibleDeals as never[]} workspaceId={workspace.id} />
+        <EstimatorForm deals={visibleDeals as never[]} workspaceId={actor.workspaceId} />
       )}
     </div>
   );

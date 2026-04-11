@@ -1,10 +1,8 @@
 import { getDeals } from "@/actions/deal-actions"
-import { getOrCreateWorkspace } from "@/actions/workspace-actions"
-import { getAuthUserId } from "@/lib/auth"
 import { MapPageClient } from "@/components/map/map-page-client"
 import { Calendar } from "lucide-react"
 import { redirect } from "next/navigation"
-import { getCurrentUserRole } from "@/lib/rbac"
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access"
 
 export const dynamic = "force-dynamic"
 
@@ -25,8 +23,10 @@ function dealToMapJob(deal: { id: string; title: string; contactName: string; ad
 }
 
 export default async function DashboardMapPage() {
-    const userId = await getAuthUserId()
-    if (!userId) {
+    let actor: Awaited<ReturnType<typeof requireCurrentWorkspaceAccess>>
+    try {
+        actor = await requireCurrentWorkspaceAccess()
+    } catch {
         redirect("/auth")
     }
 
@@ -35,15 +35,13 @@ export default async function DashboardMapPage() {
     let errorMessage: string | null = null
 
     try {
-        const workspace = await getOrCreateWorkspace(userId)
-        const role = await getCurrentUserRole()
         // Server-side filtering: only fetch scheduled, non-deleted deals
-        let scheduledDeals = await getDeals(workspace.id, undefined, {
+        let scheduledDeals = await getDeals(actor.workspaceId, undefined, {
             excludeStages: ["DELETED"],
             requireScheduled: true,
         })
-        if (role === "TEAM_MEMBER") {
-            scheduledDeals = scheduledDeals.filter((deal) => deal.assignedToId === userId)
+        if (actor.role === "TEAM_MEMBER") {
+            scheduledDeals = scheduledDeals.filter((deal) => deal.assignedToId === actor.id)
         }
         scheduledDeals = scheduledDeals.filter((deal) => Boolean(deal.address?.trim()))
         displayJobs = scheduledDeals.map(dealToMapJob)
