@@ -5167,3 +5167,10 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/activity-actions.test.ts __tests__/inbox-view.test.tsx __tests__/inbox-page.test.tsx`
   - `npx next build`
+  - Live production Playwright via logged-in Chrome/CDP after Vercel deployed commit `79b5a4c`:
+    - Seeded QA thread `ZZZ Inbox QA 1775903958611` in the logged-in `Friendly Plumbing` workspace.
+    - Opened `/crm/inbox?contact=cmnu7d4d000011019qlwv80q8`.
+    - Verified the contact appears in the inbox list.
+    - Verified full `Inbound SMS` and `Outbound SMS` rows render in the conversation timeline with complete bodies.
+    - Verified `Direct SMS` and `Ask Tracey` next-step modes are both visible.
+    - Observed no `4xx/5xx` network responses during the check.
