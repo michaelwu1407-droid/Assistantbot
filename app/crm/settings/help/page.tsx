@@ -4,7 +4,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Phone, BookOpen, GraduationCap } from "lucide-react";
+import { Mail, BookOpen, GraduationCap } from "lucide-react";
 import { useShellStore } from "@/lib/store";
 import { SupportRequestPanel } from "@/components/settings/support-request-panel";
 
@@ -169,17 +169,17 @@ export default function HelpSettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Phone className="h-5 w-5" />
+            <Mail className="h-5 w-5" />
             Contact support
           </CardTitle>
-          <CardDescription>How to reach the support team.</CardDescription>
+          <CardDescription>Use email or the support request form below so the request is tracked.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <p>
             <strong>Email:</strong> support@earlymark.ai
           </p>
           <p>
-            <strong>Phone:</strong> 1300 EARLYMARK (Mon-Fri 9am-5pm AEST)
+            For urgent product issues, mark the request below as urgent and include the page, customer/job, and what you expected to happen.
           </p>
         </CardContent>
       </Card>

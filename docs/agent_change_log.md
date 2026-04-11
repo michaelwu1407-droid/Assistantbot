@@ -5284,3 +5284,19 @@ Rule: every agent change commit must include an entry in this file.
     - Console showed CSP blocks for `blob:` workers and Google Fonts styles on the map surface.
   - `npx vitest run __tests__/middleware.test.ts`
   - `npx next build`
+
+## 2026-04-12 - Help/support contact truth cleanup
+
+- Files:
+  - `app/crm/settings/help/page.tsx`
+  - `__tests__/settings-help-page.test.tsx`
+- What changed:
+  - Removed the unverified `1300 EARLYMARK` support phone number from Help.
+  - Help now points users to `support@earlymark.ai` and the tracked support request form, with urgent issues handled by setting the request priority.
+  - Added page coverage so the unverified support phone number does not come back.
+- Why:
+  - A fake or unproven support number is worse than no phone number: it creates a dead end exactly when the user is blocked.
+  - Support requests should go through a channel we know is configured/tracked.
+- Verified with:
+  - `npx vitest run __tests__/settings-help-page.test.tsx __tests__/support-contact-route.test.ts __tests__/support-request-panel.test.tsx`
+  - `npx next build`
