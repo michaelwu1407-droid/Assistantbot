@@ -21,6 +21,12 @@ const { notFound, requireDealInCurrentWorkspace, db } = vi.hoisted(() => ({
     voiceCall: {
       findMany: vi.fn(),
     },
+    chatMessage: {
+      findMany: vi.fn(),
+    },
+    contact: {
+      findMany: vi.fn(),
+    },
   },
 }));
 
@@ -122,6 +128,8 @@ describe("deal page access", () => {
     db.workspace.findUnique.mockResolvedValue({ workspaceTimezone: "Australia/Sydney" });
     db.activity.findMany.mockResolvedValue([]);
     db.voiceCall.findMany.mockResolvedValue([]);
+    db.chatMessage.findMany.mockResolvedValue([]);
+    db.contact.findMany.mockResolvedValue([]);
   });
 
   it("renders the deal detail page when access is allowed", async () => {
