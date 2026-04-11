@@ -327,6 +327,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Quote/billing wording now distinguishes draft quotes from issued invoices: `Create Draft Invoice`, `Email quote` for drafts, and `Email invoice` for issued invoices.
 - `fixed` Tradie field job details now use the job-specific address before falling back to the contact address, so field navigation no longer says `No address` when the CRM job has one.
 - `fixed` `START TRAVEL` no longer auto-sends an on-my-way SMS server-side. The message action sheet is now the single user-reviewed send path, avoiding silent failures and double sends.
+- `fixed` Reviewed customer-message sheets now explain and disable unavailable sends when customer details or the workspace Tracey SMS number are missing, instead of letting users hit a failing send action.
 
 ## Local-Only / Not Yet Shipped Context
 

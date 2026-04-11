@@ -127,7 +127,7 @@ export async function getMessagePreview(
       where: { id: dealId },
       include: {
         contact: true,
-        workspace: { select: { settings: true } },
+        workspace: { select: { settings: true, twilioPhoneNumber: true, twilioSubaccountId: true } },
       },
     }),
     db.smsTemplate.findFirst({
@@ -150,6 +150,14 @@ export async function getMessagePreview(
   // Determine channel using the same routing logic as actual sends
   const routedChannel = getNotificationChannel(contact, TRIGGER_TO_SCENARIO[triggerEvent]);
   const channel: "sms" | "email" = routedChannel === "portal-only" ? "sms" : routedChannel;
+  const unavailableReason =
+    channel === "sms" && !contact.phone
+      ? "Add a customer phone number before sending this SMS."
+      : channel === "sms" && (!deal.workspace.twilioPhoneNumber || !deal.workspace.twilioSubaccountId)
+        ? "Your Tracey SMS number is not provisioned yet. Finish phone setup in Settings before sending customer SMS."
+        : channel === "email" && !contact.email
+          ? "Add a customer email before sending this email."
+          : null;
 
   return {
     contactName: contact.name,
@@ -158,6 +166,8 @@ export async function getMessagePreview(
     channel,
     messageBody,
     isActive: template?.isActive ?? true,
+    canSend: !unavailableReason,
+    unavailableReason,
   };
 }
 

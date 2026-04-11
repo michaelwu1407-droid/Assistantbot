@@ -5099,7 +5099,10 @@ Rule: every agent change commit must include an entry in this file.
 
 - Files:
   - `components/tradie/job-billing-tab.tsx`
+  - `components/sms/message-action-sheet.tsx`
   - `actions/tradie-actions.ts`
+  - `actions/sms-templates.ts`
+  - `__tests__/message-action-sheet.test.tsx`
   - `__tests__/job-billing-tab.test.tsx`
   - `__tests__/tradie-actions.test.ts`
   - `__tests__/tradie-job-detail-view.test.tsx`
@@ -5108,6 +5111,7 @@ Rule: every agent change commit must include an entry in this file.
   - Draft invoice cards now expose `Email quote`; issued invoice cards expose `Email invoice`. The next-step copy now matches those two distinct user paths.
   - Field job details now use `deal.address` before `contact.address`, so a job with a job-specific address no longer appears as `No address` in the tradie view while the CRM page can navigate.
   - `START TRAVEL` no longer sends an automatic server-side on-my-way SMS. It only updates the CRM status; the opened action sheet remains the single reviewed customer-message path.
+  - The reviewed customer-message sheet now disables send and explains the recovery path when SMS/email is unavailable, including the no-provisioned-Tracey-number case.
 - Why:
   - The quote/invoice UI was technically functional but confusing: users could create a draft while the button said invoice, and email actions did not explain whether they were sending a quote or an invoice.
   - The field job view contradicted the office CRM by dropping the job address.
@@ -5117,4 +5121,5 @@ Rule: every agent change commit must include an entry in this file.
     - Created a draft invoice on QA job `cmntt3u150003d4rj56tvu1jc`; GST calculation was correct (`$12.34` -> `$13.57`), but UI wording was confusing.
     - Confirmed the tradie field page showed `No address` while the CRM job page had `123 Test Street, Sydney NSW`.
   - `npx vitest run __tests__/tradie-actions.test.ts __tests__/tradie-job-detail-view.test.tsx __tests__/job-billing-tab.test.tsx __tests__/tradie-job-completion-modal.test.tsx __tests__/crm-job-completion-modal.test.tsx`
+  - `npx vitest run __tests__/message-action-sheet.test.tsx __tests__/tradie-actions.test.ts __tests__/job-billing-tab.test.tsx`
   - `npx next build`
