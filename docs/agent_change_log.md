@@ -5192,3 +5192,18 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/tradie-job-completion-modal.test.tsx __tests__/crm-job-completion-modal.test.tsx __tests__/accounting-actions.test.ts`
   - `npx next build`
+
+## 2026-04-11 - Map route address truth pass
+
+- Files:
+  - `app/crm/map/page.tsx`
+  - `__tests__/map-page-access.test.tsx`
+- What changed:
+  - `/crm/map` now excludes scheduled jobs without an address before passing jobs into the map and route UI.
+  - Added regression coverage proving scheduled jobs with missing addresses are not rendered as navigable route targets.
+- Why:
+  - The map page tells users jobs appear once they have both a scheduled time and an address.
+  - Passing addressless jobs into route mode creates fake navigation targets and makes the field workflow feel untrustworthy.
+- Verified with:
+  - `npx vitest run __tests__/map-page-access.test.tsx __tests__/map-view.test.tsx __tests__/google-map-view.test.tsx __tests__/job-map-view.test.tsx __tests__/schedule-calendar.test.tsx __tests__/schedule-page.test.tsx`
+  - `npx next build`

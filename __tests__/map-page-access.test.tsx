@@ -93,4 +93,35 @@ describe("DashboardMapPage", () => {
     expect(screen.getByTestId("map-jobs")).toHaveTextContent("deal_1");
     expect(screen.getByTestId("map-jobs")).not.toHaveTextContent("deal_2");
   });
+
+  it("does not pass scheduled jobs without addresses to the route map", async () => {
+    getCurrentUserRole.mockResolvedValue("OWNER");
+    getDeals.mockResolvedValue([
+      {
+        id: "deal_1",
+        title: "Blocked drain",
+        contactName: "Alice",
+        address: "1 King St",
+        stage: "SCHEDULED",
+        value: 400,
+        scheduledAt: new Date("2026-04-04T09:00:00.000Z"),
+        assignedToId: "user_1",
+      },
+      {
+        id: "deal_no_address",
+        title: "Missing address",
+        contactName: "No Map",
+        address: "",
+        stage: "SCHEDULED",
+        value: 500,
+        scheduledAt: new Date("2026-04-04T11:00:00.000Z"),
+        assignedToId: "user_1",
+      },
+    ]);
+
+    render(await DashboardMapPage());
+
+    expect(screen.getByTestId("map-jobs")).toHaveTextContent("deal_1");
+    expect(screen.getByTestId("map-jobs")).not.toHaveTextContent("deal_no_address");
+  });
 });

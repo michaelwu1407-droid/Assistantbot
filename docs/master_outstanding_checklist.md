@@ -336,6 +336,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Inbox/customer timeline now includes actual SMS/email `chatMessage` rows as first-class correspondence, so full message history no longer depends on generic activity placeholders. Live production Playwright verified an inserted QA SMS thread renders as full inbound/outbound correspondence with the Direct SMS / Ask Tracey composer options visible.
 - `fixed` Job completion no longer proceeds to completed/Xero if local invoice generation fails; this protects the money workflow from false success.
 - `fixed` Xero draft sync failures are now expected but visible: the job timeline records `Xero Draft Invoice Skipped` with the reason while keeping the local invoice flow intact.
+- `fixed` CRM map route mode no longer receives scheduled jobs without an address. Addressless scheduled work now stays out of fake navigation until the user fixes the missing address.
 
 ## Local-Only / Not Yet Shipped Context
 

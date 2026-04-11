@@ -45,6 +45,7 @@ export default async function DashboardMapPage() {
         if (role === "TEAM_MEMBER") {
             scheduledDeals = scheduledDeals.filter((deal) => deal.assignedToId === userId)
         }
+        scheduledDeals = scheduledDeals.filter((deal) => Boolean(deal.address?.trim()))
         displayJobs = scheduledDeals.map(dealToMapJob)
 
         const todayStart = new Date()
