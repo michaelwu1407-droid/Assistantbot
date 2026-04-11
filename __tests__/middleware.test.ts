@@ -76,6 +76,16 @@ describe("middleware", () => {
     expect(response.headers.get("Content-Security-Policy")).toContain("https://project.supabase.co");
   });
 
+  it("allows production analytics workers and Google Maps font styles in the CSP header", async () => {
+    const response = await middleware(new NextRequest("https://app.example.com/crm/map"));
+    const csp = response.headers.get("Content-Security-Policy");
+
+    expect(csp).toContain("script-src 'self' 'unsafe-eval' 'unsafe-inline' blob:");
+    expect(csp).toContain("worker-src 'self' blob:");
+    expect(csp).toContain("style-src 'self' 'unsafe-inline' https://fonts.googleapis.com");
+    expect(csp).toContain("font-src 'self' data: https://fonts.gstatic.com");
+  });
+
   it("fixes the forwarded host for the local proxy case", async () => {
     const request = new NextRequest("https://app.example.com/dashboard", {
       headers: {

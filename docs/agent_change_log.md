@@ -5264,3 +5264,23 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/support-contact-route.test.ts __tests__/support-request-panel.test.tsx __tests__/settings-route-redirects.test.tsx __tests__/settings-layout.test.tsx`
   - `npx next build`
+
+## 2026-04-12 - Production CSP console-cleanup pass
+
+- Files:
+  - `middleware.ts`
+  - `next.config.mjs`
+  - `__tests__/middleware.test.ts`
+- What changed:
+  - Middleware CSP now allows `blob:` scripts/workers so browser-created analytics or app workers are not blocked.
+  - Middleware and static header CSP now allow Google Fonts stylesheet/font hosts needed by the Google Maps UI.
+  - Added regression coverage for the active middleware CSP header.
+- Why:
+  - Live production Playwright smoke testing showed Help, Inbox, Map, Dashboard, and AI Assistant loaded without 4xx/5xx responses, but browser console errors showed CSP blocks.
+  - Those console errors make the app look brittle and can break map/provider UI details even when the page appears to load.
+- Verified with:
+  - Live production Playwright before the fix:
+    - `/crm/settings/help`, `/crm/inbox`, `/crm/map`, `/crm/dashboard`, and `/crm/settings/agent` loaded for the logged-in browser with no 4xx/5xx responses.
+    - Console showed CSP blocks for `blob:` workers and Google Fonts styles on the map surface.
+  - `npx vitest run __tests__/middleware.test.ts`
+  - `npx next build`

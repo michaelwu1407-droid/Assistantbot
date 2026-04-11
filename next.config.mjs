@@ -64,6 +64,8 @@ export default withSentryConfig(nextConfig, {
               "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://us.i.posthog.com https://us-assets.i.posthog.com https://maps.googleapis.com https://maps.gstatic.com",
               "worker-src 'self' blob:",
               "img-src 'self' data: blob:",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "font-src 'self' data: https://fonts.gstatic.com",
             ].join('; '),
           },
         ],

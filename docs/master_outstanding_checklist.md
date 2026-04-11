@@ -344,6 +344,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Digest modal copy and digest descriptions now use clean plain separators and include an accessible modal description.
 - `fixed` Help/support request submission now resolves users through shared workspace access, so Google-authenticated accounts are not blocked by raw auth-ID lookup.
 - `fixed` Support request submissions now create a user-linked CRM activity note and return a truthful error when support email delivery is not configured.
+- `fixed` Production CSP now allows the blob workers and Google Fonts resources observed during live CRM smoke testing, reducing browser-console breakage on analytics/app worker and map surfaces.
 
 ## Local-Only / Not Yet Shipped Context
 
