@@ -5440,3 +5440,17 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/billing-actions.test.ts __tests__/billing-activation-flow.test.ts __tests__/settings-route-redirects.test.tsx`
   - `npx next build`
+
+## 2026-04-12 - Deviation learning actor scoping
+
+- Files:
+  - `actions/learning-actions.ts`
+  - `__tests__/learning-actions.test.ts`
+- What changed:
+  - Unresolved deviation reads now use `actor.workspaceId`.
+  - Deviation resolution now requires the deviation to belong to the actor workspace before marking it resolved or deleting matching negative-scope rules.
+- Why:
+  - This is part of the held-lead/evening-review feedback loop. A user should only see and resolve learning events for their own CRM workspace.
+- Verified with:
+  - `npx vitest run __tests__/learning-actions.test.ts __tests__/deal-actions.test.ts __tests__/deal-lifecycle-flow.test.ts`
+  - `npx next build`
