@@ -72,7 +72,7 @@ describe("JobBillingTab", () => {
 
     await user.type(screen.getByPlaceholderText("Item (e.g. Extra materials)"), "Extra labour");
     await user.type(screen.getByPlaceholderText("0"), "100");
-    await user.click(screen.getByRole("button", { name: "Create Invoice" }));
+    await user.click(screen.getByRole("button", { name: "Create Draft Invoice" }));
 
     await waitFor(() =>
       expect(generateQuote).toHaveBeenCalledWith("deal_1", [{ desc: "Extra labour", price: 100 }]),
@@ -90,13 +90,13 @@ describe("JobBillingTab", () => {
 
     await user.type(screen.getByPlaceholderText("Item (e.g. Extra materials)"), "Replacement part");
     await user.type(screen.getByPlaceholderText("0"), "75");
-    await user.click(screen.getByRole("button", { name: "Create Invoice" }));
+    await user.click(screen.getByRole("button", { name: "Create Draft Invoice" }));
 
     await waitFor(() =>
       expect(generateQuote).toHaveBeenCalledWith("deal_1", [{ desc: "Replacement part", price: 75 }]),
     );
     await waitFor(() => expect(getDealInvoices).toHaveBeenCalledTimes(2));
-    expect(toastSuccess).toHaveBeenCalledWith("Invoice created");
+    expect(toastSuccess).toHaveBeenCalledWith("Draft invoice created");
   });
 
   it("shows the next best action for a draft invoice", async () => {
@@ -115,9 +115,11 @@ describe("JobBillingTab", () => {
 
     render(<JobBillingTab dealId="deal_1" />);
 
-    expect(await screen.findByText("Finish the draft, then mark it as issued.")).toBeInTheDocument();
+    expect(await screen.findByText("Send the quote, or mark it as issued when it becomes the invoice.")).toBeInTheDocument();
     const nextActionCard = screen.getByText("Next best action").parentElement;
-    expect(nextActionCard).toHaveTextContent("You can still edit the line items first. When ready, use Mark issued, then Email customer to send it.");
+    expect(nextActionCard).toHaveTextContent("You can still edit the line items first. Use Email quote for the estimate, or Mark issued once the final invoice is ready.");
+    expect(screen.getByRole("button", { name: /Email quote/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Email customer/i })).not.toBeInTheDocument();
   });
 
   it("shows the next best action for an issued invoice", async () => {
@@ -138,6 +140,7 @@ describe("JobBillingTab", () => {
 
     expect(await screen.findByText("Email the invoice if needed, then mark it as paid once payment lands.")).toBeInTheDocument();
     const nextActionCard = screen.getByText("Next best action").parentElement;
-    expect(nextActionCard).toHaveTextContent("This invoice is already marked as issued. Use Email customer to send or resend it, then Mark Paid once payment lands.");
+    expect(nextActionCard).toHaveTextContent("This invoice is already marked as issued. Use Email invoice to send or resend it, then Mark Paid once payment lands.");
+    expect(screen.getByRole("button", { name: /Email invoice/i })).toBeInTheDocument();
   });
 });

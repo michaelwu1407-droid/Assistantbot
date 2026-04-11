@@ -142,7 +142,7 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                 toast.error(result.error ?? "Failed to create invoice")
                 return
             }
-            toast.success("Invoice created")
+            toast.success("Draft invoice created")
             setVariationDesc("")
             setVariationPrice("")
             await fetchInvoices()
@@ -232,10 +232,10 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                     {priceError && <p className="text-xs text-red-500">{priceError}</p>}
                     <Button onClick={handleCreateInvoice} disabled={creating || !variationDesc.trim()} className="w-full bg-slate-900 hover:bg-slate-800">
                         {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-                        Create Invoice
+                        Create Draft Invoice
                     </Button>
                     <p className="text-xs text-slate-400 text-center">
-                        Creates a draft — mark it as <strong>Issued</strong> when it is ready, then use <strong>Email customer</strong> to send it.
+                        Creates a draft quote. Use <strong>Email quote</strong> to send an estimate, or <strong>Mark issued</strong> when it is ready to become an invoice.
                     </p>
                 </CardContent>
             </Card>
@@ -263,16 +263,16 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                             </>
                         ) : latestInvoice.status === "DRAFT" ? (
                             <>
-                                <p className="text-sm font-medium text-slate-900">Finish the draft, then mark it as issued.</p>
+                                <p className="text-sm font-medium text-slate-900">Send the quote, or mark it as issued when it becomes the invoice.</p>
                                 <p className="text-xs text-slate-500">
-                                    You can still edit the line items first. When ready, use <strong>Mark issued</strong>, then <strong>Email customer</strong> to send it.
+                                    You can still edit the line items first. Use <strong>Email quote</strong> for the estimate, or <strong>Mark issued</strong> once the final invoice is ready.
                                 </p>
                             </>
                         ) : latestInvoice.status === "ISSUED" ? (
                             <>
                                 <p className="text-sm font-medium text-slate-900">Email the invoice if needed, then mark it as paid once payment lands.</p>
                                 <p className="text-xs text-slate-500">
-                                    This invoice is already marked as issued. Use <strong>Email customer</strong> to send or resend it, then <strong>Mark Paid</strong> once payment lands.
+                                    This invoice is already marked as issued. Use <strong>Email invoice</strong> to send or resend it, then <strong>Mark Paid</strong> once payment lands.
                                 </p>
                             </>
                         ) : latestInvoice.status === "PAID" ? (
@@ -398,11 +398,11 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                                             </Button>
                                         )}
 
-                                        {/* Email — available on DRAFT, ISSUED */}
+                                        {/* Email — draft sends a quote, issued sends an invoice. */}
                                         {(inv.status === "DRAFT" || inv.status === "ISSUED") && (
                                             <Button size="sm" variant="outline" className="text-xs h-8" disabled={busy} onClick={() => handleEmail(inv.id)}>
                                                 {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Mail className="w-3 h-3 mr-1" />}
-                                                Email customer
+                                                {inv.status === "DRAFT" ? "Email quote" : "Email invoice"}
                                             </Button>
                                         )}
 

@@ -5094,3 +5094,27 @@ Rule: every agent change commit must include an entry in this file.
     - `/crm/settings/call-settings` loaded with the provisioning notice and `Save contact hours` succeeded with no network failures.
 - Notes:
   - `npx tsc --noEmit --pretty false` still reports existing test-type debt outside this change (`contact-api-route`, `deal-api-route`, `map-view`, `task-actions`, `tradie-job-completion-modal`, `twilio-voice-gateway-route`). The production build passes.
+
+## 2026-04-11 - Quote, field job, and on-my-way workflow clarity pass
+
+- Files:
+  - `components/tradie/job-billing-tab.tsx`
+  - `actions/tradie-actions.ts`
+  - `__tests__/job-billing-tab.test.tsx`
+  - `__tests__/tradie-actions.test.ts`
+  - `__tests__/tradie-job-detail-view.test.tsx`
+- What changed:
+  - The billing panel now says `Create Draft Invoice` instead of `Create Invoice` when the action creates a draft quote/invoice record.
+  - Draft invoice cards now expose `Email quote`; issued invoice cards expose `Email invoice`. The next-step copy now matches those two distinct user paths.
+  - Field job details now use `deal.address` before `contact.address`, so a job with a job-specific address no longer appears as `No address` in the tradie view while the CRM page can navigate.
+  - `START TRAVEL` no longer sends an automatic server-side on-my-way SMS. It only updates the CRM status; the opened action sheet remains the single reviewed customer-message path.
+- Why:
+  - The quote/invoice UI was technically functional but confusing: users could create a draft while the button said invoice, and email actions did not explain whether they were sending a quote or an invoice.
+  - The field job view contradicted the office CRM by dropping the job address.
+  - The on-my-way flow risked hidden sends, silent SMS failures, or double customer messages.
+- Verified with:
+  - Live production Playwright before the fix:
+    - Created a draft invoice on QA job `cmntt3u150003d4rj56tvu1jc`; GST calculation was correct (`$12.34` -> `$13.57`), but UI wording was confusing.
+    - Confirmed the tradie field page showed `No address` while the CRM job page had `123 Test Street, Sydney NSW`.
+  - `npx vitest run __tests__/tradie-actions.test.ts __tests__/tradie-job-detail-view.test.tsx __tests__/job-billing-tab.test.tsx __tests__/tradie-job-completion-modal.test.tsx __tests__/crm-job-completion-modal.test.tsx`
+  - `npx next build`

@@ -141,6 +141,35 @@ describe("Tradie JobDetailView", () => {
     expect(screen.getByRole("button", { name: /Navigate/i })).toBeInTheDocument();
   });
 
+  it("uses the job address for field navigation when it is available", () => {
+    render(
+      <JobDetailView
+        job={{
+          id: "deal_5",
+          contactId: "contact_5",
+          title: "Blocked Drain",
+          client: {
+            name: "Alex Harper",
+            phone: "0400000000",
+            email: "alex@example.com",
+            address: "123 Job Street, Sydney NSW",
+          },
+          status: "SCHEDULED",
+          value: 250,
+          description: "Drain issue",
+          safetyCheckCompleted: false,
+          activities: [],
+          invoices: [],
+          photos: [],
+        }}
+      />,
+    );
+
+    expect(screen.getByText("123 Job Street, Sydney NSW")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Navigate/i })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /add address in crm/i })).not.toBeInTheDocument();
+  });
+
   it("routes the chat tab into the real unified customer timeline", async () => {
     const user = userEvent.setup();
 

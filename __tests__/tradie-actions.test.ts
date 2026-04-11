@@ -80,7 +80,7 @@ vi.mock("@/lib/logging", () => ({
   },
 }));
 
-import { generateQuote, getNextJob, getTodaySchedule, getTradieJobs, markInvoicePaid, sendOnMyWaySMS } from "@/actions/tradie-actions";
+import { generateQuote, getJobDetails, getNextJob, getTodaySchedule, getTradieJobs, markInvoicePaid, sendOnMyWaySMS, updateJobStatus } from "@/actions/tradie-actions";
 
 describe("tradie-actions", () => {
   beforeEach(() => {
@@ -285,6 +285,37 @@ describe("tradie-actions", () => {
     });
   });
 
+  it("uses the deal address before the contact address for field job details", async () => {
+    hoisted.requireDealInCurrentWorkspace.mockResolvedValue({
+      actor: { id: "user_1", workspaceId: "ws_1" },
+      deal: { id: "deal_1", workspaceId: "ws_1" },
+    });
+    hoisted.db.deal.findFirst.mockResolvedValue({
+      id: "deal_1",
+      contactId: "contact_1",
+      title: "Blocked drain",
+      jobStatus: "SCHEDULED",
+      stage: "SCHEDULED",
+      value: new Prisma.Decimal("120.00"),
+      metadata: { description: "Kitchen drain" },
+      safetyCheckCompleted: false,
+      address: "123 Job Street, Sydney NSW",
+      contact: {
+        name: "Alex",
+        phone: "0400000000",
+        email: "alex@example.com",
+        address: null,
+      },
+      activities: [],
+      invoices: [],
+      jobPhotos: [],
+    });
+
+    const result = await getJobDetails("deal_1");
+
+    expect(result?.client.address).toBe("123 Job Street, Sydney NSW");
+  });
+
   it("marks invoices paid, moves the deal to WON, and records audit metadata", async () => {
     hoisted.db.invoice.findUnique.mockResolvedValue({
       id: "inv_1",
@@ -375,5 +406,13 @@ describe("tradie-actions", () => {
       include: { contact: true },
     });
     expect(hoisted.sendSMS).toHaveBeenCalledWith("contact_1", "Hi Taylor, I'm on my way to Blocked drain. See you soon!");
+  });
+
+  it("does not auto-send an on-my-way SMS when only changing status to traveling", async () => {
+    const result = await updateJobStatus("deal_1", "TRAVELING");
+
+    expect(result).toEqual({ success: true, status: "TRAVELING" });
+    expect(hoisted.sendSMS).not.toHaveBeenCalled();
+    expect(hoisted.trackEvent).toHaveBeenCalledWith("workflow_start_travel", { jobId: "deal_1" });
   });
 });

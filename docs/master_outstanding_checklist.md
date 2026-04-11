@@ -324,6 +324,9 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Automated/customer SMS sending now matches the settings promise: if the workspace has no provisioned Tracey SMS sender, customer-facing SMS fails clearly instead of silently using a platform fallback number.
 - `fixed` Settings > Privacy no longer exposes `DRAFT` labels in the data policy summary.
 - `open` Full `tsc --noEmit` still has pre-existing test-type debt outside the latest settings/SMS changes. `next build` remains the production gate and currently passes.
+- `fixed` Quote/billing wording now distinguishes draft quotes from issued invoices: `Create Draft Invoice`, `Email quote` for drafts, and `Email invoice` for issued invoices.
+- `fixed` Tradie field job details now use the job-specific address before falling back to the contact address, so field navigation no longer says `No address` when the CRM job has one.
+- `fixed` `START TRAVEL` no longer auto-sends an on-my-way SMS server-side. The message action sheet is now the single user-reviewed send path, avoiding silent failures and double sends.
 
 ## Local-Only / Not Yet Shipped Context
 

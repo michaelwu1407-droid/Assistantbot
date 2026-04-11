@@ -347,7 +347,7 @@ export async function getJobDetails(jobId: string) {
       name: deal.contact.name,
       phone: deal.contact.phone,
       email: deal.contact.email,
-      address: deal.contact.address,
+      address: deal.address || deal.contact.address,
     },
     status: deal.jobStatus || deal.stage,
     value: deal.value ? Number(deal.value) : 0,
@@ -428,7 +428,6 @@ export async function updateJobStatus(jobId: string, status: 'SCHEDULED' | 'TRAV
   // 2. Trigger Side Effects
   if (status === 'TRAVELING') {
     MonitoringService.trackEvent("workflow_start_travel", { jobId });
-    await sendOnMyWaySMS(jobId);
   }
 
   if (status === 'COMPLETED') {
