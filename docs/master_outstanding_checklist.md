@@ -333,6 +333,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Obvious inbound customer SMS enquiries now create a CRM `NEW` deal when there is no active job for that contact, so SMS leads do not depend solely on the LLM choosing a create-deal tool.
 - `fixed` SMS leads held by triage now notify the owner and do not auto-reply to the customer, matching the "hold silently for evening/user review" policy.
 - `open` Real provider/device verification is still needed later for actual inbound SMS, provider email, webform, and LiveKit call paths; the current pass gives deterministic route coverage and production build proof, not carrier/provider proof.
+- `fixed` Inbox/customer timeline now includes actual SMS/email `chatMessage` rows as first-class correspondence, so full message history no longer depends on generic activity placeholders.
 
 ## Local-Only / Not Yet Shipped Context
 

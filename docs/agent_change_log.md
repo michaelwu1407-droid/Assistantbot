@@ -5151,3 +5151,19 @@ Rule: every agent change commit must include an entry in this file.
   - `npx vitest run __tests__/triage.test.ts __tests__/webform-route.test.ts __tests__/inbound-email-route.test.ts __tests__/twilio-sms-webhook.test.ts`
   - `npx vitest run __tests__/twilio-sms-webhook.test.ts __tests__/webform-route.test.ts __tests__/inbound-email-route.test.ts`
   - `npx next build`
+
+## 2026-04-11 - Inbox timeline now includes actual SMS/email message rows
+
+- Files:
+  - `actions/activity-actions.ts`
+  - `__tests__/activity-actions.test.ts`
+- What changed:
+  - `getActivities()` now merges customer-facing `chatMessage` rows for SMS/email into the shared `ActivityView` timeline, alongside Activities, voice calls, and voicemails.
+  - Chat messages are mapped with channel, direction, full body text, contact details, deal links, and readable titles like `Inbound SMS` / `Outbound SMS`.
+  - Inbox, deal history, and contact history can now show the real SMS/email back-and-forth instead of relying on generic `SMS Conversation` activity placeholders.
+- Why:
+  - The inbox UI already had the right product pattern: compact previews, expandable long messages/transcripts, channel labels, and clear direct/Tracey composer modes.
+  - The missing piece was the data source. SMS and some AI email replies are persisted as `chatMessage` rows, so the user could miss full correspondence even though the UI looked complete.
+- Verified with:
+  - `npx vitest run __tests__/activity-actions.test.ts __tests__/inbox-view.test.tsx __tests__/inbox-page.test.tsx`
+  - `npx next build`
