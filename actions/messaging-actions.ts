@@ -69,9 +69,13 @@ async function getWorkspaceTwilioCreds(workspaceId: string) {
   return workspace;
 }
 
+function hasProvisionedSmsSender(workspace: { twilioSubaccountId: string | null; twilioPhoneNumber: string | null } | null | undefined) {
+  return Boolean(workspace?.twilioSubaccountId && workspace.twilioPhoneNumber);
+}
+
 /**
  * Send an SMS via Twilio using the workspace's provisioned subaccount.
- * Falls back to env vars if workspace credentials aren't available.
+ * Customer-facing SMS must come from the workspace's provisioned number.
  */
 async function sendViaTwilio(
   to: string,
@@ -79,22 +83,24 @@ async function sendViaTwilio(
   channel: "sms" | "whatsapp",
   workspaceId?: string
 ): Promise<{ success: boolean; sid?: string; error?: string }> {
-  let accountSid = process.env.TWILIO_ACCOUNT_SID;
-  let authToken = process.env.TWILIO_AUTH_TOKEN;
-  let fromNumber = channel === "whatsapp"
-    ? process.env.TWILIO_WHATSAPP_NUMBER
-    : process.env.TWILIO_PHONE_NUMBER;
+  let accountSid: string | undefined;
+  let authToken: string | undefined;
+  let fromNumber: string | undefined;
 
   // Try workspace-specific Twilio credentials first
   if (workspaceId) {
     const wsCreds = await getWorkspaceTwilioCreds(workspaceId);
-    if (wsCreds?.twilioSubaccountId && wsCreds?.twilioPhoneNumber) {
-      accountSid = wsCreds.twilioSubaccountId;
+    if (hasProvisionedSmsSender(wsCreds)) {
+      accountSid = wsCreds!.twilioSubaccountId!;
       // Subaccount auth token — stored as env var keyed by subaccount SID
       // or use the master account's auth token (Twilio allows parent auth on subaccounts)
-      authToken = process.env.TWILIO_AUTH_TOKEN || authToken;
-      fromNumber = wsCreds.twilioPhoneNumber;
+      authToken = process.env.TWILIO_AUTH_TOKEN;
+      fromNumber = wsCreds!.twilioPhoneNumber!;
     }
+  } else if (channel === "whatsapp") {
+    accountSid = process.env.TWILIO_ACCOUNT_SID;
+    authToken = process.env.TWILIO_AUTH_TOKEN;
+    fromNumber = process.env.TWILIO_WHATSAPP_NUMBER;
   }
 
   if (!accountSid || !authToken || !fromNumber) {
@@ -341,7 +347,7 @@ export async function sendBulkSMS(
   // Batch fetch all contacts in one query instead of N individual queries
   const contacts = await db.contact.findMany({
     where: { id: { in: contactIds } },
-    select: { id: true, name: true, phone: true },
+    select: { id: true, name: true, phone: true, workspaceId: true },
   });
   const contactMap = new Map(contacts.map((c) => [c.id, c]));
 
@@ -369,7 +375,7 @@ export async function sendBulkSMS(
       contact.name
     );
 
-    const result = await sendViaTwilio(contact.phone, personalizedMessage, "sms");
+    const result = await sendViaTwilio(contact.phone, personalizedMessage, "sms", contact.workspaceId);
 
     if (result.success) {
       sent++;

@@ -1,7 +1,8 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { getAuthUserId } from "@/lib/auth";
+import { getAuthUser, getAuthUserId } from "@/lib/auth";
+import { ensureWorkspaceUserForAuth, getOrCreateWorkspace } from "@/actions/workspace-actions";
 import { revalidatePath } from "next/cache";
 import { generateObject } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
@@ -24,12 +25,35 @@ export interface KnowledgeRule {
 async function getWorkspaceId(): Promise<string> {
   const userId = await getAuthUserId();
   if (!userId) throw new Error("Not authenticated");
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    select: { workspaceId: true },
+  const workspace = await getOrCreateWorkspace(userId);
+  return workspace.id;
+}
+
+async function getBusinessProfileUserId(): Promise<string> {
+  const authUserId = await getAuthUserId();
+  if (!authUserId) throw new Error("Not authenticated");
+
+  const authUser = await getAuthUser();
+  const workspace = await getOrCreateWorkspace(authUserId);
+  const existingUser = await db.user.findFirst({
+    where: {
+      OR: [
+        { id: authUserId },
+        ...(authUser?.email ? [{ email: authUser.email }] : []),
+      ],
+    },
+    select: { id: true },
   });
-  if (!user) throw new Error("User not found");
-  return user.workspaceId;
+
+  if (existingUser?.id) return existingUser.id;
+
+  const ensured = await ensureWorkspaceUserForAuth({
+    workspaceId: workspace.id,
+    role: "OWNER",
+    authUserIdOverride: authUserId,
+    name: authUser?.name,
+  });
+  return ensured.id;
 }
 
 // ─── Queries ────────────────────────────────────────────────────────
@@ -168,13 +192,20 @@ export async function updateServiceArea(
   serviceSuburbs: string[]
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const userId = await getAuthUserId();
-    if (!userId) throw new Error("Not authenticated");
-    await db.businessProfile.update({
+    const userId = await getBusinessProfileUserId();
+    const cleanedSuburbs = serviceSuburbs.map((s) => s.trim()).filter(Boolean);
+    await db.businessProfile.upsert({
       where: { userId },
-      data: {
+      update: {
         serviceRadius,
-        serviceSuburbs: serviceSuburbs.filter((s) => s.trim()),
+        serviceSuburbs: cleanedSuburbs,
+      },
+      create: {
+        userId,
+        tradeType: "General",
+        baseSuburb: "",
+        serviceRadius,
+        serviceSuburbs: cleanedSuburbs,
       },
     });
     revalidatePath("/crm/settings/knowledge");
@@ -192,8 +223,7 @@ export async function getServiceArea(): Promise<{
   baseSuburb: string;
 } | null> {
   try {
-    const userId = await getAuthUserId();
-    if (!userId) return null;
+    const userId = await getBusinessProfileUserId();
     const profile = await db.businessProfile.findUnique({
       where: { userId },
       select: { serviceRadius: true, serviceSuburbs: true, baseSuburb: true },

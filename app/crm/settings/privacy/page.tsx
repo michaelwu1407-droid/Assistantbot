@@ -62,17 +62,17 @@ export default function PrivacySettingsPage() {
       <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
         <CardHeader>
           <CardTitle>Data policy</CardTitle>
-          <CardDescription>DRAFT</CardDescription>
+          <CardDescription>Operational data handling summary.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            DRAFT: Earlymark AI processes customer and job data to run lead handling, scheduling, messaging, and reporting workflows.
+            Earlymark AI processes customer and job data to run lead handling, scheduling, messaging, and reporting workflows.
           </p>
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            DRAFT: Data is retained for operational needs, security monitoring, billing compliance, and account history unless deletion is requested under applicable law.
+            Data is retained for operational needs, security monitoring, billing compliance, and account history unless deletion is requested under applicable law.
           </p>
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            DRAFT: Access is restricted to authorized systems and personnel, and integrations only receive the minimum data needed to provide connected features.
+            Access is restricted to authorized systems and personnel, and integrations only receive the minimum data needed to provide connected features.
           </p>
         </CardContent>
       </Card>

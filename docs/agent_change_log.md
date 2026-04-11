@@ -5067,3 +5067,25 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/tradie-job-detail-view.test.tsx`
   - `npx next build`
+
+## 2026-04-11 - Settings and SMS provisioning truth pass
+
+- Files:
+  - `actions/knowledge-actions.ts`
+  - `actions/messaging-actions.ts`
+  - `app/crm/settings/privacy/page.tsx`
+  - `__tests__/knowledge-actions.test.ts`
+  - `__tests__/messaging-actions.test.ts`
+- What changed:
+  - Fixed the live `Settings > My business` crash where Google-authenticated users could load the page but the pricing/service-area widgets crashed with `User not found`.
+  - Knowledge/service-area actions now resolve the workspace through the same auth/workspace path as the rest of the CRM instead of assuming the Supabase auth ID always matches an app `User.id` row.
+  - Customer-facing SMS no longer silently falls back to a platform Twilio env number when the workspace has no provisioned Tracey number.
+  - Removed user-facing `DRAFT` labels from the privacy/data policy settings copy.
+- Why:
+  - The settings experience must be truthful and usable under the actual Google-login account, not only under ideal seeded app-user rows.
+  - Settings said automated texts wait for provisioning, but production scheduling had sent a real SMS through fallback credentials. The product now fails honestly until the workspace sender is provisioned.
+- Verified with:
+  - `npx vitest run __tests__/messaging-actions.test.ts __tests__/knowledge-actions.test.ts __tests__/google-review-url-section.test.tsx __tests__/business-contact-form.test.tsx`
+  - `npx next build`
+- Notes:
+  - `npx tsc --noEmit --pretty false` still reports existing test-type debt outside this change (`contact-api-route`, `deal-api-route`, `map-view`, `task-actions`, `tradie-job-completion-modal`, `twilio-voice-gateway-route`). The production build passes.

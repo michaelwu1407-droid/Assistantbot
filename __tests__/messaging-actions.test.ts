@@ -87,6 +87,28 @@ describe("messaging-actions", () => {
     });
   });
 
+  it("does not fall back to the platform SMS number when a workspace has not been provisioned", async () => {
+    vi.stubEnv("TWILIO_ACCOUNT_SID", "ACplatform");
+    vi.stubEnv("TWILIO_PHONE_NUMBER", "+61999999999");
+    hoisted.db.workspace.findUnique.mockResolvedValue({
+      twilioSubaccountId: null,
+      twilioPhoneNumber: null,
+    });
+    hoisted.db.contact.findUnique.mockResolvedValue({
+      id: "contact_1",
+      name: "Alex",
+      phone: "0400000000",
+      workspaceId: "ws_1",
+    });
+
+    const result = await sendSMS("contact_1", "Your booking is confirmed.", "deal_1");
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("SMS not configured yet");
+    expect(fetch).not.toHaveBeenCalled();
+    expect(hoisted.db.activity.create).not.toHaveBeenCalled();
+  });
+
   it("sends confirmation SMS, stores pending confirmation metadata, and logs the follow-up note", async () => {
     hoisted.db.deal.findUnique.mockResolvedValue({
       id: "deal_1",
