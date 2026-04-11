@@ -5247,3 +5247,20 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/chat-interface.test.tsx __tests__/digest.test.ts __tests__/chat-actions.test.ts`
   - `npx next build`
+
+## 2026-04-12 - Support request auth and delivery truth hardening
+
+- Files:
+  - `app/api/support/contact/route.ts`
+  - `__tests__/support-contact-route.test.ts`
+- What changed:
+  - Support request submission now uses shared workspace access instead of raw auth-ID user lookup.
+  - This keeps the Help/Support form working for Google-authenticated users whose auth ID may not equal the app `User.id`.
+  - Support request activity rows now include `userId`, making the CRM-side audit trail traceable to the user who submitted the request.
+  - Added API tests for unauthenticated access, configured Resend delivery, and the not-configured support email path.
+- Why:
+  - The support form is the user's safety net when something does not make sense. It must not fail for the same auth mapping issue already found in other settings flows.
+  - If support email delivery is not configured, the UI should receive a truthful failure and the app should still have a local note that the request was attempted.
+- Verified with:
+  - `npx vitest run __tests__/support-contact-route.test.ts __tests__/support-request-panel.test.tsx __tests__/settings-route-redirects.test.tsx __tests__/settings-layout.test.tsx`
+  - `npx next build`
