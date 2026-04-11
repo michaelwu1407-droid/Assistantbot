@@ -1,28 +1,16 @@
-import { db } from "@/lib/db";
-import { getAuthUserId } from "@/lib/auth";
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
 import type { UserRole } from "@/lib/store";
 
 /**
- * Get the current authenticated user's role from the database.
- * Returns "OWNER" as the safe default if lookup fails.
+ * Get the current authenticated user's role through the same workspace-aware
+ * resolver used by server actions and pages.
  */
 export async function getCurrentUserRole(): Promise<UserRole> {
   try {
-    // ── Resolve user role (depends on authUser result) ───────────────────
-    let userRole: string = "TEAM_MEMBER";
-    const userId = await getAuthUserId();
-    if (!userId) {
-      return userRole as UserRole; // Return default if no user ID
-    }
-    const user = await db.user.findUnique({
-      where: { id: userId },
-      select: { role: true },
-    });
-    // If user exists and has a role, use it; otherwise, default to "OWNER"
-    userRole = user?.role || "OWNER";
-    return userRole as UserRole;
+    const actor = await requireCurrentWorkspaceAccess();
+    return actor.role as UserRole;
   } catch {
-    return "OWNER" as UserRole;
+    return "TEAM_MEMBER" as UserRole;
   }
 }
 

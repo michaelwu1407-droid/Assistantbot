@@ -1,20 +1,20 @@
 import { redirect } from "next/navigation";
-import { getAuthUserId } from "@/lib/auth";
-import { isManagerOrAbove } from "@/lib/rbac";
-import { getOrCreateWorkspace } from "@/actions/workspace-actions";
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
 import { ContactForm } from "@/components/crm/contact-form";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewContactPage() {
-  const userId = await getAuthUserId();
-  if (!userId) redirect("/auth");
+  let actor: Awaited<ReturnType<typeof requireCurrentWorkspaceAccess>>;
+  try {
+    actor = await requireCurrentWorkspaceAccess();
+  } catch {
+    redirect("/auth");
+  }
 
-  if (!(await isManagerOrAbove())) {
+  if (actor.role === "TEAM_MEMBER") {
     redirect("/crm/dashboard");
   }
 
-  const workspace = await getOrCreateWorkspace(userId);
-
-  return <ContactForm mode="create" workspaceId={workspace.id} />;
+  return <ContactForm mode="create" workspaceId={actor.workspaceId} />;
 }

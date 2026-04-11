@@ -346,6 +346,8 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Support request submissions now create a user-linked CRM activity note and return a truthful error when support email delivery is not configured.
 - `fixed` Production CSP now allows the blob workers and Google Fonts resources observed during live CRM smoke testing, reducing browser-console breakage on analytics/app worker and map surfaces.
 - `fixed` Help no longer advertises the unverified `1300 EARLYMARK` support phone number; users are directed to the tracked support email/form path instead.
+- `fixed` Contact management pages now use shared workspace access for list/create/edit, so Google-authenticated users are not pushed through raw auth-ID workspace creation or blocked by mismatched user IDs.
+- `fixed` RBAC now fails closed to team-member access when workspace access cannot be resolved, instead of defaulting to owner-level access on lookup failure.
 
 ## Local-Only / Not Yet Shipped Context
 

@@ -5306,3 +5306,23 @@ Rule: every agent change commit must include an entry in this file.
   - Live production Playwright after deploy:
     - `/crm/settings/help` showed `support@earlymark.ai`, `Contact support`, and the support request form.
     - `1300 EARLYMARK` was not present.
+
+## 2026-04-12 - Contact management workspace-access hardening
+
+- Files:
+  - `lib/rbac.ts`
+  - `app/crm/contacts/page.tsx`
+  - `app/crm/contacts/new/page.tsx`
+  - `app/crm/contacts/[id]/edit/page.tsx`
+  - `__tests__/contact-crud-page-access.test.tsx`
+  - `__tests__/rbac.test.ts`
+- What changed:
+  - Contact list, create, and edit pages now resolve the current actor through shared workspace access instead of mixing raw auth IDs, `getOrCreateWorkspace`, and a separate RBAC lookup.
+  - The RBAC helper now uses the same workspace-aware resolver and fails closed to `TEAM_MEMBER` if access cannot be resolved.
+  - Team members are still redirected away from contact management, while owners/managers use the actor workspace ID for scoped contact reads.
+- Why:
+  - Real Google-authenticated users can have an auth ID that does not equal the app `User.id`; contact management is a core CRM workflow and should not break or create the wrong workspace under that condition.
+  - RBAC should never default to owner-level access when the user lookup fails.
+- Verified with:
+  - `npx vitest run __tests__/contact-crud-page-access.test.tsx __tests__/contact-page-access.test.tsx __tests__/contact-actions.test.ts __tests__/rbac.test.ts`
+  - `npx next build`
