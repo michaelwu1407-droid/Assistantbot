@@ -23,6 +23,7 @@ Status meanings:
 - `fixed` The assistant panel resize/toggle pill now uses the requested split-diamond / opposing-triangles control instead of the old vertical dots.
 - `fixed` The assistant panel defaults closed on first boot and then persists the user's open/closed state.
 - `fixed` Authenticated live Playwright testing found `/crm/deals/new` could clip the `Save Job & Close` button with no usable scroll; the standalone new-job page now owns vertical scrolling and the form card no longer uses a cramped `88vh` inner scroll.
+- `fixed` Authenticated live Playwright testing found the dashboard `Create new job` modal could place `Create Job` below short viewports; the modal now keeps its header/footer visible and scrolls only the body.
 
 ## Locked Product Decisions
 

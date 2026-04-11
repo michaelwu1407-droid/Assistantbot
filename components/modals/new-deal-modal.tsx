@@ -212,12 +212,13 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="w-[min(calc(100vw-1.5rem),54rem)] max-h-[88vh] overflow-y-auto p-0">
-                <DialogHeader className="border-b border-emerald-100/80 bg-[linear-gradient(180deg,rgba(16,185,129,0.08),rgba(255,255,255,0.5))] px-6 pb-5 pt-6 dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(16,185,129,0.12),rgba(255,255,255,0.03))]">
+            <DialogContent className="flex max-h-[calc(100dvh-1rem)] w-[min(calc(100vw-1.5rem),54rem)] flex-col overflow-hidden p-0">
+                <DialogHeader className="shrink-0 border-b border-emerald-100/80 bg-[linear-gradient(180deg,rgba(16,185,129,0.08),rgba(255,255,255,0.5))] px-6 pb-5 pt-6 dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(16,185,129,0.12),rgba(255,255,255,0.03))]">
                     <DialogTitle className="mt-1">Create new job</DialogTitle>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="grid gap-5 bg-[linear-gradient(180deg,rgba(248,250,249,0.96),rgba(241,245,243,0.98))] px-6 py-6 dark:bg-[linear-gradient(180deg,rgba(12,22,18,0.35),rgba(10,18,15,0.75))]">
+                <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col bg-[linear-gradient(180deg,rgba(248,250,249,0.96),rgba(241,245,243,0.98))] dark:bg-[linear-gradient(180deg,rgba(12,22,18,0.35),rgba(10,18,15,0.75))]">
+                    <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-6">
                     {/* Job Details */}
                     <div className="grid gap-4 rounded-[20px] border border-white/80 bg-white/80 p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-white/5">
                         <div className="space-y-1">
@@ -455,8 +456,9 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                             </div>
                         )}
                     </div>
+                    </div>
 
-                    <DialogFooter className="border-t border-white/70 pt-1 dark:border-white/10">
+                    <DialogFooter className="shrink-0 border-t border-white/70 bg-white/75 px-6 py-4 backdrop-blur dark:border-white/10 dark:bg-slate-950/70">
                         <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
                             Cancel
                         </Button>
