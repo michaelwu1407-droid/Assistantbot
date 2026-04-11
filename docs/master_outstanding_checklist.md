@@ -14,6 +14,15 @@ Status meanings:
 - `deferred`: intentionally left for later, usually because it needs live provider/device verification
 - `local-only`: known context from this chat that may exist only in the current local worktree or was discussed but not shipped
 
+## Branch Merge / Cleanup Status
+
+- `fixed` `origin/claude/fix-flaky-tests-Cltkr` is merged/accounted for in `main`.
+- `fixed` `origin/claude/revamp-onboarding-tutorial-CZ2PC` is merged/accounted for in `main`.
+- `fixed` `origin/claude/deploy-main-vercel-fnJCO` is merged/accounted for in `main`; conflict resolution kept the newer current Tracey behavior where it was stricter than the older branch.
+- `deferred` `backup/pre-sync-20260401-231757` is intentionally not merged because it contains older camera/video/upload work that conflicts with later decisions to remove fake/unproven field capture surfaces.
+- `fixed` The assistant panel resize/toggle pill now uses the requested split-diamond / opposing-triangles control instead of the old vertical dots.
+- `fixed` The assistant panel defaults closed on first boot and then persists the user's open/closed state.
+
 ## Locked Product Decisions
 
 - `fixed` Tracey must remain LLM-first for normal CRM interaction.

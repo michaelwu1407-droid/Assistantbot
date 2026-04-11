@@ -9,7 +9,7 @@ import { TutorialOverlay } from "@/components/tutorial/tutorial-overlay"
 import { Sidebar } from "@/components/core/sidebar"
 import { MobileSidebar } from "@/components/layout/mobile-sidebar"
 // Switch import removed — using segmented control buttons instead
-import { GripVertical, Layers, MessageSquare, Menu } from "lucide-react"
+import { Layers, MessageSquare, Menu } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import type { ImperativePanelGroupHandle, ImperativePanelHandle } from "react-resizable-panels"
@@ -21,7 +21,7 @@ const ASSISTANT_MAX_SIZE = 65
 const ASSISTANT_MIN_SIZE = 27
 
 export function Shell({ children, chatbot }: { children: React.ReactNode; chatbot?: React.ReactNode }) {
-  const { viewMode, setViewMode, tutorialStepIndex, lastAdvancedPath, setLastAdvancedPath, setAssistantPanelExpanded } = useShellStore()
+  const { viewMode, setViewMode, tutorialStepIndex, lastAdvancedPath, setLastAdvancedPath, assistantPanelExpanded, setAssistantPanelExpanded, _hydrated } = useShellStore()
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
@@ -205,19 +205,21 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
     return () => clearTimeout(t)
   }, [viewMode, tutorialStepIndex])
 
-  // Default chat panel: open on home (desktop only), closed on other pages; on mobile always closed
+  // Default chat panel: closed on first boot; after that, respect the user's last open/closed state.
   useEffect(() => {
-    if (isBasicView) return
-    const openOnHome = pathname === CRM_PIPELINE_HOME && isDesktop
-    if (openOnHome) {
+    if (isBasicView || viewMode === "TUTORIAL" || !_hydrated) return
+    if (assistantPanelExpanded && isDesktop) {
       const t = setTimeout(() => {
         chatbotPanelRef.current?.expand()
+        setChatbotExpanded(true)
       }, 50)
       return () => clearTimeout(t)
-    } else {
-      chatbotPanelRef.current?.collapse()
     }
-  }, [pathname, isDesktop, isBasicView])
+
+    chatbotPanelRef.current?.collapse()
+    setChatbotExpanded(false)
+    syncAssistantEdgeOffset(assistantPanelSizeRef.current, false)
+  }, [assistantPanelExpanded, isDesktop, isBasicView, viewMode, _hydrated])
 
   const handleTutorialComplete = async () => {
     const workspaceId = useShellStore.getState().workspaceId;
@@ -457,7 +459,11 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
                   event.stopPropagation()
                 }}
               >
-                <GripVertical className="h-5 w-5 text-muted-foreground" />
+                <span className="flex items-center justify-center" aria-hidden="true">
+                  <span className="h-0 w-0 border-y-[5px] border-y-transparent border-r-[6px] border-r-muted-foreground" />
+                  <span className="mx-[2px] h-5 w-px rounded-full bg-border" />
+                  <span className="h-0 w-0 border-y-[5px] border-y-transparent border-l-[6px] border-l-muted-foreground" />
+                </span>
               </button>
             </div>
           </div>

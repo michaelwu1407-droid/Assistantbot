@@ -4983,6 +4983,25 @@ Rule: every agent change commit must include an entry in this file.
   - `npx vitest run __tests__/contact-profile.test.tsx`
   - `npx next build`
 
+## 2026-04-11 - Claude quote branch merged and assistant pill shipped
+
+- Files:
+  - `app/api/chat/route.ts`
+  - `components/layout/Shell.tsx`
+  - `lib/store.ts`
+  - `__tests__/shell-store.test.ts`
+- What changed:
+  - Merged `origin/claude/deploy-main-vercel-fnJCO` into the current integration branch so the Claude quote/invoice branch is formally accounted for.
+  - Kept the newer current Tracey classifier/tool behavior where conflicts overlapped with the older branch, while preserving the non-conflicting route improvements from the merge.
+  - Replaced the assistant resize/toggle grip dots with the requested split-diamond / two-opposing-triangles control.
+  - The assistant panel now defaults closed on first boot, then persists the user's open/closed state via `pj_assistant_panel_expanded`.
+- Branch decision:
+  - `origin/claude/fix-flaky-tests-Cltkr`, `origin/claude/revamp-onboarding-tutorial-CZ2PC`, and `origin/claude/deploy-main-vercel-fnJCO` are now accounted for in `main`.
+  - `backup/pre-sync-20260401-231757` remains intentionally unmerged because it contains older camera/video/upload work that conflicts with the later product decision to remove fake/unproven capture and upload workflows.
+- Verified with:
+  - `npx vitest run __tests__/shell-store.test.ts __tests__/pre-classifier.test.ts __tests__/chat-route.test.ts __tests__/chat-actions.test.ts __tests__/tracey-prompt-contract.test.ts`
+  - `npx next build`
+
 ## 2026-04-10 - Tradie job detail now routes missing-data fixes to the same CRM source of truth
 
 - Files:
