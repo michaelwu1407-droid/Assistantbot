@@ -337,6 +337,9 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Job completion no longer proceeds to completed/Xero if local invoice generation fails; this protects the money workflow from false success.
 - `fixed` Xero draft sync failures are now expected but visible: the job timeline records `Xero Draft Invoice Skipped` with the reason while keeping the local invoice flow intact.
 - `fixed` CRM map route mode no longer receives scheduled jobs without an address. Addressless scheduled work now stays out of fake navigation until the user fixes the missing address.
+- `fixed` Stale job reconciliation now uses shared workspace/deal access rather than owner-only lookup, so real workspace users are not blocked by the old owner path.
+- `fixed` Stale-job cron scans now run through an explicit system path after cron-secret authorization, so stale detection can work without an interactive browser session.
+- `fixed` Stale follow-up and reconciliation dialogs now scroll vertically on short screens so bottom actions remain reachable.
 
 ## Local-Only / Not Yet Shipped Context
 

@@ -165,7 +165,7 @@ export function StaleDealFollowUpModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-h-[calc(100vh-2rem)] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-amber-600" />
@@ -184,7 +184,7 @@ export function StaleDealFollowUpModal({
                 <p className="text-sm text-gray-600">{deal.contactName}</p>
                 <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
                   <span>Value: ${deal.value.toLocaleString()}</span>
-                  <span>•</span>
+                  <span>-</span>
                   <span>Stage: {getUserFacingDealStageLabel(deal.stage)}</span>
                 </div>
               </div>

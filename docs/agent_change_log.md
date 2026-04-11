@@ -5207,3 +5207,25 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/map-page-access.test.tsx __tests__/map-view.test.tsx __tests__/google-map-view.test.tsx __tests__/job-map-view.test.tsx __tests__/schedule-calendar.test.tsx __tests__/schedule-page.test.tsx`
   - `npx next build`
+
+## 2026-04-11 - Stale job exception workflow access hardening
+
+- Files:
+  - `actions/stale-job-actions.ts`
+  - `app/api/stale-jobs/sync/route.ts`
+  - `components/crm/stale-deal-follow-up-modal.tsx`
+  - `components/crm/stale-job-reconciliation-modal.tsx`
+  - `__tests__/stale-job-actions.test.ts`
+- What changed:
+  - Stale job reconciliation now uses the shared workspace/deal access path instead of owner-only workspace lookup.
+  - Interactive stale scans are scoped to the signed-in user's workspace and reject mismatched workspace IDs.
+  - Trusted cron stale scans now run with an explicit system flag, so the cron-secret-protected route does not fail just because there is no interactive browser user.
+  - Stale follow-up and reconciliation dialogs now allow vertical scrolling on short screens.
+  - Cleaned visible stale dialog separators so the UI does not show mojibake.
+- Why:
+  - Exception handling must work for the real CRM roles and scheduled jobs, not only for owner-path local tests.
+  - A cron route that authenticates by secret should be able to run the stale scan without a browser session.
+  - Users must be able to reach modal actions even on shorter screens.
+- Verified with:
+  - `npx vitest run __tests__/stale-job-actions.test.ts __tests__/stale-job-reconciliation-modal.test.tsx __tests__/stale-deal-follow-up-modal.test.tsx`
+  - `npx next build`
