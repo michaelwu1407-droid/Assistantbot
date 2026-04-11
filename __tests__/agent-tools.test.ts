@@ -17,7 +17,7 @@ vi.mock("@/lib/db", () => ({
   db,
 }));
 
-import { runGetClientContext } from "@/actions/agent-tools";
+import { runGetClientContext, runGetSchedule } from "@/actions/agent-tools";
 
 describe("agent tools", () => {
   beforeEach(() => {
@@ -122,5 +122,41 @@ describe("agent tools", () => {
       phone: "0400000001",
       company: "Alpha Plumbing",
     });
+  });
+
+  it("treats date-only schedule ranges as workspace-local calendar days", async () => {
+    db.deal.findMany.mockResolvedValueOnce([
+      {
+        id: "deal_1",
+        title: "Sydney Morning Job",
+        address: "123 Test Street",
+        scheduledAt: new Date("2026-04-13T00:30:00.000Z"),
+        jobStatus: null,
+        value: 321,
+        contact: { name: "Alex Customer" },
+      },
+    ]);
+
+    const result = await runGetSchedule("ws_1", {
+      startDate: "2026-04-13",
+      endDate: "2026-04-13",
+      workspaceTimezone: "Australia/Sydney",
+    });
+
+    expect(db.deal.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          scheduledAt: {
+            gte: new Date("2026-04-12T14:00:00.000Z"),
+            lte: new Date("2026-04-13T13:59:00.000Z"),
+          },
+        }),
+      }),
+    );
+    expect(result.jobs[0]).toMatchObject({
+      scheduledAt: "2026-04-13T00:30:00.000Z",
+      scheduledAtLocal: "Apr 13, 2026 10:30 AM",
+    });
+    expect(result.timezone).toBe("Australia/Sydney");
   });
 });

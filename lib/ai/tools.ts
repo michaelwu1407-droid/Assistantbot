@@ -386,7 +386,10 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
             inputSchema: z.object({
                 dealTitle: z.string().describe("Job/deal title"),
             }),
-            execute: async (params) => runGetDealContext(workspaceId, params),
+            execute: async (params) => runGetDealContext(workspaceId, {
+                ...params,
+                workspaceTimezone: settings?.workspaceTimezone,
+            }),
         }),
         createContact: tool({
             description: "Add a new contact to the CRM.",
@@ -581,7 +584,11 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
                 endDate: z.string().describe("Range end (ISO string)"),
             }),
             execute: async ({ startDate, endDate }) =>
-                runGetSchedule(workspaceId, { startDate, endDate }),
+                runGetSchedule(workspaceId, {
+                    startDate,
+                    endDate,
+                    workspaceTimezone: settings?.workspaceTimezone,
+                }),
         }),
         searchJobHistory: tool({
             description: "Search past jobs by keyword (client name, address, description).",

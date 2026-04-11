@@ -430,10 +430,14 @@ describe("chat-actions", () => {
       },
     ]);
 
-    const result = await runGetDealContext("ws_1", { dealTitle: "Blocked Drain" });
+    const result = await runGetDealContext("ws_1", {
+      dealTitle: "Blocked Drain",
+      workspaceTimezone: "Australia/Brisbane",
+    });
 
     expect(result).toContain("Job: Blocked Drain");
     expect(result).toContain("Stage: Scheduled");
+    expect(result).toContain("Scheduled: Apr 5, 2026 11:30 AM (Australia/Brisbane)");
     expect(result).toContain("Assigned to: Sam Chen");
     expect(result).toContain("Latest invoice: INV-001 (DRAFT) $480");
     expect(result).toContain("Next steps:");

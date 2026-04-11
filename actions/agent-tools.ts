@@ -4,7 +4,7 @@ import { searchContacts } from "@/actions/contact-actions";
 import { db } from "@/lib/db";
 import { findHoursForDate, type WeeklyHours } from "@/lib/working-hours";
 import { listWorkspaceCalendarEventsForRange } from "@/lib/workspace-calendar";
-import { getZonedDateParts, parseDateTimeLocalInTimezone, getHourInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone";
+import { formatDateTimeInTimezone, getZonedDateParts, parseDateTimeLocalInTimezone, getHourInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone";
 
 const AGENT_STAGE_LABELS: Record<string, string> = {
   NEW: "New request", CONTACTED: "Quote sent", NEGOTIATION: "Scheduled",
@@ -57,7 +57,7 @@ function scoreContactNameMatch(contactName: string, query: string) {
  */
 export async function runGetSchedule(
   workspaceId: string,
-  params: { startDate: string; endDate: string }
+  params: { startDate: string; endDate: string; workspaceTimezone?: string | null }
 ): Promise<{
   jobs: {
     id: string;
@@ -65,13 +65,34 @@ export async function runGetSchedule(
     clientName: string;
     address: string | null;
     scheduledAt: string;
+    scheduledAtLocal: string;
     jobStatus: string | null;
     value: number;
   }[];
   count: number;
+  timezone: string;
 }> {
-  const start = new Date(params.startDate);
-  const end = new Date(params.endDate);
+  const timezone = resolveWorkspaceTimezone(params.workspaceTimezone);
+  const startDate = params.startDate.trim();
+  const endDate = params.endDate.trim();
+  const dateOnly = /^\d{4}-\d{2}-\d{2}$/;
+  const localDateTime = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/;
+  const parseStart = (value: string) => {
+    if (dateOnly.test(value)) return parseDateTimeLocalInTimezone(`${value}T00:00`, timezone);
+    if (localDateTime.test(value)) return parseDateTimeLocalInTimezone(value.slice(0, 16), timezone);
+    return new Date(value);
+  };
+  const parseEnd = (value: string) => {
+    if (dateOnly.test(value)) return parseDateTimeLocalInTimezone(`${value}T23:59`, timezone);
+    if (localDateTime.test(value)) return parseDateTimeLocalInTimezone(value.slice(0, 16), timezone);
+    return new Date(value);
+  };
+
+  const start = parseStart(startDate) ?? new Date(startDate);
+  let end = parseEnd(endDate) ?? new Date(endDate);
+  if (end.getTime() <= start.getTime() && dateOnly.test(startDate)) {
+    end = parseDateTimeLocalInTimezone(`${startDate}T23:59`, timezone) ?? end;
+  }
 
   const jobs = await db.deal.findMany({
     where: {
@@ -92,10 +113,12 @@ export async function runGetSchedule(
       clientName: j.contact?.name || "Unknown",
       address: j.address,
       scheduledAt: j.scheduledAt?.toISOString() || "",
+      scheduledAtLocal: j.scheduledAt ? formatDateTimeInTimezone(j.scheduledAt, timezone) : "",
       jobStatus: j.jobStatus,
       value: j.value ? Number(j.value) : 0,
     })),
     count: jobs.length,
+    timezone,
   };
 }
 

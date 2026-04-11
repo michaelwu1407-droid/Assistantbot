@@ -36,7 +36,7 @@ import {
 } from "@/lib/agent-mode";
 import { getAttentionSignalsForDeal } from "@/lib/deal-attention";
 import { logger } from "@/lib/logging";
-import { resolveWorkspaceTimezone } from "@/lib/timezone";
+import { formatDateTimeInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone";
 
 /**
  * Find similar contact names using fuzzy matching
@@ -1609,7 +1609,7 @@ export async function runSearchContacts(workspaceId: string, query: string) {
 
 export async function runGetDealContext(
   workspaceId: string,
-  params: { dealTitle: string }
+  params: { dealTitle: string; workspaceTimezone?: string | null }
 ): Promise<string> {
   const deals = await getDeals(workspaceId, undefined, { unbounded: true });
   const deal = findDealByTitle(deals, params.dealTitle.trim());
@@ -1650,6 +1650,8 @@ export async function runGetDealContext(
     return `Couldn't load details for "${deal.title}".`;
   }
 
+  const timezone = resolveWorkspaceTimezone(params.workspaceTimezone);
+
   const notes = await db.activity.findMany({
     where: { dealId: deal.id, type: "NOTE" },
     orderBy: { createdAt: "desc" },
@@ -1669,7 +1671,7 @@ export async function runGetDealContext(
     `Stage: ${CHAT_STAGE_LABELS[chatStage] ?? fullDeal.stage}`,
     `Value: $${Number(fullDeal.value ?? 0).toLocaleString()}`,
     fullDeal.address ? `Address: ${fullDeal.address}` : null,
-    fullDeal.scheduledAt ? `Scheduled: ${fullDeal.scheduledAt.toLocaleString("en-AU")}` : null,
+    fullDeal.scheduledAt ? `Scheduled: ${formatDateTimeInTimezone(fullDeal.scheduledAt, timezone)} (${timezone})` : null,
     fullDeal.assignedTo ? `Assigned to: ${fullDeal.assignedTo.name}` : "Assigned to: (unassigned)",
     fullDeal.contact
       ? `Contact: ${fullDeal.contact.name}${fullDeal.contact.phone ? ` (${fullDeal.contact.phone})` : ""}${fullDeal.contact.email ? `, ${fullDeal.contact.email}` : ""}`

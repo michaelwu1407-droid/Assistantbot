@@ -25,6 +25,7 @@ Status meanings:
 - `fixed` Authenticated live Playwright testing found `/crm/deals/new` could clip the `Save Job & Close` button with no usable scroll; the standalone new-job page now owns vertical scrolling and the form card no longer uses a cramped `88vh` inner scroll.
 - `fixed` Authenticated live Playwright testing found the dashboard `Create new job` modal could place `Create Job` below short viewports; the modal now keeps its header/footer visible and scrolls only the body.
 - `fixed` Authenticated live Playwright testing found `/crm/deals/[id]` could hide invoice/photo sections below the viewport with no usable scroll; the full job page now owns vertical scrolling with bottom padding.
+- `fixed` Authenticated live Tracey testing found schedule answers used raw UTC and date-only schedule queries could miss local-day jobs; Tracey tool outputs now use workspace-local time and local calendar-day ranges.
 
 ## Locked Product Decisions
 
