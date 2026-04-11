@@ -122,7 +122,12 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
             // 3. Generate internal invoice from verified line items
             const lineItems = buildLineItems();
             if (lineItems.length > 0) {
-                await generateQuote(dealId, lineItems);
+                const quoteResult = await generateQuote(dealId, lineItems);
+                if (!quoteResult.success) {
+                    toast.error(quoteResult.error || "Failed to create the local invoice");
+                    setLoading(false);
+                    return;
+                }
             }
 
             // 4. Ensure deal is WON (completed)

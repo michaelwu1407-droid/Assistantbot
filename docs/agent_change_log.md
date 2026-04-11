@@ -5174,3 +5174,21 @@ Rule: every agent change commit must include an entry in this file.
     - Verified full `Inbound SMS` and `Outbound SMS` rows render in the conversation timeline with complete bodies.
     - Verified `Direct SMS` and `Ask Tracey` next-step modes are both visible.
     - Observed no `4xx/5xx` network responses during the check.
+
+## 2026-04-11 - Job completion invoice/Xero truth hardening
+
+- Files:
+  - `components/tradie/job-completion-modal.tsx`
+  - `actions/accounting-actions.ts`
+  - `__tests__/tradie-job-completion-modal.test.tsx`
+  - `__tests__/accounting-actions.test.ts`
+- What changed:
+  - `Confirm & Generate Invoice` now stops if local invoice generation fails, instead of moving the deal to completed and attempting Xero anyway.
+  - Xero draft sync failures remain non-blocking after the local invoice exists, but now create a visible CRM activity note (`Xero Draft Invoice Skipped`) explaining the reason.
+  - Added regression coverage for both the modal failure path and the server-side Xero-not-connected activity log.
+- Why:
+  - Users need strong truthfulness around money. The app must not say or imply an invoice was generated if the local invoice write failed.
+  - Xero failures are expected while the integration is not connected, but they must be visible in the job history rather than disappearing into console logs.
+- Verified with:
+  - `npx vitest run __tests__/tradie-job-completion-modal.test.tsx __tests__/crm-job-completion-modal.test.tsx __tests__/accounting-actions.test.ts`
+  - `npx next build`

@@ -334,6 +334,8 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` SMS leads held by triage now notify the owner and do not auto-reply to the customer, matching the "hold silently for evening/user review" policy.
 - `open` Real provider/device verification is still needed later for actual inbound SMS, provider email, webform, and LiveKit call paths; the current pass gives deterministic route coverage and production build proof, not carrier/provider proof.
 - `fixed` Inbox/customer timeline now includes actual SMS/email `chatMessage` rows as first-class correspondence, so full message history no longer depends on generic activity placeholders. Live production Playwright verified an inserted QA SMS thread renders as full inbound/outbound correspondence with the Direct SMS / Ask Tracey composer options visible.
+- `fixed` Job completion no longer proceeds to completed/Xero if local invoice generation fails; this protects the money workflow from false success.
+- `fixed` Xero draft sync failures are now expected but visible: the job timeline records `Xero Draft Invoice Skipped` with the reason while keeping the local invoice flow intact.
 
 ## Local-Only / Not Yet Shipped Context
 

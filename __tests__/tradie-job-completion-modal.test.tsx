@@ -1,5 +1,5 @@
 import React from "react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -60,6 +60,10 @@ import { createXeroDraftInvoice } from "@/actions/accounting-actions";
 import { JobCompletionModal } from "@/components/tradie/job-completion-modal";
 
 describe("Tradie JobCompletionModal", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("routes photo follow-up into full job mode instead of pretending uploads happen inside the modal", () => {
     render(
       <JobCompletionModal
@@ -110,5 +114,32 @@ describe("Tradie JobCompletionModal", () => {
 
     expect(screen.getByRole("button", { name: /review feedback request/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /i'll do this later/i })).toBeInTheDocument();
+  });
+
+  it("does not complete the job or push Xero when local invoice generation fails", async () => {
+    const user = userEvent.setup();
+    vi.mocked(finalizeJobCompletion).mockResolvedValue({ success: true });
+    vi.mocked(generateQuote).mockResolvedValue({ success: false, error: "Invoice database unavailable" });
+    vi.mocked(updateDeal).mockResolvedValue({ success: true });
+    vi.mocked(createXeroDraftInvoice).mockResolvedValue({ success: true });
+
+    render(
+      <JobCompletionModal
+        open
+        onOpenChange={vi.fn()}
+        dealId="deal_101"
+        onSuccess={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /confirm & generate invoice/i }));
+
+    await waitFor(() => {
+      expect(generateQuote).toHaveBeenCalled();
+    });
+
+    expect(updateDeal).not.toHaveBeenCalledWith("deal_101", { stage: "completed" });
+    expect(createXeroDraftInvoice).not.toHaveBeenCalled();
+    expect(screen.queryByText(/send feedback request/i)).not.toBeInTheDocument();
   });
 });
