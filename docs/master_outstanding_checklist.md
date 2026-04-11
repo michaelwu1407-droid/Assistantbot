@@ -340,6 +340,8 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Stale job reconciliation now uses shared workspace/deal access rather than owner-only lookup, so real workspace users are not blocked by the old owner path.
 - `fixed` Stale-job cron scans now run through an explicit system path after cron-secret authorization, so stale detection can work without an interactive browser session.
 - `fixed` Stale follow-up and reconciliation dialogs now scroll vertically on short screens so bottom actions remain reachable.
+- `fixed` Tracey Morning Briefing / Evening Wrap-Up messages now stay clickable after chat history restore, so the daily digest workflow does not turn into plain text after reload.
+- `fixed` Digest modal copy and digest descriptions now use clean plain separators and include an accessible modal description.
 
 ## Local-Only / Not Yet Shipped Context
 

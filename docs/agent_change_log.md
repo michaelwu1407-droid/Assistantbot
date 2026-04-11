@@ -5229,3 +5229,21 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/stale-job-actions.test.ts __tests__/stale-job-reconciliation-modal.test.tsx __tests__/stale-deal-follow-up-modal.test.tsx`
   - `npx next build`
+
+## 2026-04-12 - Tracey digest card reload and copy cleanup
+
+- Files:
+  - `components/chatbot/chat-interface.tsx`
+  - `lib/digest.ts`
+  - `__tests__/chat-interface.test.tsx`
+- What changed:
+  - Saved Morning Briefing and Evening Wrap-Up assistant messages now render as clickable digest cards after chat history/session restore, not as inert plain text.
+  - Digest detection now keys off the briefing text instead of depending on exact emoji/variation-selector bytes.
+  - The digest modal now has an accessible description.
+  - User-facing digest separators were cleaned to plain `-` copy so the UI does not risk mojibake-looking text in briefing cards or digest descriptions.
+- Why:
+  - The morning/evening routine only makes sense if the user can click the briefing after reopening Tracey.
+  - Briefing copy should feel finished and reliable, especially because this is one of the main "what do I do next?" surfaces.
+- Verified with:
+  - `npx vitest run __tests__/chat-interface.test.tsx __tests__/digest.test.ts __tests__/chat-actions.test.ts`
+  - `npx next build`

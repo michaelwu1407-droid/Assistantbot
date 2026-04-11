@@ -34,7 +34,7 @@ export async function generateMorningDigest(
   const now = new Date();
   const items: DigestItem[] = [];
 
-  // 1. Find rotting deals (highest priority — money is walking away)
+  // 1. Find rotting deals (highest priority - money is walking away)
   // Filter out completed/lost stages to focus on active pipeline
   const activeDeals = await db.deal.findMany({
     where: {
@@ -64,7 +64,7 @@ export async function generateMorningDigest(
         type: "rotting_deal",
         priority: 1,
         title: `${dealRaw.title} is rotting (${health.daysSinceActivity}d)`,
-        description: `$${dealRaw.value?.toLocaleString() ?? 0} deal with ${contactName} — no activity in ${health.daysSinceActivity} days.`,
+        description: `$${dealRaw.value?.toLocaleString() ?? 0} deal with ${contactName} - no activity in ${health.daysSinceActivity} days.`,
         dealId: dealRaw.id,
         contactId: contactId,
         value: Number(dealRaw.value),
@@ -192,7 +192,7 @@ export async function generateEveningDigest(
       type: "triage_review",
       priority: 1,
       title: `${deal.title} is waiting for your review`,
-      description: `${deal.contact?.name ?? "Unknown customer"} — ${flags[0] ?? "Needs manual review before Tracey continues."}`,
+      description: `${deal.contact?.name ?? "Unknown customer"} - ${flags[0] ?? "Needs manual review before Tracey continues."}`,
       dealId: deal.id,
       contactId: deal.contactId ?? undefined,
       value: Number(deal.value ?? 0),
