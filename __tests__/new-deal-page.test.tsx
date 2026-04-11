@@ -2,20 +2,15 @@ import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
-const { getAuthUserId, getOrCreateWorkspace, redirect } = vi.hoisted(() => ({
-  getAuthUserId: vi.fn(),
-  getOrCreateWorkspace: vi.fn(),
+const { requireCurrentWorkspaceAccess, redirect } = vi.hoisted(() => ({
+  requireCurrentWorkspaceAccess: vi.fn(),
   redirect: vi.fn((path: string) => {
     throw new Error(`REDIRECT:${path}`);
   }),
 }));
 
-vi.mock("@/lib/auth", () => ({
-  getAuthUserId,
-}));
-
-vi.mock("@/actions/workspace-actions", () => ({
-  getOrCreateWorkspace,
+vi.mock("@/lib/workspace-access", () => ({
+  requireCurrentWorkspaceAccess,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -31,8 +26,11 @@ import NewDealPage from "@/app/crm/deals/new/page";
 describe("NewDealPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    getAuthUserId.mockResolvedValue("user_1");
-    getOrCreateWorkspace.mockResolvedValue({ id: "ws_1" });
+    requireCurrentWorkspaceAccess.mockResolvedValue({
+      id: "app_user_1",
+      role: "OWNER",
+      workspaceId: "ws_1",
+    });
   });
 
   it("renders the standalone new booking workflow", async () => {
@@ -43,7 +41,7 @@ describe("NewDealPage", () => {
   });
 
   it("redirects unauthenticated users", async () => {
-    getAuthUserId.mockResolvedValue(null);
+    requireCurrentWorkspaceAccess.mockRejectedValue(new Error("Unauthorized"));
 
     await expect(NewDealPage()).rejects.toThrow("REDIRECT:/auth");
   });

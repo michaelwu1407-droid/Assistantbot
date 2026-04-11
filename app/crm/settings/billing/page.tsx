@@ -1,21 +1,37 @@
 import { redirect } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
-import { getAuthUserId } from "@/lib/auth";
-import { getOrCreateWorkspace } from "@/actions/workspace-actions";
+import { db } from "@/lib/db";
 import { ManageSubscriptionButton } from "@/components/billing/manage-subscription-button";
 import { getBillingIntervalForPriceId, getPlanLabelForPriceId } from "@/lib/billing-plan";
-import { isManagerOrAbove } from "@/lib/rbac";
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
 
 export const dynamic = "force-dynamic";
 
 export default async function BillingSettingsPage() {
+    let actor: Awaited<ReturnType<typeof requireCurrentWorkspaceAccess>>;
+    try {
+        actor = await requireCurrentWorkspaceAccess();
+    } catch {
+        redirect("/auth");
+    }
+
     // RBAC: Team members cannot access billing
-    if (!(await isManagerOrAbove())) {
+    if (actor.role === "TEAM_MEMBER") {
         redirect("/crm/settings");
     }
 
-    const userId = (await getAuthUserId()) as string;
-    const workspace = await getOrCreateWorkspace(userId);
+    const workspace = await db.workspace.findUnique({
+        where: { id: actor.workspaceId },
+        select: {
+            id: true,
+            stripePriceId: true,
+            subscriptionStatus: true,
+        },
+    });
+    if (!workspace) {
+        redirect("/crm/settings");
+    }
+
     const billingInterval = getBillingIntervalForPriceId(workspace.stripePriceId);
 
     return (

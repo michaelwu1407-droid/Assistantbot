@@ -349,6 +349,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Contact management pages now use shared workspace access for list/create/edit, so Google-authenticated users are not pushed through raw auth-ID workspace creation or blocked by mismatched user IDs.
 - `fixed` RBAC now fails closed to team-member access when workspace access cannot be resolved, instead of defaulting to owner-level access on lookup failure.
 - `fixed` Map, schedule, estimator, and inbox now scope from the workspace actor instead of raw auth-provider IDs, so team-member job visibility works for Google-authenticated accounts whose app user ID differs from their provider ID.
+- `fixed` New booking plus account, automations, billing, and my-business settings now pass actor app-user/workspace IDs into their forms and queries instead of raw auth-provider IDs.
 
 ## Local-Only / Not Yet Shipped Context
 

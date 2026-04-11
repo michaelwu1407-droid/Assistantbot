@@ -1,29 +1,28 @@
 import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { redirect, isManagerOrAbove, getAuthUserId, getOrCreateWorkspace } = vi.hoisted(() => ({
+const { redirect, requireCurrentWorkspaceAccess, workspaceFindUnique } = vi.hoisted(() => ({
   redirect: vi.fn((path: string) => {
     throw new Error(`REDIRECT:${path}`);
   }),
-  isManagerOrAbove: vi.fn(),
-  getAuthUserId: vi.fn(),
-  getOrCreateWorkspace: vi.fn(),
+  requireCurrentWorkspaceAccess: vi.fn(),
+  workspaceFindUnique: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
   redirect,
 }));
 
-vi.mock("@/lib/rbac", () => ({
-  isManagerOrAbove,
+vi.mock("@/lib/workspace-access", () => ({
+  requireCurrentWorkspaceAccess,
 }));
 
-vi.mock("@/lib/auth", () => ({
-  getAuthUserId,
-}));
-
-vi.mock("@/actions/workspace-actions", () => ({
-  getOrCreateWorkspace,
+vi.mock("@/lib/db", () => ({
+  db: {
+    workspace: {
+      findUnique: workspaceFindUnique,
+    },
+  },
 }));
 
 vi.mock("@/components/billing/manage-subscription-button", () => ({
@@ -46,9 +45,12 @@ import DataPrivacySettingsPage from "@/app/crm/settings/data-privacy/page";
 describe("settings route redirects", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    isManagerOrAbove.mockResolvedValue(true);
-    getAuthUserId.mockResolvedValue("user_1");
-    getOrCreateWorkspace.mockResolvedValue({
+    requireCurrentWorkspaceAccess.mockResolvedValue({
+      id: "app_user_1",
+      role: "OWNER",
+      workspaceId: "ws_1",
+    });
+    workspaceFindUnique.mockResolvedValue({
       id: "ws_1",
       stripePriceId: "price_1",
       subscriptionStatus: "active",
@@ -65,18 +67,28 @@ describe("settings route redirects", () => {
   });
 
   it("blocks team members from opening billing directly by URL", async () => {
-    isManagerOrAbove.mockResolvedValue(false);
+    requireCurrentWorkspaceAccess.mockResolvedValue({
+      id: "app_user_2",
+      role: "TEAM_MEMBER",
+      workspaceId: "ws_1",
+    });
 
     await expect(BillingSettingsPage()).rejects.toThrow("REDIRECT:/crm/settings");
-    expect(getAuthUserId).not.toHaveBeenCalled();
-    expect(getOrCreateWorkspace).not.toHaveBeenCalled();
+    expect(workspaceFindUnique).not.toHaveBeenCalled();
   });
 
   it("renders billing for managers and owners", async () => {
     const page = await BillingSettingsPage();
 
     expect(page).toBeTruthy();
-    expect(getAuthUserId).toHaveBeenCalled();
-    expect(getOrCreateWorkspace).toHaveBeenCalledWith("user_1");
+    expect(requireCurrentWorkspaceAccess).toHaveBeenCalled();
+    expect(workspaceFindUnique).toHaveBeenCalledWith({
+      where: { id: "ws_1" },
+      select: {
+        id: true,
+        stripePriceId: true,
+        subscriptionStatus: true,
+      },
+    });
   });
 });

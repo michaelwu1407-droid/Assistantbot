@@ -5347,3 +5347,25 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/map-page-access.test.tsx __tests__/schedule-page.test.tsx __tests__/crm-estimator-page.test.tsx __tests__/inbox-page.test.tsx __tests__/contact-crud-page-access.test.tsx __tests__/rbac.test.ts`
   - `npx next build`
+
+## 2026-04-12 - Settings and new-booking actor scoping
+
+- Files:
+  - `app/crm/deals/new/page.tsx`
+  - `app/crm/settings/page.tsx`
+  - `app/crm/settings/automations/page.tsx`
+  - `app/crm/settings/billing/page.tsx`
+  - `app/crm/settings/my-business/page.tsx`
+  - `__tests__/new-deal-page.test.tsx`
+  - `__tests__/settings-route-redirects.test.tsx`
+  - `__tests__/settings-core-page-access.test.tsx`
+- What changed:
+  - New booking, account settings, automations, billing, and my-business now use the workspace actor instead of raw auth-provider IDs.
+  - Account settings now passes the app user ID into profile/security/referral components.
+  - My-business now reads business profile and documents from the actor user/workspace, keeping settings aligned with the CRM workspace the user actually belongs to.
+  - Billing now reads the subscription fields directly from the actor workspace and still blocks team members.
+- Why:
+  - These surfaces are where users configure the business, subscription, automations, and new CRM jobs. They must not point at a newly-created or wrong workspace when Google auth IDs differ from app user IDs.
+- Verified with:
+  - `npx vitest run __tests__/new-deal-page.test.tsx __tests__/settings-route-redirects.test.tsx __tests__/settings-core-page-access.test.tsx __tests__/map-page-access.test.tsx __tests__/schedule-page.test.tsx __tests__/crm-estimator-page.test.tsx __tests__/inbox-page.test.tsx`
+  - `npx next build`
