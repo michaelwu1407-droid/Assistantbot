@@ -5120,6 +5120,9 @@ Rule: every agent change commit must include an entry in this file.
   - Live production Playwright before the fix:
     - Created a draft invoice on QA job `cmntt3u150003d4rj56tvu1jc`; GST calculation was correct (`$12.34` -> `$13.57`), but UI wording was confusing.
     - Confirmed the tradie field page showed `No address` while the CRM job page had `123 Test Street, Sydney NSW`.
+  - Live production Playwright after deploy:
+    - CRM job billing now shows `Create Draft Invoice`, `Email quote`, and no old `Create Invoice` button.
+    - Tradie field job page now shows `123 Test Street, Sydney NSW` plus `Navigate`, with no false `No address` state.
   - `npx vitest run __tests__/tradie-actions.test.ts __tests__/tradie-job-detail-view.test.tsx __tests__/job-billing-tab.test.tsx __tests__/tradie-job-completion-modal.test.tsx __tests__/crm-job-completion-modal.test.tsx`
   - `npx vitest run __tests__/message-action-sheet.test.tsx __tests__/tradie-actions.test.ts __tests__/job-billing-tab.test.tsx`
   - `npx next build`
