@@ -101,6 +101,9 @@ describe("messaging-actions", () => {
         name: "Alex",
         phone: "0400000000",
       },
+      workspace: {
+        workspaceTimezone: "Australia/Sydney",
+      },
     });
     hoisted.db.contact.findUnique.mockResolvedValue({
       id: "contact_1",
@@ -112,6 +115,8 @@ describe("messaging-actions", () => {
     const result = await sendConfirmationSMS("deal_1");
 
     expect(result.success).toBe(true);
+    const request = vi.mocked(fetch).mock.calls[0]?.[1];
+    expect(String(request?.body)).toContain("Thu%2C+2+Apr%2C+8%3A00+pm");
     expect(hoisted.db.deal.update).toHaveBeenCalledWith({
       where: { id: "deal_1" },
       data: {
@@ -145,6 +150,9 @@ describe("messaging-actions", () => {
         name: "Alex",
         phone: "0400000000",
       },
+      workspace: {
+        workspaceTimezone: "Australia/Sydney",
+      },
     });
     hoisted.db.contact.findUnique.mockResolvedValue({
       id: "contact_1",
@@ -156,6 +164,8 @@ describe("messaging-actions", () => {
     const result = await sendRescheduleConfirmationSMS("deal_1");
 
     expect(result.success).toBe(true);
+    const request = vi.mocked(fetch).mock.calls[0]?.[1];
+    expect(String(request?.body)).toContain("Fri%2C+3+Apr%2C+10%3A30+pm");
     expect(hoisted.db.deal.update).toHaveBeenCalledWith({
       where: { id: "deal_1" },
       data: {

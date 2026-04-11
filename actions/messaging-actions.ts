@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { buildPublicFeedbackUrl } from "@/lib/public-feedback";
+import { DEFAULT_WORKSPACE_TIMEZONE, resolveWorkspaceTimezone } from "@/lib/timezone";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -35,16 +36,19 @@ const SendMessageSchema = z.object({
   channel: z.enum(["sms", "whatsapp"]).default("sms"),
 });
 
-function formatSmsSchedule(value: Date | string | null | undefined) {
+function formatSmsSchedule(value: Date | string | null | undefined, workspaceTimezone?: string | null) {
   if (!value) return "today";
   const scheduled = new Date(value);
   if (Number.isNaN(scheduled.getTime())) return "today";
+  const timeZone = resolveWorkspaceTimezone(workspaceTimezone);
   return scheduled.toLocaleString("en-AU", {
     weekday: "short",
     day: "numeric",
     month: "short",
     hour: "numeric",
     minute: "2-digit",
+    hour12: true,
+    timeZone,
   });
 }
 
@@ -396,14 +400,14 @@ export async function sendConfirmationSMS(dealId: string): Promise<MessageResult
   try {
     const deal = await db.deal.findUnique({
       where: { id: dealId },
-      include: { contact: true }
+      include: { contact: true, workspace: { select: { workspaceTimezone: true } } }
     });
 
     if (!deal || !deal.contact.phone) {
       return { success: false, error: "No contact phone number found" };
     }
 
-    const message = `Hi ${deal.contact.name}, your job is booked for ${formatSmsSchedule(deal.scheduledAt)} at ${deal.address || "your location"}. Reply CONFIRM or call us to reschedule.`;
+    const message = `Hi ${deal.contact.name}, your job is booked for ${formatSmsSchedule(deal.scheduledAt, deal.workspace?.workspaceTimezone ?? DEFAULT_WORKSPACE_TIMEZONE)} at ${deal.address || "your location"}. Reply CONFIRM or call us to reschedule.`;
 
     const result = await sendSMS(deal.contactId, message, dealId);
 
@@ -445,14 +449,14 @@ export async function sendRescheduleConfirmationSMS(dealId: string): Promise<Mes
   try {
     const deal = await db.deal.findUnique({
       where: { id: dealId },
-      include: { contact: true }
+      include: { contact: true, workspace: { select: { workspaceTimezone: true } } }
     });
 
     if (!deal || !deal.contact.phone) {
       return { success: false, error: "No contact phone number found" };
     }
 
-    const message = `Hi ${deal.contact.name}, your booking has been updated to ${formatSmsSchedule(deal.scheduledAt)} at ${deal.address || "your location"}. Reply CONFIRM or call us if you need anything else.`;
+    const message = `Hi ${deal.contact.name}, your booking has been updated to ${formatSmsSchedule(deal.scheduledAt, deal.workspace?.workspaceTimezone ?? DEFAULT_WORKSPACE_TIMEZONE)} at ${deal.address || "your location"}. Reply CONFIRM or call us if you need anything else.`;
 
     const result = await sendSMS(deal.contactId, message, dealId);
 
@@ -493,14 +497,14 @@ export async function resendConfirmationSMS(dealId: string): Promise<MessageResu
   try {
     const deal = await db.deal.findUnique({
       where: { id: dealId },
-      include: { contact: true }
+      include: { contact: true, workspace: { select: { workspaceTimezone: true } } }
     });
 
     if (!deal || !deal.contact.phone) {
       return { success: false, error: "No contact phone number found" };
     }
 
-    const message = `Hi ${deal.contact.name}, just following up on your job for ${formatSmsSchedule(deal.scheduledAt)}. Reply CONFIRM or call us to reschedule.`;
+    const message = `Hi ${deal.contact.name}, just following up on your job for ${formatSmsSchedule(deal.scheduledAt, deal.workspace?.workspaceTimezone ?? DEFAULT_WORKSPACE_TIMEZONE)}. Reply CONFIRM or call us to reschedule.`;
 
     const result = await sendSMS(deal.contactId, message, dealId);
 

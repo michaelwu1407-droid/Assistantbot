@@ -26,6 +26,7 @@ Status meanings:
 - `fixed` Authenticated live Playwright testing found the dashboard `Create new job` modal could place `Create Job` below short viewports; the modal now keeps its header/footer visible and scrolls only the body.
 - `fixed` Authenticated live Playwright testing found `/crm/deals/[id]` could hide invoice/photo sections below the viewport with no usable scroll; the full job page now owns vertical scrolling with bottom padding.
 - `fixed` Authenticated live Tracey testing found schedule answers used raw UTC and date-only schedule queries could miss local-day jobs; Tracey tool outputs and route-level pre-resolved job/contact context now use workspace-local time and local calendar-day ranges.
+- `fixed` Authenticated inbox testing found outbound booking-confirmation SMS content used raw UTC time; confirmation, reschedule confirmation, and nudge SMS now format scheduled times in the deal workspace timezone.
 
 ## Locked Product Decisions
 

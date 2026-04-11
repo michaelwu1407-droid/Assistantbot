@@ -1,3 +1,17 @@
+## 2026-04-11 (Codex) - Booking confirmation SMS now uses workspace-local time
+
+- Files changed:
+  - `actions/messaging-actions.ts`
+  - `__tests__/messaging-actions.test.ts`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Fixed a live customer-facing time bug**: inbox testing showed the actual booking confirmation SMS body used `12:30 am` while the CRM UI showed `10:30 AM` Sydney time.
+  - **Applied timezone formatting to outbound booking messages**: initial confirmation, reschedule confirmation, and confirmation nudge SMS now format scheduled times using the deal workspace timezone.
+  - **Verification**: added messaging-action assertions for timezone-adjusted SMS bodies, reran messaging/deal-action tests, and completed a clean `npx next build`.
+- Why:
+  - This is higher stakes than an internal display bug: customers must receive the same booking time the CRM user sees.
+
 ## 2026-04-11 (Codex) - Tracey schedule answers now use workspace-local time
 
 - Files changed:
