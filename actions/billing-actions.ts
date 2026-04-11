@@ -1,12 +1,12 @@
 "use server";
 
 import { stripe } from "@/lib/stripe";
-import { getAuthUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { BillingInterval, getStripePriceIdForInterval } from "@/lib/billing-plan";
 import { headers } from "next/headers";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
 
 function getWorkspaceSettings(settings: unknown): Record<string, unknown> {
     if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
@@ -21,10 +21,8 @@ export async function createCheckoutSession(
     billingInterval: BillingInterval,
     provisionPhoneNumberRequested: boolean
 ) {
-    const userId = await getAuthUserId();
-    if (!userId) {
-        throw new Error("Unauthorized");
-    }
+    const actor = await requireCurrentWorkspaceAccess();
+    if (actor.workspaceId !== workspaceId || actor.role === "TEAM_MEMBER") throw new Error("Unauthorized");
 
     const workspace = await db.workspace.findUnique({
         where: { id: workspaceId },
@@ -36,7 +34,7 @@ export async function createCheckoutSession(
         },
     });
 
-    if (!workspace || workspace.ownerId !== userId) {
+    if (!workspace) {
         throw new Error("Unauthorized or Workspace not found");
     }
 
@@ -68,7 +66,7 @@ export async function createCheckoutSession(
     const session = await stripe.checkout.sessions.create({
         metadata: {
             workspace_id: workspaceId,
-            referred_user_id: userId,
+            referred_user_id: actor.id,
             referral_code: (await cookies()).get("referral_code")?.value || "",
             billing_interval: billingInterval,
         },
@@ -96,16 +94,14 @@ export async function createCheckoutSession(
 }
 
 export async function createCustomerPortalSession(workspaceId: string) {
-    const userId = await getAuthUserId();
-    if (!userId) {
-        throw new Error("Unauthorized");
-    }
+    const actor = await requireCurrentWorkspaceAccess();
+    if (actor.workspaceId !== workspaceId || actor.role === "TEAM_MEMBER") throw new Error("Unauthorized");
 
     const workspace = await db.workspace.findUnique({
         where: { id: workspaceId },
     });
 
-    if (!workspace || workspace.ownerId !== userId || !workspace.stripeCustomerId) {
+    if (!workspace || !workspace.stripeCustomerId) {
         throw new Error("Unauthorized or Customer not found");
     }
 

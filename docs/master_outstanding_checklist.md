@@ -353,6 +353,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Dashboard shell state now initializes the app with actor app-user ID and role, failing closed to team-member access instead of defaulting to owner when role resolution fails.
 - `fixed` Settings, integrations, and SMS-template actions now resolve through the workspace actor, and customer-message preview/send is scoped to deals in the current workspace.
 - `fixed` My Business knowledge/document actions and the older tradie estimator now use actor app-user/workspace IDs, keeping Tracey's source data and field quoting aligned with the real CRM workspace.
+- `fixed` Billing checkout and customer portal actions now authorize against the workspace actor, so Google-authenticated owners/managers are not blocked by raw auth-provider ID mismatches while team members remain blocked.
 
 ## Local-Only / Not Yet Shipped Context
 

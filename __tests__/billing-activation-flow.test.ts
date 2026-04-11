@@ -16,6 +16,7 @@ type WorkspaceState = {
 const {
   db,
   getAuthUserId,
+  requireCurrentWorkspaceAccess,
   headersMock,
   cookiesMock,
   redirectMock,
@@ -44,6 +45,7 @@ const {
     },
   },
   getAuthUserId: vi.fn(),
+  requireCurrentWorkspaceAccess: vi.fn(),
   headersMock: vi.fn(),
   cookiesMock: vi.fn(),
   redirectMock: vi.fn(),
@@ -59,6 +61,7 @@ const {
 
 vi.mock("@/lib/db", () => ({ db }));
 vi.mock("@/lib/auth", () => ({ getAuthUserId }));
+vi.mock("@/lib/workspace-access", () => ({ requireCurrentWorkspaceAccess }));
 vi.mock("next/headers", () => ({
   headers: headersMock,
   cookies: cookiesMock,
@@ -124,6 +127,11 @@ describe("integration: billing activation flow", () => {
     webhookEvents = [];
 
     getAuthUserId.mockResolvedValue("user_1");
+    requireCurrentWorkspaceAccess.mockResolvedValue({
+      id: "user_1",
+      role: "OWNER",
+      workspaceId: "ws_1",
+    });
     headersMock.mockResolvedValue({
       get: vi.fn((name: string) => {
         if (name === "origin") return "https://app.example.com";

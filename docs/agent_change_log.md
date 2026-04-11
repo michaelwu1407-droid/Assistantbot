@@ -5423,3 +5423,20 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/document-actions.test.ts __tests__/knowledge-actions.test.ts __tests__/tradie-estimator-page.test.tsx __tests__/settings-core-page-access.test.tsx __tests__/crm-estimator-page.test.tsx`
   - `npx next build`
+
+## 2026-04-12 - Billing action actor authorization
+
+- Files:
+  - `actions/billing-actions.ts`
+  - `__tests__/billing-actions.test.ts`
+  - `__tests__/billing-activation-flow.test.ts`
+- What changed:
+  - Checkout and customer-portal session actions now authorize from the workspace actor instead of comparing `workspace.ownerId` to the raw auth-provider ID.
+  - Billing remains blocked for team members and for actors outside the target workspace.
+  - Stripe checkout metadata now uses the actor app user ID for referral attribution.
+- Why:
+  - A legitimate Google-authenticated owner/manager should not be blocked from billing because the external auth ID differs from the CRM app user ID.
+  - Billing should fail early and clearly for wrong-workspace or team-member access.
+- Verified with:
+  - `npx vitest run __tests__/billing-actions.test.ts __tests__/billing-activation-flow.test.ts __tests__/settings-route-redirects.test.tsx`
+  - `npx next build`
