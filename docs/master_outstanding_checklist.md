@@ -22,6 +22,7 @@ Status meanings:
 - `deferred` `backup/pre-sync-20260401-231757` is intentionally not merged because it contains older camera/video/upload work that conflicts with later decisions to remove fake/unproven field capture surfaces.
 - `fixed` The assistant panel resize/toggle pill now uses the requested split-diamond / opposing-triangles control instead of the old vertical dots.
 - `fixed` The assistant panel defaults closed on first boot and then persists the user's open/closed state.
+- `fixed` Authenticated live Playwright testing found `/crm/deals/new` could clip the `Save Job & Close` button with no usable scroll; the standalone new-job page now owns vertical scrolling and the form card no longer uses a cramped `88vh` inner scroll.
 
 ## Locked Product Decisions
 

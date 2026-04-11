@@ -14,7 +14,7 @@ export default async function NewDealPage() {
   const workspace = await getOrCreateWorkspace(userId);
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-slate-50 px-4 py-6 md:px-6">
+    <div className="h-full overflow-y-auto bg-slate-50 px-4 py-6 pb-24 md:px-6">
       <div className="mx-auto max-w-3xl space-y-4">
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">CRM Jobs</p>

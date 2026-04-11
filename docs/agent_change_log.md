@@ -1,3 +1,18 @@
+## 2026-04-11 (Codex) - New-job page scroll blocker fixed
+
+- Files changed:
+  - `app/crm/deals/new/page.tsx`
+  - `components/modals/new-deal-modal-standalone.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Closed a live job-creation blocker**: authenticated Playwright testing on `www.earlymark.ai` showed `/crm/deals/new` rendered `Save Job & Close` below the viewport with no reachable scroll area.
+  - **Made the page own vertical scrolling**: the standalone new-job page now has its own full-height scroll container and bottom breathing room.
+  - **Removed the cramped inner-card scroll**: the standalone job form card no longer caps itself at `88vh`, so the page scrolls naturally instead of trapping controls inside a clipped card.
+  - **Verification**: reran focused unit tests and completed a clean `npx next build`.
+- Why:
+  - Creating a job is a core CRM workflow. If the save button cannot be reached, the app is functionally broken even if the code compiles.
+
 ## 2026-04-10 (Codex) - Kanban scheduling date blocker now has a real next step
 
 - Files changed:
