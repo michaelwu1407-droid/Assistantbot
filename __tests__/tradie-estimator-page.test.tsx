@@ -2,26 +2,16 @@ import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 
-const { getAuthUser, getOrCreateWorkspace, getCurrentUserRole, getDeals, redirect } = vi.hoisted(() => ({
-  getAuthUser: vi.fn(),
-  getOrCreateWorkspace: vi.fn(),
-  getCurrentUserRole: vi.fn(),
+const { requireCurrentWorkspaceAccess, getDeals, redirect } = vi.hoisted(() => ({
+  requireCurrentWorkspaceAccess: vi.fn(),
   getDeals: vi.fn(),
   redirect: vi.fn((path: string) => {
     throw new Error(`REDIRECT:${path}`);
   }),
 }));
 
-vi.mock("@/lib/auth", () => ({
-  getAuthUser,
-}));
-
-vi.mock("@/actions/workspace-actions", () => ({
-  getOrCreateWorkspace,
-}));
-
-vi.mock("@/lib/rbac", () => ({
-  getCurrentUserRole,
+vi.mock("@/lib/workspace-access", () => ({
+  requireCurrentWorkspaceAccess,
 }));
 
 vi.mock("@/actions/deal-actions", () => ({
@@ -45,13 +35,15 @@ import TradieEstimatorPage from "@/app/(dashboard)/tradie/estimator/page";
 describe("TradieEstimatorPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    getAuthUser.mockResolvedValue({ id: "user_1" });
-    getOrCreateWorkspace.mockResolvedValue({ id: "ws_1" });
-    getCurrentUserRole.mockResolvedValue("TEAM_MEMBER");
+    requireCurrentWorkspaceAccess.mockResolvedValue({
+      id: "app_user_1",
+      role: "TEAM_MEMBER",
+      workspaceId: "ws_1",
+    });
     getDeals.mockResolvedValue([
-      { id: "deal_1", title: "Blocked drain", stage: "scheduled", assignedToId: "user_1" },
+      { id: "deal_1", title: "Blocked drain", stage: "scheduled", assignedToId: "app_user_1" },
       { id: "deal_2", title: "Hot water", stage: "scheduled", assignedToId: "user_2" },
-      { id: "deal_3", title: "Deleted", stage: "deleted", assignedToId: "user_1" },
+      { id: "deal_3", title: "Deleted", stage: "deleted", assignedToId: "app_user_1" },
     ]);
   });
 

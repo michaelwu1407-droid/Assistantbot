@@ -1,39 +1,32 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { getAuthUserId } from "@/lib/auth";
 import { getUploadUrl, getPublicUrl } from "./storage-actions";
-import { getOrCreateWorkspace } from "./workspace-actions";
 import { revalidatePath } from "next/cache";
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
 
 export async function getDocuments() {
-    const userId = await getAuthUserId();
-    if (!userId) throw new Error("Unauthorized");
-
-    const workspace = await getOrCreateWorkspace(userId);
+    const actor = await requireCurrentWorkspaceAccess();
 
     return db.businessDocument.findMany({
-        where: { workspaceId: workspace.id },
+        where: { workspaceId: actor.workspaceId },
         orderBy: { createdAt: "desc" },
     });
 }
 
 export async function getUploadToken(filename: string) {
-    const userId = await getAuthUserId();
-    if (!userId) throw new Error("Unauthorized");
+    await requireCurrentWorkspaceAccess();
     return getUploadUrl(filename, "documents");
 }
 
 export async function addDocument(data: { name: string; description: string; path: string; fileType?: string; fileSize?: number }) {
-    const userId = await getAuthUserId();
-    if (!userId) throw new Error("Unauthorized");
+    const actor = await requireCurrentWorkspaceAccess();
 
-    const workspace = await getOrCreateWorkspace(userId);
     const publicUrl = await getPublicUrl(data.path, "documents");
 
     const doc = await db.businessDocument.create({
         data: {
-            workspaceId: workspace.id,
+            workspaceId: actor.workspaceId,
             name: data.name,
             description: data.description,
             fileUrl: publicUrl,
@@ -47,13 +40,10 @@ export async function addDocument(data: { name: string; description: string; pat
 }
 
 export async function deleteDocument(id: string) {
-    const userId = await getAuthUserId();
-    if (!userId) throw new Error("Unauthorized");
-
-    const workspace = await getOrCreateWorkspace(userId);
+    const actor = await requireCurrentWorkspaceAccess();
 
     await db.businessDocument.delete({
-        where: { id, workspaceId: workspace.id },
+        where: { id, workspaceId: actor.workspaceId },
     });
 
     revalidatePath("/crm/settings/my-business");

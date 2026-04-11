@@ -1,13 +1,12 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { getAuthUser, getAuthUserId } from "@/lib/auth";
-import { ensureWorkspaceUserForAuth, getOrCreateWorkspace } from "@/actions/workspace-actions";
 import { revalidatePath } from "next/cache";
 import { generateObject } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -23,37 +22,13 @@ export interface KnowledgeRule {
 // ─── Helpers ────────────────────────────────────────────────────────
 
 async function getWorkspaceId(): Promise<string> {
-  const userId = await getAuthUserId();
-  if (!userId) throw new Error("Not authenticated");
-  const workspace = await getOrCreateWorkspace(userId);
-  return workspace.id;
+  const actor = await requireCurrentWorkspaceAccess();
+  return actor.workspaceId;
 }
 
 async function getBusinessProfileUserId(): Promise<string> {
-  const authUserId = await getAuthUserId();
-  if (!authUserId) throw new Error("Not authenticated");
-
-  const authUser = await getAuthUser();
-  const workspace = await getOrCreateWorkspace(authUserId);
-  const existingUser = await db.user.findFirst({
-    where: {
-      OR: [
-        { id: authUserId },
-        ...(authUser?.email ? [{ email: authUser.email }] : []),
-      ],
-    },
-    select: { id: true },
-  });
-
-  if (existingUser?.id) return existingUser.id;
-
-  const ensured = await ensureWorkspaceUserForAuth({
-    workspaceId: workspace.id,
-    role: "OWNER",
-    authUserIdOverride: authUserId,
-    name: authUser?.name,
-  });
-  return ensured.id;
+  const actor = await requireCurrentWorkspaceAccess();
+  return actor.id;
 }
 
 // ─── Queries ────────────────────────────────────────────────────────

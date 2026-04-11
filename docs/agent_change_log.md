@@ -5404,3 +5404,22 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/settings-actions.test.ts __tests__/integration-actions.test.ts __tests__/sms-templates.test.ts __tests__/message-action-sheet.test.tsx __tests__/settings-core-page-access.test.tsx`
   - `npx next build`
+
+## 2026-04-12 - Knowledge, documents, and tradie estimator actor scoping
+
+- Files:
+  - `actions/document-actions.ts`
+  - `actions/knowledge-actions.ts`
+  - `app/(dashboard)/tradie/estimator/page.tsx`
+  - `__tests__/document-actions.test.ts`
+  - `__tests__/knowledge-actions.test.ts`
+  - `__tests__/tradie-estimator-page.test.tsx`
+- What changed:
+  - Business document list/upload/create/delete actions now use the workspace actor and write/read documents from `actor.workspaceId`.
+  - Knowledge and service-area actions now use the workspace actor for knowledge rules and business-profile ownership.
+  - The older tradie estimator page now scopes visible jobs by `actor.id` and uses `actor.workspaceId`, matching the CRM estimator.
+- Why:
+  - My Business settings feeds Tracey's real answers. Attachments, service areas, pricing/knowledge rules, and tradie estimates must belong to the current CRM workspace, not an auth-provider ID that may not match the app user row.
+- Verified with:
+  - `npx vitest run __tests__/document-actions.test.ts __tests__/knowledge-actions.test.ts __tests__/tradie-estimator-page.test.tsx __tests__/settings-core-page-access.test.tsx __tests__/crm-estimator-page.test.tsx`
+  - `npx next build`
