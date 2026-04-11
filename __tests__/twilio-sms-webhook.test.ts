@@ -7,6 +7,8 @@ const {
   classifyMessage,
   getWorkspaceTwilioClient,
   generateSMSResponse,
+  triageIncomingLead,
+  saveTriageRecommendation,
   findContactByPhone,
   findWorkspaceByTwilioNumber,
 } = vi.hoisted(() => ({
@@ -22,6 +24,17 @@ const {
       findFirst: vi.fn(),
       create: vi.fn(),
     },
+    deal: {
+      findFirst: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+    },
+    user: {
+      findFirst: vi.fn(),
+    },
+    notification: {
+      create: vi.fn(),
+    },
     chatMessage: {
       create: vi.fn(),
     },
@@ -29,6 +42,8 @@ const {
   classifyMessage: vi.fn(),
   getWorkspaceTwilioClient: vi.fn(),
   generateSMSResponse: vi.fn(),
+  triageIncomingLead: vi.fn(),
+  saveTriageRecommendation: vi.fn(),
   findContactByPhone: vi.fn(),
   findWorkspaceByTwilioNumber: vi.fn(),
 }));
@@ -51,6 +66,11 @@ vi.mock("@/lib/twilio", () => ({
 
 vi.mock("@/lib/ai/sms-agent", () => ({
   generateSMSResponse,
+}));
+
+vi.mock("@/lib/ai/triage", () => ({
+  triageIncomingLead,
+  saveTriageRecommendation,
 }));
 
 vi.mock("@/lib/workspace-routing", () => ({
@@ -84,6 +104,11 @@ describe("POST /api/twilio/webhook", () => {
     prisma.contact.create.mockResolvedValue({ id: "contact_new" });
     prisma.activity.findFirst.mockResolvedValue({ id: "activity_1" });
     prisma.activity.create.mockResolvedValue({ id: "activity_1" });
+    prisma.deal.findFirst.mockResolvedValue(null);
+    prisma.deal.create.mockResolvedValue({ id: "deal_1" });
+    prisma.deal.update.mockResolvedValue({});
+    prisma.user.findFirst.mockResolvedValue({ id: "owner_1" });
+    prisma.notification.create.mockResolvedValue({});
     prisma.chatMessage.create.mockResolvedValue(undefined);
     classifyMessage.mockResolvedValue({ classification: "ham" });
     getWorkspaceTwilioClient.mockReturnValue({
@@ -97,6 +122,8 @@ describe("POST /api/twilio/webhook", () => {
         mode: "execute",
       },
     });
+    triageIncomingLead.mockResolvedValue({ recommendation: "ACCEPT", flags: [] });
+    saveTriageRecommendation.mockResolvedValue(undefined);
     findContactByPhone.mockResolvedValue({ id: "contact_1" });
   });
 
@@ -162,5 +189,78 @@ describe("POST /api/twilio/webhook", () => {
       }),
     });
     expect(waitUntil).toHaveBeenCalledTimes(1);
+  });
+
+  it("captures an obvious new SMS enquiry as a CRM deal before replying", async () => {
+    findWorkspaceByTwilioNumber.mockResolvedValue({
+      id: "ws_1",
+      name: "Alpha Plumbing",
+      settings: {},
+      twilioPhoneNumber: "+61485010634",
+    });
+    findContactByPhone.mockResolvedValue({ id: "contact_1", name: "Alex" });
+
+    const response = await POST(buildSmsRequest());
+    expect(response.status).toBe(200);
+
+    await waitUntil.mock.calls[0][0];
+
+    expect(prisma.deal.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        workspaceId: "ws_1",
+        contactId: "contact_1",
+        title: "SMS enquiry from Alex",
+        stage: "NEW",
+        source: "sms",
+        metadata: expect.objectContaining({
+          initialMessage: "Need a quote",
+          leadSource: "sms",
+        }),
+      }),
+      select: { id: true },
+    });
+    expect(triageIncomingLead).toHaveBeenCalledWith("ws_1", {
+      title: "SMS enquiry from Alex",
+      description: "Need a quote",
+    });
+    expect(saveTriageRecommendation).toHaveBeenCalledWith("deal_1", {
+      recommendation: "ACCEPT",
+      flags: [],
+    });
+    expect(generateSMSResponse).toHaveBeenCalled();
+  });
+
+  it("holds risky SMS leads for owner review without auto-replying", async () => {
+    findWorkspaceByTwilioNumber.mockResolvedValue({
+      id: "ws_1",
+      name: "Alpha Plumbing",
+      settings: {},
+      twilioPhoneNumber: "+61485010634",
+    });
+    findContactByPhone.mockResolvedValue({ id: "contact_1", name: "Alex" });
+    triageIncomingLead.mockResolvedValue({
+      recommendation: "HOLD_REVIEW",
+      flags: ["Needs review: roofing"],
+    });
+
+    const response = await POST(buildSmsRequest());
+    expect(response.status).toBe(200);
+
+    await waitUntil.mock.calls[0][0];
+
+    expect(saveTriageRecommendation).toHaveBeenCalledWith("deal_1", {
+      recommendation: "HOLD_REVIEW",
+      flags: ["Needs review: roofing"],
+    });
+    expect(prisma.notification.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        userId: "owner_1",
+        title: "SMS lead held for review",
+        message: "Alex: Needs review: roofing",
+        type: "WARNING",
+        link: "/crm/deals/deal_1",
+      }),
+    });
+    expect(generateSMSResponse).not.toHaveBeenCalled();
   });
 });

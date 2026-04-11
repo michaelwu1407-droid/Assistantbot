@@ -5126,3 +5126,28 @@ Rule: every agent change commit must include an entry in this file.
   - `npx vitest run __tests__/tradie-actions.test.ts __tests__/tradie-job-detail-view.test.tsx __tests__/job-billing-tab.test.tsx __tests__/tradie-job-completion-modal.test.tsx __tests__/crm-job-completion-modal.test.tsx`
   - `npx vitest run __tests__/message-action-sheet.test.tsx __tests__/tradie-actions.test.ts __tests__/job-billing-tab.test.tsx`
   - `npx next build`
+
+## 2026-04-11 - Inbound lead capture and held-review triage pass
+
+- Files:
+  - `app/api/webhooks/webform/route.ts`
+  - `app/api/webhooks/inbound-email/route.ts`
+  - `app/api/twilio/webhook/route.ts`
+  - `__tests__/webform-route.test.ts`
+  - `__tests__/inbound-email-route.test.ts`
+  - `__tests__/twilio-sms-webhook.test.ts`
+- What changed:
+  - Website form leads now run through the same Tracey triage persistence as manually-created CRM jobs.
+  - Held website leads now save the orange-badge data (`aiTriageRecommendation`, `agentFlags`), notify the owner with a direct deal link, and do not trigger customer-facing new-lead automations.
+  - Provider lead emails now persist triage fields through `saveTriageRecommendation` instead of only writing a note, and triage-held provider leads now use the truthful `triage_review` block reason.
+  - The provider email manual-follow-up note no longer incorrectly says after-hours when the real reason is Tracey review.
+  - Obvious new inbound SMS enquiries now create a `NEW` CRM deal when the contact has no active job, preserving the first message in metadata and activity.
+  - Risky SMS leads held by triage now notify the owner and intentionally do not auto-reply to the customer.
+- Why:
+  - The product promise is that inbound enquiries from forms, provider emails, and customer SMS make it back into the CRM and are visible/actionable.
+  - The user's policy is "do not decline immediately"; risky/out-of-scope/unclear leads should be held silently for review with clear warning flags.
+  - Relying on an LLM tool call alone for SMS lead creation made the real workflow too fragile.
+- Verified with:
+  - `npx vitest run __tests__/triage.test.ts __tests__/webform-route.test.ts __tests__/inbound-email-route.test.ts __tests__/twilio-sms-webhook.test.ts`
+  - `npx vitest run __tests__/twilio-sms-webhook.test.ts __tests__/webform-route.test.ts __tests__/inbound-email-route.test.ts`
+  - `npx next build`

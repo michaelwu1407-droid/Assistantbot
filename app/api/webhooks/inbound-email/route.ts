@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { db } from "@/lib/db";
 import { processIncomingEmailWithGemini } from "@/lib/ai/email-agent";
-import { triageIncomingLead } from "@/lib/ai/triage";
+import { saveTriageRecommendation, triageIncomingLead } from "@/lib/ai/triage";
 import * as Sentry from "@sentry/nextjs";
 import { isTrackableResendEvent, processResendStatusEvent } from "@/lib/resend-status-events";
 
@@ -407,16 +407,8 @@ export async function POST(req: NextRequest) {
         description: textBody.substring(0, 500),
       }).catch(() => null);
 
-      if (triage && (triage.recommendation === "HOLD_REVIEW" || triage.flags.length > 0)) {
-        await db.activity.create({
-          data: {
-            type: "NOTE",
-            title: "Triage flags",
-            content: triage.flags.join("; "),
-            contactId: contact.id,
-            dealId: deal.id,
-          },
-        }).catch(() => {});
+      if (triage) {
+        await saveTriageRecommendation(deal.id, triage).catch(() => {});
       }
 
       const urgentLead = isUrgentLead(subject, textBody);
@@ -426,7 +418,9 @@ export async function POST(req: NextRequest) {
         ? "urgent"
         : !withinCallWindow
           ? "after_hours"
-          : null;
+          : triage?.recommendation === "HOLD_REVIEW"
+            ? "triage_review"
+            : null;
 
       // Auto-call via LiveKit: outbound calls are handled by the livekit-agent Python microservice via SIP trunk.
       // When autoCallLeads is enabled, the microservice picks up and dials the lead.
@@ -450,10 +444,12 @@ export async function POST(req: NextRequest) {
         await db.activity.create({
           data: {
             type: "NOTE",
-            title: "Manual follow-up required",
-            content: urgentLead
-              ? "Urgent lead detected. Auto-calling is disabled for urgent leads; follow up manually."
-              : "Lead received outside allowed calling hours. Auto-calling skipped; follow up manually.",
+              title: "Manual follow-up required",
+              content: urgentLead
+                ? "Urgent lead detected. Auto-calling is disabled for urgent leads; follow up manually."
+                : blockReason === "after_hours"
+                  ? "Lead received outside allowed calling hours. Auto-calling skipped; follow up manually."
+                  : "Tracey held this lead for review. No auto-call or customer response was sent; review the warning flags before accepting the job.",
             contactId: contact.id,
             dealId: deal.id,
           },
@@ -474,6 +470,8 @@ export async function POST(req: NextRequest) {
             callTriggered,
             autoCallBlocked: blockAutoCall,
             autoCallBlockReason: blockReason,
+            triageRecommendation: triage?.recommendation ?? null,
+            triageFlags: triage?.flags ?? [],
           },
         },
       }).catch(() => {});
@@ -489,6 +487,8 @@ export async function POST(req: NextRequest) {
         callTriggered,
         autoCallBlocked: blockAutoCall,
         autoCallBlockReason: blockReason,
+        triageRecommendation: triage?.recommendation ?? null,
+        triageFlags: triage?.flags ?? [],
       });
     }
 

@@ -328,6 +328,11 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Tradie field job details now use the job-specific address before falling back to the contact address, so field navigation no longer says `No address` when the CRM job has one.
 - `fixed` `START TRAVEL` no longer auto-sends an on-my-way SMS server-side. The message action sheet is now the single user-reviewed send path, avoiding silent failures and double sends.
 - `fixed` Reviewed customer-message sheets now explain and disable unavailable sends when customer details or the workspace Tracey SMS number are missing, instead of letting users hit a failing send action.
+- `fixed` Website form lead capture now runs Tracey triage, persists held-review warning fields, notifies the owner with a direct deal link, and blocks customer-facing new-lead automations while the lead is held.
+- `fixed` Provider lead email capture now persists triage warning fields through the canonical triage save path and records `triage_review` instead of mislabelling held leads as after-hours.
+- `fixed` Obvious inbound customer SMS enquiries now create a CRM `NEW` deal when there is no active job for that contact, so SMS leads do not depend solely on the LLM choosing a create-deal tool.
+- `fixed` SMS leads held by triage now notify the owner and do not auto-reply to the customer, matching the "hold silently for evening/user review" policy.
+- `open` Real provider/device verification is still needed later for actual inbound SMS, provider email, webform, and LiveKit call paths; the current pass gives deterministic route coverage and production build proof, not carrier/provider proof.
 
 ## Local-Only / Not Yet Shipped Context
 

@@ -5,6 +5,7 @@ const {
   db,
   processIncomingEmailWithGemini,
   triageIncomingLead,
+  saveTriageRecommendation,
   createGoogleGenerativeAI,
   generateObject,
   captureException,
@@ -20,6 +21,7 @@ const {
   },
   processIncomingEmailWithGemini: vi.fn(),
   triageIncomingLead: vi.fn(),
+  saveTriageRecommendation: vi.fn(),
   createGoogleGenerativeAI: vi.fn(),
   generateObject: vi.fn(),
   captureException: vi.fn(),
@@ -27,7 +29,7 @@ const {
 
 vi.mock("@/lib/db", () => ({ db }));
 vi.mock("@/lib/ai/email-agent", () => ({ processIncomingEmailWithGemini }));
-vi.mock("@/lib/ai/triage", () => ({ triageIncomingLead }));
+vi.mock("@/lib/ai/triage", () => ({ triageIncomingLead, saveTriageRecommendation }));
 vi.mock("@sentry/nextjs", () => ({ captureException }));
 vi.mock("@ai-sdk/google", () => ({ createGoogleGenerativeAI }));
 vi.mock("ai", () => ({ generateObject }));
@@ -45,6 +47,7 @@ describe("POST /api/webhooks/inbound-email", () => {
     db.chatMessage.updateMany.mockResolvedValue({ count: 1 });
     db.workspace.findUnique.mockResolvedValue({ ownerId: "owner_1" });
     triageIncomingLead.mockResolvedValue(null);
+    saveTriageRecommendation.mockResolvedValue(undefined);
     createGoogleGenerativeAI.mockReturnValue(vi.fn());
     generateObject.mockResolvedValue({ object: {} });
   });
@@ -190,11 +193,75 @@ describe("POST /api/webhooks/inbound-email", () => {
       }),
     });
     expect(db.notification.create).toHaveBeenCalled();
+    expect(saveTriageRecommendation).not.toHaveBeenCalled();
     expect(db.webhookEvent.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         provider: "resend",
         eventType: "email.received",
         status: "success",
+      }),
+    });
+  });
+
+  it("persists provider lead triage review flags and uses a review-specific block reason", async () => {
+    db.workspace.findFirst.mockResolvedValue({
+      id: "ws_1",
+      name: "Acme Plumbing",
+      ownerId: "owner_1",
+      inboundEmailAlias: "acme",
+      autoCallLeads: true,
+      twilioPhoneNumber: "+61200000000",
+      settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
+    });
+    db.contact.findFirst.mockResolvedValue(null);
+    db.contact.create.mockResolvedValue({ id: "contact_1", name: "Jane Citizen" });
+    db.deal.create.mockResolvedValue({ id: "deal_1" });
+    triageIncomingLead.mockResolvedValue({
+      recommendation: "HOLD_REVIEW",
+      flags: ["Needs review: Missing address", "Needs review: roofing"],
+    });
+
+    const { POST } = await loadRoute();
+    const response = await POST(
+      new NextRequest("https://app.example.com/api/webhooks/inbound-email", {
+        method: "POST",
+        body: JSON.stringify({
+          type: "email.received",
+          data: {
+            to: "acme@inbound.earlymark.ai",
+            from: "HiPages Notifications <notifications@hipages.com.au>",
+            subject: "New lead",
+            text: "Name: Jane Citizen Phone: 0412 345 678 Need roofing work",
+          },
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        autoCallBlocked: true,
+        autoCallBlockReason: "triage_review",
+        triageRecommendation: "HOLD_REVIEW",
+        triageFlags: ["Needs review: Missing address", "Needs review: roofing"],
+      }),
+    );
+    expect(saveTriageRecommendation).toHaveBeenCalledWith("deal_1", {
+      recommendation: "HOLD_REVIEW",
+      flags: ["Needs review: Missing address", "Needs review: roofing"],
+    });
+    expect(db.activity.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        type: "NOTE",
+        title: "Manual follow-up required",
+        content: "Tracey held this lead for review. No auto-call or customer response was sent; review the warning flags before accepting the job.",
+      }),
+    });
+    expect(db.notification.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        title: "Lead flagged for review",
+        type: "WARNING",
+        link: "/crm/deals/deal_1",
       }),
     });
   });
