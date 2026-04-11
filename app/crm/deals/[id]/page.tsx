@@ -85,7 +85,7 @@ export default async function DealDetailPage({ params }: PageProps) {
   const topSectionMinHeightClass = "min-h-[16rem] md:min-h-[18rem]"
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] flex-col gap-4 overflow-y-auto p-4 md:p-6">
+    <div className="flex h-full flex-col gap-4 overflow-y-auto p-4 pb-24 md:p-6 md:pb-24">
       <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm text-slate-500">
         <Link href="/crm/dashboard" className="inline-flex items-center gap-1 hover:text-slate-900 transition-colors">
           <Home className="h-4 w-4" />

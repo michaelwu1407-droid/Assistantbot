@@ -2,6 +2,7 @@
 
 - Files changed:
   - `app/crm/deals/new/page.tsx`
+  - `app/crm/deals/[id]/page.tsx`
   - `components/modals/new-deal-modal.tsx`
   - `components/modals/new-deal-modal-standalone.tsx`
   - `docs/agent_change_log.md`
@@ -11,6 +12,7 @@
   - **Made the page own vertical scrolling**: the standalone new-job page now has its own full-height scroll container and bottom breathing room.
   - **Removed the cramped inner-card scroll**: the standalone job form card no longer caps itself at `88vh`, so the page scrolls naturally instead of trapping controls inside a clipped card.
   - **Made the dashboard new-job modal safer**: the modal now uses a fixed visible header/footer with a scrollable body, so `Cancel` and `Create Job` stay reachable on shorter screens.
+  - **Fixed the full job page clipping**: authenticated Playwright showed invoice/photo sections below the viewport with no page scroll on `/crm/deals/[id]`; the full job page now owns vertical scrolling with bottom padding.
   - **Verification**: reran focused unit tests and completed a clean `npx next build`.
 - Why:
   - Creating a job is a core CRM workflow. If the save button cannot be reached, the app is functionally broken even if the code compiles.
