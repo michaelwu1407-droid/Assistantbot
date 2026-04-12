@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { NextRequest } from "next/server";
 
 const hoisted = vi.hoisted(() => ({
   requireDealInCurrentWorkspace: vi.fn(),
@@ -83,7 +84,7 @@ describe("GET /api/deals/[id]", () => {
   });
 
   it("POST /api/deals creates deals through the real action instead of returning a placeholder 501", async () => {
-    const request = new Request("https://app.example.com/api/deals", {
+    const request = new NextRequest("https://app.example.com/api/deals", {
       method: "POST",
       body: JSON.stringify({
         title: "Blocked Drain",
@@ -96,7 +97,7 @@ describe("GET /api/deals/[id]", () => {
       },
     });
 
-    const response = await POST(request as Request & { nextUrl?: URL });
+    const response = await POST(request);
     const payload = await response.json();
 
     expect(response.status).toBe(201);

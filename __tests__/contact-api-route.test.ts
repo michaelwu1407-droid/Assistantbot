@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { NextRequest } from "next/server";
 
 const hoisted = vi.hoisted(() => ({
   requireCurrentWorkspaceAccess: vi.fn(),
@@ -42,14 +43,14 @@ describe("/api/contacts route", () => {
   });
 
   it("GET scopes contact list requests to the current workspace", async () => {
-    const response = await GET(new Request("https://app.example.com/api/contacts?workspaceId=ws_1&page=2&pageSize=50"));
+    const response = await GET(new NextRequest("https://app.example.com/api/contacts?workspaceId=ws_1&page=2&pageSize=50"));
 
     expect(response.status).toBe(200);
     expect(hoisted.getContacts).toHaveBeenCalledWith("ws_1", { page: 2, pageSize: 50 });
   });
 
   it("POST /api/contacts creates contacts through the real action instead of returning a placeholder 501", async () => {
-    const request = new Request("https://app.example.com/api/contacts", {
+    const request = new NextRequest("https://app.example.com/api/contacts", {
       method: "POST",
       body: JSON.stringify({
         name: "Alex Harper",
@@ -61,7 +62,7 @@ describe("/api/contacts route", () => {
       },
     });
 
-    const response = await POST(request as Request & { nextUrl?: URL });
+    const response = await POST(request);
     const payload = await response.json();
 
     expect(response.status).toBe(201);

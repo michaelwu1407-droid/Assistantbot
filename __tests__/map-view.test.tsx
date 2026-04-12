@@ -49,7 +49,7 @@ describe("MapView", () => {
         permissions: {
           query: vi.fn().mockResolvedValue({ state: "denied" }),
         },
-      } as Navigator,
+      } as unknown as Navigator,
     );
     vi.stubGlobal("open", vi.fn());
   });

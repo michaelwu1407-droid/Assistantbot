@@ -100,7 +100,7 @@ describe("task-actions", () => {
     const result = await createTask({
       title: "  Call Alex  ",
       description: "Confirm scope",
-      dueAt: "2026-04-02T15:45:00.000Z",
+      dueAt: new Date("2026-04-02T15:45:00.000Z"),
       dealId: "deal_1",
       contactId: "contact_1",
     });

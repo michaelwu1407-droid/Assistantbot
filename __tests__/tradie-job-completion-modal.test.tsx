@@ -79,7 +79,6 @@ describe("Tradie JobCompletionModal", () => {
           status: "SCHEDULED",
           value: 320,
           scheduledAt: new Date("2026-04-08T09:00:00+10:00"),
-          description: "Drain blockage",
         }}
       />,
     );
@@ -92,7 +91,7 @@ describe("Tradie JobCompletionModal", () => {
 
   it("uses clearer next-step copy once the job is completed", async () => {
     const user = userEvent.setup();
-    vi.mocked(finalizeJobCompletion).mockResolvedValue({ success: true });
+    vi.mocked(finalizeJobCompletion).mockResolvedValue({ success: true, status: "COMPLETED" });
     vi.mocked(generateQuote).mockResolvedValue({ success: true });
     vi.mocked(updateDeal).mockResolvedValue({ success: true });
     vi.mocked(createXeroDraftInvoice).mockResolvedValue({ success: true });
@@ -118,7 +117,7 @@ describe("Tradie JobCompletionModal", () => {
 
   it("does not complete the job or push Xero when local invoice generation fails", async () => {
     const user = userEvent.setup();
-    vi.mocked(finalizeJobCompletion).mockResolvedValue({ success: true });
+    vi.mocked(finalizeJobCompletion).mockResolvedValue({ success: true, status: "COMPLETED" });
     vi.mocked(generateQuote).mockResolvedValue({ success: false, error: "Invoice database unavailable" });
     vi.mocked(updateDeal).mockResolvedValue({ success: true });
     vi.mocked(createXeroDraftInvoice).mockResolvedValue({ success: true });

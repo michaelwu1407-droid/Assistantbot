@@ -5475,3 +5475,26 @@ Rule: every agent change commit must include an entry in this file.
   - `npm run lint`
   - `npx vitest run __tests__/shell-store.test.ts __tests__/dashboard-layout.test.tsx __tests__/support-request-panel.test.tsx __tests__/contact-actions.test.ts __tests__/feature-verification.test.ts __tests__/workspace-setup-comms-route.test.ts`
   - `npx next build`
+
+## 2026-04-12 - CI TypeScript blocker cleanup
+
+- Files:
+  - `__tests__/contact-api-route.test.ts`
+  - `__tests__/deal-api-route.test.ts`
+  - `__tests__/workspace-setup-comms-route.test.ts`
+  - `__tests__/map-view.test.tsx`
+  - `__tests__/task-actions.test.ts`
+  - `__tests__/tradie-job-completion-modal.test.tsx`
+  - `__tests__/twilio-voice-gateway-route.test.ts`
+- What changed:
+  - API route tests now pass `NextRequest` fixtures where the route contract requires `NextRequest`.
+  - Browser/navigator test stubs now cast via `unknown` before `Navigator`.
+  - Task and tradie completion fixtures now match the action/component types.
+  - Twilio voice gateway tests now use `vi.stubEnv` instead of assigning read-only `NODE_ENV`.
+- Why:
+  - `npx tsc --noEmit` was failing in CI on test harness type mismatches even though runtime behavior was covered.
+- Verified with:
+  - `npx tsc --noEmit`
+  - `npx vitest run __tests__/contact-api-route.test.ts __tests__/deal-api-route.test.ts __tests__/map-view.test.tsx __tests__/task-actions.test.ts __tests__/tradie-job-completion-modal.test.tsx __tests__/twilio-voice-gateway-route.test.ts __tests__/workspace-setup-comms-route.test.ts`
+  - `npm run lint`
+  - `npx next build`

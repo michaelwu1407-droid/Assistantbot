@@ -356,6 +356,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Billing checkout and customer portal actions now authorize against the workspace actor, so Google-authenticated owners/managers are not blocked by raw auth-provider ID mismatches while team members remain blocked.
 - `fixed` Deviation learning reads/resolution are now scoped to the actor workspace, preserving the held-lead/evening-review learning loop across Google-authenticated users.
 - `fixed` CI lint now passes with zero errors after cleaning the explicit-any/prefer-const/React Compiler/JSX-escape blockers.
+- `fixed` CI TypeScript now passes after aligning API route test fixtures with `NextRequest`, correcting typed test stubs, and matching action/component return types.
 
 ## Local-Only / Not Yet Shipped Context
 
