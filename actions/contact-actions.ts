@@ -593,8 +593,8 @@ export async function deleteContacts(contactIds: string[]) {
     });
     revalidatePath("/crm/contacts");
     return { success: true };
-  } catch (error: any) {
-    if (error?.code === 'P2003') {
+  } catch (error: unknown) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "P2003") {
       return { success: false, error: "Cannot delete contacts with existing jobs or activities. Please delete them first." };
     }
     return { success: false, error: "Failed to delete contacts." };

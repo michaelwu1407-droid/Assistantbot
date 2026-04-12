@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { buildFeatureVerificationReport } from "@/lib/feature-verification";
 
+type LaunchReadinessFixture = Parameters<typeof buildFeatureVerificationReport>[0]["launch"];
+
 function buildLaunch(overrides?: Partial<Record<string, unknown>>) {
   return {
     communications: {
@@ -18,7 +20,7 @@ function buildLaunch(overrides?: Partial<Record<string, unknown>>) {
       },
     },
     ...overrides,
-  } as any;
+  } as LaunchReadinessFixture;
 }
 
 describe("buildFeatureVerificationReport", () => {

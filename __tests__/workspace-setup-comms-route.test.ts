@@ -46,7 +46,7 @@ describe("POST /api/workspace/setup-comms", () => {
       new Request("https://app.example.com/api/workspace/setup-comms", {
         method: "POST",
         body: JSON.stringify({ businessName: "Acme Plumbing", ownerPhone: "0400000000" }),
-      }) as any,
+      }),
     );
 
     expect(response.status).toBe(401);
@@ -62,7 +62,7 @@ describe("POST /api/workspace/setup-comms", () => {
       new Request("https://app.example.com/api/workspace/setup-comms", {
         method: "POST",
         body: JSON.stringify({ businessName: "Acme Plumbing", ownerPhone: "0400000000" }),
-      }) as any,
+      }),
     );
 
     expect(response.status).toBe(404);
@@ -95,7 +95,7 @@ describe("POST /api/workspace/setup-comms", () => {
       new Request("https://app.example.com/api/workspace/setup-comms", {
         method: "POST",
         body: JSON.stringify({ businessName: "Acme Plumbing", ownerPhone: "0400000000" }),
-      }) as any,
+      }),
     );
 
     expect(response.status).toBe(200);

@@ -216,9 +216,12 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
       return () => clearTimeout(t)
     }
 
-    chatbotPanelRef.current?.collapse()
-    setChatbotExpanded(false)
-    syncAssistantEdgeOffset(assistantPanelSizeRef.current, false)
+    const t = setTimeout(() => {
+      chatbotPanelRef.current?.collapse()
+      setChatbotExpanded(false)
+      syncAssistantEdgeOffset(assistantPanelSizeRef.current, false)
+    }, 50)
+    return () => clearTimeout(t)
   }, [assistantPanelExpanded, isDesktop, isBasicView, viewMode, _hydrated])
 
   const handleTutorialComplete = async () => {

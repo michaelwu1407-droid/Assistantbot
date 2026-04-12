@@ -5454,3 +5454,24 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/learning-actions.test.ts __tests__/deal-actions.test.ts __tests__/deal-lifecycle-flow.test.ts`
   - `npx next build`
+
+## 2026-04-12 - CI lint blocker cleanup
+
+- Files:
+  - `__tests__/feature-verification.test.ts`
+  - `__tests__/workspace-setup-comms-route.test.ts`
+  - `lib/chat-utils.ts`
+  - `actions/contact-actions.ts`
+  - `components/layout/Shell.tsx`
+  - `components/settings/support-request-panel.tsx`
+- What changed:
+  - Removed explicit `any` usage in failing tests and contact-action error handling.
+  - Fixed the timezone `offset` variable to satisfy `prefer-const`.
+  - Deferred the advanced-mode chatbot collapse state update so React Compiler no longer flags synchronous `setState` inside the effect.
+  - Escaped the support request copy apostrophe for JSX lint compliance.
+- Why:
+  - GitHub Actions was failing on `npm run lint` despite local build/test coverage passing.
+- Verified with:
+  - `npm run lint`
+  - `npx vitest run __tests__/shell-store.test.ts __tests__/dashboard-layout.test.tsx __tests__/support-request-panel.test.tsx __tests__/contact-actions.test.ts __tests__/feature-verification.test.ts __tests__/workspace-setup-comms-route.test.ts`
+  - `npx next build`

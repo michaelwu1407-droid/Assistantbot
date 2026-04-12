@@ -69,7 +69,7 @@ export function SupportRequestPanel() {
         <CardHeader>
           <CardTitle>Support request</CardTitle>
           <CardDescription>
-            Tell us what is blocking you and we'll help you fix it.
+            Tell us what is blocking you and we&apos;ll help you fix it.
           </CardDescription>
         </CardHeader>
         <CardContent>

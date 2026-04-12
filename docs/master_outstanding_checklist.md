@@ -355,6 +355,7 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` My Business knowledge/document actions and the older tradie estimator now use actor app-user/workspace IDs, keeping Tracey's source data and field quoting aligned with the real CRM workspace.
 - `fixed` Billing checkout and customer portal actions now authorize against the workspace actor, so Google-authenticated owners/managers are not blocked by raw auth-provider ID mismatches while team members remain blocked.
 - `fixed` Deviation learning reads/resolution are now scoped to the actor workspace, preserving the held-lead/evening-review learning loop across Google-authenticated users.
+- `fixed` CI lint now passes with zero errors after cleaning the explicit-any/prefer-const/React Compiler/JSX-escape blockers.
 
 ## Local-Only / Not Yet Shipped Context
 

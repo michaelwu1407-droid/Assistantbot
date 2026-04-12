@@ -164,7 +164,7 @@ export function resolveSchedule(raw: string, timezone?: string | null): { displa
           const lk = Object.fromEntries(p.filter(x => x.type !== "literal").map(x => [x.type, x.value]));
           return Date.UTC(Number(lk.year), Number(lk.month) - 1, Number(lk.day), Number(lk.hour), Number(lk.minute), Number(lk.second)) - ts;
         };
-        let offset = getOffset(utcGuess);
+        const offset = getOffset(utcGuess);
         let resolved = utcGuess - offset;
         const adjusted = getOffset(resolved);
         if (adjusted !== offset) resolved = utcGuess - adjusted;
