@@ -325,6 +325,7 @@ export async function processFollowUpReminders(): Promise<{
               link: `/dashboard?deal=${deal.id}`,
               actionType: "CALL_CLIENT",
               actionPayload: { dealId: deal.id },
+              notificationType: "stale_deal",
             });
             notified++;
           } catch (err) {
