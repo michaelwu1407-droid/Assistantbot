@@ -9,6 +9,8 @@ const hoisted = vi.hoisted(() => ({
   },
   findUserByPhone: vi.fn(),
   twilioMessagesCreate: vi.fn(),
+  parseActionCode: vi.fn().mockReturnValue(null),
+  resolveAndExecute: vi.fn(),
 }));
 
 vi.mock("@/lib/services/ai-agent", () => ({
@@ -24,6 +26,10 @@ vi.mock("twilio", () => ({
       create: hoisted.twilioMessagesCreate,
     },
   })),
+}));
+vi.mock("@/lib/notifications/whatsapp-reply-parser", () => ({
+  parseActionCode: hoisted.parseActionCode,
+  resolveAndExecute: hoisted.resolveAndExecute,
 }));
 
 describe("POST /api/webhooks/whatsapp", () => {
