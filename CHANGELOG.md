@@ -1,5 +1,20 @@
 # 🚀 Pj Buddy Changelog
 
+## Version 2.5.4 (April 20, 2026)
+
+### WhatsApp Notifications — Per-Type Toggles + Two-Way Replies
+- **Per-user, per-type opt-in:** new `NotificationChannelPref` table (`userId` × `notificationType` × `channel`) keeps WhatsApp prefs separate from the workspace-scoped `settings.notificationPreferences` JSON. All toggles default OFF.
+- **Notifications settings page:** new "WhatsApp Notifications" card (`components/settings/whatsapp-notification-toggles.tsx`) mounted under the existing Email/In-App cards. Shows a masked `User.phone`, disables toggles with a "Set a phone in Account" CTA when missing, and persists each toggle optimistically via `actions/notification-prefs-actions.ts`.
+- **Dispatch layer:** `createNotification` now accepts an optional `notificationType` and fans out to `lib/notifications/whatsapp-dispatch.ts` inside the same idempotent `resultFactory`. Short-circuits when the pref is disabled, `User.phone` is null, or `WHATSAPP_NOTIFICATIONS_ENABLED !== "true"`. Wrapped in try/catch so it never fails the notification-create path.
+- **Formatter catalog:** `lib/notifications/notification-type-catalog.ts` + `lib/notifications/whatsapp-formatters.ts`. First-cut types: `new_lead`, `ai_call_completed`, `booking_confirmed`. Every body ends with `Reply: ACCEPT N-<code> / REJECT N-<code>` where `<code>` is the last 10 chars of `Notification.id`.
+- **Two-way replies:** inbound webhook at `app/api/webhooks/whatsapp/route.ts` now runs an action-code pre-parser (`/^(ACCEPT|REJECT|CONFIRM|SNOOZE|OK)\s+N-([a-z0-9]{6,})/i`) before falling back to the Tracey AI agent. Ownership is enforced via Prisma `id: { endsWith: code }` + `userId: user.id`; misses fall through (no leak).
+- **Shared executor:** extracted `lib/notifications/action-executor.ts` with `executeNotificationAction(notification, verb)` so the in-app notification-button path and the WhatsApp reply path execute the exact same CONFIRM_JOB / APPROVE_COMPLETION / CALL_CLIENT / SEND_INVOICE / mark-read / snooze logic. REJECT moves deals to `LOST` (the only stage the enum exposes).
+- **Shared Twilio sender:** extracted `lib/twilio/whatsapp.ts` so the webhook route and the dispatcher use the same `sendWhatsApp(to, body)` helper.
+- **Wired up first callers:** `followup-actions.ts` (due/overdue follow-ups) and `kanban-automation-actions.ts` ("Deal Escalated") now pass `notificationType: "stale_deal"`.
+- **Env flag:** new `WHATSAPP_NOTIFICATIONS_ENABLED` kill switch added to `.env.example`. Ships disabled until the Earlymark WhatsApp sender is registered with Meta (clears Twilio error 63007).
+- **Observability:** new `webhookEvent` types — `whatsapp.outbound.notification` (status: success / skipped_no_phone / skipped_disabled / error), `whatsapp.reply.action_code`, `whatsapp.reply.ai_fallback`, `whatsapp.action.executed`.
+- **Tests:** new `__tests__/whatsapp-notifications.test.ts` (19 tests — dispatch gating, formatter snapshots, parser positive/negative, ownership, verb mapping). Existing `__tests__/whatsapp-route.test.ts` updated to mock the new reply-parser module.
+
 ## Version 2.5.3 (April 3, 2026)
 
 ### Onboarding Tutorial Revamp

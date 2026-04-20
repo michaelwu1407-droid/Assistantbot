@@ -1,26 +1,11 @@
 import { NextResponse } from "next/server";
-import twilio from "twilio";
 import { processAgentCommand } from "@/lib/services/ai-agent";
 import { db } from "@/lib/db";
 import { findUserByPhone } from "@/lib/workspace-routing";
+import { sendWhatsApp } from "@/lib/twilio/whatsapp";
+import { parseActionCode, resolveAndExecute } from "@/lib/notifications/whatsapp-reply-parser";
 
 export const maxDuration = 60;
-
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-const twilioWhatsAppNumber =
-  process.env.NEXT_PUBLIC_TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_WHATSAPP_NUMBER;
-
-const twilioClient = accountSid && authToken ? twilio(accountSid, authToken) : null;
-
-async function sendWhatsApp(to: string, body: string) {
-  if (!twilioClient || !twilioWhatsAppNumber) return null;
-  return twilioClient.messages.create({
-    from: `whatsapp:${twilioWhatsAppNumber}`,
-    to: `whatsapp:${to}`,
-    body,
-  });
-}
 
 export async function POST(req: Request) {
   try {
@@ -72,8 +57,60 @@ export async function POST(req: Request) {
         return null;
       });
 
+    // Action-code pre-parse: handle deterministic replies before AI agent
+    const parsed = parseActionCode(body);
+    if (parsed) {
+      const outcome = await resolveAndExecute(user, parsed).catch(() => ({ handled: false as const }));
+      if (outcome.handled) {
+        await db.webhookEvent
+          .create({
+            data: {
+              provider: "twilio",
+              eventType: "whatsapp.reply.action_code",
+              status: "success",
+              payload: { userId: user.id, verb: parsed.verb, suffix: parsed.suffix },
+            },
+          })
+          .catch(() => {});
+        try {
+          await sendWhatsApp(cleanNumber, outcome.reply);
+        } catch (sendErr) {
+          console.error("[WhatsApp Webhook] Error sending action-code reply:", sendErr);
+        }
+        return new NextResponse("OK", { status: 200 });
+      }
+      // Notification not found for this user → fall through to AI agent
+    }
+
+    // AI agent fallback
+    if (parsed) {
+      await db.webhookEvent
+        .create({
+          data: {
+            provider: "twilio",
+            eventType: "whatsapp.reply.ai_fallback",
+            status: "received",
+            payload: { userId: user.id, reason: "notification_not_found" },
+          },
+        })
+        .catch(() => {});
+    }
+
     try {
       const aiResponse = await processAgentCommand(user.id, body);
+
+      if (!parsed) {
+        await db.webhookEvent
+          .create({
+            data: {
+              provider: "twilio",
+              eventType: "whatsapp.reply.ai_fallback",
+              status: "received",
+              payload: { userId: user.id, reason: "no_action_code" },
+            },
+          })
+          .catch(() => {});
+      }
 
       try {
         const msg = await sendWhatsApp(cleanNumber, aiResponse);

@@ -262,6 +262,12 @@ The repo was later advanced beyond the original handoff and then reviewed agains
 - `fixed` Voice canary phrase matching is now proven healthy in production with `Hello, Tracy` / `Monitor probe` transcript variants after deploy.
 - `fixed` Voice latency scoring no longer over-flags healthy `inbound_demo` canary traffic: the PSTN-backed demo surface now uses an `1100ms` TTS TTFB threshold, and dominant-bottleneck warnings only trigger with enough samples plus a real threshold breach.
 - `in-progress` Real WhatsApp assistant verification for internal users on the live number.
+- `shipped` WhatsApp **notifications** feature (per-type opt-in toggles + two-way action-code replies) is app-complete and merged to main: new `NotificationChannelPref` table, shared `executeNotificationAction`, notification settings card, dispatch gated by `WHATSAPP_NOTIFICATIONS_ENABLED`, 19 new unit tests green. Feature ships disabled until the provider-side blocker below is cleared.
+- `open` WhatsApp notifications — **outstanding to fully light up**:
+  - `open` Apply the `add_notification_channel_pref` migration in every environment (`prisma/migrations/20260420_add_notification_channel_pref/migration.sql` was hand-written because the local Prisma CLI could not reach the DB). `npx prisma migrate deploy` on prod + staging.
+  - `open` Register `whatsapp:+61485010634` with Meta (same Twilio `63007` block as the existing WhatsApp assistant). Flip `WHATSAPP_NOTIFICATIONS_ENABLED=true` afterwards.
+  - `open` Wire `notificationType: "new_lead"` + `"ai_call_completed"` at their real event sources once a notification is authored for those triggers (post-call-sync currently fires an automation, not a direct `createNotification`; inbound lead capture likewise).
+  - `open` Live end-to-end verification per the plan's §Verification checklist once Meta unblocks: dispatch success, `skipped_disabled`, action-code round-trip, cross-user ownership, and AI fallback.
 - `fixed` WhatsApp webhook now classifies against `workspaceId` instead of `user.id`, records `whatsapp.inbound` synchronously, and logs `whatsapp.processing` errors durably before returning `200 OK` to Twilio.
 - `fixed` Duplicate-phone-number resolution for the internal WhatsApp assistant now prefers the provisioned/twilio-backed workspace instead of the first arbitrary matching user record.
 - `fixed` WhatsApp assistant processing now runs inline instead of depending on `waitUntil()`, because live production probes showed the background path was not completing reliably.

@@ -6,6 +6,7 @@ import { getAuthUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { sendPushToUser } from "@/lib/push-notifications";
 import { runIdempotent } from "@/lib/idempotency";
+import { dispatchWhatsAppForNotification } from "@/lib/notifications/whatsapp-dispatch";
 
 export interface NotificationView {
   id: string;
@@ -109,6 +110,7 @@ export async function createNotification(data: {
   link?: string;
   actionType?: string;
   actionPayload?: Record<string, unknown>;
+  notificationType?: string;
 }) {
   const normalizedType = normalizeNotificationType(data.type);
 
@@ -160,6 +162,12 @@ export async function createNotification(data: {
           url: data.link ?? "/crm/dashboard",
         }).catch(() => {});
       }
+
+      await dispatchWhatsAppForNotification({
+        notification,
+        userId: data.userId,
+        notificationType: data.notificationType,
+      });
 
       return { notificationId: notification.id };
     },

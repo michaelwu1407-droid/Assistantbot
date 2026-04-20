@@ -88,6 +88,7 @@ export async function executeKanbanAction(
           message: `${deal.title}: ${reason}`,
           type: "SYSTEM",
           link: `/crm?dealId=${data.dealId}`,
+          notificationType: "stale_deal",
         });
       }
 
