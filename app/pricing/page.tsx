@@ -68,7 +68,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "Are there any hidden fees?",
-    a: "No. $149/mo covers everything — calls, SMS, CRM, scheduling, and your dedicated AU mobile number. No per-call or per-seat fees.",
+    a: "No hidden fees. Your A$30/month subscription covers the full platform — CRM, scheduling, AI, and your dedicated AU mobile number. Calls and texts are 10¢ per call minute or text, so you only pay for what you actually use.",
   },
   {
     q: "Can I switch between monthly and yearly?",
@@ -202,7 +202,7 @@ export default function PricingPage() {
               One plan. Everything included.
             </motion.h1>
             <motion.p {...fadeUp(0.08)} className="text-lg leading-8 text-slate-600 max-w-xl text-balance">
-              No tiers, no hidden fees. Get the full platform for one flat rate.
+              A$30/month platform. 10¢ per call minute or text. That&apos;s it.
             </motion.p>
           </div>
         </section>
@@ -237,7 +237,7 @@ export default function PricingPage() {
                     Yearly
                   </button>
                   <span className="absolute -top-3 -right-3 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
-                    Save ~17%
+                    Save 20%
                   </span>
                 </div>
               </div>
@@ -302,15 +302,18 @@ export default function PricingPage() {
                 </div>
                 <h3 className="text-xl font-bold text-midnight mb-2">Earlymark Pro</h3>
                 <div className="text-5xl font-extrabold text-midnight mb-1">
-                  {billingPeriod === "monthly" ? "$149" : "$124"}
+                  {billingPeriod === "monthly" ? "A$30" : "A$24"}
                 </div>
-                <div className="text-sm font-semibold text-slate-500 mb-2">
-                  {billingPeriod === "monthly" ? "/month" : "/month, billed yearly at $1,490"}
+                <div className="text-sm font-semibold text-slate-500 mb-1">
+                  {billingPeriod === "monthly" ? "/month" : "/month, billed annually at A$288"}
                 </div>
-                <div className="text-xs text-slate-500 mb-8 max-w-[220px]">
+                <div className="text-sm font-semibold text-primary mb-2">
+                  + 10¢ per call minute or text
+                </div>
+                <div className="text-xs text-slate-500 mb-8 max-w-[240px]">
                   {billingPeriod === "monthly"
                     ? "Cancel anytime. No lock-in contracts."
-                    : "Stripe promo codes accepted at checkout."}
+                    : "Save 20% on the base fee. Promo codes accepted at checkout."}
                 </div>
 
                 <ul className="text-left w-full space-y-4 mb-10">
