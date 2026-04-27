@@ -248,6 +248,44 @@ async function seed() {
     },
   });
 
+  await prisma.contact.upsert({
+    where: { id: E2E_IDS.emailOnlyContactId },
+    update: {
+      workspaceId: E2E_IDS.workspaceId,
+      name: "E2E Email Only Contact",
+      email: "email-only+e2e@example.com",
+      phone: null,
+      address: "400 Email Street, Sydney NSW",
+    },
+    create: {
+      id: E2E_IDS.emailOnlyContactId,
+      workspaceId: E2E_IDS.workspaceId,
+      name: "E2E Email Only Contact",
+      email: "email-only+e2e@example.com",
+      phone: null,
+      address: "400 Email Street, Sydney NSW",
+    },
+  });
+
+  await prisma.contact.upsert({
+    where: { id: E2E_IDS.phoneOnlyContactId },
+    update: {
+      workspaceId: E2E_IDS.workspaceId,
+      name: "E2E Phone Only Contact",
+      email: null,
+      phone: "+61430000004",
+      address: "500 Phone Street, Sydney NSW",
+    },
+    create: {
+      id: E2E_IDS.phoneOnlyContactId,
+      workspaceId: E2E_IDS.workspaceId,
+      name: "E2E Phone Only Contact",
+      email: null,
+      phone: "+61430000004",
+      address: "500 Phone Street, Sydney NSW",
+    },
+  });
+
   await prisma.deal.upsert({
     where: { id: E2E_IDS.leadDealId },
     update: {
@@ -332,13 +370,61 @@ async function seed() {
     },
   });
 
+  await prisma.deal.upsert({
+    where: { id: E2E_IDS.emailOnlyDealId },
+    update: {
+      workspaceId: E2E_IDS.workspaceId,
+      contactId: E2E_IDS.emailOnlyContactId,
+      title: "E2E Email Only Repair Quote",
+      stage: "NEW",
+      address: "400 Email Street, Sydney NSW",
+      source: "email",
+      assignedToId: null,
+    },
+    create: {
+      id: E2E_IDS.emailOnlyDealId,
+      workspaceId: E2E_IDS.workspaceId,
+      contactId: E2E_IDS.emailOnlyContactId,
+      title: "E2E Email Only Repair Quote",
+      stage: "NEW",
+      address: "400 Email Street, Sydney NSW",
+      source: "email",
+    },
+  });
+
+  await prisma.deal.upsert({
+    where: { id: E2E_IDS.phoneOnlyDealId },
+    update: {
+      workspaceId: E2E_IDS.workspaceId,
+      contactId: E2E_IDS.phoneOnlyContactId,
+      title: "E2E Phone Only Urgent Callback",
+      stage: "NEW",
+      address: "500 Phone Street, Sydney NSW",
+      source: "phone",
+      assignedToId: null,
+    },
+    create: {
+      id: E2E_IDS.phoneOnlyDealId,
+      workspaceId: E2E_IDS.workspaceId,
+      contactId: E2E_IDS.phoneOnlyContactId,
+      title: "E2E Phone Only Urgent Callback",
+      stage: "NEW",
+      address: "500 Phone Street, Sydney NSW",
+      source: "phone",
+    },
+  });
+
   await prisma.activity.deleteMany({
     where: {
       OR: [
         { contactId: E2E_IDS.scheduledContactId },
         { contactId: E2E_IDS.leadContactId },
+        { contactId: E2E_IDS.emailOnlyContactId },
+        { contactId: E2E_IDS.phoneOnlyContactId },
         { dealId: E2E_IDS.teamScheduledDealId },
         { dealId: E2E_IDS.leadDealId },
+        { dealId: E2E_IDS.emailOnlyDealId },
+        { dealId: E2E_IDS.phoneOnlyDealId },
       ],
     },
   });
@@ -366,6 +452,20 @@ async function seed() {
         content: "Can I get a quote for a leaking tap?",
         contactId: E2E_IDS.leadContactId,
         dealId: E2E_IDS.leadDealId,
+      },
+      {
+        type: "NOTE",
+        title: "Inbound",
+        content: "Can you email me the repair options? My phone is tied up onsite.",
+        contactId: E2E_IDS.emailOnlyContactId,
+        dealId: E2E_IDS.emailOnlyDealId,
+      },
+      {
+        type: "NOTE",
+        title: "Inbound",
+        content: "Please text me back urgently about the callback window.",
+        contactId: E2E_IDS.phoneOnlyContactId,
+        dealId: E2E_IDS.phoneOnlyDealId,
       },
     ],
   });

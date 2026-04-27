@@ -134,6 +134,7 @@ export default function PricingPage() {
   const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle")
   const [errorMessage, setErrorMessage] = useState("")
   const [department, setDepartment] = useState("sales")
+  const [callPlaced, setCallPlaced] = useState(false)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -155,6 +156,7 @@ export default function PricingPage() {
     }
     setStatus("sending")
     setErrorMessage("")
+    setCallPlaced(false)
 
     try {
       const res = await fetch("/api/contact", {
@@ -168,6 +170,7 @@ export default function PricingPage() {
         setErrorMessage(data.error || "Something went wrong. Please try again.")
         return
       }
+      setCallPlaced(Boolean(data?.callPlaced))
       setStatus("success")
       form.reset()
       setDepartment("sales")
@@ -447,8 +450,15 @@ export default function PricingPage() {
                         <CheckCircle className="h-6 w-6 text-primary" />
                       </div>
                       <div>
-                        <h2 className="font-semibold text-midnight">Message sent</h2>
-                        <p className="text-sm text-slate-600 mt-1">
+                        <h2 className="font-semibold text-midnight">
+                          {callPlaced ? "Tracey is calling you now" : "Message sent"}
+                        </h2>
+                        {callPlaced && (
+                          <p className="text-sm text-slate-600 mt-1">
+                            Pick up - Tracey will be on the line in a few seconds.
+                          </p>
+                        )}
+                        <p className="text-sm text-slate-600 mt-1" hidden={callPlaced}>
                           Thanks for reaching out. We’ll get back to you within 24 hours.
                         </p>
                       </div>
@@ -457,6 +467,7 @@ export default function PricingPage() {
                         onClick={() => {
                           setStatus("idle")
                           setDepartment("sales")
+                          setCallPlaced(false)
                         }}
                       >
                         Send another message
@@ -523,6 +534,9 @@ export default function PricingPage() {
                           placeholder="+61 400 000 000"
                           className="bg-slate-50/50"
                         />
+                        <p className="text-xs text-slate-600">
+                          Add your phone if you want Tracey to call you back right away.
+                        </p>
                       </div>
 
                       <div className="space-y-2">

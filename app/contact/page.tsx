@@ -51,6 +51,7 @@ export default function ContactPage() {
     }
     setStatus("sending")
     setErrorMessage("")
+    setCallPlaced(false)
 
     try {
       const res = await fetch("/api/contact", {
@@ -64,8 +65,8 @@ export default function ContactPage() {
         setErrorMessage(data.error || "Something went wrong. Please try again.")
         return
       }
-      setStatus("success")
       setCallPlaced(Boolean(data?.callPlaced))
+      setStatus("success")
       form.reset()
       setDepartment("sales")
     } catch {
@@ -162,6 +163,9 @@ export default function ContactPage() {
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone (optional)</Label>
                     <Input id="phone" name="phone" type="tel" placeholder="+61 400 000 000" />
+                    <p className="text-xs text-slate-body">
+                      Add your phone if you want Tracey to call you back right away.
+                    </p>
                   </div>
 
                   <div className="space-y-2">

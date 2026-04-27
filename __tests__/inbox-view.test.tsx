@@ -434,4 +434,61 @@ describe("InboxView", () => {
     expect(screen.getByText(/Tracey: I can help with that\./i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Hide full transcript/i })).toBeInTheDocument();
   });
+
+  it("keeps urgent callback routing in system activity while leaving the customer conversation in conversations", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <InboxView
+        workspaceId="ws_1"
+        initialInteractions={[
+          {
+            id: "call_1",
+            type: "call",
+            channel: "call",
+            direction: "inbound",
+            title: "Voice call handled by Tracey",
+            description: "Caller asked for an urgent callback about a burst pipe.",
+            summary: "Caller asked for an urgent callback about a burst pipe.",
+            transcript: "Caller: We have a burst pipe.\nTracey: I’m escalating this now.",
+            content: "Caller: We have a burst pipe.",
+            preview: "Caller asked for an urgent callback about a burst pipe.",
+            time: "Just now",
+            createdAt: new Date("2026-04-03T10:00:00.000Z"),
+            contactId: "contact_a",
+            contactName: "Alice Example",
+            contactPhone: "0400000001",
+            contactEmail: "alice@example.com",
+          },
+          {
+            id: "activity_urgent",
+            type: "note",
+            channel: "system",
+            direction: "system",
+            title: "Urgent callback requested",
+            description: "Reason: Pipe burst\nCaller: 0400000001",
+            content: "Reason: Pipe burst\nCaller: 0400000001",
+            preview: "Reason: Pipe burst",
+            time: "Just now",
+            createdAt: new Date("2026-04-03T10:01:00.000Z"),
+            contactId: "contact_a",
+            contactName: "Alice Example",
+            contactPhone: "0400000001",
+            contactEmail: "alice@example.com",
+          },
+        ]}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Alice Example" })).toBeInTheDocument());
+
+    expect(screen.getByText(/Caller asked for an urgent callback about a burst pipe/i)).toBeInTheDocument();
+    expect(screen.queryByText("Urgent callback requested")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /System Activity/i }));
+
+    expect(screen.getByText("Urgent callback requested")).toBeInTheDocument();
+    expect(screen.getByText(/Caller: 0400000001/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Show full transcript/i)).not.toBeInTheDocument();
+  });
 });

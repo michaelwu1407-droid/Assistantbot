@@ -116,7 +116,7 @@ describe("pricing contact form", () => {
     global.fetch = fetchMock as unknown as typeof fetch;
   });
 
-  it("submits the pricing-page contact form to /api/contact", async () => {
+  it("shows the live-callback success state when the pricing page gets callPlaced", async () => {
     const user = userEvent.setup();
     fetchMock.mockResolvedValue({
       ok: true,
@@ -152,7 +152,8 @@ describe("pricing contact form", () => {
       );
     });
 
-    expect(screen.getByText("Message sent")).toBeInTheDocument();
+    expect(screen.getByText("Tracey is calling you now")).toBeInTheDocument();
+    expect(screen.getByText(/pick up/i)).toBeInTheDocument();
   });
 
   it("shows request errors on the pricing-page form", async () => {
@@ -175,5 +176,13 @@ describe("pricing contact form", () => {
     await waitFor(() => {
       expect(screen.getByText("Failed to send message. Please try again.")).toBeInTheDocument();
     });
+  });
+
+  it("explains the instant callback option before submit", () => {
+    render(<PricingPage />);
+
+    expect(
+      screen.getByText("Add your phone if you want Tracey to call you back right away."),
+    ).toBeInTheDocument();
   });
 });

@@ -117,6 +117,8 @@ function isSystemEvent(a: { title?: string | null; description?: string | null }
     "contact note",
     // post-job
     "post-job follow-up",
+    // voice escalation / callback routing
+    "urgent callback",
   ]
   return sysPatterns.some(p => a.title?.toLowerCase().includes(p))
 }
