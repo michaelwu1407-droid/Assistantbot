@@ -1,5 +1,4 @@
-import { streamText, convertToModelMessages, stepCountIs, createUIMessageStream, createUIMessageStreamResponse } from "ai";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
 import {
   runAddContactNote,
   runAddDealNote,
@@ -27,17 +26,15 @@ import { runGetAvailability, runGetClientContext, runGetTodaySummary } from "@/a
 import { getDeals } from "@/actions/deal-actions";
 import { getWorkspaceSettingsById } from "@/actions/settings-actions";
 import { buildJobDraftFromParams, resolveSchedule } from "@/lib/chat-utils";
-import { parseJobWithAI, parseMultipleJobsWithAI, extractAllJobsFromParagraph } from "@/lib/ai/job-parser";
+import { parseJobWithAI, parseMultipleJobsWithAI } from "@/lib/ai/job-parser";
 import { appendTicketNote } from "@/actions/activity-actions";
-import { addMem0Memory, buildAgentContext, fetchMemoryContext } from "@/lib/ai/context";
-import { buildCrmChatSystemPrompt } from "@/lib/ai/prompt-contract";
 import { normalizeAppAgentMode } from "@/lib/agent-mode";
-import { getAgentToolsForIntent } from "@/lib/ai/tools";
 import { preClassify, type PreClassification } from "@/lib/ai/pre-classifier";
-import { validatePricingInResponse } from "@/lib/ai/response-validator";
-import { instrumentToolsWithLatency, nowMs, recordLatencyMetric } from "@/lib/telemetry/latency";
+import { nowMs, recordLatencyMetric } from "@/lib/telemetry/latency";
 import { rateLimit } from "@/lib/rate-limit";
 import { logger } from "@/lib/logging";
+import { runPreprocessing, shouldAttemptStructuredJobExtraction } from "@/lib/ai/chat-preprocessing";
+import { runOrchestration, createEmptyFallbackResponse } from "@/lib/ai/chat-orchestrator";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -64,23 +61,6 @@ function looksLikeFollowUpDetail(text: string): boolean {
   return trimmed.length >= 6;
 }
 
-/** Cost-effective Gemini model for chat + tools */
-const CHAT_MODEL_ID = "gemini-2.0-flash-lite";
-const MAX_INPUT_TOKENS_ESTIMATE = 18_000;
-
-function estimateTokens(text: string): number {
-  // Fast, conservative estimate: ~4 chars per token for English-like text.
-  return Math.ceil(text.length / 4);
-}
-
-function toText(value: unknown): string {
-  if (typeof value === "string") return value;
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value ?? "");
-  }
-}
 
 type ParsedJob = {
   clientName: string;
@@ -182,53 +162,6 @@ function findMostRecentMultiJobCandidate(messages: unknown[]): string | null {
   return null;
 }
 
-export function shouldAttemptStructuredJobExtraction(text: string, classification: PreClassification): boolean {
-  const trimmed = text.trim();
-  if (trimmed.length < 15) return false;
-  const lower = trimmed.toLowerCase();
-  if (/^(next|confirm|cancel|ok|okay|yes|no|done|thanks|thank you|undo)\b/.test(lower)) return false;
-  if (classification.intent === "flow_control" || classification.intent === "contact_lookup" || classification.intent === "reporting" || classification.intent === "support") {
-    return false;
-  }
-  if (/\b(move|moved|assign|assigned|unassign|update|updated|change|changed|edit|edited|rename|set|mark|marked|show|list|find|search|look up|lookup|who is|what is|status|note|reminder|invoice|email|text|message|call)\b/i.test(trimmed)) {
-    return false;
-  }
-  const explicitCreationIntent =
-    /\b(create|add|book|log)\b/i.test(trimmed) ||
-    /\b(new job|new lead|inbound lead|lead from|customer called|customer texted|customer emailed|new enquiry)\b/i.test(trimmed);
-  if (!explicitCreationIntent) return false;
-  const enoughJobPayload =
-    /\$\s*\d+/.test(trimmed) ||
-    /\b\d{8,}\b/.test(trimmed) ||
-    /@/.test(trimmed) ||
-    /\b(today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i.test(trimmed) ||
-    /\b\d{1,2}\s?(am|pm)\b/i.test(trimmed) ||
-    (trimmed.match(/,/g) ?? []).length >= 2;
-  if (enoughJobPayload) return true;
-  const likelyQuestion = /^(what|show|list|how|why|who|when|where)\b/i.test(lower) || trimmed.includes("?");
-  if (likelyQuestion) return false;
-  return false;
-}
-
-function shouldIncludeHistoricalPricing(text: string): boolean {
-  return /\b(price|pricing|quote|quoted|cost|how much|rate|fee|invoice)\b/i.test(text) || /\$/.test(text);
-}
-
-function shouldFetchMemory(text: string): boolean {
-  const trimmed = text.trim();
-  if (!trimmed) return false;
-  if (/^(next|confirm|cancel|ok|okay|yes|no|done|thanks|thank you|undo)\b/i.test(trimmed.toLowerCase())) return false;
-  if (trimmed.split(/\s+/).length <= 2) return false;
-  return true;
-}
-
-function getAdaptiveMaxSteps(text: string): number {
-  const trimmed = text.trim().toLowerCase();
-  if (/^(next|confirm|cancel|ok|okay|yes|no|done|undo)\b/.test(trimmed)) return 2;
-  if (trimmed.length < 80) return 3;
-  if (/\b(and|then|also|plus)\b/.test(trimmed)) return 5;
-  return 4;
-}
 
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
   let timeoutHandle: NodeJS.Timeout | null = null;
@@ -1045,7 +978,6 @@ export async function POST(req: Request) {
 
     // Extract user ID from headers or use workspaceId as fallback
     const userId = req.headers.get("x-user-id") || workspaceId;
-    const preprocessingStartedAt = nowMs();
     const lastUserMessage = messages.filter((m: { role?: string }) => m.role === "user").pop();
     const lastMessageContent = getUserMessageText(lastUserMessage) || content;
 
@@ -1063,28 +995,9 @@ export async function POST(req: Request) {
       return createTextStreamResponse(directCommand.text);
     }
 
-    const shouldRunStructuredExtraction = !isFlowControl && shouldAttemptStructuredJobExtraction(content, classification);
-    const includeHistoricalPricing = !isFlowControl && shouldIncludeHistoricalPricing(content);
-    const shouldGetMemoryContext = !isFlowControl && shouldFetchMemory(lastMessageContent);
-
-    // ── PARALLEL: Run job extraction, context building, and memory fetch concurrently ──
-    // This is the critical speed optimization — these 3 operations are independent and
-    // were previously running sequentially, adding 1-3+ seconds of dead time.
-    const jobExtractionStart = nowMs();
-    const agentContextStart = nowMs();
-    const memoryFetchStart = nowMs();
-    const [extractedJobs, agentContext, memoryContextStr] = await Promise.all([
-      (shouldRunStructuredExtraction
-        ? withTimeout(extractAllJobsFromParagraph(content), 1400, [])
-        : Promise.resolve([])
-      ).then(r => { recordLatencyMetric('chat.web.preprocessing.job_extraction_ms', nowMs() - jobExtractionStart); return r; }),
-      buildAgentContext(workspaceId, userId, { includeHistoricalPricing, pricingAudience: "business" })
-        .then(r => { recordLatencyMetric('chat.web.preprocessing.agent_context_ms', nowMs() - agentContextStart); return r; }),
-      (shouldGetMemoryContext
-        ? withTimeout(fetchMemoryContext(userId, lastMessageContent), 400, "")
-        : Promise.resolve("")
-      ).then(r => { recordLatencyMetric('chat.web.preprocessing.memory_fetch_ms', nowMs() - memoryFetchStart); return r; }),
-    ]);
+    // ── PARALLEL PREPROCESSING: job extraction, context, memory, entity pre-resolution ──
+    const preprocessing = await runPreprocessing(workspaceId, userId, content, lastMessageContent);
+    const { extractedJobs, agentContext, memoryContextStr } = preprocessing;
 
     const {
       settings,
@@ -1099,7 +1012,6 @@ export async function POST(req: Request) {
       bouncerStr,
       attachmentsStr,
     } = agentContext;
-    const preprocessingMs = nowMs() - preprocessingStartedAt;
 
     // ── Handle job extraction results (draft card early-returns) ──
     const multipleJobs = extractedJobs.length >= 2 ? extractedJobs : null;
@@ -1149,10 +1061,11 @@ export async function POST(req: Request) {
     }
 
     const singleJobFromParagraph = extractedJobs.length === 1 ? extractedJobs[0] : null;
+    const shouldRunFallbackParse = !useMultiJobFlow && !singleJobFromParagraph && shouldAttemptStructuredJobExtraction(content, classification);
     const parsed = useMultiJobFlow
       ? null
       : (singleJobFromParagraph ??
-        (shouldRunStructuredExtraction ? await withTimeout(parseJobWithAI(content), 1400, null) : null));
+        (shouldRunFallbackParse ? await withTimeout(parseJobWithAI(content), 1400, null) : null));
     if (parsed) {
       // One-liner: return a draft card for confirmation; do not create the job until user confirms.
       const draft = buildJobDraftFromParams(parsed) as ReturnType<typeof buildJobDraftFromParams> & { warnings: string[] };
@@ -1183,259 +1096,33 @@ export async function POST(req: Request) {
       return createUIMessageStreamResponse({ stream });
     }
 
-    // ── Prepare model messages for LLM ──
-    const google = createGoogleGenerativeAI({ apiKey });
-
-    let modelMessages: unknown[];
-    try {
-      const converted = await convertToModelMessages(messages);
-      modelMessages = Array.isArray(converted) ? converted : [];
-    } catch {
-      modelMessages = content ? [{ role: "user", content }] : [];
-    }
-    if (!modelMessages?.length && content) modelMessages = [{ role: "user", content }];
-    if (!modelMessages?.length) {
-      return new Response(
-        JSON.stringify({ error: "No messages to process" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
-    }
-    // Gemini requires at least one "parts" (prompt input). Ensure the latest user turn has content.
-    const lastMsg = modelMessages[modelMessages.length - 1] as any;
-    const isLastUser = lastMsg?.role === "user";
-    const lastContent = lastMsg?.content;
-    const hasParts = typeof lastContent === "string"
-      ? lastContent.trim().length > 0
-      : Array.isArray(lastContent) && lastContent.some((p: any) => p && typeof p === "object" && "text" in p && String(p.text).trim().length > 0);
-
-    // If there is valid `content` string but the last message object is empty, patch it.
-    if (isLastUser && !hasParts && content?.trim()) {
-      modelMessages = [...modelMessages.slice(0, -1), { role: "user", content }];
-    }
-    // If it is genuinely empty, return a fallback stream to avoid the 500 API crash.
-    else if (isLastUser && !hasParts) {
-      const textId = "empty-fallback";
-      const stream = createUIMessageStream({
-        execute: ({ writer }) => {
-          writer.write({ type: "start" });
-          writer.write({ type: "text-start", id: textId });
-          writer.write({ type: "text-delta", id: textId, delta: "I didn’t quite catch that. Could you please provide more details?" });
-          writer.write({ type: "text-end", id: textId });
-          writer.write({ type: "finish" });
-        },
-      });
-      return createUIMessageStreamResponse({ stream });
-    }
-
-    // CRITICAL API FIX: Google SDK crashes with "must include at least one parts field"
-    // if ANY message in the history has empty content and no tool calls.
-    // We must deep-check arrays for actual text content, not just array length.
-    modelMessages = modelMessages.filter((msg: any) => {
-      if (msg.role === "system") return true;
-      let msgHasText = false;
-      if (typeof msg.content === "string") {
-        msgHasText = msg.content.trim().length > 0;
-      } else if (Array.isArray(msg.content)) {
-        msgHasText = msg.content.some((p: any) => {
-          if (!p || typeof p !== "object") return false;
-          if ("text" in p && typeof p.text === "string" && p.text.trim().length > 0) return true;
-          if ("type" in p && p.type === "text" && "text" in p && String(p.text ?? "").trim().length > 0) return true;
-          if ("type" in p && (p.type === "tool-call" || p.type === "tool-result")) return true;
-          return false;
-        });
-      }
-      const msgHasTools = !!(msg.toolInvocations?.length || msg.toolCalls?.length);
-      return msgHasText || msgHasTools;
-    });
-
-    // Context pruning: keep only the last MAX_HISTORY_MESSAGES to avoid unbounded
-    // token growth and rising latency/cost. System messages always pass through.
-    const MAX_HISTORY_MESSAGES = 8;
-    if (modelMessages.length > MAX_HISTORY_MESSAGES) {
-      const systemMsgs = modelMessages.filter((m: any) => m.role === "system");
-      const nonSystemMsgs = modelMessages.filter((m: any) => m.role !== "system");
-      modelMessages = [...systemMsgs, ...nonSystemMsgs.slice(-MAX_HISTORY_MESSAGES)];
-    }
-
-    // Final safety: ensure last message is user with content. If history was entirely
-    // filtered away, create a minimal user message from the extracted content.
-    if (!modelMessages.length && content?.trim()) {
-      modelMessages = [{ role: "user", content }];
-    }
-    if (!modelMessages.length) {
-      const textId = "empty-fallback-2";
-      const stream = createUIMessageStream({
-        execute: ({ writer }) => {
-          writer.write({ type: "start" });
-          writer.write({ type: "text-start", id: textId });
-          writer.write({ type: "text-delta", id: textId, delta: "I didn’t quite catch that. Could you rephrase?" });
-          writer.write({ type: "text-end", id: textId });
-          writer.write({ type: "finish" });
-        },
-      });
-      return createUIMessageStreamResponse({ stream });
-    }
-
-    // multiJobInstruction removed — the multi-job early-return (lines above)
-    // handles this before streamText is reached, so it was always "".
-
-    // ── Intent hints for context injection (classification already done above) ──
-    const intentHintsStr = classification.contextHints.length > 0
-      ? `\n\n[[INTENT HINTS for this turn]]\n${classification.contextHints.join("\n")}\n[[END INTENT HINTS]]`
-      : "";
-
-    let toolCallsMs = 0;
-    const toolOutputsForValidation: unknown[] = [];
-    const selectionContextStr = selectedDeals.length
-      ? `CURRENT CRM SELECTION:\n${selectedDeals
-        .map((deal: SelectionDeal, index: number) => `${index + 1}. ${deal.title ? `${deal.title} ` : ""}[${deal.id}]`)
-        .join("\n")}\nWhen the user says "these", "selected", or "current selection", use these deal IDs for bulk tools. Do not assume this selection if the user is referring to some other set.`
-      : "";
-    const tools = instrumentToolsWithLatency(
-      getAgentToolsForIntent(workspaceId, settings, userId, classification),
-      (toolName, durationMs) => {
-        toolCallsMs += durationMs;
-        recordLatencyMetric(`chat.web.tool.${toolName}_ms`, durationMs);
+    // ── Delegate to LLM orchestrator (prompt compression, entity injection, streaming) ──
+    return runOrchestration({
+      workspaceId,
+      userId,
+      content,
+      lastMessageContent,
+      messages,
+      selectedDeals,
+      classification,
+      entityPreResolution: preprocessing.entityPreResolution,
+      agentContext: {
+        settings: agentContext.settings,
+        userRole: agentContext.userRole,
+        knowledgeBaseStr: agentContext.knowledgeBaseStr,
+        agentModeStr: agentContext.agentModeStr,
+        workingHoursStr: agentContext.workingHoursStr,
+        agentScriptStr: agentContext.agentScriptStr,
+        allowedTimesStr: agentContext.allowedTimesStr,
+        preferencesStr: agentContext.preferencesStr,
+        pricingRulesStr: agentContext.pricingRulesStr,
+        bouncerStr: agentContext.bouncerStr,
+        attachmentsStr: agentContext.attachmentsStr,
       },
-    );
-    const workspaceContextBlocks = [
-      knowledgeBaseStr,
-      workingHoursStr,
-      agentScriptStr,
-      preferencesStr,
-      pricingRulesStr,
-      bouncerStr,
-      attachmentsStr,
       memoryContextStr,
-      selectionContextStr,
-      intentHintsStr,
-    ];
-    let systemPrompt = buildCrmChatSystemPrompt({
-      userRole,
-      customerContactPolicyBlock: [agentModeStr, allowedTimesStr].filter(Boolean).join("\n\n"),
-      workspaceContextBlocks,
-      pricingIntegrityBlock: `- NEVER quote, calculate, or mention a dollar amount unless it comes from a tool result (pricingLookup, pricingCalculator, getFinancialReport, etc.).
-- For ANY arithmetic involving money (totals, tax, discounts, multi-item quotes), you MUST call pricingCalculator. Never do math in your head.
-- Before quoting any service price, you MUST call pricingLookup first to get the approved or historical price.
-- If pricingLookup returns no match, say "I don’t have an approved price in your glossary for this. For a firm quote, an on-site assessment is required (or add an approved glossary price so we can quote next time)." Do NOT estimate or guess.
-- When reporting a price, cite where it came from: "Our approved rate for X is $Y" or "Similar jobs have been $X-$Y".`,
-      messagingRuleBlock: `On "message/text/tell/send [name]" call sendSms immediately with no confirmation. Send the user's exact words and never rewrite or refuse them. Track pronouns from context. Confirm with: "Sent to [Name]: \\"[msg]\\"". Follow any SYSTEM_CONTEXT_SIGNAL from tool output.`,
-      uncertaintyBlock: "Never return blank. Ask to clarify if unclear. List options if ambiguous. Request missing info. If a tool fails, explain and suggest retry. If no data exists, say what you checked. For getTodaySummary, lead with preparation alerts before the schedule.",
-      roleGuardBlock: `Data changes: OWNER and MANAGER users confirm via showConfirmationCard, then recordManualRevenue after the user says "confirm", "ok", or "yes". TEAM_MEMBER users cannot change restricted data and should be told to ask their manager.`,
-      multiJobBlock: `Always use showJobDraftForConfirmation instead of plain text. Handle one job at a time. Do not call createJobNatural until the user confirms.`,
-      jobDraftBlock: `When showJobDraftForConfirmation is used, the card itself is the full draft summary. Do not repeat the draft details, call-out fee, address, phone, or a second confirmation line underneath it. If needed, add only a very short instruction like "Use the card to confirm or edit."`,
+      preprocessingMs: preprocessing.preprocessingMs,
+      requestStartedAt,
     });
-
-    // Hard cap prompt growth to prevent over-limit requests/cost spikes.
-    const messagesTokenEstimate = estimateTokens(toText(modelMessages));
-    let totalInputTokenEstimate = estimateTokens(systemPrompt) + messagesTokenEstimate;
-    if (totalInputTokenEstimate > MAX_INPUT_TOKENS_ESTIMATE && memoryContextStr) {
-      const reducedPrompt = buildCrmChatSystemPrompt({
-        userRole,
-        customerContactPolicyBlock: [agentModeStr, allowedTimesStr].filter(Boolean).join("\n\n"),
-        workspaceContextBlocks: workspaceContextBlocks.filter((b) => b !== memoryContextStr),
-        pricingIntegrityBlock: `- NEVER quote, calculate, or mention a dollar amount unless it comes from a tool result (pricingLookup, pricingCalculator, getFinancialReport, etc.).
-- For ANY arithmetic involving money (totals, tax, discounts, multi-item quotes), you MUST call pricingCalculator. Never do math in your head.
-- Before quoting any service price, you MUST call pricingLookup first to get the approved or historical price.
-- If pricingLookup returns no match, say "I don’t have an approved price in your glossary for this. For a firm quote, an on-site assessment is required (or add an approved glossary price so we can quote next time)." Do NOT estimate or guess.
-- When reporting a price, cite where it came from: "Our approved rate for X is $Y" or "Similar jobs have been $X-$Y".`,
-        messagingRuleBlock: `On "message/text/tell/send [name]" call sendSms immediately with no confirmation. Send the user's exact words and never rewrite or refuse them. Track pronouns from context. Confirm with: "Sent to [Name]: \\"[msg]\\"". Follow any SYSTEM_CONTEXT_SIGNAL from tool output.`,
-        uncertaintyBlock: "Never return blank. Ask to clarify if unclear. List options if ambiguous. Request missing info. If a tool fails, explain and suggest retry. If no data exists, say what you checked. For getTodaySummary, lead with preparation alerts before the schedule.",
-        roleGuardBlock: `Data changes: OWNER and MANAGER users confirm via showConfirmationCard, then recordManualRevenue after the user says "confirm", "ok", or "yes". TEAM_MEMBER users cannot change restricted data and should be told to ask their manager.`,
-        multiJobBlock: `Always use showJobDraftForConfirmation instead of plain text. Handle one job at a time. Do not call createJobNatural until the user confirms.`,
-        jobDraftBlock: `When showJobDraftForConfirmation is used, the card itself is the full draft summary. Do not repeat the draft details, call-out fee, address, phone, or a second confirmation line underneath it. If needed, add only a very short instruction like "Use the card to confirm or edit."`,
-      });
-      systemPrompt = reducedPrompt;
-      totalInputTokenEstimate = estimateTokens(systemPrompt) + messagesTokenEstimate;
-    }
-    if (totalInputTokenEstimate > MAX_INPUT_TOKENS_ESTIMATE) {
-      return new Response(
-        JSON.stringify({ error: "This request is too large right now. Please send a shorter message or split it into steps." }),
-        { status: 413, headers: { "Content-Type": "application/json" } },
-      );
-    }
-    const llmStartedAt = nowMs();
-    let ttftRecorded = false;
-    let ttftMs = 0;
-    const result = streamText({
-      model: google(CHAT_MODEL_ID as "gemini-2.0-flash-lite"),
-      maxOutputTokens: 512,
-      system: systemPrompt,
-      messages: modelMessages as any,
-      tools,
-      stopWhen: stepCountIs(getAdaptiveMaxSteps(content)),
-      onChunk: ({ chunk }) => {
-        if (!ttftRecorded && chunk.type === 'text-delta') {
-          ttftRecorded = true;
-          ttftMs = nowMs() - llmStartedAt;
-          recordLatencyMetric('chat.web.ttft_ms', ttftMs);
-        }
-      },
-      onStepFinish: ({ toolResults }) => {
-        if (toolResults) {
-          for (const tr of toolResults) {
-            if ("output" in tr && typeof tr.output !== "undefined") {
-              toolOutputsForValidation.push(tr.output);
-              continue;
-            }
-            if ("result" in tr && typeof tr.result !== "undefined") {
-              toolOutputsForValidation.push(tr.result);
-            }
-          }
-        }
-      },
-      onFinish: async ({ text }) => {
-        const llmPhaseMs = nowMs() - llmStartedAt;
-        const modelMs = Math.max(0, llmPhaseMs - toolCallsMs);
-        const totalMs = nowMs() - requestStartedAt;
-        recordLatencyMetric("chat.web.preprocessing_ms", preprocessingMs);
-        recordLatencyMetric("chat.web.tool_calls_ms", toolCallsMs);
-        recordLatencyMetric("chat.web.model_ms", modelMs);
-        recordLatencyMetric("chat.web.total_ms", totalMs);
-
-        // === Pricing Response Validation ===
-        const validation = validatePricingInResponse(text, toolOutputsForValidation);
-        if (!validation.valid) {
-          console.warn(
-            `[PricingValidator] Unsourced amounts detected in response: ${validation.unsourcedAmounts.join(", ")}. ` +
-            `Sourced: ${validation.sourcedAmounts.join(", ")}. Mentioned: ${validation.mentionedAmounts.join(", ")}.`
-          );
-          recordLatencyMetric("chat.web.pricing_validation_fail", 1);
-        }
-
-        // === STEP B: "The Learning" (Post-Generation Memory Storage) ===
-        console.log(`[Mem0] Starting memory storage...`);
-
-        try {
-          addMem0Memory({
-            userId,
-            messages: [
-              { role: "user", content: lastMessageContent },
-              { role: "assistant", content: text },
-            ],
-            metadata: {
-              timestamp: new Date().toISOString(),
-              source: "chat",
-              workspaceId,
-            },
-          })
-            .then(() => {
-              console.log(`[Mem0] Successfully saved interaction`);
-            })
-            .catch((error: unknown) => {
-              logger.error("Mem0 save interaction failed", { component: "chat-api", workspaceId, userId }, error as Error);
-            });
-
-          // Note: Not awaiting to avoid blocking the response
-        } catch (error) {
-          logger.error("Mem0 storage pipeline failed", { component: "chat-api", workspaceId, userId }, error as Error);
-        }
-      },
-    });
-
-    const response = result.toUIMessageStreamResponse();
-    response.headers.set("Server-Timing", `preprocessing;dur=${preprocessingMs}, ttft;dur=${ttftMs}, llm_startup;dur=${nowMs() - llmStartedAt}, tool_calls;dur=${toolCallsMs}`);
-    return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Something went wrong. Please try again.";
     logger.error("Chat API error", { component: "chat-api" }, error as Error);
