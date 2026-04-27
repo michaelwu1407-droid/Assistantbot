@@ -13,10 +13,10 @@ export default function PrivacyPolicyPage() {
 
       <h2>1. Introduction and Acceptance</h2>
       <p>
-        This Privacy Policy (<strong>"Policy"</strong>) governs the collection, use, storage, disclosure, and
-        handling of personal information by Earlymark AI Pty Ltd (<strong>"Earlymark AI"</strong>,{" "}
-        <strong>"we"</strong>, <strong>"us"</strong>, or <strong>"our"</strong>) in connection with the
-        Earlymark AI platform and all associated services (<strong>"Platform"</strong>).
+        This Privacy Policy (<strong>&quot;Policy&quot;</strong>) governs the collection, use, storage, disclosure, and
+        handling of personal information by Earlymark AI Pty Ltd (<strong>&quot;Earlymark AI&quot;</strong>,{" "}
+        <strong>&quot;we&quot;</strong>, <strong>&quot;us&quot;</strong>, or <strong>&quot;our&quot;</strong>) in connection with the
+        Earlymark AI platform and all associated services (<strong>&quot;Platform&quot;</strong>).
       </p>
       <p>
         <strong>
@@ -118,7 +118,7 @@ export default function PrivacyPolicyPage() {
         <li>Security monitoring, incident detection, and access control.</li>
         <li>
           Internal analytics and product improvement, including using de-identified and aggregated
-          data to train, test, and improve Earlymark AI's internal models, algorithms, and features.
+          data to train, test, and improve Earlymark AI&apos;s internal models, algorithms, and features.
         </li>
         <li>
           Marketing communications to existing users regarding new features or services offered by
@@ -154,7 +154,7 @@ export default function PrivacyPolicyPage() {
       </p>
       <p>
         AI conversation logs are retained for up to 90 days. Google Gemini processes data under
-        Google's applicable Data Processing Agreement. Earlymark AI is not responsible for Google's
+        Google&apos;s applicable Data Processing Agreement. Earlymark AI is not responsible for Google&apos;s
         data handling practices.
       </p>
 
@@ -301,7 +301,7 @@ export default function PrivacyPolicyPage() {
         </strong>{" "}
         Earlymark AI is not liable for security breaches outside its reasonable control, including
         those caused by user negligence (such as weak passwords or credential sharing), third-party
-        provider failures, or events beyond Earlymark AI's reasonable control.
+          provider failures, or events beyond Earlymark AI&apos;s reasonable control.
       </p>
 
       <h2>12. Your Rights (Australian Privacy Act 1988)</h2>
@@ -340,7 +340,7 @@ export default function PrivacyPolicyPage() {
 
       <h2>13. Limitation of Liability</h2>
       <p>
-        To the maximum extent permitted by applicable law, <strong>Earlymark AI's total cumulative
+        To the maximum extent permitted by applicable law, <strong>Earlymark AI&apos;s total cumulative
         liability</strong> arising out of or related to this Policy, your data, or your use of the
         Platform — whether in contract, tort (including negligence), statute, or otherwise — is
         capped at the <strong>greater of AUD $100 or the total fees paid by you in the 30 days
@@ -393,7 +393,7 @@ export default function PrivacyPolicyPage() {
       <h2>16. Changes to This Policy</h2>
       <p>
         Earlymark AI may update, modify, or replace this Policy at any time by posting the revised
-        version on this page. The "Last Updated" date at the top of this page will reflect the date
+        version on this page. The &quot;Last Updated&quot; date at the top of this page will reflect the date
         of the most recent revision.
       </p>
       <p>

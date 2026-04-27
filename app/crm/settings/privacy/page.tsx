@@ -1,7 +1,7 @@
-import { Separator } from "@/components/ui/separator"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   FileText,
   Shield,
@@ -13,10 +13,10 @@ import {
   Clock,
   Scale,
   PhoneCall,
-} from "lucide-react"
-import Link from "next/link"
+} from "lucide-react";
+import Link from "next/link";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
 export default function PrivacySettingsPage() {
   return (
@@ -29,8 +29,7 @@ export default function PrivacySettingsPage() {
       </div>
       <Separator />
 
-      {/* 1. Terms & Conditions */}
-      <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+      <Card className="border-slate-200 shadow-sm dark:border-slate-800">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
@@ -40,9 +39,9 @@ export default function PrivacySettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            By accessing or using Earlymark AI â€” including this dashboard â€” you confirm that you have read,
-            understood, and agree to be bound by our Terms of Service and this Privacy Policy in full.
-            If you do not agree, you must cease using the platform immediately.
+            By accessing or using Earlymark AI, including this dashboard, you confirm that you have read,
+            understood, and agree to be bound by our Terms of Service and this Privacy Policy in full. If
+            you do not agree, you must cease using the platform immediately.
           </p>
           <p className="text-sm text-slate-600 dark:text-slate-400">
             Earlymark AI reserves the right to modify these terms at any time without prior notice.
@@ -60,8 +59,7 @@ export default function PrivacySettingsPage() {
         </CardContent>
       </Card>
 
-      {/* 2. How Your Data Is Handled */}
-      <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+      <Card className="border-slate-200 shadow-sm dark:border-slate-800">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
@@ -73,24 +71,23 @@ export default function PrivacySettingsPage() {
           <p className="text-sm text-slate-600 dark:text-slate-400">
             Earlymark AI collects and processes the following categories of data to provide and improve the platform:
           </p>
-          <ul className="text-sm text-slate-600 dark:text-slate-400 space-y-2 list-disc list-inside">
+          <ul className="list-inside list-disc space-y-2 text-sm text-slate-600 dark:text-slate-400">
             <li><strong>Identity data:</strong> Names, email addresses, phone numbers, and ABN/ACN.</li>
-            <li><strong>Job &amp; commercial data:</strong> Job notes, site addresses, schedules, quotes, invoices, and client records.</li>
+            <li><strong>Job and commercial data:</strong> Job notes, site addresses, schedules, quotes, invoices, and client records.</li>
             <li><strong>Financial data:</strong> Payment method details and transaction history processed via Stripe and Xero.</li>
             <li><strong>Communications data:</strong> SMS content, voice call recordings, and AI conversation logs.</li>
-            <li><strong>Usage &amp; device data:</strong> IP addresses, browser type, device identifiers, feature usage patterns, and session logs.</li>
+            <li><strong>Usage and device data:</strong> IP addresses, browser type, device identifiers, feature usage patterns, and session logs.</li>
             <li><strong>AI-inferred data:</strong> Predicted preferences, lead quality scores, and customer sentiment derived by AI models.</li>
           </ul>
           <p className="text-sm text-slate-600 dark:text-slate-400">
             Your data is used for service delivery, billing, fraud prevention, security monitoring, internal analytics,
-            and product improvement â€” including the use of de-identified and aggregated data to improve Earlymark AI's
+            and product improvement, including the use of de-identified and aggregated data to improve Earlymark AI&apos;s
             models and features. <strong>We do not sell your personal data to third parties for advertising.</strong>
           </p>
         </CardContent>
       </Card>
 
-      {/* 3. Data Policy */}
-      <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+      <Card className="border-slate-200 shadow-sm dark:border-slate-800">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Database className="h-5 w-5" />
@@ -103,7 +100,7 @@ export default function PrivacySettingsPage() {
             Earlymark AI Pty Ltd is the data controller for all personal information collected through this platform.
             Data is processed on the following lawful bases:
           </p>
-          <ul className="text-sm text-slate-600 dark:text-slate-400 space-y-1 list-disc list-inside">
+          <ul className="list-inside list-disc space-y-1 text-sm text-slate-600 dark:text-slate-400">
             <li><strong>Contractual necessity:</strong> Processing required to deliver the services you subscribed to.</li>
             <li><strong>Legitimate business interest:</strong> Analytics, security monitoring, fraud prevention, and product improvement.</li>
             <li><strong>Legal obligation:</strong> Financial records, tax compliance, and regulatory requirements.</li>
@@ -111,25 +108,23 @@ export default function PrivacySettingsPage() {
           </ul>
           <p className="text-sm text-slate-600 dark:text-slate-400">
             User rights are limited to those conferred by the Australian Privacy Act 1988 and applicable Australian
-            Privacy Principles (APPs). Earlymark AI does not make voluntary commitments under GDPR or CCPA unless
-            required by law.
+            Privacy Principles. Earlymark AI does not make voluntary commitments under GDPR or CCPA unless required by law.
           </p>
         </CardContent>
       </Card>
 
-      {/* 4. AI Disclaimer */}
-      <Card className="border-orange-100 dark:border-orange-900/30 shadow-sm">
+      <Card className="border-orange-100 shadow-sm dark:border-orange-900/30">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bot className="h-5 w-5 text-orange-500" />
             AI disclaimer
-            <Badge variant="secondary" className="ml-2 text-orange-600 bg-orange-50 dark:bg-orange-900/20">Important</Badge>
+            <Badge variant="secondary" className="ml-2 bg-orange-50 text-orange-600 dark:bg-orange-900/20">Important</Badge>
           </CardTitle>
           <CardDescription>Limitations of AI-generated content.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            AI-generated outputs â€” including quotes, job schedules, customer messages, and reports â€” are automated
+            AI-generated outputs, including quotes, job schedules, customer messages, and reports, are automated
             suggestions only. <strong>Earlymark AI makes no representation or warranty, express or implied,
             as to the accuracy, completeness, fitness for purpose, or reliability of any AI-generated content.</strong>
           </p>
@@ -143,8 +138,7 @@ export default function PrivacySettingsPage() {
         </CardContent>
       </Card>
 
-      {/* 5. Data Retention & Aggregation */}
-      <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+      <Card className="border-slate-200 shadow-sm dark:border-slate-800">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="h-5 w-5" />
@@ -158,17 +152,17 @@ export default function PrivacySettingsPage() {
             Minimum retention periods include:
           </p>
           <div className="overflow-x-auto">
-            <table className="text-sm w-full border-collapse">
+            <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-700">
-                  <th className="text-left py-2 pr-4 font-medium text-slate-700 dark:text-slate-300">Data type</th>
-                  <th className="text-left py-2 font-medium text-slate-700 dark:text-slate-300">Retention period</th>
+                  <th className="py-2 pr-4 text-left font-medium text-slate-700 dark:text-slate-300">Data type</th>
+                  <th className="py-2 text-left font-medium text-slate-700 dark:text-slate-300">Retention period</th>
                 </tr>
               </thead>
               <tbody className="text-slate-600 dark:text-slate-400">
                 <tr className="border-b border-slate-100 dark:border-slate-800">
                   <td className="py-2 pr-4">Contact and job records</td>
-                  <td className="py-2">Life of account + 2 years</td>
+                  <td className="py-2">Life of account plus 2 years</td>
                 </tr>
                 <tr className="border-b border-slate-100 dark:border-slate-800">
                   <td className="py-2 pr-4">Financial records (invoices, payments)</td>
@@ -190,15 +184,14 @@ export default function PrivacySettingsPage() {
             </table>
           </div>
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            Aggregated and de-identified data â€” which does not constitute personal information â€” is retained
+            Aggregated and de-identified data, which does not constitute personal information, is retained
             by Earlymark AI indefinitely and may be used without restriction for analytics, benchmarking,
             and product improvement, including after account closure.
           </p>
         </CardContent>
       </Card>
 
-      {/* 6. Security */}
-      <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+      <Card className="border-slate-200 shadow-sm dark:border-slate-800">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Lock className="h-5 w-5" />
@@ -207,7 +200,7 @@ export default function PrivacySettingsPage() {
           <CardDescription>How data is protected in transit and at rest.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <ul className="text-sm text-slate-600 dark:text-slate-400 space-y-2 list-disc list-inside">
+          <ul className="list-inside list-disc space-y-2 text-sm text-slate-600 dark:text-slate-400">
             <li>AES-256-GCM encryption for data at rest, including OAuth tokens and sensitive credentials.</li>
             <li>TLS 1.3 encryption for all data in transit.</li>
             <li>Role-based access controls restricting data access to authorised personnel only.</li>
@@ -215,7 +208,7 @@ export default function PrivacySettingsPage() {
             <li>Automated secret scanning and security monitoring.</li>
           </ul>
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            <strong>No system is 100% secure.</strong> Earlymark AI does not warrant that the platform
+            <strong>No system is 100 percent secure.</strong> Earlymark AI does not warrant that the platform
             will be free from unauthorised access, data loss, or cyberattack. Earlymark AI is not liable
             for breaches caused by user negligence, including weak passwords, shared credentials, or
             unauthorised access via credentials held by the user or their staff.
@@ -223,8 +216,7 @@ export default function PrivacySettingsPage() {
         </CardContent>
       </Card>
 
-      {/* 7. Third-Party Sub-Processors */}
-      <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+      <Card className="border-slate-200 shadow-sm dark:border-slate-800">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Globe className="h-5 w-5" />
@@ -239,11 +231,11 @@ export default function PrivacySettingsPage() {
             sub-processor as a condition of use.
           </p>
           <div className="overflow-x-auto">
-            <table className="text-sm w-full border-collapse">
+            <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-700">
-                  <th className="text-left py-2 pr-4 font-medium text-slate-700 dark:text-slate-300">Provider</th>
-                  <th className="text-left py-2 font-medium text-slate-700 dark:text-slate-300">Purpose &amp; data shared</th>
+                  <th className="py-2 pr-4 text-left font-medium text-slate-700 dark:text-slate-300">Provider</th>
+                  <th className="py-2 text-left font-medium text-slate-700 dark:text-slate-300">Purpose and data shared</th>
                 </tr>
               </thead>
               <tbody className="text-slate-600 dark:text-slate-400">
@@ -281,26 +273,25 @@ export default function PrivacySettingsPage() {
         </CardContent>
       </Card>
 
-      {/* 8. Limitation of Liability */}
-      <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+      <Card className="border-slate-200 shadow-sm dark:border-slate-800">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5" />
             Limitation of liability
           </CardTitle>
-          <CardDescription>Earlymark AI's maximum legal exposure.</CardDescription>
+          <CardDescription>Earlymark AI&apos;s maximum legal exposure.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            To the maximum extent permitted by applicable law, Earlymark AI's total cumulative liability
-            arising out of or in connection with your use of the platform â€” including any claim relating
-            to data handling, privacy, or AI outputs â€” is capped at the <strong>greater of AUD $100 or
+            To the maximum extent permitted by applicable law, Earlymark AI&apos;s total cumulative liability
+            arising out of or in connection with your use of the platform, including any claim relating
+            to data handling, privacy, or AI outputs, is capped at the <strong>greater of AUD $100 or
             the total fees paid by you in the 30 days immediately preceding the claim.</strong>
           </p>
           <p className="text-sm text-slate-600 dark:text-slate-400">
             Earlymark AI expressly excludes all liability for:
           </p>
-          <ul className="text-sm text-slate-600 dark:text-slate-400 space-y-1 list-disc list-inside">
+          <ul className="list-inside list-disc space-y-1 text-sm text-slate-600 dark:text-slate-400">
             <li>Indirect, special, consequential, incidental, punitive, or exemplary loss or damage.</li>
             <li>Loss of profits, revenue, contracts, data, goodwill, or business opportunity.</li>
             <li>Loss or corruption of data resulting from platform outages, bugs, or third-party failures.</li>
@@ -313,8 +304,7 @@ export default function PrivacySettingsPage() {
         </CardContent>
       </Card>
 
-      {/* 9. Your Data Rights */}
-      <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+      <Card className="border-slate-200 shadow-sm dark:border-slate-800">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Scale className="h-5 w-5" />
@@ -325,11 +315,11 @@ export default function PrivacySettingsPage() {
         <CardContent className="space-y-3">
           <p className="text-sm text-slate-600 dark:text-slate-400">
             Your data rights are governed by the Australian Privacy Act 1988 and the Australian Privacy
-            Principles (APPs). These include:
+            Principles. These include:
           </p>
-          <ul className="text-sm text-slate-600 dark:text-slate-400 space-y-2 list-disc list-inside">
-            <li><strong>Right of access (APP 12):</strong> You may request a copy of the personal information Earlymark AI holds about you.</li>
-            <li><strong>Right to correction (APP 13):</strong> You may request correction of inaccurate or outdated personal information.</li>
+          <ul className="list-inside list-disc space-y-2 text-sm text-slate-600 dark:text-slate-400">
+            <li><strong>Right of access:</strong> You may request a copy of the personal information Earlymark AI holds about you.</li>
+            <li><strong>Right to correction:</strong> You may request correction of inaccurate or outdated personal information.</li>
           </ul>
           <p className="text-sm text-slate-600 dark:text-slate-400">
             Requests will be responded to within 30 days. Earlymark AI may decline a request if it would
@@ -346,8 +336,7 @@ export default function PrivacySettingsPage() {
         </CardContent>
       </Card>
 
-      {/* 10. Contact & Disputes */}
-      <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+      <Card className="border-slate-200 shadow-sm dark:border-slate-800">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <PhoneCall className="h-5 w-5" />
@@ -372,12 +361,17 @@ export default function PrivacySettingsPage() {
           <p className="text-sm text-slate-600 dark:text-slate-400">
             If you are unsatisfied with our response, you may lodge a complaint with the{" "}
             <strong>Office of the Australian Information Commissioner (OAIC)</strong> at{" "}
-            <a href="https://www.oaic.gov.au" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline dark:text-blue-400">
+            <a
+              href="https://www.oaic.gov.au"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:underline dark:text-blue-400"
+            >
               oaic.gov.au
             </a>.
           </p>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
