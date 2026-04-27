@@ -525,6 +525,26 @@ function FeatureCarousel() {
 const INPUT_CLASS =
     "w-full px-4 py-2.5 rounded border border-border text-sm text-midnight placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white transition";
 
+const DEMO_CALL_TIMEOUT_MS = 30_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+            reject(new Error("timeout"));
+        }, ms);
+        promise.then(
+            (value) => {
+                clearTimeout(timer);
+                resolve(value);
+            },
+            (error) => {
+                clearTimeout(timer);
+                reject(error);
+            },
+        );
+    });
+}
+
 function InterviewForm() {
     const [form, setForm] = useState({ firstName: "", lastName: "", phone: "", email: "", businessName: "" });
     const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -532,14 +552,27 @@ function InterviewForm() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (status === "loading") return;
         setStatus("loading");
-        const result = await requestDemoCall(form);
-        if (result.success) {
-            setStatus("success");
-            setMessage(result.message);
-        } else {
+        setMessage("");
+        try {
+            const result = await withTimeout(requestDemoCall(form), DEMO_CALL_TIMEOUT_MS);
+            if (result.success) {
+                setStatus("success");
+                setMessage(result.message);
+            } else {
+                setStatus("error");
+                setMessage(result.error);
+            }
+        } catch (err) {
             setStatus("error");
-            setMessage(result.error);
+            const isTimeout = err instanceof Error && err.message === "timeout";
+            setMessage(
+                isTimeout
+                    ? "We couldn't reach the voice service in time. Please try again — we still have your details."
+                    : "Something went wrong on our side. Please try again in a moment.",
+            );
+            console.error("[InterviewForm] Demo call request failed", err);
         }
     };
 

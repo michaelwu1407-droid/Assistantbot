@@ -5498,3 +5498,30 @@ Rule: every agent change commit must include an entry in this file.
   - `npx vitest run __tests__/contact-api-route.test.ts __tests__/deal-api-route.test.ts __tests__/map-view.test.tsx __tests__/task-actions.test.ts __tests__/tradie-job-completion-modal.test.tsx __tests__/twilio-voice-gateway-route.test.ts __tests__/workspace-setup-comms-route.test.ts`
   - `npm run lint`
   - `npx next build`
+
+## 2026-04-26 - Bulletproof homepage demo-call form
+
+- Files:
+  - `app/page.tsx`
+  - `actions/demo-call-action.ts`
+  - `app/api/demo-call/route.ts`
+  - `lib/demo-call.ts`
+  - `lib/demo-lead-store.ts`
+  - `prisma/schema.prisma`
+  - `prisma/migrations/20260426_add_demo_lead/migration.sql`
+  - `__tests__/demo-call.test.ts`
+  - `__tests__/demo-call-action.test.ts`
+  - `__tests__/demo-lead-store.test.ts`
+- What changed:
+  - Added a `DemoLead` Prisma model + migration so every homepage form submission is persisted before the LiveKit dial. Prospects are no longer lost when LiveKit, Twilio, or the network fails.
+  - `requestDemoCall` now validates every required field with field-specific errors, persists a `PENDING` `DemoLead`, marks it `INITIATED` on success or `FAILED` (with truncated error) on throw, and never re-throws.
+  - Added strict E.164 phone validation (`isValidE164Phone`) in `lib/demo-call.ts`. Malformed numbers fail fast with a fixable user-facing message instead of a silent SIP no-ring.
+  - Added an explicit warning when no outbound caller number can be resolved for the demo SIP trunk so the silent-no-ring case has a visible reason instead of guessing.
+  - Hardened `InterviewForm.handleSubmit` with try/catch, a 30s timeout, and a friendly retry message. The button can no longer get stuck on `Calling you now...` when the action rejects.
+  - `/api/demo-call` route mirrors the same lead persistence + status-update flow.
+- Why:
+  - A user reported filling in the homepage form and never receiving a call back. Investigation showed the action could throw without being caught by the form (silent infinite loading), and even when it succeeded the lead existed only as LiveKit room metadata — so any infrastructure failure dropped the prospect entirely with no record. This change makes the flow visible (DB-backed leads + status), validates input before LiveKit sees it, and guarantees the user always sees feedback.
+- Verified with:
+  - `npx tsc --noEmit --skipLibCheck`
+  - `npx vitest run __tests__/demo-call.test.ts __tests__/demo-call-action.test.ts __tests__/demo-lead-store.test.ts` (16 tests pass)
+  - `npm run lint` (0 errors; only pre-existing warnings remain)

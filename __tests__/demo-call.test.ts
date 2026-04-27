@@ -16,7 +16,11 @@ vi.mock("livekit-server-sdk", () => ({
   },
 }));
 
-import { initiateDemoCall, resolveLivekitDemoOutboundTrunk } from "@/lib/demo-call";
+import {
+  initiateDemoCall,
+  isValidE164Phone,
+  resolveLivekitDemoOutboundTrunk,
+} from "@/lib/demo-call";
 
 describe("demo-call outbound routing", () => {
   beforeEach(() => {
@@ -77,5 +81,66 @@ describe("demo-call outbound routing", () => {
     );
     expect(result.resolvedTrunkId).toBe("ST_real");
     expect(result.callerNumber).toBe("+61485010634");
+  });
+
+  it("rejects malformed phone numbers before contacting LiveKit", async () => {
+    listSipOutboundTrunk.mockResolvedValue([
+      {
+        sipTrunkId: "ST_real",
+        name: "Earlymark outbound",
+        numbers: ["+61485010634"],
+        address: "earlymark-outbound.pstn.sydney.twilio.com",
+      },
+    ]);
+
+    await expect(
+      initiateDemoCall({ phone: "12345", firstName: "Alex" }),
+    ).rejects.toThrow(/not a valid international number/);
+    expect(createRoom).not.toHaveBeenCalled();
+    expect(createSipParticipant).not.toHaveBeenCalled();
+  });
+
+  it("warns when no caller number can be resolved but still attempts the call", async () => {
+    delete process.env.EARLYMARK_INBOUND_PHONE_NUMBER;
+    delete process.env.TWILIO_PHONE_NUMBER;
+    delete process.env.EARLYMARK_INBOUND_PHONE_NUMBERS;
+    delete process.env.EARLYMARK_PHONE_NUMBER;
+    delete process.env.LIVEKIT_SIP_TRUNK_ID;
+
+    listSipOutboundTrunk.mockResolvedValue([
+      {
+        sipTrunkId: "ST_no_caller",
+        name: "Earlymark outbound",
+        numbers: ["*"],
+        address: "earlymark-outbound.pstn.sydney.twilio.com",
+      },
+    ]);
+    createRoom.mockResolvedValue({});
+    createSipParticipant.mockResolvedValue({ participantId: "PA_demo" });
+
+    const result = await initiateDemoCall({
+      phone: "+61434955958",
+      firstName: "Sam",
+    });
+
+    expect(result.callerNumber).toBeNull();
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([expect.stringMatching(/caller number/i)]),
+    );
+    expect(createSipParticipant).toHaveBeenCalledWith(
+      "ST_no_caller",
+      "+61434955958",
+      expect.stringMatching(/^demo-/),
+      expect.objectContaining({ fromNumber: undefined }),
+    );
+  });
+
+  it("validates E.164 phone numbers", () => {
+    expect(isValidE164Phone("+61434955958")).toBe(true);
+    expect(isValidE164Phone("+15551234567")).toBe(true);
+    expect(isValidE164Phone("+1234567")).toBe(false);
+    expect(isValidE164Phone("0434955958")).toBe(false);
+    expect(isValidE164Phone("+0434955958")).toBe(false);
+    expect(isValidE164Phone("")).toBe(false);
   });
 });

@@ -56,6 +56,12 @@ function normalizePhone(phone?: string | null) {
   return cleaned;
 }
 
+// E.164 allows 8-15 digits after the +. We use 8 as a defensive minimum because
+// LiveKit/Twilio will silently fail on shorter "numbers" (typos, partial input).
+export function isValidE164Phone(phone: string): boolean {
+  return /^\+[1-9]\d{7,14}$/.test(phone);
+}
+
 function getKnownCallerNumbers() {
   const values = [
     ...(process.env.EARLYMARK_INBOUND_PHONE_NUMBERS || "")
@@ -203,6 +209,11 @@ export async function initiateDemoCall(input: DemoCallInput): Promise<DemoCallRe
   if (!normalizedPhone) {
     throw new Error("Phone number required");
   }
+  if (!isValidE164Phone(normalizedPhone)) {
+    throw new Error(
+      `Phone number ${input.phone} is not a valid international number. Include country code (e.g. +61 for Australia).`,
+    );
+  }
 
   const firstName = input.firstName?.trim() || "there";
   const lastName = input.lastName?.trim() || "";
@@ -214,6 +225,16 @@ export async function initiateDemoCall(input: DemoCallInput): Promise<DemoCallRe
 
   if (!outbound.resolvedTrunkId) {
     throw new Error(outbound.summary);
+  }
+
+  const warnings = [...outbound.warnings];
+  if (!outbound.callerNumber) {
+    // LiveKit/Twilio will reject outbound calls when neither the request nor the
+    // trunk supplies a caller number. Surface this as a warning so the caller
+    // sees a real reason rather than a silent no-ring failure.
+    warnings.push(
+      "No outbound caller number could be resolved for the demo SIP trunk; the carrier may reject this call.",
+    );
   }
 
   const roomName = `demo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -242,6 +263,6 @@ export async function initiateDemoCall(input: DemoCallInput): Promise<DemoCallRe
     normalizedPhone,
     resolvedTrunkId: outbound.resolvedTrunkId,
     callerNumber: outbound.callerNumber,
-    warnings: outbound.warnings,
+    warnings,
   };
 }

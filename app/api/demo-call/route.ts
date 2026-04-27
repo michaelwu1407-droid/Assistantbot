@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { initiateDemoCall } from "@/lib/demo-call";
+import {
+  markDemoLeadFailed,
+  markDemoLeadInitiated,
+  persistDemoLeadAttempt,
+} from "@/lib/demo-lead-store";
 
 export async function POST(req: NextRequest) {
   let phone: string;
@@ -10,11 +15,11 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    phone = body.phone;
-    firstName = body.firstName || "there";
-    lastName = body.lastName || "";
-    email = body.email || "";
-    businessName = body.businessName || "";
+    phone = typeof body.phone === "string" ? body.phone : "";
+    firstName = typeof body.firstName === "string" && body.firstName.trim() ? body.firstName : "there";
+    lastName = typeof body.lastName === "string" ? body.lastName : "";
+    email = typeof body.email === "string" ? body.email : "";
+    businessName = typeof body.businessName === "string" ? body.businessName : "";
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
@@ -22,6 +27,23 @@ export async function POST(req: NextRequest) {
   if (!phone) {
     return NextResponse.json({ error: "Phone number required" }, { status: 400 });
   }
+
+  const ipAddress =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    undefined;
+  const userAgent = req.headers.get("user-agent") || undefined;
+
+  const leadId = await persistDemoLeadAttempt({
+    firstName,
+    lastName,
+    phone,
+    email,
+    businessName,
+    source: "api",
+    ipAddress,
+    userAgent,
+  });
 
   try {
     const result = await initiateDemoCall({
@@ -33,6 +55,7 @@ export async function POST(req: NextRequest) {
     });
 
     console.log("[demo-call] Initiated:", {
+      leadId,
       room: result.roomName,
       phone: result.normalizedPhone,
       resolvedTrunkId: result.resolvedTrunkId,
@@ -40,8 +63,16 @@ export async function POST(req: NextRequest) {
       warnings: result.warnings,
     });
 
+    await markDemoLeadInitiated(leadId, {
+      roomName: result.roomName,
+      resolvedTrunkId: result.resolvedTrunkId,
+      callerNumber: result.callerNumber,
+      warnings: result.warnings,
+    });
+
     return NextResponse.json({
       success: true,
+      leadId,
       roomName: result.roomName,
       message: `Calling ${result.normalizedPhone}...`,
       trunkId: result.resolvedTrunkId,
@@ -50,8 +81,11 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("[demo-call] Failed to initiate demo call:", err);
+    await markDemoLeadFailed(leadId, err);
+
     return NextResponse.json(
       {
+        leadId,
         error: `Failed to initiate call: ${err instanceof Error ? err.message : "Unknown error"}`,
       },
       { status: 500 },

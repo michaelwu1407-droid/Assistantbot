@@ -20,8 +20,39 @@ const ASSISTANT_COLLAPSE_THRESHOLD = 10
 const ASSISTANT_MAX_SIZE = 65
 const ASSISTANT_MIN_SIZE = 27
 
+function AssistantPanelGlyph({ expanded }: { expanded: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 28 18"
+      aria-hidden="true"
+      className="h-4 w-4 text-muted-foreground"
+      fill="currentColor"
+    >
+      {expanded ? (
+        <>
+          <polygon points="2,9 11,2 11,16" />
+          <polygon points="26,9 17,2 17,16" />
+        </>
+      ) : (
+        <>
+          <polygon points="11,9 2,2 2,16" />
+          <polygon points="17,9 26,2 26,16" />
+        </>
+      )}
+    </svg>
+  )
+}
+
 export function Shell({ children, chatbot }: { children: React.ReactNode; chatbot?: React.ReactNode }) {
-  const { viewMode, setViewMode, tutorialStepIndex, lastAdvancedPath, setLastAdvancedPath, assistantPanelExpanded, setAssistantPanelExpanded, _hydrated } = useShellStore()
+  const {
+    viewMode,
+    setViewMode,
+    tutorialStepIndex,
+    lastAdvancedPath,
+    setLastAdvancedPath,
+    assistantPanelExpanded: chatbotExpanded,
+    setAssistantPanelExpanded: setChatbotExpanded,
+  } = useShellStore()
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
@@ -36,7 +67,6 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
   const assistantPanelSizeRef = useRef(28)
   const assistantResizeFrameRef = useRef<number | null>(null)
   const pendingAssistantSizeRef = useRef<number | null>(null)
-  const [chatbotExpanded, setChatbotExpanded] = useState(false)
   const [assistantHandleDragging, setAssistantHandleDragging] = useState(false)
   const [mobileChatOpen, setMobileChatOpen] = useState(false)
   const recentAssistantDragRef = useRef(false)
@@ -48,11 +78,6 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
     currentAssistantSize: number
     dragged: boolean
   } | null>(null)
-
-  // Keep global flag in sync so dashboard Kanban can use min board width only when RHS chat is open (no forced horizontal scroll when chat is collapsed).
-  useEffect(() => {
-    setAssistantPanelExpanded(chatbotExpanded)
-  }, [chatbotExpanded, setAssistantPanelExpanded])
 
   // Always start pages at top after route changes in dashboard shell.
   useEffect(() => {
@@ -201,28 +226,33 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
     if (viewMode !== "TUTORIAL" || tutorialStepIndex !== CHAT_STEP_INDEX) return
     const t = setTimeout(() => {
       chatbotPanelRef.current?.expand()
+      setChatbotExpanded(true)
     }, 100)
     return () => clearTimeout(t)
-  }, [viewMode, tutorialStepIndex])
+  }, [viewMode, tutorialStepIndex, setChatbotExpanded])
 
-  // Default chat panel: closed on first boot; after that, respect the user's last open/closed state.
+  // In advanced mode, the assistant panel should respect the user's last saved state.
+  // First boot defaults closed because the persisted store initializes to false.
   useEffect(() => {
-    if (isBasicView || viewMode === "TUTORIAL" || !_hydrated) return
-    if (assistantPanelExpanded && isDesktop) {
-      const t = setTimeout(() => {
-        chatbotPanelRef.current?.expand()
-        setChatbotExpanded(true)
-      }, 50)
-      return () => clearTimeout(t)
-    }
-
+    if (isBasicView) return
     const t = setTimeout(() => {
-      chatbotPanelRef.current?.collapse()
-      setChatbotExpanded(false)
-      syncAssistantEdgeOffset(assistantPanelSizeRef.current, false)
+      if (!isDesktop) {
+        chatbotPanelRef.current?.collapse()
+        syncAssistantEdgeOffset(assistantPanelSizeRef.current, false)
+        return
+      }
+
+      if (chatbotExpanded) {
+        chatbotPanelRef.current?.expand()
+        syncAssistantEdgeOffset(Math.max(assistantPanelSizeRef.current, ASSISTANT_MIN_SIZE), true)
+      } else {
+        chatbotPanelRef.current?.collapse()
+        syncAssistantEdgeOffset(assistantPanelSizeRef.current, false)
+      }
     }, 50)
+
     return () => clearTimeout(t)
-  }, [assistantPanelExpanded, isDesktop, isBasicView, viewMode, _hydrated])
+  }, [chatbotExpanded, isDesktop, isBasicView, pathname])
 
   const handleTutorialComplete = async () => {
     const workspaceId = useShellStore.getState().workspaceId;
@@ -462,11 +492,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
                   event.stopPropagation()
                 }}
               >
-                <span className="flex items-center justify-center" aria-hidden="true">
-                  <span className="h-0 w-0 border-y-[5px] border-y-transparent border-r-[6px] border-r-muted-foreground" />
-                  <span className="mx-[2px] h-5 w-px rounded-full bg-border" />
-                  <span className="h-0 w-0 border-y-[5px] border-y-transparent border-l-[6px] border-l-muted-foreground" />
-                </span>
+                <AssistantPanelGlyph expanded={chatbotExpanded} />
               </button>
             </div>
           </div>
