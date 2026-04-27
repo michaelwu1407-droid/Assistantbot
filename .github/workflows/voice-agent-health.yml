@@ -9,6 +9,8 @@ jobs:
   health-check:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: Run voice agent health audit
         env:
           APP_BASE_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
@@ -16,37 +18,7 @@ jobs:
           OPS_KEY: ${{ secrets.TELEMETRY_ADMIN_KEY || secrets.CRON_SECRET }}
           VOICE_MONITOR_DEADMAN_URL: ${{ secrets.VOICE_MONITOR_DEADMAN_URL }}
         run: |
-          set -eu
-          if [ -z "${APP_BASE_URL:-}" ]; then
-            echo "NEXT_PUBLIC_APP_URL secret is missing."
-            exit 1
-          fi
-          if [ -z "${CRON_SECRET:-}" ]; then
-            echo "CRON_SECRET secret is missing."
-            exit 1
-          fi
-          response_file="$(mktemp)"
-          status_code="$(
-            curl --location --show-error --silent \
-              --output "${response_file}" \
-              --write-out "%{http_code}" \
-              -H "Authorization: Bearer ${CRON_SECRET}" \
-              -H "x-ops-key: ${OPS_KEY}" \
-              "${APP_BASE_URL%/}/api/cron/voice-agent-health"
-          )"
-          cat "${response_file}"
-          if [ "${status_code}" -ne 200 ]; then
-            echo "voice-agent-health returned HTTP ${status_code}"
-            exit 1
-          fi
-          python - "${response_file}" <<'PY'
-          import json, sys
-          with open(sys.argv[1], "r", encoding="utf-8") as handle:
-              payload = json.load(handle)
-          status = payload.get("status")
-          if status != "healthy":
-              raise SystemExit(f"voice-agent-health returned non-healthy status: {status}")
-          PY
-          if [ -n "${VOICE_MONITOR_DEADMAN_URL:-}" ]; then
-            curl --fail --show-error --silent "${VOICE_MONITOR_DEADMAN_URL}"
-          fi
+          node scripts/run-ops-monitor.mjs \
+            --path /api/cron/voice-agent-health \
+            --label voice-agent-health \
+            --deadman-url "${VOICE_MONITOR_DEADMAN_URL:-}"
