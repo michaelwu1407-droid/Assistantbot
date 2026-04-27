@@ -7,6 +7,7 @@ const {
   runSendEmail,
   renderTemplate,
   logActivity,
+  initiateOutboundCall,
 } = vi.hoisted(() => ({
   db: {
     automation: {
@@ -45,6 +46,7 @@ const {
   runSendEmail: vi.fn(),
   renderTemplate: vi.fn(),
   logActivity: vi.fn(),
+  initiateOutboundCall: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({ db }));
@@ -53,6 +55,7 @@ vi.mock("@/actions/task-actions", () => ({ createTask }));
 vi.mock("@/actions/chat-actions", () => ({ runSendEmail }));
 vi.mock("@/actions/template-actions", () => ({ renderTemplate }));
 vi.mock("@/actions/activity-actions", () => ({ logActivity }));
+vi.mock("@/lib/outbound-call", () => ({ initiateOutboundCall }));
 
 import {
   createAutomation,
@@ -266,6 +269,40 @@ describe("automation-actions", () => {
       title: "Automation: Complete job — moved to completed",
       content: "Job completed",
       dealId: "deal_9",
+    });
+  });
+
+  it("places outbound calls for automations that target new leads", async () => {
+    db.automation.findMany.mockResolvedValue([
+      {
+        id: "auto_call",
+        name: "Call new lead",
+        enabled: true,
+        trigger: { event: "new_lead" },
+        action: { type: "outbound_call", message: "Call them back now" },
+        lastFiredAt: null,
+      },
+    ]);
+    db.automation.updateMany.mockResolvedValue({ count: 1 });
+    db.contact.findUnique.mockResolvedValue({
+      phone: "+61434955958",
+      name: "Miguel Wu",
+    });
+    initiateOutboundCall.mockResolvedValue({ success: true });
+
+    const result = await evaluateAutomations("ws_1", {
+      type: "new_lead",
+      dealId: "deal_1",
+      contactId: "contact_1",
+    });
+
+    expect(result.triggered).toEqual(["[Call new lead] → Call them back now"]);
+    expect(initiateOutboundCall).toHaveBeenCalledWith({
+      workspaceId: "ws_1",
+      contactPhone: "+61434955958",
+      contactName: "Miguel Wu",
+      dealId: "deal_1",
+      reason: "Call them back now",
     });
   });
 });
