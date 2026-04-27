@@ -1,6 +1,6 @@
 import { WorkerOptions, cli, type JobRequest } from "@livekit/agents";
 import { fileURLToPath } from "node:url";
-import { isEarlymarkInboundRoomName } from "../lib/voice-room-routing";
+import { isEarlymarkInboundRoomName } from "./room-routing";
 import { startVoiceWorkerBackgroundTasks } from "./agent";
 import { resolveWorkerHttpHost, resolveWorkerHttpPort } from "./runtime-config";
 import { getActiveCallCount, getMaxConcurrentCalls, isWorkerAcceptingCalls } from "./runtime-state";

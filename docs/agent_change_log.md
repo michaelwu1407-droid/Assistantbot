@@ -3,6 +3,7 @@
 - Files changed:
   - `lib/voice-room-routing.ts`
   - `lib/livekit-sip-health.ts`
+  - `livekit-agent/room-routing.ts`
   - `livekit-agent/worker-entry.ts`
   - `livekit-agent/agent.ts`
   - `__tests__/voice-room-routing.test.ts`
@@ -12,8 +13,8 @@
 - Summary:
   - Fixed a real voice-health regression where the monitoring/runtime path only recognized `earlymark-inbound-*` rooms as Earlymark inbound, while the canonical OCI SIP dispatch rule and recent docs also use `inbound_*`.
   - Updated LiveKit SIP health so dispatch rules with `roomPrefix: "inbound_"` are treated as valid inbound routing instead of falsely reporting the inbound surface as unhealthy.
-  - Updated the worker request/classification path so both accepted inbound room prefix forms resolve to `inbound_demo`, avoiding normal-call misclassification when room-name routing is used.
-  - Added focused regression coverage for inbound room-name recognition and SIP health acceptance of the `inbound_` prefix.
+  - Updated the worker request/classification path so both accepted inbound room prefix forms resolve to `inbound_demo`, avoiding normal-call misclassification when room-name routing is used, and kept the worker-side helper inside `livekit-agent/` so the deploy bundle stays self-contained.
+  - Added focused regression coverage for inbound room-name recognition across both the app-side and worker-side helpers, plus SIP health acceptance of the `inbound_` prefix.
 - Why:
   - This mismatch could make healthy inbound voice routing look broken in production and could also misclassify real inbound rooms at the worker layer.
 

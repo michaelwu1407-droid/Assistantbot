@@ -40,7 +40,7 @@ import {
 } from './runtime-config';
 import { buildVoiceAgentRuntimeFingerprint } from './runtime-fingerprint';
 import voiceLatency from './voice-latency';
-import { isEarlymarkInboundRoomName } from '../lib/voice-room-routing';
+import { isEarlymarkInboundRoomName } from './room-routing';
 import type {
   GuardDecision,
   OpenerBankEntry,
