@@ -9,14 +9,33 @@ jobs:
   reconcile:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
       - name: Reconcile Twilio routing and worker drift
         env:
           APP_BASE_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           OPS_KEY: ${{ secrets.TELEMETRY_ADMIN_KEY || secrets.CRON_SECRET }}
         run: |
-          node scripts/run-ops-monitor.mjs \
-            --path /api/cron/customer-agent-reconcile \
-            --label customer-agent-reconcile
+          set -eu
+          if [ -z "${APP_BASE_URL:-}" ]; then
+            echo "NEXT_PUBLIC_APP_URL secret is missing."
+            exit 1
+          fi
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "CRON_SECRET secret is missing."
+            exit 1
+          fi
+          response_file="$(mktemp)"
+          http_status="$(
+            curl --location --show-error --silent \
+              --output "$response_file" \
+              --write-out "%{http_code}" \
+              -H "Authorization: Bearer ${CRON_SECRET}" \
+              -H "x-ops-key: ${OPS_KEY}" \
+              "${APP_BASE_URL%/}/api/cron/customer-agent-reconcile"
+          )"
+          cat "$response_file"
+          echo
+          echo "HTTP ${http_status}"
+          if [ "${http_status}" -ge 400 ]; then
+            exit 1
+          fi
