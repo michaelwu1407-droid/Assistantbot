@@ -1,4 +1,5 @@
-import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
+import { convertToModelMessages, createUIMessageStream, createUIMessageStreamResponse, stepCountIs, streamText } from "ai";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import {
   runAddContactNote,
   runAddDealNote,
@@ -30,7 +31,9 @@ import { parseJobWithAI, parseMultipleJobsWithAI } from "@/lib/ai/job-parser";
 import { appendTicketNote } from "@/actions/activity-actions";
 import { normalizeAppAgentMode } from "@/lib/agent-mode";
 import { preClassify, type PreClassification } from "@/lib/ai/pre-classifier";
-import { nowMs, recordLatencyMetric } from "@/lib/telemetry/latency";
+import { buildCrmChatSystemPrompt } from "@/lib/ai/prompt-contract";
+import { getAgentToolsForIntent } from "@/lib/ai/tools";
+import { instrumentToolsWithLatency, nowMs, recordLatencyMetric } from "@/lib/telemetry/latency";
 import { rateLimit } from "@/lib/rate-limit";
 import { logger } from "@/lib/logging";
 import { getAttentionSignalsForDeal } from "@/lib/deal-attention";
@@ -42,6 +45,22 @@ import { runPostprocessing, type PostprocessingContext } from "@/lib/ai/chat-pos
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+
+const CHAT_MODEL_ID = "gemini-2.0-flash-lite";
+const MAX_INPUT_TOKENS_ESTIMATE = 18_000;
+
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+function toText(value: unknown): string {
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value ?? "");
+  }
+}
 
 type SelectionDeal = {
   id: string;

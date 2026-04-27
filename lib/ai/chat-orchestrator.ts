@@ -9,7 +9,7 @@
  * - Entity pre-resolution context injection
  */
 
-import { streamText, convertToModelMessages, stepCountIs, createUIMessageStream, createUIMessageStreamResponse } from "ai";
+import { streamText, convertToModelMessages, stepCountIs, createUIMessageStream, createUIMessageStreamResponse, type ModelMessage } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { buildCrmChatSystemPrompt } from "@/lib/ai/prompt-contract";
 import { compressPromptBlocks, type PromptBlocks } from "@/lib/ai/prompt-compression";
@@ -265,11 +265,13 @@ export async function runOrchestration(input: OrchestratorInput): Promise<Respon
   let ttftRecorded = false;
   let ttftMs = 0;
 
+  const streamMessages = modelMessages as unknown as ModelMessage[];
+
   const result = streamText({
     model: google(CHAT_MODEL_ID as "gemini-2.0-flash-lite"),
     maxOutputTokens: 512,
     system: systemPrompt,
-    messages: modelMessages as Parameters<typeof streamText>[0]["messages"],
+    messages: streamMessages,
     tools,
     stopWhen: stepCountIs(getAdaptiveMaxSteps(input.content)),
     onChunk: ({ chunk }) => {
