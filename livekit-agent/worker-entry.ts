@@ -1,5 +1,6 @@
 import { WorkerOptions, cli, type JobRequest } from "@livekit/agents";
 import { fileURLToPath } from "node:url";
+import { isEarlymarkInboundRoomName } from "../lib/voice-room-routing";
 import { startVoiceWorkerBackgroundTasks } from "./agent";
 import { resolveWorkerHttpHost, resolveWorkerHttpPort } from "./runtime-config";
 import { getActiveCallCount, getMaxConcurrentCalls, isWorkerAcceptingCalls } from "./runtime-state";
@@ -58,7 +59,7 @@ function inferSurface(job: JobRequest): VoiceSurface {
   if (explicitCallType === "demo" || roomName.startsWith("demo-")) {
     return "demo";
   }
-  if (explicitCallType === "inbound_demo" || roomName.startsWith("earlymark-inbound-")) {
+  if (explicitCallType === "inbound_demo" || isEarlymarkInboundRoomName(roomName)) {
     return "inbound_demo";
   }
 

@@ -40,6 +40,7 @@ import {
 } from './runtime-config';
 import { buildVoiceAgentRuntimeFingerprint } from './runtime-fingerprint';
 import voiceLatency from './voice-latency';
+import { isEarlymarkInboundRoomName } from '../lib/voice-room-routing';
 import type {
   GuardDecision,
   OpenerBankEntry,
@@ -1087,7 +1088,7 @@ function getCachedVoiceGrounding(calledPhone?: string | null) {
 
 function resolveCallType(initialCallType: CallType, calledPhone: string, roomName: string): CallType {
   if (initialCallType !== "normal") return initialCallType;
-  if (roomName.startsWith("earlymark-inbound-")) {
+  if (isEarlymarkInboundRoomName(roomName)) {
     return "inbound_demo";
   }
   if (getKnownEarlymarkNumbers().some((number) => phoneMatches(number, calledPhone))) {

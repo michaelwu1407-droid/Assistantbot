@@ -1,6 +1,7 @@
 import { SipClient } from "livekit-server-sdk";
 import { getKnownEarlymarkInboundNumbers } from "@/lib/earlymark-inbound-config";
 import { resolveLivekitDemoOutboundTrunk } from "@/lib/demo-call";
+import { isEarlymarkInboundRoomName } from "@/lib/voice-room-routing";
 import type { RuntimeStatus } from "@/lib/voice-fleet";
 
 export type LivekitSipHealth = {
@@ -133,7 +134,7 @@ export async function getLivekitSipHealth(): Promise<LivekitSipHealth> {
     const coveredNumbers = new Set(inboundTrunks.flatMap((trunk) => trunk.numbers));
     const missingInboundNumbers = expectedInboundNumbers.filter((number) => !coveredNumbers.has(number));
     const hasInboundDispatchRule = dispatchRules.some((rule) => {
-      if (rule.roomPrefix?.startsWith("earlymark-inbound-")) return true;
+      if (isEarlymarkInboundRoomName(rule.roomPrefix)) return true;
       return rule.trunkIds.some((trunkId) => inboundTrunkIds.has(trunkId));
     });
 

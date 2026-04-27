@@ -1,3 +1,22 @@
+## 2026-04-28 (Codex) - Restored canonical inbound voice room classification
+
+- Files changed:
+  - `lib/voice-room-routing.ts`
+  - `lib/livekit-sip-health.ts`
+  - `livekit-agent/worker-entry.ts`
+  - `livekit-agent/agent.ts`
+  - `__tests__/voice-room-routing.test.ts`
+  - `__tests__/livekit-sip-health.test.ts`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Fixed a real voice-health regression where the monitoring/runtime path only recognized `earlymark-inbound-*` rooms as Earlymark inbound, while the canonical OCI SIP dispatch rule and recent docs also use `inbound_*`.
+  - Updated LiveKit SIP health so dispatch rules with `roomPrefix: "inbound_"` are treated as valid inbound routing instead of falsely reporting the inbound surface as unhealthy.
+  - Updated the worker request/classification path so both accepted inbound room prefix forms resolve to `inbound_demo`, avoiding normal-call misclassification when room-name routing is used.
+  - Added focused regression coverage for inbound room-name recognition and SIP health acceptance of the `inbound_` prefix.
+- Why:
+  - This mismatch could make healthy inbound voice routing look broken in production and could also misclassify real inbound rooms at the worker layer.
+
 ## 2026-04-11 (Codex) - Booking confirmation SMS now uses workspace-local time
 
 - Files changed:

@@ -1,6 +1,6 @@
 # Voice Operating Brief
 
-Updated: 2026-03-21 AEDT
+Updated: 2026-04-28 AEST
 
 ## Production topology
 
@@ -56,6 +56,7 @@ Updated: 2026-03-21 AEDT
 - Answer Earlymark questions first, then sell from the homepage sales brief.
 - Offer a spoken product demo when the caller wants one.
 - Capture caller details early because this path starts without trusted lead context.
+- Canonical inbound room naming accepted by the worker/runtime health path is either `earlymark-inbound-*` or `inbound_*`.
 
 ### `normal`
 

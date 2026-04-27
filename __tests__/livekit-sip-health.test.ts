@@ -69,6 +69,42 @@ describe("getLivekitSipHealth", () => {
     expect(result.demoOutbound.resolvedTrunkId).toBe("ST_outbound");
   });
 
+  it("accepts the canonical inbound_ room prefix as valid Earlymark inbound routing", async () => {
+    listSipInboundTrunk.mockResolvedValue([
+      {
+        sipTrunkId: "ST_123",
+        name: "Earlymark inbound",
+        numbers: ["+61485010634"],
+      },
+    ]);
+    listSipOutboundTrunk.mockResolvedValue([
+      {
+        sipTrunkId: "ST_outbound",
+        name: "Earlymark outbound",
+        numbers: ["+61485010634"],
+        address: "earlymark-outbound.pstn.sydney.twilio.com",
+      },
+    ]);
+    listSipDispatchRule.mockResolvedValue([
+      {
+        sipDispatchRuleId: "SDR_123",
+        name: "Earlymark inbound dispatch",
+        trunkIds: [],
+        rule: {
+          dispatchRuleIndividual: {
+            roomPrefix: "inbound_",
+          },
+        },
+        attributes: { callType: "inbound_demo" },
+      },
+    ]);
+
+    const result = await getLivekitSipHealth();
+
+    expect(result.status).toBe("healthy");
+    expect(result.warnings).not.toContain("No LiveKit SIP dispatch rule appears to handle the Earlymark inbound surface.");
+  });
+
   it("reports unhealthy when the Earlymark number is missing from inbound trunks", async () => {
     listSipInboundTrunk.mockResolvedValue([
       {
