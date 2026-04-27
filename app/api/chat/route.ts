@@ -1,5 +1,4 @@
-import { streamText, convertToModelMessages, stepCountIs, createUIMessageStream, createUIMessageStreamResponse } from "ai";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createUIMessageStream, createUIMessageStreamResponse } from "ai";
 import {
   runAddContactNote,
   runAddDealNote,
@@ -27,19 +26,17 @@ import { runGetAvailability, runGetClientContext, runGetTodaySummary } from "@/a
 import { getDeals } from "@/actions/deal-actions";
 import { getWorkspaceSettingsById } from "@/actions/settings-actions";
 import { buildJobDraftFromParams, resolveSchedule } from "@/lib/chat-utils";
-import { parseJobWithAI, parseMultipleJobsWithAI, extractAllJobsFromParagraph } from "@/lib/ai/job-parser";
+import { parseJobWithAI, parseMultipleJobsWithAI } from "@/lib/ai/job-parser";
 import { appendTicketNote } from "@/actions/activity-actions";
-import { addMem0Memory, buildAgentContext, fetchMemoryContext } from "@/lib/ai/context";
-import { buildCrmChatSystemPrompt } from "@/lib/ai/prompt-contract";
 import { normalizeAppAgentMode } from "@/lib/agent-mode";
-import { getAgentToolsForIntent } from "@/lib/ai/tools";
 import { preClassify, type PreClassification } from "@/lib/ai/pre-classifier";
-import { validatePricingInResponse } from "@/lib/ai/response-validator";
-import { instrumentToolsWithLatency, nowMs, recordLatencyMetric } from "@/lib/telemetry/latency";
+import { nowMs, recordLatencyMetric } from "@/lib/telemetry/latency";
 import { rateLimit } from "@/lib/rate-limit";
 import { logger } from "@/lib/logging";
 import { getAttentionSignalsForDeal } from "@/lib/deal-attention";
 import { formatDateTimeInTimezone, formatTimeInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone";
+import { runPreprocessing } from "@/lib/ai/chat-preprocessing";
+import { runPostprocessing, type PostprocessingContext } from "@/lib/ai/chat-postprocessing";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -66,23 +63,6 @@ function looksLikeFollowUpDetail(text: string): boolean {
   return trimmed.length >= 6;
 }
 
-/** Cost-effective Gemini model for chat + tools */
-const CHAT_MODEL_ID = "gemini-2.0-flash-lite";
-const MAX_INPUT_TOKENS_ESTIMATE = 18_000;
-
-function estimateTokens(text: string): number {
-  // Fast, conservative estimate: ~4 chars per token for English-like text.
-  return Math.ceil(text.length / 4);
-}
-
-function toText(value: unknown): string {
-  if (typeof value === "string") return value;
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value ?? "");
-  }
-}
 
 type ParsedJob = {
   clientName: string;
@@ -287,9 +267,7 @@ function shouldFetchMemory(text: string): boolean {
 function getAdaptiveMaxSteps(text: string, intent?: string): number {
   const trimmed = text.trim().toLowerCase();
   if (/^(next|confirm|cancel|ok|okay|yes|no|done|undo)\b/.test(trimmed)) return 2;
-  // Invoice/quote flows need extra steps: find deal → create invoice → set amount → move stage → respond
   if (intent === "invoice") return 5;
-  // Multi-step CRM actions with conjunctions need more room
   if (/\b(and|then|also|plus)\b/.test(trimmed)) return 6;
   if (trimmed.length < 80) return 3;
   return 4;
@@ -1537,7 +1515,6 @@ export async function POST(req: Request) {
 
     // Extract user ID from headers or use workspaceId as fallback
     const userId = req.headers.get("x-user-id") || workspaceId;
-    const preprocessingStartedAt = nowMs();
     const lastUserMessage = messages.filter((m: { role?: string }) => m.role === "user").pop();
     const lastMessageContent = getUserMessageText(lastUserMessage) || content;
 
@@ -1558,28 +1535,9 @@ export async function POST(req: Request) {
       return createTextStreamResponse(directText);
     }
 
-    const shouldRunStructuredExtraction = !isFlowControl && shouldAttemptStructuredJobExtraction(content, classification);
-    const includeHistoricalPricing = !isFlowControl && shouldIncludeHistoricalPricing(content);
-    const shouldGetMemoryContext = !isFlowControl && shouldFetchMemory(lastMessageContent);
-
-    // ── PARALLEL: Run job extraction, context building, and memory fetch concurrently ──
-    // This is the critical speed optimization — these 3 operations are independent and
-    // were previously running sequentially, adding 1-3+ seconds of dead time.
-    const jobExtractionStart = nowMs();
-    const agentContextStart = nowMs();
-    const memoryFetchStart = nowMs();
-    const [extractedJobs, agentContext, memoryContextStr] = await Promise.all([
-      (shouldRunStructuredExtraction
-        ? withTimeout(extractAllJobsFromParagraph(content), 1400, [])
-        : Promise.resolve([])
-      ).then(r => { recordLatencyMetric('chat.web.preprocessing.job_extraction_ms', nowMs() - jobExtractionStart); return r; }),
-      buildAgentContext(workspaceId, userId, { includeHistoricalPricing, pricingAudience: "business" })
-        .then(r => { recordLatencyMetric('chat.web.preprocessing.agent_context_ms', nowMs() - agentContextStart); return r; }),
-      (shouldGetMemoryContext
-        ? withTimeout(fetchMemoryContext(userId, lastMessageContent), 400, "")
-        : Promise.resolve("")
-      ).then(r => { recordLatencyMetric('chat.web.preprocessing.memory_fetch_ms', nowMs() - memoryFetchStart); return r; }),
-    ]);
+    // ── PARALLEL PREPROCESSING: job extraction, context, memory, entity pre-resolution ──
+    const preprocessing = await runPreprocessing(workspaceId, userId, content, lastMessageContent);
+    const { extractedJobs, agentContext, memoryContextStr, preprocessingMs } = preprocessing;
 
     const {
       settings,
@@ -1594,7 +1552,6 @@ export async function POST(req: Request) {
       bouncerStr,
       attachmentsStr,
     } = agentContext;
-    const preprocessingMs = nowMs() - preprocessingStartedAt;
 
     // ── Handle job extraction results (draft card early-returns) ──
     const multipleJobs = extractedJobs.length >= 2 ? extractedJobs : null;
@@ -1644,10 +1601,11 @@ export async function POST(req: Request) {
     }
 
     const singleJobFromParagraph = extractedJobs.length === 1 ? extractedJobs[0] : null;
+    const shouldRunFallbackParse = !useMultiJobFlow && !singleJobFromParagraph && shouldAttemptStructuredJobExtraction(content, classification);
     const parsed = useMultiJobFlow
       ? null
       : (singleJobFromParagraph ??
-        (shouldRunStructuredExtraction ? await withTimeout(parseJobWithAI(content), 1400, null) : null));
+        (shouldRunFallbackParse ? await withTimeout(parseJobWithAI(content), 1400, null) : null));
     if (parsed) {
       // One-liner: return a draft card for confirmation; do not create the job until user confirms.
       const draft = buildJobDraftFromParams(parsed) as ReturnType<typeof buildJobDraftFromParams> & { warnings: string[] };
@@ -1902,51 +1860,17 @@ MULTI-STEP EXECUTION: When a request clearly requires a sequence of tool calls (
         }
       },
       onFinish: async ({ text }) => {
-        const llmPhaseMs = nowMs() - llmStartedAt;
-        const modelMs = Math.max(0, llmPhaseMs - toolCallsMs);
-        const totalMs = nowMs() - requestStartedAt;
-        recordLatencyMetric("chat.web.preprocessing_ms", preprocessingMs);
-        recordLatencyMetric("chat.web.tool_calls_ms", toolCallsMs);
-        recordLatencyMetric("chat.web.model_ms", modelMs);
-        recordLatencyMetric("chat.web.total_ms", totalMs);
-
-        // === Pricing Response Validation ===
-        const validation = validatePricingInResponse(text, toolOutputsForValidation);
-        if (!validation.valid) {
-          console.warn(
-            `[PricingValidator] Unsourced amounts detected in response: ${validation.unsourcedAmounts.join(", ")}. ` +
-            `Sourced: ${validation.sourcedAmounts.join(", ")}. Mentioned: ${validation.mentionedAmounts.join(", ")}.`
-          );
-          recordLatencyMetric("chat.web.pricing_validation_fail", 1);
-        }
-
-        // === STEP B: "The Learning" (Post-Generation Memory Storage) ===
-        console.log(`[Mem0] Starting memory storage...`);
-
-        try {
-          addMem0Memory({
-            userId,
-            messages: [
-              { role: "user", content: lastMessageContent },
-              { role: "assistant", content: text },
-            ],
-            metadata: {
-              timestamp: new Date().toISOString(),
-              source: "chat",
-              workspaceId,
-            },
-          })
-            .then(() => {
-              console.log(`[Mem0] Successfully saved interaction`);
-            })
-            .catch((error: unknown) => {
-              logger.error("Mem0 save interaction failed", { component: "chat-api", workspaceId, userId }, error as Error);
-            });
-
-          // Note: Not awaiting to avoid blocking the response
-        } catch (error) {
-          logger.error("Mem0 storage pipeline failed", { component: "chat-api", workspaceId, userId }, error as Error);
-        }
+        const postCtx: PostprocessingContext = {
+          workspaceId,
+          userId,
+          lastMessageContent,
+          requestStartedAt,
+          preprocessingMs,
+          llmStartedAt,
+          toolCallsMs,
+          ttftMs,
+        };
+        runPostprocessing(postCtx, text, toolOutputsForValidation);
       },
     });
 
