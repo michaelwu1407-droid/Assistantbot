@@ -5,7 +5,7 @@ import { ActionConfig, AutomationView, TriggerConfig, toggleAutomation, createAu
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
-import { Plus, Zap, ArrowRight, Bell, CheckSquare, Mail, MessageSquare } from "lucide-react"
+import { Plus, Zap, ArrowRight, Bell, CheckSquare, Mail, MessageSquare, Phone } from "lucide-react"
 import { toast } from "sonner"
 import {
     Dialog,
@@ -113,6 +113,7 @@ export function AutomationList({ initialAutomations, workspaceId }: AutomationLi
             case "create_task": return <CheckSquare className="h-4 w-4 text-blue-500" />
             case "email": return <Mail className="h-4 w-4 text-purple-500" />
             case "send_sms": return <MessageSquare className="h-4 w-4 text-green-500" />
+            case "outbound_call": return <Phone className="h-4 w-4 text-emerald-500" />
             default: return <ArrowRight className="h-4 w-4" />
         }
     }
@@ -171,6 +172,7 @@ export function AutomationList({ initialAutomations, workspaceId }: AutomationLi
                                             <SelectItem value="notify">Send Browser Notification</SelectItem>
                                             <SelectItem value="create_task">Create Follow-up Task</SelectItem>
                                             <SelectItem value="send_sms">Send SMS</SelectItem>
+                                            <SelectItem value="outbound_call">Call Back (Tracey calls them)</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
