@@ -372,9 +372,9 @@ export function HeroDashboardReel({ className = "" }: { className?: string }) {
         return () => clearInterval(t);
     }, [advance]);
 
-    const jump = (i: number) => setActive(i);
-
     const ActiveScreen = SCREENS[active];
+    const activeStep = REEL_STEPS[active];
+    const ActiveStepIcon = activeStep.icon;
 
     return (
         <div className={`relative mx-auto w-full max-w-[1120px] ${className}`}>
@@ -409,32 +409,32 @@ export function HeroDashboardReel({ className = "" }: { className?: string }) {
                     </div>
                 </div>
 
-                {/* Step pills */}
-                <div className="border-b border-slate-200/70 bg-[linear-gradient(180deg,rgba(247,250,252,0.94)_0%,rgba(240,249,244,0.74)_100%)] px-4 py-3 sm:px-5">
-                    <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-                        {REEL_STEPS.map(({ label, icon: Icon }, idx) => {
-                            const isActive = idx === active;
-                            return (
-                                <button
-                                    key={label}
-                                    onClick={() => jump(idx)}
-                                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] transition-all duration-200 ${
-                                        isActive
-                                            ? "border-emerald-400/60 bg-emerald-50 text-emerald-700 shadow-sm"
-                                            : "border-white/80 bg-white/78 text-slate-600 shadow-sm hover:bg-white"
-                                    }`}
-                                >
-                                    <Icon className={`h-3.5 w-3.5 ${isActive ? "text-emerald-600" : "text-slate-400"}`} />
-                                    <span>{label}</span>
-                                    {idx < REEL_STEPS.length - 1 ? <span className="text-slate-300">/</span> : null}
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-
                 {/* Screen area */}
-                <div className="relative overflow-hidden" style={{ height: 380 }}>
+                <div className="relative overflow-hidden" style={{ height: 500 }}>
+                    <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border border-white/80 bg-white/88 px-3.5 py-2 shadow-sm backdrop-blur">
+                        <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-600">
+                            <ActiveStepIcon className="h-3.5 w-3.5 text-emerald-600" />
+                            <span>{activeStep.label}</span>
+                        </div>
+                        <div className="h-4 w-px bg-slate-200" />
+                        <div className="flex items-center gap-2">
+                            {REEL_STEPS.map((step, idx) => {
+                                const isActive = idx === active;
+                                return (
+                                    <button
+                                        key={step.label}
+                                        type="button"
+                                        onClick={() => setActive(idx)}
+                                        aria-label={`Show ${step.label} view`}
+                                        className={`h-2.5 rounded-full transition-all duration-200 ${
+                                            isActive ? "w-6 bg-emerald-500" : "w-2.5 bg-slate-300 hover:bg-slate-400"
+                                        }`}
+                                    />
+                                );
+                            })}
+                        </div>
+                    </div>
+
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={active}

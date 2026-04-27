@@ -638,51 +638,125 @@ function ProcessFlow({ steps, variant }: { steps: typeof OLD_WAY; variant: "old"
 
 const TESTIMONIALS = [
     {
-        quote: "Tracey booked three jobs for me while I was driving between sites yesterday. It pays for itself immediately.",
+        quote: "It picked up while I was on site and the job details were already there when I got back to the ute.",
         author: "Mark S.",
         role: "Plumbing Contractor",
     },
     {
-        quote: "I used to spend 2 hours every evening just following up on quotes and responding to emails. Now I just go home.",
+        quote: "The follow-ups are the part I notice most. Jobs keep moving without me doing admin at night.",
         author: "Sarah J.",
         role: "Electrical Services",
     },
     {
-        quote: "Clients constantly tell me how professional my 'new receptionist' is. They have no idea it's AI.",
+        quote: "Customers get a quick answer instead of voicemail. It makes the business feel more organised straight away.",
         author: "Dave W.",
         role: "Landscaping & Design",
-    },
-    {
-        quote: "Best investment I've made in the business. It stopped me from losing jobs to the guys who answer their phones faster.",
-        author: "Tom H.",
-        role: "HVAC Specialist",
     }
 ];
 
 function TestimonialsCarousel() {
+    const slides = [...TESTIMONIALS, ...TESTIMONIALS];
+
     return (
-        <div className="w-full flex overflow-x-auto snap-x snap-mandatory gap-6 pb-8 hide-scrollbar">
-            {TESTIMONIALS.map((t, i) => (
-                <div key={i} className="shrink-0 w-[85vw] md:w-[350px] snap-center bg-white rounded p-8 shadow-sm border border-border flex flex-col justify-between">
-                    <div>
-                        <div className="flex gap-1 mb-4">
-                            {[1, 2, 3, 4, 5].map(star => (
-                                <svg key={star} className="w-4 h-4 text-amber-400 fill-current" viewBox="0 0 20 20">
-                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                </svg>
-                            ))}
+        <div className="relative">
+            <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar md:hidden">
+                {TESTIMONIALS.map((t, i) => (
+                    <div key={i} className="shrink-0 w-[84vw] snap-center bg-white rounded p-8 shadow-sm border border-border flex flex-col justify-between">
+                        <div>
+                            <div className="flex gap-1 mb-4">
+                                {[1, 2, 3, 4, 5].map(star => (
+                                    <svg key={star} className="w-4 h-4 text-amber-400 fill-current" viewBox="0 0 20 20">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                    </svg>
+                                ))}
+                            </div>
+                            <p className="text-midnight/80 italic text-[15px] leading-relaxed mb-6">&quot;{t.quote}&quot;</p>
                         </div>
-                        <p className="text-midnight/80 italic text-[15px] leading-relaxed mb-6">&quot;{t.quote}&quot;</p>
+                        <div>
+                            <p className="font-bold text-midnight text-sm">{t.author}</p>
+                            <p className="text-xs text-slate-500 font-medium mt-0.5">{t.role}</p>
+                        </div>
                     </div>
-                    <div>
-                        <p className="font-bold text-midnight text-sm">{t.author}</p>
-                        <p className="text-xs text-slate-500 font-medium mt-0.5">{t.role}</p>
-                    </div>
-                </div>
-            ))}
+                ))}
+            </div>
+
+            <div className="relative hidden overflow-hidden md:block">
+                <motion.div
+                    className="flex w-max gap-4"
+                    animate={{ x: ["0%", "-50%"] }}
+                    transition={{ duration: 26, ease: "linear", repeat: Infinity }}
+                >
+                    {slides.map((t, i) => (
+                        <div key={`${t.author}-${i}`} className="w-[350px] bg-white rounded p-8 shadow-sm border border-border flex flex-col justify-between">
+                            <div>
+                                <div className="flex gap-1 mb-4">
+                                    {[1, 2, 3, 4, 5].map(star => (
+                                        <svg key={star} className="w-4 h-4 text-amber-400 fill-current" viewBox="0 0 20 20">
+                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                        </svg>
+                                    ))}
+                                </div>
+                                <p className="text-midnight/80 italic text-[15px] leading-relaxed mb-6">&quot;{t.quote}&quot;</p>
+                            </div>
+                            <div>
+                                <p className="font-bold text-midnight text-sm">{t.author}</p>
+                                <p className="text-xs text-slate-500 font-medium mt-0.5">{t.role}</p>
+                            </div>
+                        </div>
+                    ))}
+                </motion.div>
+                <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-[linear-gradient(90deg,#f8fafc_0%,rgba(248,250,252,0)_100%)]" />
+                <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-[linear-gradient(270deg,#f8fafc_0%,rgba(248,250,252,0)_100%)]" />
+            </div>
         </div>
     );
 }
+
+const TRACEY_BENEFITS = [
+    {
+        title: "Win more customers",
+        desc: "Tracey answers every call, follows up every lead, and books jobs — so you never miss an opportunity.",
+        icon: Phone,
+    },
+    {
+        title: "Automate customer admin",
+        desc: "No more fiddling with complex CRMs — just tell Tracey what you want and she runs it for you.",
+        icon: MessageSquare,
+    },
+    {
+        title: "Provide a more reliable customer experience",
+        desc: "Provide a professional, consistent experience across every channel — calls, texts, and emails.",
+        icon: CheckCircle2,
+    },
+];
+
+const TRACEY_WORKFLOW = [
+    {
+        label: "Customer calls",
+        icon: Phone,
+        points: [
+            "Tracey picks up 24/7",
+            "Tracey shares the info you've taught it",
+            "Tracey books the job for you",
+        ],
+    },
+    {
+        label: "Get on the tools",
+        icon: Calendar,
+        points: [
+            "Tracey smart schedules nearby jobs together",
+            "Tracey navigates you to the job",
+        ],
+    },
+    {
+        label: "After the job",
+        icon: BarChart3,
+        points: [
+            "Collect payment instantly or Tracey will auto follow up",
+            "Tracey politely asks for a good review",
+        ],
+    },
+];
 
 // ─── FAQ Section ──────────────────────────────────────────────────────────────
 
@@ -782,8 +856,10 @@ export default function Home() {
                         {...fadeUp(0.06)}
                         className="text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.08] text-midnight text-balance text-center"
                     >
-                        Your AI assistant & CRM — here to give you an{" "}
-                        <span className="text-primary">early mark</span>
+                        Your AI assistant & CRM.
+                        <span className="block">
+                            Here to give you an <span className="text-primary">early mark</span>
+                        </span>
                     </motion.h1>
 
                     <motion.div {...fadeUp(0.10)} className="flex flex-col sm:flex-row gap-3">
@@ -806,112 +882,101 @@ export default function Home() {
                         {/* Phone mockup — overlaps RHS of dashboard */}
                         <motion.div
                             {...fadeUp(0.18)}
-                            className="hidden md:block absolute right-[-1.5rem] lg:right-[-2.5rem] bottom-[-2rem] z-20"
+                            className="hidden md:block absolute right-[-0.75rem] lg:right-[-1.5rem] bottom-[-3.25rem] z-20"
                         >
                             <PulsingLogo />
                         </motion.div>
                     </motion.div>
 
-                    {/* Value Props — gradient glass cards (no icons) */}
-                    <motion.div {...fadeUp(0.22)} className="w-full max-w-[1200px] mx-auto mt-10">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="rounded-[18px] bg-[#E0FAF2] border border-primary/20 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-                                <h3 className="text-lg font-semibold text-slate-900">Win more customers</h3>
-                                <p className="text-sm text-slate-600 mt-2">Tracey answers every call, follows up every lead, and books jobs — so you never miss an opportunity.</p>
-                            </div>
-                            <div className="rounded-[18px] bg-[#E0FAF2] border border-primary/20 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-                                <h3 className="text-lg font-semibold text-slate-900">Automate customer admin</h3>
-                                <p className="text-sm text-slate-600 mt-2">No more fiddling with complex CRMs — just tell Tracey what you want and she runs it for you.</p>
-                            </div>
-                            <div className="rounded-[18px] bg-[#E0FAF2] border border-primary/20 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-                                <h3 className="text-lg font-semibold text-slate-900">Provide a more reliable customer experience</h3>
-                                <p className="text-sm text-slate-600 mt-2">Provide a professional, consistent experience across every channel — calls, texts, and emails.</p>
-                            </div>
-                        </div>
-                    </motion.div>
                 </div>
             </section >
 
             {/* ── C. Meet Tracey ── */}
-            < section id="meet-tracey" className="py-24 px-6 bg-[#F8FAFC]" >
+            <section className="bg-slate-50 px-6 py-24 overflow-hidden">
                 <div className="container mx-auto max-w-7xl">
-                    <motion.div {...fadeUp()} className="text-center mb-14">
-                        <h2 className="text-4xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em]">
+                    <motion.div {...fadeUp()} className="text-center mb-12">
+                        <h2 className="text-3xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em]">
+                            Loved by service businesses with non-stop calls
+                        </h2>
+                    </motion.div>
+                    <motion.div {...fadeUp(0.08)} className="-mx-6 px-6">
+                        <TestimonialsCarousel />
+                    </motion.div>
+                </div>
+            </section>
+
+            <section id="meet-tracey" className="bg-[#F8FAFC] px-6 py-24">
+                <div className="container mx-auto max-w-7xl">
+                    <motion.div {...fadeUp()} className="mx-auto mb-14 max-w-3xl text-center">
+                        <h2 className="text-4xl font-extrabold tracking-[-0.03em] text-midnight md:text-5xl">
                             Meet Tracey
                         </h2>
-                        <p className="text-slate-body mt-3 text-lg max-w-xl mx-auto">
+                        <p className="mt-3 text-lg text-slate-body max-w-xl mx-auto">
                             Your AI receptionist, CRM manager, and follow-up specialist — all in one.
                         </p>
                     </motion.div>
 
-                    <motion.div
-                        {...fadeUp(0.06)}
-                        className="max-w-6xl mx-auto rounded overflow-hidden border border-border shadow-sm bg-white grid md:grid-cols-2"
-                    >
-                        <div className="p-8 md:p-10 border-b md:border-b-0 md:border-r border-border bg-[#FAF7F8]">
-                            <h3 className="text-2xl font-bold text-rose-600 mb-6">The old way</h3>
-
-                            <div className="space-y-6 text-left">
-                                <div>
-                                    <h4 className="font-bold text-midnight mb-2">Customer calls</h4>
-                                    <ul className="space-y-2 text-slate-body">
-                                        <li className="flex gap-2"><span className="text-rose-500 font-semibold">×</span><span>Pause what you&apos;re doing, play phone tag, miss out</span></li>
-                                        <li className="flex gap-2"><span className="text-rose-500 font-semibold">×</span><span>Waste time explaining services and prices</span></li>
-                                        <li className="flex gap-2"><span className="text-rose-500 font-semibold">×</span><span>Manually find time and book the job</span></li>
-                                    </ul>
+                    <motion.div {...fadeUp(0.06)} className="grid gap-6 lg:grid-cols-[0.92fr_1.08fr]">
+                        <div className="space-y-4">
+                            {TRACEY_BENEFITS.map(({ title, desc, icon: Icon }) => (
+                                <div key={title} className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_16px_44px_rgba(15,23,42,0.06)]">
+                                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#E0FAF2]">
+                                        <Icon className="h-5 w-5 text-primary" />
+                                    </div>
+                                    <h3 className="mt-5 text-xl font-bold tracking-[-0.02em] text-midnight">{title}</h3>
+                                    <p className="mt-3 text-sm leading-relaxed text-slate-body">{desc}</p>
                                 </div>
-
-                                <div>
-                                    <h4 className="font-bold text-midnight mb-2">Get on the tools</h4>
-                                    <ul className="space-y-2 text-slate-body">
-                                        <li className="flex gap-2"><span className="text-rose-500 font-semibold">×</span><span>Constantly interrupted by new leads</span></li>
-                                        <li className="flex gap-2"><span className="text-rose-500 font-semibold">×</span><span>Miss out on revenue for missed calls</span></li>
-                                    </ul>
-                                </div>
-
-                                <div>
-                                    <h4 className="font-bold text-midnight mb-2">After the job</h4>
-                                    <ul className="space-y-2 text-slate-body">
-                                        <li className="flex gap-2"><span className="text-rose-500 font-semibold">×</span><span>Chase payment or forget</span></li>
-                                        <li className="flex gap-2"><span className="text-rose-500 font-semibold">×</span><span>Risk a bad review while you&apos;re at it</span></li>
-                                    </ul>
-                                </div>
-                            </div>
+                            ))}
                         </div>
 
-                        <div className="p-8 md:p-10 bg-[#EEF3FF]">
-                            <h3 className="text-2xl font-bold text-primary mb-6">Tracey does it for you</h3>
-
-                            <div className="space-y-6 text-left">
-                                <div>
-                                    <h4 className="font-bold text-midnight mb-2">Customer calls</h4>
-                                    <ul className="space-y-2 text-slate-body">
-                                        <li className="flex gap-2"><span className="text-primary font-semibold">✓</span><span>Tracey picks up 24/7</span></li>
-                                        <li className="flex gap-2"><span className="text-primary font-semibold">✓</span><span>Tracey shares the info you&apos;ve taught it</span></li>
-                                        <li className="flex gap-2"><span className="text-primary font-semibold">✓</span><span>Tracey books the job for you</span></li>
-                                    </ul>
+                        <div className="rounded-[2rem] border border-emerald-900/10 bg-[linear-gradient(145deg,#103126_0%,#1B4637_52%,#2B5F4D_100%)] p-1 shadow-[0_24px_80px_rgba(15,23,42,0.14)]">
+                            <div className="h-full rounded-[1.7rem] bg-[linear-gradient(180deg,rgba(247,250,249,0.98)_0%,rgba(240,247,243,0.98)_100%)] p-6 md:p-7">
+                                <div className="mb-6 flex items-center justify-between">
+                                    <div>
+                                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">What Tracey handles</p>
+                                        <h3 className="mt-2 text-2xl font-extrabold tracking-[-0.02em] text-midnight">
+                                            From first call to follow-up
+                                        </h3>
+                                    </div>
+                                    <div className="hidden h-12 w-12 items-center justify-center rounded-2xl bg-[#E0FAF2] md:flex">
+                                        <Bot className="h-6 w-6 text-primary" />
+                                    </div>
                                 </div>
 
-                                <div>
-                                    <h4 className="font-bold text-midnight mb-2">Get on the tools</h4>
-                                    <ul className="space-y-2 text-slate-body">
-                                        <li className="flex gap-2"><span className="text-primary font-semibold">✓</span><span>Tracey smart schedules nearby jobs together</span></li>
-                                        <li className="flex gap-2"><span className="text-primary font-semibold">✓</span><span>Tracey navigates you to the job</span></li>
-                                    </ul>
+                                <div className="space-y-4">
+                                    {TRACEY_WORKFLOW.map(({ label, icon: Icon, points }) => (
+                                        <div key={label} className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100">
+                                                    <Icon className="h-5 w-5 text-primary" />
+                                                </div>
+                                                <h4 className="text-lg font-bold text-midnight">{label}</h4>
+                                            </div>
+
+                                            <div className="mt-4 space-y-3">
+                                                {points.map((point) => (
+                                                    <div key={point} className="flex items-start gap-3">
+                                                        <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#E0FAF2]">
+                                                            <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                                                        </div>
+                                                        <p className="text-sm leading-relaxed text-slate-body">{point}</p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
 
-                                <div>
-                                    <h4 className="font-bold text-midnight mb-2">After the job</h4>
-                                    <ul className="space-y-2 text-slate-body">
-                                        <li className="flex gap-2"><span className="text-primary font-semibold">✓</span><span>Collect payment instantly or Tracey will auto follow up</span></li>
-                                        <li className="flex gap-2"><span className="text-primary font-semibold">✓</span><span>Tracey politely asks for a good review</span></li>
-                                    </ul>
+                                <div className="mt-5 rounded-[1.4rem] border border-emerald-900/10 bg-[#E0FAF2] px-4 py-3">
+                                    <p className="text-sm font-semibold leading-relaxed text-midnight">
+                                        While you are on the job, Tracey keeps the phone answered, the calendar moving, and the follow-up handled.
+                                    </p>
                                 </div>
                             </div>
                         </div>
                     </motion.div>
                 </div>
-            </section >
+            </section>
 
             {/* ── C.5: Tracey lives in your CRM ── */}
             < section id="interview-assistant" className="py-24 px-6 relative overflow-hidden bg-[#1E232B]" >
@@ -935,20 +1000,6 @@ export default function Home() {
                     </div>
                 </div>
             </section >
-
-            {/* ── C.6 Testimonials ── */}
-            <section className="py-24 bg-slate-50 px-6 overflow-hidden">
-                <div className="container mx-auto max-w-7xl">
-                    <motion.div {...fadeUp()} className="text-center mb-12">
-                        <h2 className="text-3xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em]">
-                            Loved by tradies and service businesses
-                        </h2>
-                    </motion.div>
-                    <motion.div {...fadeUp(0.1)} className="-mx-6 px-6">
-                        <TestimonialsCarousel />
-                    </motion.div>
-                </div>
-            </section>
 
             {/* ── D. Hire Tracey Today ── */}
             < section id="product" className="py-24 px-6" >
@@ -1107,9 +1158,9 @@ export default function Home() {
                     <motion.h2 {...fadeUp()} className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-white leading-tight text-balance">
                         Give yourself an early mark today
                     </motion.h2>
-                    <motion.p {...fadeUp(0.04)} className="text-lg text-white/65 leading-7 max-w-xl">
-                        No contracts. No complexity. Try Tracey free.
-                    </motion.p>
+                      <motion.p {...fadeUp(0.04)} className="text-lg text-white/65 leading-7 max-w-xl">
+                          Focus on the job, not the admin.
+                      </motion.p>
                     <motion.div {...fadeUp(0.12)} className="flex flex-col sm:flex-row gap-3">
                         <Link href="/auth">
                             <Button size="lg" variant="mint">
