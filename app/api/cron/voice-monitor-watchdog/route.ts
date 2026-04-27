@@ -5,7 +5,11 @@ import { dispatchVoiceIncidentNotifications } from "@/lib/voice-incident-alert";
 import { reconcileVoiceIncidents } from "@/lib/voice-incidents";
 import { getVoiceMonitorStaleAfterMs } from "@/lib/voice-monitor-config";
 import { buildMonitorIncidentObservations } from "@/lib/voice-monitoring";
-import { getVoiceAgentHealthMonitorSummary, runVoiceAgentHealthMonitor } from "@/lib/voice-agent-health-monitor";
+import {
+  buildVoiceAgentHealthMonitorDetails,
+  getVoiceAgentHealthMonitorSummary,
+  runVoiceAgentHealthMonitor,
+} from "@/lib/voice-agent-health-monitor";
 
 export const dynamic = "force-dynamic";
 
@@ -30,16 +34,9 @@ export async function GET(req: NextRequest) {
           monitorKey: "voice-agent-health",
           status: refreshedVoiceAgentHealthRun.status,
           summary: getVoiceAgentHealthMonitorSummary(refreshedVoiceAgentHealthRun.status),
-          details: {
-            checkedAt: refreshedVoiceAgentHealthRun.checkedAt,
-            fleetStatus: refreshedVoiceAgentHealthRun.fleet.status,
-            customerSaturationStatus: refreshedVoiceAgentHealthRun.customerSaturation.status,
-            twilioRoutingStatus: refreshedVoiceAgentHealthRun.twilioRouting.status,
-            invariantStatus: refreshedVoiceAgentHealthRun.invariants.status,
-            recentCallsStatus: refreshedVoiceAgentHealthRun.recentCalls.status,
-            latencyStatus: refreshedVoiceAgentHealthRun.latency.status,
+          details: buildVoiceAgentHealthMonitorDetails(refreshedVoiceAgentHealthRun, {
             refreshedBy: "voice-monitor-watchdog",
-          },
+          }),
           checkedAt: refreshCheckedAt,
           succeeded: true,
         });

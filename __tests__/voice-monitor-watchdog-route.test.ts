@@ -10,6 +10,7 @@ const {
   buildMonitorIncidentObservations,
   runVoiceAgentHealthMonitor,
   getVoiceAgentHealthMonitorSummary,
+  buildVoiceAgentHealthMonitorDetails,
 } = vi.hoisted(() => ({
   getMonitorRunHealth: vi.fn(),
   recordMonitorRun: vi.fn(),
@@ -19,6 +20,7 @@ const {
   buildMonitorIncidentObservations: vi.fn(),
   runVoiceAgentHealthMonitor: vi.fn(),
   getVoiceAgentHealthMonitorSummary: vi.fn(),
+  buildVoiceAgentHealthMonitorDetails: vi.fn(),
 }));
 
 vi.mock("@/lib/ops-monitor-runs", () => ({
@@ -50,6 +52,7 @@ vi.mock("@/lib/voice-monitoring", () => ({
 vi.mock("@/lib/voice-agent-health-monitor", () => ({
   runVoiceAgentHealthMonitor,
   getVoiceAgentHealthMonitorSummary,
+  buildVoiceAgentHealthMonitorDetails,
 }));
 
 import { GET } from "@/app/api/cron/voice-monitor-watchdog/route";
@@ -63,6 +66,13 @@ describe("GET /api/cron/voice-monitor-watchdog", () => {
     dispatchVoiceIncidentNotifications.mockResolvedValue(null);
     buildMonitorIncidentObservations.mockReturnValue([]);
     getVoiceAgentHealthMonitorSummary.mockReturnValue("Voice agent health monitor completed successfully");
+    buildVoiceAgentHealthMonitorDetails.mockReturnValue({
+      checkedAt: "2026-03-12T14:03:39.000Z",
+      livekitSipStatus: "healthy",
+      nonHealthyChecks: [],
+      primaryIssue: null,
+      incidentCounts: { opened: 0, resolved: 0 },
+    });
   });
 
   it("refreshes voice-agent-health inline when the last successful run is stale", async () => {
@@ -95,6 +105,7 @@ describe("GET /api/cron/voice-monitor-watchdog", () => {
       fleet: { status: "healthy" },
       customerSaturation: { status: "healthy" },
       twilioRouting: { status: "healthy" },
+      livekitSip: { status: "healthy" },
       invariants: { status: "healthy" },
       recentCalls: { status: "healthy" },
       latency: { status: "healthy" },
@@ -112,6 +123,9 @@ describe("GET /api/cron/voice-monitor-watchdog", () => {
       expect.objectContaining({
         monitorKey: "voice-agent-health",
         status: "healthy",
+        details: expect.objectContaining({
+          livekitSipStatus: "healthy",
+        }),
         succeeded: true,
       }),
     );
@@ -157,6 +171,7 @@ describe("GET /api/cron/voice-monitor-watchdog", () => {
       fleet: { status: "healthy" },
       customerSaturation: { status: "healthy" },
       twilioRouting: { status: "healthy" },
+      livekitSip: { status: "healthy" },
       invariants: { status: "healthy" },
       recentCalls: { status: "healthy" },
       latency: { status: "healthy" },

@@ -29,10 +29,101 @@ export type VoiceAgentHealthMonitorResult = {
   incidents: Awaited<ReturnType<typeof reconcileVoiceIncidents>>;
 };
 
+export type VoiceAgentHealthComponentKey =
+  | "fleet"
+  | "customerSaturation"
+  | "twilioRouting"
+  | "livekitSip"
+  | "invariants"
+  | "recentCalls"
+  | "latency";
+
+export type VoiceAgentHealthComponentSnapshot = {
+  key: VoiceAgentHealthComponentKey;
+  status: RuntimeStatus;
+  summary: string;
+  warnings: string[];
+};
+
 export function getVoiceAgentHealthMonitorSummary(status: RuntimeStatus) {
   return status === "healthy"
     ? "Voice agent health monitor completed successfully"
     : `Voice agent health monitor completed with ${status} status`;
+}
+
+export function buildVoiceAgentHealthComponentSnapshots(
+  result: VoiceAgentHealthMonitorResult,
+): VoiceAgentHealthComponentSnapshot[] {
+  return [
+    {
+      key: "fleet",
+      status: result.fleet.status,
+      summary: result.fleet.summary,
+      warnings: result.fleet.warnings,
+    },
+    {
+      key: "customerSaturation",
+      status: result.customerSaturation.status,
+      summary: result.customerSaturation.summary,
+      warnings: result.customerSaturation.warnings,
+    },
+    {
+      key: "twilioRouting",
+      status: result.twilioRouting.status,
+      summary: result.twilioRouting.summary,
+      warnings: result.twilioRouting.warnings,
+    },
+    {
+      key: "livekitSip",
+      status: result.livekitSip.status,
+      summary: result.livekitSip.summary,
+      warnings: result.livekitSip.warnings,
+    },
+    {
+      key: "invariants",
+      status: result.invariants.status,
+      summary: result.invariants.summary,
+      warnings: result.invariants.warnings,
+    },
+    {
+      key: "recentCalls",
+      status: result.recentCalls.status,
+      summary: result.recentCalls.summary,
+      warnings: result.recentCalls.warnings,
+    },
+    {
+      key: "latency",
+      status: result.latency.status,
+      summary: result.latency.summary,
+      warnings: result.latency.warnings,
+    },
+  ];
+}
+
+export function buildVoiceAgentHealthMonitorDetails(
+  result: VoiceAgentHealthMonitorResult,
+  extras?: Record<string, unknown>,
+) {
+  const componentSnapshots = buildVoiceAgentHealthComponentSnapshots(result);
+  const nonHealthyChecks = componentSnapshots.filter((component) => component.status !== "healthy");
+
+  return {
+    checkedAt: result.checkedAt,
+    fleetStatus: result.fleet.status,
+    customerSaturationStatus: result.customerSaturation.status,
+    twilioRoutingStatus: result.twilioRouting.status,
+    livekitSipStatus: result.livekitSip.status,
+    invariantStatus: result.invariants.status,
+    recentCallsStatus: result.recentCalls.status,
+    latencyStatus: result.latency.status,
+    primaryIssue: nonHealthyChecks[0] || null,
+    nonHealthyChecks,
+    incidentCounts: {
+      opened: result.incidents.opened.length,
+      resolved: result.incidents.resolved.length,
+    },
+    ...extras,
+  };
 }
 
 export async function runVoiceAgentHealthMonitor(

@@ -13,8 +13,9 @@ vi.mock("@/lib/telemetry/latency", () => ({
 }));
 
 describe("/api/internal/telemetry/latency", () => {
-  const originalNodeEnv = process.env.NODE_ENV;
-  const originalTelemetryKey = process.env.TELEMETRY_ADMIN_KEY;
+  const env = process.env as Record<string, string | undefined>;
+  const originalNodeEnv = env.NODE_ENV;
+  const originalTelemetryKey = env.TELEMETRY_ADMIN_KEY;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -24,11 +25,11 @@ describe("/api/internal/telemetry/latency", () => {
   });
 
   afterEach(() => {
-    if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
-    else process.env.NODE_ENV = originalNodeEnv;
+    if (originalNodeEnv === undefined) delete env.NODE_ENV;
+    else env.NODE_ENV = originalNodeEnv;
 
-    if (originalTelemetryKey === undefined) delete process.env.TELEMETRY_ADMIN_KEY;
-    else process.env.TELEMETRY_ADMIN_KEY = originalTelemetryKey;
+    if (originalTelemetryKey === undefined) delete env.TELEMETRY_ADMIN_KEY;
+    else env.TELEMETRY_ADMIN_KEY = originalTelemetryKey;
   });
 
   async function loadRoute() {
@@ -37,7 +38,7 @@ describe("/api/internal/telemetry/latency", () => {
   }
 
   it("returns a latency snapshot in non-production without auth", async () => {
-    process.env.NODE_ENV = "development";
+    env.NODE_ENV = "development";
 
     const { GET } = await loadRoute();
     const response = await GET(new Request("https://earlymark.ai/api/internal/telemetry/latency"));
@@ -47,8 +48,8 @@ describe("/api/internal/telemetry/latency", () => {
   });
 
   it("rejects unauthorized production callers", async () => {
-    process.env.NODE_ENV = "production";
-    process.env.TELEMETRY_ADMIN_KEY = "secret";
+    env.NODE_ENV = "production";
+    env.TELEMETRY_ADMIN_KEY = "secret";
 
     const { GET } = await loadRoute();
     const response = await GET(new Request("https://earlymark.ai/api/internal/telemetry/latency"));
@@ -58,8 +59,8 @@ describe("/api/internal/telemetry/latency", () => {
   });
 
   it("returns waterfall data when requested", async () => {
-    process.env.NODE_ENV = "production";
-    process.env.TELEMETRY_ADMIN_KEY = "secret";
+    env.NODE_ENV = "production";
+    env.TELEMETRY_ADMIN_KEY = "secret";
 
     const { GET } = await loadRoute();
     const response = await GET(
@@ -74,8 +75,8 @@ describe("/api/internal/telemetry/latency", () => {
   });
 
   it("resets telemetry on authorized delete", async () => {
-    process.env.NODE_ENV = "production";
-    process.env.TELEMETRY_ADMIN_KEY = "secret";
+    env.NODE_ENV = "production";
+    env.TELEMETRY_ADMIN_KEY = "secret";
 
     const { DELETE } = await loadRoute();
     const response = await DELETE(
