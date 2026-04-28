@@ -107,6 +107,7 @@ async function streamFromChatAPI(payload) {
         if (done) break;
         accumulated += decoder.decode(value, { stream: true });
       }
+      // Clean stream finish — return everything collected
       return { success: true, text: accumulated };
     } catch (err) {
       reader.cancel().catch(() => {});
@@ -116,10 +117,15 @@ async function streamFromChatAPI(payload) {
         /idle timeout|stream idle/i.test(err.message);
 
       if (!isIdleTimeout || attempt === MAX_RETRIES) {
-        return { success: false, error: err.message, partial: accumulated || undefined };
+        return {
+          success: false,
+          error: err.message,
+          partial: accumulated || undefined,
+        };
       }
 
-      // Resume: append partial assistant turn and ask model to continue.
+      // Resume: append what arrived so far as a partial assistant turn,
+      // then ask the model to continue from where it left off.
       messages = [
         ...messages,
         { role: "assistant", content: accumulated },
