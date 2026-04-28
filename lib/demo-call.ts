@@ -1,5 +1,8 @@
 import { RoomServiceClient, SipClient } from "livekit-server-sdk";
+import { getKnownEarlymarkInboundNumbers } from "@/lib/earlymark-inbound-config";
+import { getEarlymarkInboundSipUri } from "@/lib/livekit-sip-config";
 import { phoneMatches } from "@/lib/phone-utils";
+import { twilioMasterClient } from "@/lib/twilio";
 
 type OutboundTrunkInfo = {
   sipTrunkId: string;
@@ -35,6 +38,8 @@ export type DemoCallResult = {
   resolvedTrunkId: string;
   callerNumber: string | null;
   warnings: string[];
+  transport: "livekit_control" | "twilio_sip_bridge";
+  callSid: string | null;
 };
 
 function getLivekitApiBaseUrl() {
@@ -76,6 +81,74 @@ function getKnownCallerNumbers() {
     .filter(Boolean);
 
   return Array.from(new Set(values));
+}
+
+function escapeXml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error || "Unknown error");
+}
+
+function getTwilioBridgeCallerNumber(preferred?: string | null) {
+  return [process.env.VOICE_MONITOR_PROBE_CALLER_NUMBER, preferred, ...getKnownCallerNumbers()]
+    .map((value) => normalizePhone(value))
+    .find(Boolean) || null;
+}
+
+function buildTwilioSipBridgeTwiml(sipTarget: string) {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Dial answerOnBridge="true">
+    <Sip>${escapeXml(sipTarget)}</Sip>
+  </Dial>
+</Response>`;
+}
+
+async function initiateDemoCallViaTwilioSipBridge(params: {
+  normalizedPhone: string;
+  preferredCallerNumber?: string | null;
+  directError: unknown;
+}): Promise<DemoCallResult> {
+  if (!twilioMasterClient) {
+    throw new Error("Twilio is not configured for demo-call fallback.");
+  }
+
+  const callerNumber = getTwilioBridgeCallerNumber(params.preferredCallerNumber);
+  if (!callerNumber) {
+    throw new Error("No Twilio caller number is configured for demo-call fallback.");
+  }
+
+  const inboundTargetNumber = getKnownEarlymarkInboundNumbers()[0] || null;
+  const sipTarget = getEarlymarkInboundSipUri(inboundTargetNumber);
+  if (!sipTarget) {
+    throw new Error("No LiveKit SIP target is configured for demo-call fallback.");
+  }
+
+  const createdCall = await twilioMasterClient.calls.create({
+    to: params.normalizedPhone,
+    from: callerNumber,
+    timeout: 20,
+    twiml: buildTwilioSipBridgeTwiml(sipTarget),
+  }) as { sid: string };
+
+  return {
+    roomName: `twilio-bridge-${createdCall.sid}`,
+    normalizedPhone: params.normalizedPhone,
+    resolvedTrunkId: `twilio-sip-bridge:${inboundTargetNumber || "default"}`,
+    callerNumber,
+    warnings: [
+      `Used Twilio SIP bridge fallback because the LiveKit control API failed: ${getErrorMessage(params.directError)}`,
+    ],
+    transport: "twilio_sip_bridge",
+    callSid: createdCall.sid,
+  };
 }
 
 function getLivekitSipClient() {
@@ -235,50 +308,70 @@ export async function initiateDemoCall(input: DemoCallInput): Promise<DemoCallRe
   const lastName = input.lastName?.trim() || "";
   const email = input.email?.trim().toLowerCase() || "";
   const businessName = input.businessName?.trim() || "";
-  const sipClient = getLivekitSipClient();
-  const roomClient = getLivekitRoomClient();
-  const outbound = await resolveLivekitDemoOutboundTrunk({ sipClient });
+  let preferredCallerNumber: string | null = null;
 
-  if (!outbound.resolvedTrunkId) {
-    throw new Error(outbound.summary);
+  try {
+    const sipClient = getLivekitSipClient();
+    const roomClient = getLivekitRoomClient();
+    const outbound = await resolveLivekitDemoOutboundTrunk({ sipClient });
+
+    if (!outbound.resolvedTrunkId) {
+      throw new Error(outbound.summary);
+    }
+
+    preferredCallerNumber = outbound.callerNumber;
+
+    const warnings = [...outbound.warnings];
+    if (!outbound.callerNumber) {
+      // LiveKit/Twilio will reject outbound calls when neither the request nor the
+      // trunk supplies a caller number. Surface this as a warning so the caller
+      // sees a real reason rather than a silent no-ring failure.
+      warnings.push(
+        "No outbound caller number could be resolved for the demo SIP trunk; the carrier may reject this call.",
+      );
+    }
+
+    const roomName = `demo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    await roomClient.createRoom({
+      name: roomName,
+      emptyTimeout: 300,
+      maxParticipants: 2,
+      metadata: JSON.stringify({
+        callType: "demo",
+        firstName,
+        lastName,
+        email,
+        businessName,
+        phone: normalizedPhone,
+      }),
+    });
+
+    await sipClient.createSipParticipant(outbound.resolvedTrunkId, normalizedPhone, roomName, {
+      fromNumber: outbound.callerNumber || undefined,
+      participantName: firstName,
+      participantIdentity: `demo-caller-${normalizedPhone}`,
+    });
+
+    return {
+      roomName,
+      normalizedPhone,
+      resolvedTrunkId: outbound.resolvedTrunkId,
+      callerNumber: outbound.callerNumber,
+      warnings,
+      transport: "livekit_control",
+      callSid: null,
+    };
+  } catch (directError) {
+    try {
+      return await initiateDemoCallViaTwilioSipBridge({
+        normalizedPhone,
+        preferredCallerNumber,
+        directError,
+      });
+    } catch (fallbackError) {
+      throw new Error(
+        `LiveKit demo call failed: ${getErrorMessage(directError)}. Twilio SIP bridge fallback failed: ${getErrorMessage(fallbackError)}`,
+      );
+    }
   }
-
-  const warnings = [...outbound.warnings];
-  if (!outbound.callerNumber) {
-    // LiveKit/Twilio will reject outbound calls when neither the request nor the
-    // trunk supplies a caller number. Surface this as a warning so the caller
-    // sees a real reason rather than a silent no-ring failure.
-    warnings.push(
-      "No outbound caller number could be resolved for the demo SIP trunk; the carrier may reject this call.",
-    );
-  }
-
-  const roomName = `demo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  await roomClient.createRoom({
-    name: roomName,
-    emptyTimeout: 300,
-    maxParticipants: 2,
-    metadata: JSON.stringify({
-      callType: "demo",
-      firstName,
-      lastName,
-      email,
-      businessName,
-      phone: normalizedPhone,
-    }),
-  });
-
-  await sipClient.createSipParticipant(outbound.resolvedTrunkId, normalizedPhone, roomName, {
-    fromNumber: outbound.callerNumber || undefined,
-    participantName: firstName,
-    participantIdentity: `demo-caller-${normalizedPhone}`,
-  });
-
-  return {
-    roomName,
-    normalizedPhone,
-    resolvedTrunkId: outbound.resolvedTrunkId,
-    callerNumber: outbound.callerNumber,
-    warnings,
-  };
 }

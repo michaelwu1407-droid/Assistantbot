@@ -5,6 +5,7 @@ Updated: 2026-04-28 AEST
 ## Production topology
 
 - Live voice stack: Twilio PSTN/SIP -> `app/api/webhooks/twilio-voice-gateway` -> LiveKit SIP -> OCI voice workers.
+- Public website demo callbacks now have an emergency recovery path: if the web app cannot reach the LiveKit control API, it may originate the callback with Twilio and bridge the caller into the existing Earlymark SIP ingress instead of failing the lead immediately.
 - Core LiveKit infrastructure is Dockerized on OCI under `/opt/livekit`.
 - Voice workers are Dockerized on OCI under `/opt/earlymark-worker` and orchestrated by `ops/docker/worker-compose.yml`.
 - Shared worker env is persisted at `/opt/earlymark-worker-shared/.env.local`.
@@ -137,6 +138,7 @@ Updated: 2026-04-28 AEST
 - App-side heartbeat freshness must use the server receipt timestamp, not the worker-reported wall clock. OCI/Docker host clock skew should never be able to make a healthy worker look stale in fleet truth, launch-readiness, or deploy verification.
 - LiveKit SIP health and outbound demo-trunk resolution must compare phone numbers in normalized E.164 form. Formatting differences like `0485...`, `61...`, spaces, or punctuation must not create false-unhealthy voice gates.
 - Public `/api/health` must mirror launch-readiness truth plus database reachability. Do not reintroduce a separate fragmented public health aggregation for voice, Twilio, readiness, and release state.
+- Public `/api/health` is a real production signal, not an internal debug route. Do not hide it behind production middleware rewrites.
 
 ## Active known risks
 

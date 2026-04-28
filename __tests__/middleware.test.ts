@@ -38,6 +38,17 @@ describe("middleware", () => {
     expect(updateSession).not.toHaveBeenCalled();
   });
 
+  it("does not rewrite the public health route in production", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("ENABLE_INTERNAL_DEBUG_ROUTES", "false");
+
+    const response = await middleware(new NextRequest("https://app.example.com/api/health"));
+
+    expect(response.headers.get("x-middleware-rewrite")).toBeNull();
+    expect(response.status).toBe(200);
+    expect(updateSession).not.toHaveBeenCalled();
+  });
+
   it("refreshes the session for protected page routes", async () => {
     const response = NextResponse.next();
     updateSession.mockResolvedValue(response);

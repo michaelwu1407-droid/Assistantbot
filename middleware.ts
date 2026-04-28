@@ -17,7 +17,6 @@ const INTERNAL_ONLY_PREFIXES = [
   "/api/check-env",
   "/api/test-env",
   "/api/test-auth",
-  "/api/health",
   "/debug-auth",
   "/debug-env",
   "/auth-test",

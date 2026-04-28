@@ -1,3 +1,20 @@
+## 2026-04-28 (Codex) - Restored public demo callback recovery path
+
+- Files changed:
+  - `lib/demo-call.ts`
+  - `middleware.ts`
+  - `__tests__/demo-call.test.ts`
+  - `__tests__/middleware.test.ts`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added a real demo-call fallback path that uses Twilio to call the lead and bridge that call into Earlymark's existing SIP ingress when the app cannot reach the LiveKit control API.
+  - Preserved the existing direct LiveKit room/SIP participant path as the primary mode, but now surface which transport was used plus the fallback call SID for diagnostics.
+  - Re-exposed production `/api/health` by removing it from the middleware's internal-debug rewrite list and added regression coverage so the route stays publicly reachable.
+- Why:
+  - Production website callbacks were failing with `Failed to initiate call: fetch failed`, which traced to the app's server-side HTTPS path to `live.earlymark.ai` rather than to the form UI or lead persistence.
+  - Health visibility was also weaker than intended because the public health route was being rewritten to `404` in production even though the voice operating brief treats it as a canonical truth surface.
+
 ## 2026-04-28 (Codex) - Restored canonical inbound voice room classification
 
 - Files changed:
