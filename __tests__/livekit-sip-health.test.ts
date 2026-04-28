@@ -105,6 +105,44 @@ describe("getLivekitSipHealth", () => {
     expect(result.warnings).not.toContain("No LiveKit SIP dispatch rule appears to handle the Earlymark inbound surface.");
   });
 
+  it("normalizes LiveKit trunk numbers before checking Earlymark inbound coverage", async () => {
+    listSipInboundTrunk.mockResolvedValue([
+      {
+        sipTrunkId: "ST_123",
+        name: "Earlymark inbound",
+        numbers: ["0485 010 634"],
+      },
+    ]);
+    listSipOutboundTrunk.mockResolvedValue([
+      {
+        sipTrunkId: "ST_outbound",
+        name: "Earlymark outbound",
+        numbers: ["61 485 010 634"],
+        address: "earlymark-outbound.pstn.sydney.twilio.com",
+      },
+    ]);
+    listSipDispatchRule.mockResolvedValue([
+      {
+        sipDispatchRuleId: "SDR_123",
+        name: "Earlymark inbound dispatch",
+        trunkIds: ["ST_123"],
+        rule: {
+          dispatchRuleIndividual: {
+            roomPrefix: "earlymark-inbound-",
+          },
+        },
+        attributes: { callType: "inbound_demo" },
+      },
+    ]);
+
+    const result = await getLivekitSipHealth();
+
+    expect(result.status).toBe("healthy");
+    expect(result.missingInboundNumbers).toEqual([]);
+    expect(result.inboundTrunks[0]?.numbers).toEqual(["+61485010634"]);
+    expect(result.outboundTrunks[0]?.numbers).toEqual(["+61485010634"]);
+  });
+
   it("reports unhealthy when the Earlymark number is missing from inbound trunks", async () => {
     listSipInboundTrunk.mockResolvedValue([
       {

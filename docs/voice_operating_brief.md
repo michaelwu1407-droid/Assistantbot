@@ -135,6 +135,7 @@ Updated: 2026-04-28 AEST
 - Worker deploy verification must preserve the rollout SHA and host ID passed in by the deploy command even after sourcing the live worker env from disk. Do not let `/opt/earlymark-worker/.env.local` silently override the SHA being verified.
 - Docker worker install/rollback must explicitly remove the fixed-name worker containers plus any stale compose-generated duplicates before `docker compose up`, otherwise a new release can fail with container-name conflicts even though the running workers are healthy.
 - App-side heartbeat freshness must use the server receipt timestamp, not the worker-reported wall clock. OCI/Docker host clock skew should never be able to make a healthy worker look stale in fleet truth, launch-readiness, or deploy verification.
+- LiveKit SIP health and outbound demo-trunk resolution must compare phone numbers in normalized E.164 form. Formatting differences like `0485...`, `61...`, spaces, or punctuation must not create false-unhealthy voice gates.
 - Public `/api/health` must mirror launch-readiness truth plus database reachability. Do not reintroduce a separate fragmented public health aggregation for voice, Twilio, readiness, and release state.
 
 ## Active known risks

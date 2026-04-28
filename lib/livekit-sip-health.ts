@@ -1,6 +1,7 @@
 import { SipClient } from "livekit-server-sdk";
 import { getKnownEarlymarkInboundNumbers } from "@/lib/earlymark-inbound-config";
 import { resolveLivekitDemoOutboundTrunk } from "@/lib/demo-call";
+import { normalizePhone } from "@/lib/phone-utils";
 import { isEarlymarkInboundRoomName } from "@/lib/voice-room-routing";
 import type { RuntimeStatus } from "@/lib/voice-fleet";
 
@@ -120,12 +121,16 @@ export async function getLivekitSipHealth(): Promise<LivekitSipHealth> {
     const inboundTrunks = rawInboundTrunks.map((trunk) => ({
       sipTrunkId: String(trunk.sipTrunkId || ""),
       name: String(trunk.name || ""),
-      numbers: Array.isArray(trunk.numbers) ? trunk.numbers.map((value) => String(value)) : [],
+      numbers: Array.isArray(trunk.numbers)
+        ? trunk.numbers.map((value) => normalizePhone(String(value))).filter(Boolean)
+        : [],
     }));
     const outboundTrunks = rawOutboundTrunks.map((trunk) => ({
       sipTrunkId: String(trunk.sipTrunkId || ""),
       name: String(trunk.name || ""),
-      numbers: Array.isArray(trunk.numbers) ? trunk.numbers.map((value) => String(value)) : [],
+      numbers: Array.isArray(trunk.numbers)
+        ? trunk.numbers.map((value) => normalizePhone(String(value))).filter(Boolean)
+        : [],
       address: String(trunk.address || ""),
     }));
     const dispatchRules = rawDispatchRules.map((rule) => summarizeDispatchRule(rule as unknown as Record<string, unknown>));

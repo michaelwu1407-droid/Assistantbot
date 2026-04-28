@@ -5565,3 +5565,22 @@ Rule: every agent change commit must include an entry in this file.
   - `npx vitest run __tests__/voice-agent-status-route.test.ts __tests__/voice-agent-health-monitor.test.ts`
   - `npm run lint`
   - `npx tsc --noEmit`
+
+## 2026-04-28 - Normalize LiveKit SIP trunk numbers in voice health gates
+
+- Files:
+  - `lib/livekit-sip-health.ts`
+  - `lib/demo-call.ts`
+  - `__tests__/livekit-sip-health.test.ts`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- What changed:
+  - Normalized inbound and outbound LiveKit SIP trunk phone numbers to E.164 before using them in health checks.
+  - Hardened outbound demo-trunk resolution to compare caller numbers with `phoneMatches(...)` instead of exact string equality.
+  - Added regression coverage proving a trunk that reports `0485 010 634` / `61 485 010 634` still satisfies Earlymark inbound coverage and outbound readiness.
+- Why:
+  - After the server-receipt heartbeat fix, the deploy verifier still failed late in the host-scoped launch gate, which strongly points at the remaining `launch-readiness` checks rather than heartbeat ingestion itself.
+  - `livekitSip` was still vulnerable to false-unhealthy results when LiveKit returned the correct number in a different format than the app env.
+- Verified with:
+  - `npx vitest run __tests__/livekit-sip-health.test.ts __tests__/voice-room-routing.test.ts __tests__/voice-agent-status-route.test.ts __tests__/voice-agent-health-monitor.test.ts`
+  - `npx tsc --noEmit`

@@ -1,4 +1,5 @@
 import { RoomServiceClient, SipClient } from "livekit-server-sdk";
+import { phoneMatches } from "@/lib/phone-utils";
 
 type OutboundTrunkInfo = {
   sipTrunkId: string;
@@ -169,7 +170,7 @@ export async function resolveLivekitDemoOutboundTrunk(options: {
 
   if (!resolved && callerNumbers.length > 0) {
     resolved =
-      outboundTrunks.find((trunk) => callerNumbers.some((number) => trunk.numbers.includes(number))) || null;
+      outboundTrunks.find((trunk) => callerNumbers.some((number) => trunk.numbers.some((candidate) => phoneMatches(candidate, number)))) || null;
   }
 
   if (!resolved) {
@@ -181,7 +182,7 @@ export async function resolveLivekitDemoOutboundTrunk(options: {
   }
 
   const callerNumber =
-    callerNumbers.find((number) => resolved?.numbers.includes(number)) ||
+    callerNumbers.find((number) => resolved?.numbers.some((candidate) => phoneMatches(candidate, number))) ||
     (resolved?.numbers.includes("*") ? callerNumbers[0] || null : null) ||
     (resolved?.numbers.find((number) => number !== "*") || null);
 
