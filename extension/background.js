@@ -5,19 +5,24 @@
  * Stores the API base URL and workspace ID in chrome.storage.
  */
 
-// Default config — user sets these in the popup
 const DEFAULT_CONFIG = {
   apiBaseUrl: "",
   workspaceId: "",
 };
 
-// Listen for messages from content scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "PUSH_TO_CRM") {
     pushToCRM(message.data)
       .then((result) => sendResponse(result))
       .catch((err) => sendResponse({ success: false, error: err.message }));
-    return true; // Keep channel open for async response
+    return true;
+  }
+
+  if (message.type === "STREAM_CHAT") {
+    streamFromChatAPI(message.payload)
+      .then((result) => sendResponse(result))
+      .catch((err) => sendResponse({ success: false, error: err.message }));
+    return true;
   }
 
   if (message.type === "GET_CONFIG") {
@@ -32,14 +37,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
  * Push scraped data to the CRM via API route.
  */
 async function pushToCRM(data) {
-  const config = await new Promise((resolve) => {
-    chrome.storage.local.get(DEFAULT_CONFIG, resolve);
-  });
+  const config = await getConfig();
 
   if (!config.apiBaseUrl) {
     return { success: false, error: "API URL not configured. Open the extension popup to set your deployment URL." };
   }
-
   if (!config.workspaceId) {
     return { success: false, error: "Workspace ID not configured. Open the extension popup to set it up." };
   }
@@ -48,14 +50,89 @@ async function pushToCRM(data) {
     const response = await fetch(`${config.apiBaseUrl}/api/extension/import`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...data,
-        workspaceId: config.workspaceId,
-      }),
+      body: JSON.stringify({ ...data, workspaceId: config.workspaceId }),
     });
-
     return await response.json();
   } catch (err) {
     return { success: false, error: `Network error: ${err.message}` };
   }
+}
+
+/**
+ * Stream a chat completion from the API.
+ * Wraps the stream reader in try/catch; on idle-timeout resumes by
+ * re-issuing the request with the partial text appended to the prompt.
+ *
+ * @param {{ messages: Array, endpoint?: string }} payload
+ * @returns {{ success: boolean, text?: string, error?: string }}
+ */
+async function streamFromChatAPI(payload) {
+  const config = await getConfig();
+
+  if (!config.apiBaseUrl) {
+    return { success: false, error: "API URL not configured." };
+  }
+
+  const endpoint = payload.endpoint ?? "/api/chat";
+  const MAX_RETRIES = 3;
+
+  let accumulated = "";
+  let messages = payload.messages ?? [];
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const body = JSON.stringify({ messages, workspaceId: config.workspaceId });
+
+    let response;
+    try {
+      response = await fetch(`${config.apiBaseUrl}${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+      });
+    } catch (err) {
+      return { success: false, error: `Network error: ${err.message}` };
+    }
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => response.statusText);
+      return { success: false, error: `HTTP ${response.status}: ${text}` };
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        accumulated += decoder.decode(value, { stream: true });
+      }
+      return { success: true, text: accumulated };
+    } catch (err) {
+      reader.cancel().catch(() => {});
+
+      const isIdleTimeout =
+        err.name === "TimeoutError" ||
+        /idle timeout|stream idle/i.test(err.message);
+
+      if (!isIdleTimeout || attempt === MAX_RETRIES) {
+        return { success: false, error: err.message, partial: accumulated || undefined };
+      }
+
+      // Resume: append partial assistant turn and ask model to continue.
+      messages = [
+        ...messages,
+        { role: "assistant", content: accumulated },
+        { role: "user", content: "Continue exactly from where you left off." },
+      ];
+    }
+  }
+
+  return { success: false, error: "Max retries exceeded.", partial: accumulated };
+}
+
+function getConfig() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(DEFAULT_CONFIG, resolve);
+  });
 }
