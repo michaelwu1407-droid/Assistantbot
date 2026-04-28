@@ -26,6 +26,7 @@ import { POST } from "@/app/api/internal/voice-agent-status/route";
 describe("POST /api/internal/voice-agent-status", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useRealTimers();
     hoisted.isVoiceAgentSecretAuthorized.mockReturnValue(true);
     hoisted.db.voiceWorkerHeartbeat.create.mockResolvedValue(undefined);
     hoisted.db.webhookEvent.create.mockResolvedValue(undefined);
@@ -63,7 +64,10 @@ describe("POST /api/internal/voice-agent-status", () => {
     expect(body.error).toBeTruthy();
   });
 
-  it("stores worker heartbeats and webhook events for valid payloads", async () => {
+  it("stores worker heartbeats using server receipt time and preserves the worker-reported timestamp for diagnostics", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-28T08:00:00.000Z"));
+
     const response = await POST(
       new NextRequest("https://earlymark.ai/api/internal/voice-agent-status", {
         method: "POST",
@@ -94,6 +98,15 @@ describe("POST /api/internal/voice-agent-status", () => {
         runtimeFingerprint: "va_123",
         ready: true,
         activeCalls: 2,
+        heartbeatAt: new Date("2026-04-28T08:00:00.000Z"),
+        summary: expect.objectContaining({
+          capacity: "available",
+          pid: 42,
+          startedAt: "2026-04-27T10:00:00.000Z",
+          reportedHeartbeatAt: "2026-04-27T10:05:00.000Z",
+          receivedHeartbeatAt: "2026-04-28T08:00:00.000Z",
+          reportedClockSkewMs: 78900000,
+        }),
       }),
     });
     expect(hoisted.db.webhookEvent.create).toHaveBeenCalledWith({
@@ -101,6 +114,11 @@ describe("POST /api/internal/voice-agent-status", () => {
         provider: "livekit_worker_status",
         eventType: "heartbeat",
         status: "success",
+        payload: expect.objectContaining({
+          heartbeatAt: "2026-04-28T08:00:00.000Z",
+          reportedHeartbeatAt: "2026-04-27T10:05:00.000Z",
+          reportedClockSkewMs: 78900000,
+        }),
       }),
     });
   });

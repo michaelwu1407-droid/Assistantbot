@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildVoiceAgentHealthMonitorDetails } from "@/lib/voice-agent-health-monitor";
+import { buildVoiceAgentHealthMonitorDetails, type VoiceAgentHealthMonitorResult } from "@/lib/voice-agent-health-monitor";
 
 describe("buildVoiceAgentHealthMonitorDetails", () => {
   it("includes livekit SIP status and the first non-healthy component in persisted details", () => {
@@ -45,7 +45,7 @@ describe("buildVoiceAgentHealthMonitorDetails", () => {
         opened: ["voice:livekit:sip"],
         resolved: [],
       },
-    } as any;
+    } as unknown as VoiceAgentHealthMonitorResult;
 
     const details = buildVoiceAgentHealthMonitorDetails(result);
 

@@ -134,6 +134,7 @@ Updated: 2026-04-28 AEST
 - Worker deploy verification is host-scoped for the actual rollout gate: heartbeat convergence, drift checks, and launch-readiness checks must all key off the targeted host plus healthy Twilio routing and LiveKit SIP, and must not reject the deploy solely because the global fleet remains single-host degraded while the second host has not been provisioned yet.
 - Worker deploy verification must preserve the rollout SHA and host ID passed in by the deploy command even after sourcing the live worker env from disk. Do not let `/opt/earlymark-worker/.env.local` silently override the SHA being verified.
 - Docker worker install/rollback must explicitly remove the fixed-name worker containers plus any stale compose-generated duplicates before `docker compose up`, otherwise a new release can fail with container-name conflicts even though the running workers are healthy.
+- App-side heartbeat freshness must use the server receipt timestamp, not the worker-reported wall clock. OCI/Docker host clock skew should never be able to make a healthy worker look stale in fleet truth, launch-readiness, or deploy verification.
 - Public `/api/health` must mirror launch-readiness truth plus database reachability. Do not reintroduce a separate fragmented public health aggregation for voice, Twilio, readiness, and release state.
 
 ## Active known risks

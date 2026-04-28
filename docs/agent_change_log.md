@@ -5545,3 +5545,23 @@ Rule: every agent change commit must include an entry in this file.
   - `npx tsc --noEmit --skipLibCheck`
   - `npx vitest run __tests__/demo-call.test.ts __tests__/demo-call-action.test.ts __tests__/demo-lead-store.test.ts` (16 tests pass)
   - `npm run lint` (0 errors; only pre-existing warnings remain)
+
+## 2026-04-28 - Canonicalize worker heartbeat freshness at server receipt time
+
+- Files:
+  - `app/api/internal/voice-agent-status/route.ts`
+  - `__tests__/voice-agent-status-route.test.ts`
+  - `__tests__/voice-agent-health-monitor.test.ts`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- What changed:
+  - Voice worker heartbeat ingestion now stores `voiceWorkerHeartbeat.heartbeatAt` from the app server's receipt time instead of trusting the worker's self-reported `heartbeatAt`.
+  - The route now preserves the worker-reported timestamp and computed clock skew in heartbeat diagnostics so host clock drift is still visible without poisoning fleet freshness.
+  - Added a regression test proving an old worker-reported heartbeat still lands as fresh at receipt time, and cleaned the explicit-`any` lint blocker in the monitor-details test.
+- Why:
+  - GitHub Actions showed a real production voice failure pattern on April 28, 2026: repeated `Voice Agent Health`, `Customer Agent Reconcile`, and `Voice Monitor Watchdog` schedule failures, plus `Deploy LiveKit Agent` failing in `Verify Worker Heartbeats`, while the worker containers themselves were still reaching local healthy state.
+  - The app was using the worker host's wall clock as the canonical freshness source. If the OCI/Docker host clock drifts backward, healthy heartbeats are recorded as stale, which falsely trips fleet health, runtime drift, launch-readiness, and deploy verification all at once.
+- Verified with:
+  - `npx vitest run __tests__/voice-agent-status-route.test.ts __tests__/voice-agent-health-monitor.test.ts`
+  - `npm run lint`
+  - `npx tsc --noEmit`
