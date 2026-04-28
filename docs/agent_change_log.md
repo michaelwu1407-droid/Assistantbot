@@ -5584,3 +5584,17 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/livekit-sip-health.test.ts __tests__/voice-room-routing.test.ts __tests__/voice-agent-status-route.test.ts __tests__/voice-agent-health-monitor.test.ts`
   - `npx tsc --noEmit`
+
+## 2026-04-28 - Keep Vitest out of Playwright e2e specs
+
+- Files:
+  - `vitest.config.ts`
+  - `docs/agent_change_log.md`
+- What changed:
+  - Added an explicit Vitest `exclude` list for `e2e/**` plus build output folders so `npm test` only runs the intended unit/integration suite.
+  - Raised the default Vitest timeout to 15s and capped the runner at `50%` worker fan-out so slower React/jsdom tests stop timing out when the whole suite runs under GitHub Actions contention.
+- Why:
+  - CI `npm test` was failing because `vitest run` was trying to execute Playwright files like `e2e/public-preview.spec.ts` and `e2e/team-member.spec.ts`, which call `test()`/`test.use()` under Playwright rather than Vitest.
+  - After removing the Playwright bleed-through, the remaining failures were clustered 5s timeouts in UI-heavy tests that pass when run in smaller groups, which points to suite-level runner pressure rather than broken feature behavior.
+- Verified with:
+  - `npm test`
