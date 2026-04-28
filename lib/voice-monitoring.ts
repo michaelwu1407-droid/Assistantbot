@@ -6,6 +6,7 @@ import type { VoiceLatencyHealth } from "@/lib/voice-call-latency-health";
 import type { VoiceIncidentObservation } from "@/lib/voice-incidents";
 import type { VoiceFleetHealth, VoiceSurface, VoiceSurfaceSaturationHealth } from "@/lib/voice-fleet";
 import type { TwilioVoiceCallHealth } from "@/lib/twilio-voice-call-health";
+import type { DemoCallHealth } from "@/lib/demo-call-health";
 
 export function combineVoiceStatuses(statuses: Array<"healthy" | "degraded" | "unhealthy">) {
   if (statuses.includes("unhealthy")) return "unhealthy";
@@ -134,6 +135,22 @@ export function buildLivekitSipIncidentObservations(livekitSip: LivekitSipHealth
       summary: livekitSip.summary,
       details: {
         livekitSip,
+      },
+    },
+  ];
+}
+
+export function buildDemoCallIncidentObservations(demoCalls: DemoCallHealth): VoiceIncidentObservation[] {
+  if (demoCalls.status === "healthy") return [];
+
+  return [
+    {
+      incidentKey: "voice:demo:public-callbacks",
+      surface: "demo",
+      severity: demoCalls.status === "unhealthy" ? "critical" : "warning",
+      summary: demoCalls.summary,
+      details: {
+        demoCalls,
       },
     },
   ];

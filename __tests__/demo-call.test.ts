@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { createRoom, createSipParticipant, listSipOutboundTrunk } = vi.hoisted(() => ({
+const { createRoom, createSipParticipant, listSipOutboundTrunk, listSipInboundTrunk } = vi.hoisted(() => ({
   createRoom: vi.fn(),
   createSipParticipant: vi.fn(),
   listSipOutboundTrunk: vi.fn(),
+  listSipInboundTrunk: vi.fn(),
 }));
 
 vi.mock("livekit-server-sdk", () => ({
@@ -13,6 +14,7 @@ vi.mock("livekit-server-sdk", () => ({
   SipClient: class {
     createSipParticipant = createSipParticipant;
     listSipOutboundTrunk = listSipOutboundTrunk;
+    listSipInboundTrunk = listSipInboundTrunk;
   },
 }));
 
@@ -31,6 +33,13 @@ describe("demo-call outbound routing", () => {
     process.env.EARLYMARK_INBOUND_PHONE_NUMBER = "+61485010634";
     process.env.TWILIO_PHONE_NUMBER = "+61485010634";
     process.env.LIVEKIT_SIP_TRUNK_ID = "ST_stale";
+    listSipInboundTrunk.mockResolvedValue([
+      {
+        sipTrunkId: "ST_inbound",
+        name: "Earlymark inbound",
+        numbers: ["+61485010634"],
+      },
+    ]);
   });
 
   it("falls back to a valid outbound trunk when the configured trunk id is stale", async () => {
@@ -106,6 +115,7 @@ describe("demo-call outbound routing", () => {
     delete process.env.EARLYMARK_INBOUND_PHONE_NUMBERS;
     delete process.env.EARLYMARK_PHONE_NUMBER;
     delete process.env.LIVEKIT_SIP_TRUNK_ID;
+    listSipInboundTrunk.mockResolvedValue([]);
 
     listSipOutboundTrunk.mockResolvedValue([
       {
@@ -132,6 +142,39 @@ describe("demo-call outbound routing", () => {
       "+61434955958",
       expect.stringMatching(/^demo-/),
       expect.objectContaining({ fromNumber: undefined }),
+    );
+  });
+
+  it("falls back to LiveKit inbound trunk numbers when env caller numbers are missing", async () => {
+    delete process.env.EARLYMARK_INBOUND_PHONE_NUMBER;
+    delete process.env.TWILIO_PHONE_NUMBER;
+    delete process.env.EARLYMARK_INBOUND_PHONE_NUMBERS;
+    delete process.env.EARLYMARK_PHONE_NUMBER;
+    delete process.env.LIVEKIT_SIP_TRUNK_ID;
+
+    listSipOutboundTrunk.mockResolvedValue([
+      {
+        sipTrunkId: "ST_wildcard",
+        name: "Earlymark outbound",
+        numbers: ["*"],
+        address: "earlymark-outbound.pstn.sydney.twilio.com",
+      },
+    ]);
+    createRoom.mockResolvedValue({});
+    createSipParticipant.mockResolvedValue({ participantId: "PA_demo" });
+
+    const result = await initiateDemoCall({
+      phone: "+61434955958",
+      firstName: "Sam",
+    });
+
+    expect(result.callerNumber).toBe("+61485010634");
+    expect(result.warnings).toEqual([]);
+    expect(createSipParticipant).toHaveBeenCalledWith(
+      "ST_wildcard",
+      "+61434955958",
+      expect.stringMatching(/^demo-/),
+      expect.objectContaining({ fromNumber: "+61485010634" }),
     );
   });
 

@@ -12,6 +12,7 @@ const {
   getVoiceLatencyHealth,
   getPassiveProductionHealth,
   getLivekitSipHealth,
+  getDemoCallHealth,
   combineVoiceStatuses,
   isVoiceAgentSecretAuthorized,
 } = vi.hoisted(() => ({
@@ -25,6 +26,7 @@ const {
   getVoiceLatencyHealth: vi.fn(),
   getPassiveProductionHealth: vi.fn(),
   getLivekitSipHealth: vi.fn(),
+  getDemoCallHealth: vi.fn(),
   combineVoiceStatuses: vi.fn(),
   isVoiceAgentSecretAuthorized: vi.fn(),
 }));
@@ -71,6 +73,10 @@ vi.mock("@/lib/livekit-sip-health", () => ({
   getLivekitSipHealth,
 }));
 
+vi.mock("@/lib/demo-call-health", () => ({
+  getDemoCallHealth,
+}));
+
 vi.mock("@/lib/voice-monitoring", () => ({
   combineVoiceStatuses,
 }));
@@ -99,6 +105,7 @@ describe("GET /api/internal/voice-fleet-health", () => {
       email: { status: "healthy" },
     });
     getLivekitSipHealth.mockResolvedValue({ status: "healthy" });
+    getDemoCallHealth.mockResolvedValue({ status: "healthy" });
     getMonitorRunHealth
       .mockResolvedValueOnce({ monitorKey: "voice-agent-health", status: "healthy" })
       .mockResolvedValueOnce({ monitorKey: "voice-monitor-watchdog", status: "healthy" })
@@ -119,6 +126,7 @@ describe("GET /api/internal/voice-fleet-health", () => {
     expect(getMonitorRunHealth).toHaveBeenNthCalledWith(3, "passive-communications-health", 420000);
     expect(getMonitorRunHealth).toHaveBeenNthCalledWith(4, "voice-synthetic-probe", 420000);
     expect(combineVoiceStatuses).toHaveBeenCalledWith([
+      "healthy",
       "healthy",
       "healthy",
       "healthy",

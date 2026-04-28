@@ -5,6 +5,7 @@ const hoisted = vi.hoisted(() => ({
   persistDemoLeadAttempt: vi.fn(),
   markDemoLeadInitiated: vi.fn(),
   markDemoLeadFailed: vi.fn(),
+  dispatchDemoCallFailureAlert: vi.fn(),
   headers: vi.fn(),
 }));
 
@@ -16,6 +17,10 @@ vi.mock("@/lib/demo-lead-store", () => ({
   persistDemoLeadAttempt: hoisted.persistDemoLeadAttempt,
   markDemoLeadInitiated: hoisted.markDemoLeadInitiated,
   markDemoLeadFailed: hoisted.markDemoLeadFailed,
+}));
+
+vi.mock("@/lib/demo-call-failure-alert", () => ({
+  dispatchDemoCallFailureAlert: hoisted.dispatchDemoCallFailureAlert,
 }));
 
 vi.mock("next/headers", () => ({
@@ -45,6 +50,7 @@ describe("requestDemoCall server action", () => {
     hoisted.persistDemoLeadAttempt.mockResolvedValue("lead_123");
     hoisted.markDemoLeadInitiated.mockResolvedValue(undefined);
     hoisted.markDemoLeadFailed.mockResolvedValue(undefined);
+    hoisted.dispatchDemoCallFailureAlert.mockResolvedValue(null);
   });
 
   it("rejects missing required fields with field-specific errors", async () => {
@@ -105,6 +111,13 @@ describe("requestDemoCall server action", () => {
     expect(hoisted.markDemoLeadFailed).toHaveBeenCalledWith(
       "lead_123",
       expect.any(Error),
+    );
+    expect(hoisted.dispatchDemoCallFailureAlert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        leadId: "lead_123",
+        source: "homepage_form",
+        phone: "+61434955958",
+      }),
     );
     expect(result).toEqual(
       expect.objectContaining({

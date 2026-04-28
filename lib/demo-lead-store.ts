@@ -6,7 +6,7 @@ export type DemoLeadInput = {
   phone: string;
   email?: string;
   businessName?: string;
-  source?: "homepage_form" | "api";
+  source?: "homepage_form" | "contact_form" | "api";
   ipAddress?: string;
   userAgent?: string;
 };

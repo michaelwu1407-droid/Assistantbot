@@ -6,6 +6,7 @@ const hoisted = vi.hoisted(() => ({
   persistDemoLeadAttempt: vi.fn(),
   markDemoLeadInitiated: vi.fn(),
   markDemoLeadFailed: vi.fn(),
+  dispatchDemoCallFailureAlert: vi.fn(),
   sendEmail: vi.fn(),
 }));
 
@@ -17,6 +18,10 @@ vi.mock("@/lib/demo-lead-store", () => ({
   persistDemoLeadAttempt: hoisted.persistDemoLeadAttempt,
   markDemoLeadInitiated: hoisted.markDemoLeadInitiated,
   markDemoLeadFailed: hoisted.markDemoLeadFailed,
+}));
+
+vi.mock("@/lib/demo-call-failure-alert", () => ({
+  dispatchDemoCallFailureAlert: hoisted.dispatchDemoCallFailureAlert,
 }));
 
 vi.mock("resend", () => ({
@@ -49,6 +54,7 @@ describe("public contact route", () => {
     hoisted.persistDemoLeadAttempt.mockResolvedValue("lead_1");
     hoisted.markDemoLeadInitiated.mockResolvedValue(undefined);
     hoisted.markDemoLeadFailed.mockResolvedValue(undefined);
+    hoisted.dispatchDemoCallFailureAlert.mockResolvedValue(null);
     hoisted.sendEmail.mockResolvedValue({ data: { id: "email_1" }, error: null });
   });
 
@@ -102,7 +108,7 @@ describe("public contact route", () => {
         lastName: "Wu",
         phone: "+61 434 955 958",
         email: "miguel@example.com",
-        source: "homepage_form",
+        source: "contact_form",
         ipAddress: "203.0.113.7",
         userAgent: "Vitest Browser",
       }),
@@ -148,6 +154,13 @@ describe("public contact route", () => {
       callError: "LiveKit unavailable",
     });
     expect(hoisted.markDemoLeadFailed).toHaveBeenCalled();
+    expect(hoisted.dispatchDemoCallFailureAlert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        leadId: "lead_1",
+        source: "contact_form",
+        phone: "+61 434 955 958",
+      }),
+    );
     expect(hoisted.sendEmail).toHaveBeenCalledWith(
       expect.objectContaining({
         text: expect.stringContaining("Tracey callback FAILED: LiveKit unavailable"),

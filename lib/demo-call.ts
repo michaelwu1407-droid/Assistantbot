@@ -135,7 +135,7 @@ function summarizeResolvedTrunk(result: {
 }
 
 export async function resolveLivekitDemoOutboundTrunk(options: {
-  sipClient?: Pick<SipClient, "listSipOutboundTrunk">;
+  sipClient?: Pick<SipClient, "listSipOutboundTrunk" | "listSipInboundTrunk">;
   preloadedOutboundTrunks?: Array<{
     sipTrunkId?: string | null;
     name?: string | null;
@@ -143,9 +143,24 @@ export async function resolveLivekitDemoOutboundTrunk(options: {
     address?: string | null;
     metadata?: string | null;
   }>;
+  preloadedInboundTrunks?: Array<{
+    sipTrunkId?: string | null;
+    name?: string | null;
+    numbers?: string[] | null;
+  }>;
 } = {}): Promise<ResolvedDemoOutboundTrunk> {
   const configuredTrunkId = (process.env.LIVEKIT_SIP_TRUNK_ID || "").trim() || null;
-  const callerNumbers = getKnownCallerNumbers();
+  const configuredCallerNumbers = getKnownCallerNumbers();
+  const rawInboundTrunks = options.preloadedInboundTrunks
+    ? options.preloadedInboundTrunks
+    : options.sipClient
+      ? await options.sipClient.listSipInboundTrunk()
+      : [];
+  const inboundCallerNumbers = rawInboundTrunks
+    .flatMap((trunk) => (Array.isArray(trunk.numbers) ? trunk.numbers : []))
+    .map((value) => normalizePhone(String(value)))
+    .filter(Boolean);
+  const callerNumbers = Array.from(new Set([...configuredCallerNumbers, ...inboundCallerNumbers]));
   const rawOutboundTrunks = options.preloadedOutboundTrunks
     ? options.preloadedOutboundTrunks
     : await (options.sipClient || getLivekitSipClient()).listSipOutboundTrunk();

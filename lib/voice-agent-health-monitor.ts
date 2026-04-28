@@ -5,9 +5,11 @@ import { getTwilioVoiceCallHealth } from "@/lib/twilio-voice-call-health";
 import { getVoiceLatencyHealth } from "@/lib/voice-call-latency-health";
 import { reconcileVoiceIncidents } from "@/lib/voice-incidents";
 import { getLivekitSipHealth } from "@/lib/livekit-sip-health";
+import { getDemoCallHealth } from "@/lib/demo-call-health";
 import {
   buildBusinessInvariantIncidentObservations,
   buildCallHealthIncidentObservations,
+  buildDemoCallIncidentObservations,
   buildFleetIncidentObservations,
   buildLivekitSipIncidentObservations,
   buildLatencyIncidentObservations,
@@ -23,6 +25,7 @@ export type VoiceAgentHealthMonitorResult = {
   customerSaturation: Awaited<ReturnType<typeof getVoiceSurfaceSaturationHealth>>;
   twilioRouting: Awaited<ReturnType<typeof auditTwilioVoiceRouting>>;
   livekitSip: Awaited<ReturnType<typeof getLivekitSipHealth>>;
+  demoCalls: Awaited<ReturnType<typeof getDemoCallHealth>>;
   invariants: Awaited<ReturnType<typeof getVoiceBusinessInvariantHealth>>;
   recentCalls: Awaited<ReturnType<typeof getTwilioVoiceCallHealth>>;
   latency: Awaited<ReturnType<typeof getVoiceLatencyHealth>>;
@@ -34,6 +37,7 @@ export type VoiceAgentHealthComponentKey =
   | "customerSaturation"
   | "twilioRouting"
   | "livekitSip"
+  | "demoCalls"
   | "invariants"
   | "recentCalls"
   | "latency";
@@ -80,6 +84,12 @@ export function buildVoiceAgentHealthComponentSnapshots(
       warnings: result.livekitSip.warnings,
     },
     {
+      key: "demoCalls",
+      status: result.demoCalls.status,
+      summary: result.demoCalls.summary,
+      warnings: result.demoCalls.warnings,
+    },
+    {
       key: "invariants",
       status: result.invariants.status,
       summary: result.invariants.summary,
@@ -113,6 +123,7 @@ export function buildVoiceAgentHealthMonitorDetails(
     customerSaturationStatus: result.customerSaturation.status,
     twilioRoutingStatus: result.twilioRouting.status,
     livekitSipStatus: result.livekitSip.status,
+    demoCallStatus: result.demoCalls.status,
     invariantStatus: result.invariants.status,
     recentCallsStatus: result.recentCalls.status,
     latencyStatus: result.latency.status,
@@ -129,11 +140,12 @@ export function buildVoiceAgentHealthMonitorDetails(
 export async function runVoiceAgentHealthMonitor(
   checkedAt: Date = new Date(),
 ): Promise<VoiceAgentHealthMonitorResult> {
-  const [fleet, customerSaturation, twilioRouting, livekitSip, recentCalls, latency] = await Promise.all([
+  const [fleet, customerSaturation, twilioRouting, livekitSip, demoCalls, recentCalls, latency] = await Promise.all([
     getVoiceFleetHealth(),
     getVoiceSurfaceSaturationHealth("normal"),
     auditTwilioVoiceRouting({ apply: true }),
     getLivekitSipHealth(),
+    getDemoCallHealth(),
     getTwilioVoiceCallHealth({ lookbackMinutes: 20, limitPerAccount: 50 }),
     getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 }),
   ]);
@@ -144,6 +156,7 @@ export async function runVoiceAgentHealthMonitor(
     ...buildSaturationIncidentObservations(customerSaturation),
     ...buildRoutingIncidentObservations(twilioRouting),
     ...buildLivekitSipIncidentObservations(livekitSip),
+    ...buildDemoCallIncidentObservations(demoCalls),
     ...buildBusinessInvariantIncidentObservations(invariants),
     ...buildCallHealthIncidentObservations(recentCalls),
     ...buildLatencyIncidentObservations(latency),
@@ -154,6 +167,7 @@ export async function runVoiceAgentHealthMonitor(
     customerSaturation.status,
     twilioRouting.status,
     livekitSip.status,
+    demoCalls.status,
     invariants.status,
     recentCalls.status,
     latency.status,
@@ -166,6 +180,7 @@ export async function runVoiceAgentHealthMonitor(
     customerSaturation,
     twilioRouting,
     livekitSip,
+    demoCalls,
     invariants,
     recentCalls,
     latency,

@@ -2,6 +2,8 @@
 
 import { headers } from "next/headers";
 import { initiateDemoCall } from "@/lib/demo-call";
+import { dispatchDemoCallFailureAlert } from "@/lib/demo-call-failure-alert";
+import { getDemoCallUserMessage } from "@/lib/demo-call-errors";
 import {
     markDemoLeadFailed,
     markDemoLeadInitiated,
@@ -9,7 +11,7 @@ import {
 } from "@/lib/demo-lead-store";
 
 /**
- * Demo call action — triggered from the homepage "Interview Tracey" form.
+ * Demo call action - triggered from the homepage "Interview Tracey" form.
  *
  * VOICE PLATFORM: LiveKit
  * Creates an outbound SIP call via /api/demo-call which uses livekit-server-sdk
@@ -119,12 +121,17 @@ export async function requestDemoCall(data: DemoCallData): Promise<DemoCallResul
     } catch (err) {
         console.error("[Demo Call] Failed:", err);
         await markDemoLeadFailed(leadId, err);
+        await dispatchDemoCallFailureAlert({
+            leadId,
+            source: "homepage_form",
+            firstName: data.firstName,
+            lastName: data.lastName,
+            email: data.email,
+            phone: data.phone,
+            businessName: data.businessName,
+            error: err,
+        }).catch(() => null);
 
-        const message = err instanceof Error ? err.message : "";
-        const userMessage = /phone number/i.test(message)
-            ? message
-            : "Could not reach voice service. Please try again shortly — we have your details and will call you back.";
-
-        return { success: false, error: userMessage, leadId };
+        return { success: false, error: getDemoCallUserMessage(err), leadId };
     }
 }

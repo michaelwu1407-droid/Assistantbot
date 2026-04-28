@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { initiateDemoCall } from "@/lib/demo-call";
+import { dispatchDemoCallFailureAlert } from "@/lib/demo-call-failure-alert";
 import {
   markDemoLeadFailed,
   markDemoLeadInitiated,
@@ -82,6 +83,16 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("[demo-call] Failed to initiate demo call:", err);
     await markDemoLeadFailed(leadId, err);
+    await dispatchDemoCallFailureAlert({
+      leadId,
+      source: "api",
+      firstName,
+      lastName,
+      email,
+      phone,
+      businessName,
+      error: err,
+    }).catch(() => null);
 
     return NextResponse.json(
       {

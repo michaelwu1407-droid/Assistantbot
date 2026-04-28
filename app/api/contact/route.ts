@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { initiateDemoCall } from "@/lib/demo-call"
+import { dispatchDemoCallFailureAlert } from "@/lib/demo-call-failure-alert"
 import {
   markDemoLeadFailed,
   markDemoLeadInitiated,
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
         lastName,
         phone,
         email,
-        source: "homepage_form",
+        source: "contact_form",
         ipAddress,
         userAgent,
       })
@@ -65,6 +66,15 @@ export async function POST(request: NextRequest) {
         callError = err instanceof Error ? err.message : "Failed to place call"
         console.error("[contact] Failed to initiate Tracey callback:", err)
         await markDemoLeadFailed(leadId, err)
+        await dispatchDemoCallFailureAlert({
+          leadId,
+          source: "contact_form",
+          firstName: firstName || "there",
+          lastName,
+          email,
+          phone,
+          error: err,
+        }).catch(() => null)
       }
     }
 

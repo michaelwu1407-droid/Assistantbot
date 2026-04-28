@@ -5598,3 +5598,39 @@ Rule: every agent change commit must include an entry in this file.
   - After removing the Playwright bleed-through, the remaining failures were clustered 5s timeouts in UI-heavy tests that pass when run in smaller groups, which points to suite-level runner pressure rather than broken feature behavior.
 - Verified with:
   - `npm test`
+
+## 2026-04-28 - Harden public demo callback routing and monitor real failures
+
+- Files:
+  - `lib/demo-call.ts`
+  - `lib/livekit-sip-health.ts`
+  - `lib/demo-call-errors.ts`
+  - `lib/demo-call-failure-alert.ts`
+  - `lib/demo-call-health.ts`
+  - `actions/demo-call-action.ts`
+  - `app/api/contact/route.ts`
+  - `app/api/demo-call/route.ts`
+  - `app/api/internal/voice-fleet-health/route.ts`
+  - `lib/demo-lead-store.ts`
+  - `lib/voice-agent-health-monitor.ts`
+  - `lib/voice-monitoring.ts`
+  - `__tests__/demo-call.test.ts`
+  - `__tests__/demo-call-action.test.ts`
+  - `__tests__/contact-route.test.ts`
+  - `__tests__/demo-call-health.test.ts`
+  - `__tests__/voice-agent-health-monitor.test.ts`
+  - `__tests__/voice-fleet-health-route.test.ts`
+  - `docs/agent_change_log.md`
+- What changed:
+  - Hardened outbound demo callback trunk resolution so it can derive a caller ID from LiveKit inbound trunk numbers when env-only caller number config is incomplete.
+  - Added an immediate ops alert path for real public demo callback failures from the homepage form, contact form, and `/api/demo-call`, while skipping user-input phone validation errors.
+  - Added `demo-call` health aggregation from recent `DemoLead` outcomes and wired it into the scheduled voice health monitor plus the internal voice fleet health endpoint.
+  - Distinguished contact-page callback leads from homepage leads with `source: "contact_form"` so failures are easier to trace.
+- Why:
+  - A live website submission hit the generic "Could not reach voice service" fallback, which showed the public callback path could fail even when the broader voice system had only coarse monitoring.
+  - The outbound demo path previously trusted env vars and outbound trunk metadata for caller ID resolution; wildcard outbound trunks plus incomplete env config could still leave the demo callback path unable to pick a real caller number.
+  - The system needed both a better chance of succeeding automatically and a fast human-visible signal when public callback submissions start failing for real users.
+- Verified with:
+  - `npx vitest run __tests__/demo-call.test.ts __tests__/demo-call-action.test.ts __tests__/contact-route.test.ts __tests__/demo-call-health.test.ts __tests__/voice-agent-health-monitor.test.ts __tests__/voice-fleet-health-route.test.ts __tests__/livekit-sip-health.test.ts`
+  - `npx tsc --noEmit`
+  - `npm test`

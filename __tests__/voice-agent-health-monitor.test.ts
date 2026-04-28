@@ -26,6 +26,11 @@ describe("buildVoiceAgentHealthMonitorDetails", () => {
         summary: "LiveKit SIP is missing the inbound trunk or dispatch state required for Earlymark inbound.",
         warnings: ["No LiveKit SIP dispatch rules are configured."],
       },
+      demoCalls: {
+        status: "healthy",
+        summary: "demo callbacks healthy",
+        warnings: [],
+      },
       invariants: {
         status: "healthy",
         summary: "invariants healthy",
@@ -50,6 +55,7 @@ describe("buildVoiceAgentHealthMonitorDetails", () => {
     const details = buildVoiceAgentHealthMonitorDetails(result);
 
     expect(details.livekitSipStatus).toBe("unhealthy");
+    expect(details.demoCallStatus).toBe("healthy");
     expect(details.primaryIssue).toEqual({
       key: "livekitSip",
       status: "unhealthy",

@@ -116,6 +116,7 @@ export async function getLivekitSipHealth(): Promise<LivekitSipHealth> {
     const outboundDemo = await resolveLivekitDemoOutboundTrunk({
       sipClient: sip,
       preloadedOutboundTrunks: rawOutboundTrunks,
+      preloadedInboundTrunks: rawInboundTrunks,
     });
 
     const inboundTrunks = rawInboundTrunks.map((trunk) => ({
