@@ -1,3 +1,15 @@
+## 2026-04-28 (Codex) - Removed invalid web-side LiveKit gate from worker deploy verification
+
+- Files changed:
+  - `ops/deploy/livekit-worker-verify.sh`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Removed the worker deploy gate that required `/api/internal/launch-readiness` to report `voiceCritical.livekitSip.status === "healthy"` before the deploy could pass.
+  - Kept the deploy strict on the checks that actually prove live voice behavior from this topology: worker heartbeat convergence, Twilio routing health, and the spoken PSTN canary.
+- Why:
+  - The canonical infra docs place the LiveKit control API on the OCI host at `http://localhost:7880`, while the web app runtime uses the public `live.earlymark.ai` hostname. That makes the web-side control-plane fetch an invalid hard deploy gate even when the workers and real PSTN voice path are healthy.
+
 ## 2026-04-28 (Codex) - Kept worker heartbeats alive between idle voice calls
 
 - Files changed:
