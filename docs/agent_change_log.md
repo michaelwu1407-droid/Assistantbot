@@ -1,3 +1,17 @@
+## 2026-04-28 (Codex) - Kept worker heartbeats alive between idle voice calls
+
+- Files changed:
+  - `livekit-agent/background-tasks.ts`
+  - `livekit-agent/agent.ts`
+  - `__tests__/voice-worker-background-tasks.test.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Moved worker background-loop startup into a small helper and kept the grounding-cache refresh timer unref'd while leaving the heartbeat timer referenced.
+  - Added regression coverage proving the heartbeat loop stays referenced and the grounding refresh loop does not.
+- Why:
+  - Production worker deploys were succeeding through install/restart and then failing in `Verify Worker Heartbeats`, while live health showed both workers posting a single fresh heartbeat and then going stale about five minutes later.
+  - The previous `heartbeatTimer.unref?.()` made that failure mode plausible in this worker runtime because the process could look healthy at boot and then stop refreshing its heartbeat while idle.
+
 ## 2026-04-28 (Codex) - Restored public demo callback recovery path
 
 - Files changed:

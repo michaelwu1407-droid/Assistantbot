@@ -67,6 +67,7 @@ import {
   buildInboundDemoPrompt,
   buildNormalPrompt,
 } from "./voice-prompts";
+import { startWorkerBackgroundLoops } from "./background-tasks";
 
 loadEnv({ path: '.env.local' });
 assertRequiredVoiceAgentEnv();
@@ -2641,29 +2642,15 @@ export function startVoiceWorkerBackgroundTasks(logPrefix = "[agent]") {
   if (workerBackgroundTasksStarted) return;
   workerBackgroundTasksStarted = true;
 
-  setWorkerBootReady(true);
-  void writeWorkerHealthSnapshot().catch((error) => {
-    console.warn(`${logPrefix} Failed to write initial worker health snapshot:`, error);
+  startWorkerBackgroundLoops({
+    logPrefix,
+    setWorkerBootReady,
+    writeWorkerHealthSnapshot,
+    refreshVoiceGroundingIndex,
+    postVoiceAgentStatus,
+    voiceGroundingCacheTtlMs: VOICE_GROUNDING_CACHE_TTL_MS,
+    voiceAgentHeartbeatMs: VOICE_AGENT_HEARTBEAT_MS,
   });
-  void refreshVoiceGroundingIndex(true).catch((error) => {
-    console.warn(`${logPrefix} Initial voice grounding cache warm failed:`, error);
-  });
-  const groundingRefreshTimer = setInterval(() => {
-    void refreshVoiceGroundingIndex(true).catch((error) => {
-      console.warn(`${logPrefix} Voice grounding cache refresh failed:`, error);
-    });
-  }, VOICE_GROUNDING_CACHE_TTL_MS);
-  groundingRefreshTimer.unref?.();
-
-  void postVoiceAgentStatus().catch((error) => {
-    console.error(`${logPrefix} Failed to post worker-status heartbeat:`, error);
-  });
-  const heartbeatTimer = setInterval(() => {
-    void postVoiceAgentStatus().catch((error) => {
-      console.error(`${logPrefix} Failed to post worker-status heartbeat:`, error);
-    });
-  }, VOICE_AGENT_HEARTBEAT_MS);
-  heartbeatTimer.unref?.();
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
