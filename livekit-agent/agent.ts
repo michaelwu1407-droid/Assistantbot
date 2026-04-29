@@ -287,6 +287,12 @@ let groundingRefreshPromise: Promise<void> | null = null;
 const groundingCache = new Map<string, GroundingCacheEntry>();
 let sharedOpenerAudioCache: Map<OpenerId, Promise<AudioFrame>> | null = null;
 let sharedSpeculativeHeadAudioCache: Map<SpeculativeHeadId, Promise<AudioFrame>> | null = null;
+const FIXED_LINE_BANK = {
+  demo_default_greeting: "Hi there.",
+  inbound_demo_greeting: "Hi, this is Tracey from Earlymark AI. How can I help?",
+} as const;
+type FixedLineId = keyof typeof FIXED_LINE_BANK;
+let sharedFixedLineAudioCache: Map<FixedLineId, Promise<AudioFrame>> | null = null;
 const workerHealthState = {
   lastHeartbeatAttemptAt: null as string | null,
   lastHeartbeatSuccessAt: null as string | null,
@@ -392,6 +398,37 @@ function getSharedSpeculativeHeadAudioCache(tts: cartesia.TTS, logPrefix: string
     sharedSpeculativeHeadAudioCache = buildSpeculativeHeadAudioCache(tts, logPrefix);
   }
   return sharedSpeculativeHeadAudioCache;
+}
+
+function buildFixedLineAudioCache(tts: cartesia.TTS, logPrefix: string): Map<FixedLineId, Promise<AudioFrame>> {
+  const cache = new Map<FixedLineId, Promise<AudioFrame>>();
+
+  for (const [id, text] of Object.entries(FIXED_LINE_BANK) as Array<[FixedLineId, string]>) {
+    cache.set(
+      id,
+      tts
+        .synthesize(text)
+        .collect()
+        .catch((error) => {
+          console.warn(`${logPrefix} [VOICE_LATENCY] Failed to pre-synthesize fixed line "${id}"`, error);
+          throw error;
+        })
+    );
+  }
+
+  void Promise.allSettled(cache.values()).then((results) => {
+    const warmed = results.filter((result) => result.status === "fulfilled").length;
+    console.log(`${logPrefix} [VOICE_LATENCY] Warmed ${warmed}/${cache.size} cached fixed speech clips`);
+  });
+
+  return cache;
+}
+
+function getSharedFixedLineAudioCache(tts: cartesia.TTS, logPrefix: string) {
+  if (!sharedFixedLineAudioCache) {
+    sharedFixedLineAudioCache = buildFixedLineAudioCache(tts, logPrefix);
+  }
+  return sharedFixedLineAudioCache;
 }
 
 async function getCachedOpenerAudioFrame(
@@ -856,6 +893,7 @@ async function prewarmVoiceProcess(logPrefix = "[agent-prewarm]") {
   try {
     const warmTts = createCartesiaTts();
     await warmTts.synthesize("Hi there.").collect();
+    await Promise.allSettled(getSharedFixedLineAudioCache(warmTts, logPrefix).values());
     await Promise.allSettled(getSharedOpenerAudioCache(warmTts, logPrefix).values());
     await Promise.allSettled(getSharedSpeculativeHeadAudioCache(warmTts, logPrefix).values());
   } catch (error) {
@@ -1180,6 +1218,16 @@ function getGreeting(callType: CallType, caller: CallerContext): string {
   }
   const businessName = getRepresentedBusinessName("normal", caller);
   return `Hi, you've reached ${businessName}. I'm Tracey, an AI assistant for ${businessName}. How can I help today?`;
+}
+
+function resolveGreetingClipId(callType: CallType, caller: CallerContext): FixedLineId | null {
+  if (callType === "demo" && !caller.firstName) {
+    return "demo_default_greeting";
+  }
+  if (callType === "inbound_demo") {
+    return "inbound_demo_greeting";
+  }
+  return null;
 }
 
 function getGoodbyeLine(callType: CallType): string {
@@ -1908,6 +1956,7 @@ export default defineAgent({
     const speculativeHeadAudioCache: Map<SpeculativeHeadId, Promise<AudioFrame>> = voiceLatencyConfig.speculativeHeadsEnabled
       ? getSharedSpeculativeHeadAudioCache(defaultTts, logPrefix)
       : new Map<SpeculativeHeadId, Promise<AudioFrame>>();
+    const fixedLineAudioCache = getSharedFixedLineAudioCache(defaultTts, logPrefix);
 
     console.log(`${logPrefix} Call started ${JSON.stringify({
       callId,
@@ -2593,7 +2642,13 @@ export default defineAgent({
       resetActiveVoiceTurn();
     });
 
+    const greetingClipId = resolveGreetingClipId(callType, caller);
+    const greetingFrame = greetingClipId
+      ? await getCachedOpenerAudioFrame(fixedLineAudioCache, greetingClipId, 50)
+      : null;
+
     await session.say(greeting, {
+      ...(greetingFrame ? { audio: audioFrameToReadableStream(greetingFrame) } : {}),
       allowInterruptions: false,
       addToChatCtx: callType !== "demo",
     });

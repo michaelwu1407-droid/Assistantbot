@@ -127,4 +127,56 @@ describe("getVoiceLatencyHealth", () => {
     expect(inboundDemo?.warnings).toContain("Average TTS TTFB is 1272ms (threshold 1100ms).");
     expect(result.status).toBe("degraded");
   });
+
+  it("keeps inbound demo latency healthy when speculative heads keep perceived start fast", async () => {
+    db.voiceCall.findMany.mockResolvedValue([
+      {
+        callId: "inbound-fast-1",
+        callType: "inbound_demo",
+        roomName: "room-fast-1",
+        createdAt: new Date("2026-04-07T09:00:00.000Z"),
+        latency: {
+          llmTtftAvgMs: 140,
+          ttsTtfbAvgMs: 1230,
+          totalTurnStartAvgMs: 1010,
+          firstTurnStartMs: 150,
+        },
+        metadata: {},
+      },
+      {
+        callId: "inbound-fast-2",
+        callType: "inbound_demo",
+        roomName: "room-fast-2",
+        createdAt: new Date("2026-04-07T09:10:00.000Z"),
+        latency: {
+          llmTtftAvgMs: 135,
+          ttsTtfbAvgMs: 1210,
+          totalTurnStartAvgMs: 980,
+          firstTurnStartMs: 180,
+        },
+        metadata: {},
+      },
+      {
+        callId: "inbound-fast-3",
+        callType: "inbound_demo",
+        roomName: "room-fast-3",
+        createdAt: new Date("2026-04-07T09:20:00.000Z"),
+        latency: {
+          llmTtftAvgMs: 145,
+          ttsTtfbAvgMs: 1215,
+          totalTurnStartAvgMs: 1000,
+          firstTurnStartMs: 160,
+        },
+        metadata: {},
+      },
+    ]);
+
+    const result = await getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 });
+    const inboundDemo = result.scopes.find((scope) => scope.surface === "inbound_demo");
+
+    expect(inboundDemo?.status).toBe("healthy");
+    expect(inboundDemo?.warnings).toEqual([]);
+    expect(inboundDemo?.averages.firstTurnStartMs).toBe(163);
+    expect(result.status).toBe("healthy");
+  });
 });

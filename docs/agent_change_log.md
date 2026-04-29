@@ -1,3 +1,18 @@
+## 2026-04-29 (Codex) - Cached fixed greetings and aligned latency health with perceived voice speed
+
+- Files changed:
+  - `livekit-agent/agent.ts`
+  - `lib/voice-call-latency-health.ts`
+  - `__tests__/voice-call-latency-health.test.ts`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Prewarmed and cached the fixed inbound-demo greeting and the default demo greeting so callers do not wait on fresh Cartesia synthesis for those repeated lines.
+  - Updated latency health so `demo` and `inbound_demo` do not degrade solely on raw TTS first-byte timing when speculative heads keep perceived first-turn and overall turn-start latency comfortably within budget.
+- Why:
+  - Production was healthy again, but public `/api/health` still showed degraded because inbound spoken-canary calls were using the latency fast path successfully while the raw downstream TTS metric remained slightly above threshold.
+  - This change improves the real greeting latency for callers and makes readiness reflect experienced responsiveness instead of penalizing a hidden backend stage when the fast path is doing its job.
+
 ## 2026-04-29 (Codex) - Moved production customer outbound-call control onto the OCI worker
 
 - Files changed:

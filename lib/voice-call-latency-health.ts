@@ -6,6 +6,7 @@ type VoiceLatencyThresholds = {
   llmTtftAvgMs: number;
   ttsTtfbAvgMs: number;
   totalTurnStartMs: number;
+  firstTurnStartMs: number;
 };
 
 export type VoiceLatencyHealthScope = {
@@ -18,6 +19,7 @@ export type VoiceLatencyHealthScope = {
     llmTtftAvgMs: number;
     ttsTtfbAvgMs: number;
     totalTurnStartMs: number;
+    firstTurnStartMs: number;
   };
   thresholds: VoiceLatencyThresholds;
   recentCalls: Array<{
@@ -47,6 +49,7 @@ const THRESHOLDS: Record<VoiceSurface, VoiceLatencyThresholds> = {
     llmTtftAvgMs: 1200,
     ttsTtfbAvgMs: 900,
     totalTurnStartMs: 1800,
+    firstTurnStartMs: 300,
   },
   inbound_demo: {
     llmTtftAvgMs: 1200,
@@ -57,11 +60,13 @@ const THRESHOLDS: Record<VoiceSurface, VoiceLatencyThresholds> = {
     // browser/demo threshold over-flags this surface.
     ttsTtfbAvgMs: 1100,
     totalTurnStartMs: 1800,
+    firstTurnStartMs: 300,
   },
   normal: {
     llmTtftAvgMs: 1500,
     ttsTtfbAvgMs: 1100,
     totalTurnStartMs: 2200,
+    firstTurnStartMs: 450,
   },
 };
 
@@ -133,17 +138,27 @@ function evaluateScope(surface: VoiceSurface, recentCalls: VoiceLatencyHealthSco
   const llmValues = recentCalls.map((call) => call.llmTtftAvgMs).filter((value) => value > 0);
   const ttsValues = recentCalls.map((call) => call.ttsTtfbAvgMs).filter((value) => value > 0);
   const totalValues = recentCalls.map((call) => call.totalTurnStartMs).filter((value) => value > 0);
+  const firstTurnValues = recentCalls.map((call) => call.firstTurnStartMs).filter((value) => value > 0);
 
   const averages = {
     llmTtftAvgMs: avg(llmValues),
     ttsTtfbAvgMs: avg(ttsValues),
     totalTurnStartMs: avg(totalValues),
+    firstTurnStartMs: avg(firstTurnValues),
   };
+
+  const usesFastSpeechLead =
+    (surface === "demo" || surface === "inbound_demo") &&
+    recentCalls.length >= 3 &&
+    averages.firstTurnStartMs > 0 &&
+    averages.firstTurnStartMs <= thresholds.firstTurnStartMs &&
+    averages.totalTurnStartMs > 0 &&
+    averages.totalTurnStartMs <= Math.min(thresholds.totalTurnStartMs, thresholds.ttsTtfbAvgMs + 100);
 
   if (recentCalls.length >= 3 && averages.llmTtftAvgMs > thresholds.llmTtftAvgMs) {
     warnings.push(`Average LLM TTFT is ${averages.llmTtftAvgMs}ms (threshold ${thresholds.llmTtftAvgMs}ms).`);
   }
-  if (recentCalls.length >= 3 && averages.ttsTtfbAvgMs > thresholds.ttsTtfbAvgMs) {
+  if (recentCalls.length >= 3 && averages.ttsTtfbAvgMs > thresholds.ttsTtfbAvgMs && !usesFastSpeechLead) {
     warnings.push(`Average TTS TTFB is ${averages.ttsTtfbAvgMs}ms (threshold ${thresholds.ttsTtfbAvgMs}ms).`);
   }
   if (recentCalls.length >= 3 && averages.totalTurnStartMs > thresholds.totalTurnStartMs) {
@@ -159,6 +174,7 @@ function evaluateScope(surface: VoiceSurface, recentCalls: VoiceLatencyHealthSco
   if (
     recentCalls.length >= 3 &&
     averages.ttsTtfbAvgMs > thresholds.ttsTtfbAvgMs &&
+    !usesFastSpeechLead &&
     (dominantBottleneckCounts.tts_ttfb || 0) >= Math.max(2, Math.ceil(recentCalls.length / 2))
   ) {
     warnings.push("TTS first-byte latency is currently the dominant contributor on recent calls.");
