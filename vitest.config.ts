@@ -7,7 +7,7 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./__tests__/setup.ts"],
     testTimeout: 15000,
-    maxWorkers: "50%",
+    maxWorkers: "35%",
     exclude: [
       "e2e/**",
       "node_modules/**",

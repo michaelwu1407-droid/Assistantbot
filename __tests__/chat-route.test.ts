@@ -442,7 +442,7 @@ describe("POST /api/chat", () => {
       recentJobs: [],
     });
 
-    const response = await POST(
+    await POST(
       new Request("https://app.example.com/api/chat", {
         method: "POST",
         headers: { "content-type": "application/json" },

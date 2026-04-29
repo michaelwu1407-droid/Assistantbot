@@ -3,6 +3,39 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+function omitMotionProps<T extends Record<string, unknown>>(props: T) {
+  const {
+    animate,
+    drag,
+    dragConstraints,
+    dragElastic,
+    exit,
+    initial,
+    layout,
+    layoutId,
+    onDragEnd,
+    transition,
+    whileDrag,
+    whileHover,
+    whileTap,
+    ...domProps
+  } = props;
+  void animate;
+  void drag;
+  void dragConstraints;
+  void dragElastic;
+  void exit;
+  void initial;
+  void layout;
+  void layoutId;
+  void onDragEnd;
+  void transition;
+  void whileDrag;
+  void whileHover;
+  void whileTap;
+  return domProps;
+}
+
 vi.mock("next/link", () => ({
   default: ({ children, href, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
     <a href={href} {...props}>
@@ -15,24 +48,12 @@ vi.mock("framer-motion", () => ({
   motion: {
     div: ({
       children,
-      whileHover,
-      whileTap,
-      drag,
-      dragConstraints,
-      dragElastic,
-      initial,
-      animate,
-      exit,
-      transition,
       ...props
-    }: React.HTMLAttributes<HTMLDivElement> & Record<string, unknown>) => <div {...props}>{children}</div>,
+    }: React.HTMLAttributes<HTMLDivElement> & Record<string, unknown>) => <div {...omitMotionProps(props)}>{children}</div>,
     button: ({
       children,
-      whileHover,
-      whileTap,
-      transition,
       ...props
-    }: React.ButtonHTMLAttributes<HTMLButtonElement> & Record<string, unknown>) => <button {...props}>{children}</button>,
+    }: React.ButtonHTMLAttributes<HTMLButtonElement> & Record<string, unknown>) => <button {...omitMotionProps(props)}>{children}</button>,
   },
   AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
