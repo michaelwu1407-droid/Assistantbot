@@ -152,8 +152,8 @@ describe("pricing contact form", () => {
       );
     });
 
-    expect(screen.getByText("Tracey is calling you now")).toBeInTheDocument();
-    expect(screen.getByText(/pick up/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Tracey is calling you now/i)).toBeInTheDocument();
+    expect(await screen.findByText(/pick up/i)).toBeInTheDocument();
   });
 
   it("shows request errors on the pricing-page form", async () => {

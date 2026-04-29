@@ -128,10 +128,10 @@ describe("GET /api/internal/voice-fleet-health", () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(getMonitorRunHealth).toHaveBeenNthCalledWith(1, "voice-agent-health", 900000);
-    expect(getMonitorRunHealth).toHaveBeenNthCalledWith(2, "voice-monitor-watchdog", 900000);
-    expect(getMonitorRunHealth).toHaveBeenNthCalledWith(3, "passive-communications-health", 900000);
-    expect(getMonitorRunHealth).toHaveBeenNthCalledWith(4, "voice-synthetic-probe", 900000);
+    expect(getMonitorRunHealth).toHaveBeenNthCalledWith(1, "voice-agent-health", 1200000);
+    expect(getMonitorRunHealth).toHaveBeenNthCalledWith(2, "voice-monitor-watchdog", 1200000);
+    expect(getMonitorRunHealth).toHaveBeenNthCalledWith(3, "passive-communications-health", 1200000);
+    expect(getMonitorRunHealth).toHaveBeenNthCalledWith(4, "voice-synthetic-probe", 1200000);
     expect(combineVoiceStatuses).toHaveBeenCalledWith([
       "healthy",
       "healthy",

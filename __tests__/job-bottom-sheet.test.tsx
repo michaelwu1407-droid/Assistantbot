@@ -86,6 +86,11 @@ describe("JobBottomSheet", () => {
   it("shows the actual scheduled time in the collapsed header instead of a hard-coded placeholder", () => {
     const setIsOpen = vi.fn();
     const scheduledAt = new Date("2026-04-08T09:30:00+10:00");
+    const expectedTime = scheduledAt.toLocaleTimeString("en-AU", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
 
     render(
       <JobBottomSheet
@@ -108,7 +113,7 @@ describe("JobBottomSheet", () => {
       />,
     );
 
-    expect(screen.getByText(/9:30 AM • Harper Plumbing/i)).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(`${expectedTime}.*Harper Plumbing`, "i"))).toBeInTheDocument();
   });
 
   it("routes missing phone quick actions back into CRM instead of dead-ending", () => {
@@ -162,7 +167,9 @@ describe("JobBottomSheet", () => {
 
     await user.click(screen.getByRole("button", { name: /billing/i }));
 
-    expect(screen.getByText(/video explanations and customer signatures are captured from the full completion flow/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/video explanations and customer signatures are captured from the full completion flow/i),
+    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /open full crm job/i })).toHaveAttribute("href", "/crm/deals/deal_4");
     expect(screen.queryByRole("button", { name: /add video explanation/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/tap to sign on glass/i)).not.toBeInTheDocument();
@@ -193,7 +200,9 @@ describe("JobBottomSheet", () => {
 
     await user.click(screen.getByRole("button", { name: /photos/i }));
 
-    expect(screen.getByText(/capture photos from the full job mode so they save against the right job/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/capture photos from the full job mode so they save against the right job/i),
+    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /open full job mode/i })).toHaveAttribute("href", "/tradie/jobs/deal_5");
     expect(screen.queryByText(/add photo/i)).not.toBeInTheDocument();
   });
