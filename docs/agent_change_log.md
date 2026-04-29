@@ -1,3 +1,31 @@
+## 2026-04-29 (Codex) - Consolidated voice monitoring cadence and made latency proof explicit
+
+- Files changed:
+  - `.github/workflows/passive-communications-health.yml`
+  - `.github/workflows/voice-agent-health.yml`
+  - `.github/workflows/voice-monitor-watchdog.yml`
+  - `.github/workflows/voice-synthetic-probe.yml`
+  - `app/api/cron/voice-monitor-watchdog/route.ts`
+  - `app/api/cron/voice-synthetic-probe/route.ts`
+  - `app/api/internal/voice-fleet-health/route.ts`
+  - `lib/launch-readiness.ts`
+  - `lib/voice-call-latency-health.ts`
+  - `lib/voice-monitor-config.ts`
+  - `lib/voice-synthetic-probe.ts`
+  - `__tests__/launch-readiness.test.ts`
+  - `__tests__/voice-call-latency-health.test.ts`
+  - `__tests__/voice-fleet-health-route.test.ts`
+  - `__tests__/voice-monitor-watchdog-route.test.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Made `voice-monitor-watchdog` the single scheduled GitHub monitor and removed the extra scheduled monitor workflows that were starving each other on GitHub's real cron cadence.
+  - Added a shared `runVoiceSyntheticProbe` helper so the watchdog can refresh the spoken probe inline, then rerun `voice-agent-health` immediately with fresh canary truth.
+  - Gave the spoken probe its own cadence/staleness settings, made launch readiness and internal voice-fleet health treat the probe as a first-class signal, and improved canary summaries so failures surface the real probe summary instead of a vague warning fragment.
+  - Tightened latency truth by marking missing recent `inbound_demo` samples as degraded rather than silently healthy, which gives us an honest signal when canary-backed phone latency proof is absent.
+- Why:
+  - Production voice had recovered, but `/api/health` was still drifting into degraded because multiple GitHub scheduled workflows were not firing anywhere near their nominal frequency, which made monitor freshness noisy and stale.
+  - We also needed better optimization feedback: if the spoken canary is the main proof surface for phone responsiveness, then missing recent inbound-demo latency samples should be treated as "not verified" rather than "healthy."
+
 ## 2026-04-29 (Codex) - Cached fixed greetings and aligned latency health with perceived voice speed
 
 - Files changed:

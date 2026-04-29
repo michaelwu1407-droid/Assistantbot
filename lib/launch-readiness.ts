@@ -7,7 +7,7 @@ import { getProvisioningReadinessSummary } from "@/lib/provisioning-readiness";
 import { getCurrentAppReleaseInfo, buildWorkerReleaseTruth } from "@/lib/release-truth";
 import { auditTwilioMessagingRouting, auditTwilioVoiceRouting } from "@/lib/twilio-drift";
 import { getVoiceAgentRuntimeDrift } from "@/lib/voice-agent-runtime";
-import { getVoiceMonitorStaleAfterMs } from "@/lib/voice-monitor-config";
+import { getVoiceMonitorStaleAfterMs, getVoiceSyntheticProbeStaleAfterMs } from "@/lib/voice-monitor-config";
 import { getVoiceFleetHealth, type RuntimeStatus } from "@/lib/voice-fleet";
 import { getVoiceLatencyHealth } from "@/lib/voice-call-latency-health";
 
@@ -73,6 +73,7 @@ export async function getLaunchReadiness(options?: {
 }): Promise<LaunchReadiness> {
   const checkedAt = new Date().toISOString();
   const staleAfterMs = getVoiceMonitorStaleAfterMs();
+  const syntheticProbeStaleAfterMs = getVoiceSyntheticProbeStaleAfterMs();
   const appRelease = getCurrentAppReleaseInfo();
 
   const [
@@ -99,7 +100,7 @@ export async function getLaunchReadiness(options?: {
     getMonitorRunHealth("voice-agent-health", staleAfterMs),
     getMonitorRunHealth("voice-monitor-watchdog", staleAfterMs),
     getMonitorRunHealth("passive-communications-health", staleAfterMs),
-    getMonitorRunHealth("voice-synthetic-probe", staleAfterMs),
+    getMonitorRunHealth("voice-synthetic-probe", syntheticProbeStaleAfterMs),
     getInboundLeadEmailReadiness(),
     getProvisioningReadinessSummary(),
     getPassiveProductionHealth(),
@@ -183,7 +184,7 @@ export async function getLaunchReadiness(options?: {
 
   const canary: LaunchReadiness["canary"] = {
     status: canaryStatus,
-    summary: summarizeStatus(canaryStatus, canaryWarnings, "Spoken canary is reporting healthy."),
+    summary: canaryStatus === "healthy" ? "Spoken canary is reporting healthy." : probeHealth.summary,
     warnings: canaryWarnings,
     monitor: probeHealth,
     probeResult:
@@ -258,6 +259,7 @@ export async function getLaunchReadiness(options?: {
 
   const overallStatus = [
     voiceCritical.status,
+    canary.status,
     passiveProduction.status,
     monitoring.status,
     communications.status,
@@ -269,6 +271,8 @@ export async function getLaunchReadiness(options?: {
   const summary =
     voiceCritical.status !== "healthy"
       ? voiceCritical.summary
+      : canary.status !== "healthy"
+        ? canary.summary
       : passiveProduction.status !== "healthy"
         ? passiveProduction.summary
         : monitoring.status !== "healthy"

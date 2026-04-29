@@ -9,6 +9,8 @@ type VoiceLatencyThresholds = {
   firstTurnStartMs: number;
 };
 
+const CRITICAL_PROOF_SURFACES: VoiceSurface[] = ["inbound_demo"];
+
 export type VoiceLatencyHealthScope = {
   surface: VoiceSurface;
   status: RuntimeStatus;
@@ -88,6 +90,10 @@ function maxStatus(left: RuntimeStatus, right: RuntimeStatus): RuntimeStatus {
   return order[Math.max(order.indexOf(left), order.indexOf(right))];
 }
 
+function requiresRecentProof(surface: VoiceSurface) {
+  return CRITICAL_PROOF_SURFACES.includes(surface);
+}
+
 function extractLatency(call: {
   latency: Prisma.JsonValue | null;
   metadata: Prisma.JsonValue | null;
@@ -135,6 +141,7 @@ function extractLatency(call: {
 function evaluateScope(surface: VoiceSurface, recentCalls: VoiceLatencyHealthScope["recentCalls"]): VoiceLatencyHealthScope {
   const thresholds = THRESHOLDS[surface];
   const warnings: string[] = [];
+  const requiresProof = requiresRecentProof(surface);
   const llmValues = recentCalls.map((call) => call.llmTtftAvgMs).filter((value) => value > 0);
   const ttsValues = recentCalls.map((call) => call.ttsTtfbAvgMs).filter((value) => value > 0);
   const totalValues = recentCalls.map((call) => call.totalTurnStartMs).filter((value) => value > 0);
@@ -146,6 +153,10 @@ function evaluateScope(surface: VoiceSurface, recentCalls: VoiceLatencyHealthSco
     totalTurnStartMs: avg(totalValues),
     firstTurnStartMs: avg(firstTurnValues),
   };
+
+  if (recentCalls.length === 0 && requiresProof) {
+    warnings.push(`No recent ${surface} calls have been persisted, so latency cannot be verified.`);
+  }
 
   const perceivedStartHealthyThresholdMs = Math.min(thresholds.totalTurnStartMs, thresholds.ttsTtfbAvgMs + 100);
   const fastPerceivedCallCount = recentCalls.filter((call) => (
@@ -202,15 +213,19 @@ function evaluateScope(surface: VoiceSurface, recentCalls: VoiceLatencyHealthSco
         ? "unhealthy"
         : "degraded";
 
+  const noRecentCallsSummary = requiresProof
+    ? `No recent ${surface} calls have been persisted, so latency cannot be verified`
+    : `No recent ${surface} calls have been persisted`;
+
   return {
     surface,
     status,
     summary:
       status === "healthy"
         ? recentCalls.length === 0
-          ? `No recent ${surface} calls have been persisted`
+          ? noRecentCallsSummary
           : `${surface} latency is within expected thresholds`
-        : warnings[0] || `${surface} latency has regressed`,
+        : warnings[0] || (recentCalls.length === 0 ? noRecentCallsSummary : `${surface} latency has regressed`),
     warnings,
     sampleCount: recentCalls.length,
     averages,

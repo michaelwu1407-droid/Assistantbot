@@ -17,6 +17,22 @@ describe("getVoiceLatencyHealth", () => {
     vi.clearAllMocks();
   });
 
+  it("degrades latency health when there is no recent inbound demo proof", async () => {
+    db.voiceCall.findMany.mockResolvedValue([]);
+
+    const result = await getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 });
+    const inboundDemo = result.scopes.find((scope) => scope.surface === "inbound_demo");
+    const demo = result.scopes.find((scope) => scope.surface === "demo");
+
+    expect(inboundDemo?.status).toBe("degraded");
+    expect(inboundDemo?.summary).toBe("No recent inbound_demo calls have been persisted, so latency cannot be verified.");
+    expect(inboundDemo?.warnings).toContain(
+      "No recent inbound_demo calls have been persisted, so latency cannot be verified.",
+    );
+    expect(demo?.status).toBe("healthy");
+    expect(result.status).toBe("degraded");
+  });
+
   it("keeps healthy inbound demo latency healthy when only TTS TTFB is around 1.0s but turn-start stays healthy", async () => {
     db.voiceCall.findMany.mockResolvedValue([
       {

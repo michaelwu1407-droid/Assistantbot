@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getCustomerAgentReadiness: vi.fn(),
@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   getVoiceFleetHealth: vi.fn(),
   getVoiceLatencyHealth: vi.fn(),
   getVoiceMonitorStaleAfterMs: vi.fn(),
+  getVoiceSyntheticProbeStaleAfterMs: vi.fn(),
 }));
 
 vi.mock("@/lib/customer-agent-readiness", () => ({
@@ -65,6 +66,7 @@ vi.mock("@/lib/voice-call-latency-health", () => ({
 
 vi.mock("@/lib/voice-monitor-config", () => ({
   getVoiceMonitorStaleAfterMs: mocks.getVoiceMonitorStaleAfterMs,
+  getVoiceSyntheticProbeStaleAfterMs: mocks.getVoiceSyntheticProbeStaleAfterMs,
 }));
 
 import { getLaunchReadiness } from "@/lib/launch-readiness";
@@ -74,6 +76,7 @@ describe("getLaunchReadiness", () => {
     vi.clearAllMocks();
 
     mocks.getVoiceMonitorStaleAfterMs.mockReturnValue(420_000);
+    mocks.getVoiceSyntheticProbeStaleAfterMs.mockReturnValue(2_700_000);
     mocks.getCurrentAppReleaseInfo.mockReturnValue({
       gitSha: "web-sha",
       buildId: "build-id",
@@ -163,5 +166,53 @@ describe("getLaunchReadiness", () => {
     expect(result.communications.status).toBe("healthy");
     expect(result.communications.warnings).toEqual([]);
     expect(result.status).toBe("healthy");
+    expect(mocks.getMonitorRunHealth).toHaveBeenNthCalledWith(1, "voice-agent-health", 420_000);
+    expect(mocks.getMonitorRunHealth).toHaveBeenNthCalledWith(2, "voice-monitor-watchdog", 420_000);
+    expect(mocks.getMonitorRunHealth).toHaveBeenNthCalledWith(3, "passive-communications-health", 420_000);
+    expect(mocks.getMonitorRunHealth).toHaveBeenNthCalledWith(4, "voice-synthetic-probe", 2_700_000);
+  });
+
+  it("lets the spoken canary drive unhealthy launch readiness when the latest probe failed", async () => {
+    mocks.getMonitorRunHealth
+      .mockResolvedValueOnce({
+        status: "healthy",
+        summary: "voice monitor healthy",
+        warnings: [],
+        details: null,
+      })
+      .mockResolvedValueOnce({
+        status: "healthy",
+        summary: "watchdog healthy",
+        warnings: [],
+        details: null,
+      })
+      .mockResolvedValueOnce({
+        status: "healthy",
+        summary: "passive monitor healthy",
+        warnings: [],
+        details: null,
+      })
+      .mockResolvedValueOnce({
+        status: "unhealthy",
+        summary: "Spoken canary failed to capture assistant speech.",
+        warnings: ["canary failed"],
+        details: {
+          probeResult: "pass",
+          targetNumber: "+61485010634",
+          spokenCanary: {
+            mode: "pstn_spoken",
+            callSid: "CA123",
+            callStatus: "completed",
+          },
+        },
+      });
+
+    const result = await getLaunchReadiness();
+
+    expect(result.canary.status).toBe("unhealthy");
+    expect(result.status).toBe("unhealthy");
+    expect(result.summary).toBe("Spoken canary failed to capture assistant speech.");
+    expect(result.canary.callSid).toBe("CA123");
+    expect(result.canary.targetNumber).toBe("+61485010634");
   });
 });

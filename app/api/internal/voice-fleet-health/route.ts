@@ -8,7 +8,7 @@ import { getVoiceFleetHealth, getVoiceSurfaceSaturationHealth } from "@/lib/voic
 import { getTwilioVoiceCallHealth } from "@/lib/twilio-voice-call-health";
 import { getVoiceLatencyHealth } from "@/lib/voice-call-latency-health";
 import { getLivekitSipHealth } from "@/lib/livekit-sip-health";
-import { getVoiceMonitorStaleAfterMs } from "@/lib/voice-monitor-config";
+import { getVoiceMonitorStaleAfterMs, getVoiceSyntheticProbeStaleAfterMs } from "@/lib/voice-monitor-config";
 import { combineVoiceStatuses } from "@/lib/voice-monitoring";
 import { isVoiceAgentSecretAuthorized } from "@/lib/voice-agent-auth";
 import { getDemoCallHealth } from "@/lib/demo-call-health";
@@ -26,6 +26,7 @@ export async function GET(req: NextRequest) {
   }
 
   const staleAfterMs = getVoiceMonitorStaleAfterMs();
+  const syntheticProbeStaleAfterMs = getVoiceSyntheticProbeStaleAfterMs();
   const [
     fleet,
     customerSaturation,
@@ -53,7 +54,7 @@ export async function GET(req: NextRequest) {
     getMonitorRunHealth("voice-agent-health", staleAfterMs),
     getMonitorRunHealth("voice-monitor-watchdog", staleAfterMs),
     getMonitorRunHealth("passive-communications-health", staleAfterMs),
-    getMonitorRunHealth("voice-synthetic-probe", staleAfterMs),
+    getMonitorRunHealth("voice-synthetic-probe", syntheticProbeStaleAfterMs),
   ]);
   const invariants = await getVoiceBusinessInvariantHealth(twilioRouting);
 
@@ -71,6 +72,7 @@ export async function GET(req: NextRequest) {
     monitorHealth.status,
     watchdogHealth.status,
     passiveMonitorHealth.status,
+    probeHealth.status,
   ]);
 
   return NextResponse.json(

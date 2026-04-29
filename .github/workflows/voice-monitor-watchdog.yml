@@ -14,6 +14,7 @@ jobs:
           APP_BASE_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           OPS_KEY: ${{ secrets.TELEMETRY_ADMIN_KEY || secrets.CRON_SECRET }}
+          VOICE_MONITOR_DEADMAN_URL: ${{ secrets.VOICE_MONITOR_DEADMAN_URL }}
         run: |
           set -eu
           if [ -z "${APP_BASE_URL:-}" ]; then
@@ -46,3 +47,6 @@ jobs:
           if status != "healthy":
               raise SystemExit(f"voice-monitor-watchdog returned non-healthy status: {status}")
           PY
+          if [ -n "${VOICE_MONITOR_DEADMAN_URL:-}" ]; then
+            curl --fail --show-error --silent "${VOICE_MONITOR_DEADMAN_URL}"
+          fi

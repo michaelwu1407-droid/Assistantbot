@@ -3,9 +3,14 @@ import { recordMonitorRun, getMonitorRunHealth } from "@/lib/ops-monitor-runs";
 import { getUnauthorizedJsonResponse, isOpsAuthorized } from "@/lib/ops-auth";
 import { dispatchVoiceIncidentNotifications } from "@/lib/voice-incident-alert";
 import { reconcileVoiceIncidents } from "@/lib/voice-incidents";
-import { getVoiceMonitorStaleAfterMs } from "@/lib/voice-monitor-config";
+import {
+  getVoiceMonitorStaleAfterMs,
+  getVoiceSyntheticProbeRefreshAfterMs,
+  getVoiceSyntheticProbeStaleAfterMs,
+} from "@/lib/voice-monitor-config";
 import { buildMonitorIncidentObservations } from "@/lib/voice-monitoring";
 import { getPassiveProductionHealth } from "@/lib/passive-production-health";
+import { runVoiceSyntheticProbe } from "@/lib/voice-synthetic-probe";
 import {
   buildVoiceAgentHealthMonitorDetails,
   getVoiceAgentHealthMonitorSummary,
@@ -21,14 +26,55 @@ export async function GET(req: NextRequest) {
 
   const checkedAt = new Date();
   const staleAfterMs = getVoiceMonitorStaleAfterMs();
+  const syntheticProbeStaleAfterMs = getVoiceSyntheticProbeStaleAfterMs();
+  const syntheticProbeRefreshAfterMs = getVoiceSyntheticProbeRefreshAfterMs();
 
   try {
     let voiceAgentHealth = await getMonitorRunHealth("voice-agent-health", staleAfterMs);
     let refreshedVoiceAgentHealthRun = null;
     let passiveTrafficHealth = await getMonitorRunHealth("passive-communications-health", staleAfterMs);
     let refreshedPassiveTrafficRun = null;
+    let syntheticProbeHealth = await getMonitorRunHealth("voice-synthetic-probe", syntheticProbeStaleAfterMs);
+    let refreshedSyntheticProbeRun = null;
 
-    if (voiceAgentHealth.status !== "healthy") {
+    if (syntheticProbeHealth.ageMs === null || syntheticProbeHealth.ageMs >= syntheticProbeRefreshAfterMs) {
+      const refreshCheckedAt = new Date();
+
+      try {
+        refreshedSyntheticProbeRun = await runVoiceSyntheticProbe({
+          checkedAt: refreshCheckedAt,
+        });
+        await recordMonitorRun({
+          monitorKey: "voice-synthetic-probe",
+          status: refreshedSyntheticProbeRun.status,
+          summary: refreshedSyntheticProbeRun.summary,
+          details: {
+            ...refreshedSyntheticProbeRun.details,
+            refreshedBy: "voice-monitor-watchdog",
+          },
+          checkedAt: refreshCheckedAt,
+          succeeded: true,
+        });
+        syntheticProbeHealth = await getMonitorRunHealth("voice-synthetic-probe", syntheticProbeStaleAfterMs);
+      } catch (refreshError) {
+        const refreshMessage = refreshError instanceof Error ? refreshError.message : "Unknown synthetic probe refresh failure";
+        await recordMonitorRun({
+          monitorKey: "voice-synthetic-probe",
+          status: "unhealthy",
+          summary: `Synthetic voice probe crashed: ${refreshMessage}`,
+          details: {
+            checkedAt: refreshCheckedAt.toISOString(),
+            error: refreshMessage,
+            refreshedBy: "voice-monitor-watchdog",
+          },
+          checkedAt: refreshCheckedAt,
+          succeeded: false,
+        }).catch(() => null);
+        throw refreshError;
+      }
+    }
+
+    if (voiceAgentHealth.status !== "healthy" || refreshedSyntheticProbeRun) {
       const refreshCheckedAt = new Date();
 
       try {
@@ -109,9 +155,13 @@ export async function GET(req: NextRequest) {
     });
 
     const watchdogStatus =
-      voiceAgentHealth.status === "unhealthy" || passiveTrafficHealth.status === "unhealthy"
+      voiceAgentHealth.status === "unhealthy" ||
+      passiveTrafficHealth.status === "unhealthy" ||
+      syntheticProbeHealth.status === "unhealthy"
         ? "unhealthy"
-        : voiceAgentHealth.status === "degraded" || passiveTrafficHealth.status === "degraded"
+        : voiceAgentHealth.status === "degraded" ||
+            passiveTrafficHealth.status === "degraded" ||
+            syntheticProbeHealth.status === "degraded"
           ? "degraded"
           : "healthy";
     const watchdogSummary =
@@ -119,6 +169,8 @@ export async function GET(req: NextRequest) {
         ? "Voice monitor watchdog completed successfully"
         : voiceAgentHealth.status !== "healthy"
           ? voiceAgentHealth.summary
+          : syntheticProbeHealth.status !== "healthy"
+            ? syntheticProbeHealth.summary
           : passiveTrafficHealth.summary;
 
     await recordMonitorRun({
@@ -129,8 +181,10 @@ export async function GET(req: NextRequest) {
         checkedAt: checkedAt.toISOString(),
         voiceAgentHealth,
         passiveTrafficHealth,
+        syntheticProbeHealth,
         refreshedVoiceAgentHealthRun,
         refreshedPassiveTrafficRun,
+        refreshedSyntheticProbeRun,
       },
       checkedAt,
       succeeded: true,
@@ -142,8 +196,10 @@ export async function GET(req: NextRequest) {
         checkedAt: checkedAt.toISOString(),
         voiceAgentHealth,
         passiveTrafficHealth,
+        syntheticProbeHealth,
         refreshedVoiceAgentHealthRun,
         refreshedPassiveTrafficRun,
+        refreshedSyntheticProbeRun,
         incidents,
       },
       { status: watchdogStatus === "unhealthy" ? 500 : 200 },

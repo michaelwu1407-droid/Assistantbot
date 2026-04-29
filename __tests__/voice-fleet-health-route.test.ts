@@ -113,25 +113,26 @@ describe("GET /api/internal/voice-fleet-health", () => {
     getLivekitSipHealth.mockResolvedValue({ status: "healthy" });
     getDemoCallHealth.mockResolvedValue({ status: "healthy" });
     getOutboundCallHealth.mockResolvedValue({ status: "healthy" });
-    getMonitorRunHealth
-      .mockResolvedValueOnce({ monitorKey: "voice-agent-health", status: "healthy" })
-      .mockResolvedValueOnce({ monitorKey: "voice-monitor-watchdog", status: "healthy" })
-      .mockResolvedValueOnce({ monitorKey: "passive-communications-health", status: "healthy" })
-      .mockResolvedValueOnce({ monitorKey: "voice-synthetic-probe", status: "unhealthy" });
     combineVoiceStatuses.mockImplementation((statuses) =>
       statuses.includes("unhealthy") ? "unhealthy" : statuses.includes("degraded") ? "degraded" : "healthy",
     );
   });
 
-  it("reports passive production health separately and does not let the active probe drive routine voice status", async () => {
+  it("lets the active spoken probe influence internal voice status alongside the passive monitors", async () => {
+    getMonitorRunHealth
+      .mockResolvedValueOnce({ monitorKey: "voice-agent-health", status: "healthy" })
+      .mockResolvedValueOnce({ monitorKey: "voice-monitor-watchdog", status: "healthy" })
+      .mockResolvedValueOnce({ monitorKey: "passive-communications-health", status: "healthy" })
+      .mockResolvedValueOnce({ monitorKey: "voice-synthetic-probe", status: "unhealthy" });
+
     const response = await GET(new NextRequest("https://app.example.com/api/internal/voice-fleet-health"));
     const body = await response.json();
 
-    expect(response.status).toBe(200);
-    expect(getMonitorRunHealth).toHaveBeenNthCalledWith(1, "voice-agent-health", 1200000);
-    expect(getMonitorRunHealth).toHaveBeenNthCalledWith(2, "voice-monitor-watchdog", 1200000);
-    expect(getMonitorRunHealth).toHaveBeenNthCalledWith(3, "passive-communications-health", 1200000);
-    expect(getMonitorRunHealth).toHaveBeenNthCalledWith(4, "voice-synthetic-probe", 1200000);
+    expect(response.status).toBe(500);
+    expect(getMonitorRunHealth).toHaveBeenNthCalledWith(1, "voice-agent-health", 1_800_000);
+    expect(getMonitorRunHealth).toHaveBeenNthCalledWith(2, "voice-monitor-watchdog", 1_800_000);
+    expect(getMonitorRunHealth).toHaveBeenNthCalledWith(3, "passive-communications-health", 1_800_000);
+    expect(getMonitorRunHealth).toHaveBeenNthCalledWith(4, "voice-synthetic-probe", 2_700_000);
     expect(combineVoiceStatuses).toHaveBeenCalledWith([
       "healthy",
       "healthy",
@@ -146,12 +147,13 @@ describe("GET /api/internal/voice-fleet-health", () => {
       "healthy",
       "healthy",
       "healthy",
+      "unhealthy",
     ]);
     expect(body.monitorHealth.monitorKey).toBe("voice-agent-health");
     expect(body.watchdogHealth.monitorKey).toBe("voice-monitor-watchdog");
     expect(body.passiveMonitorHealth.monitorKey).toBe("passive-communications-health");
     expect(body.probeHealth.monitorKey).toBe("voice-synthetic-probe");
     expect(body.passiveProduction.status).toBe("healthy");
-    expect(body.status).toBe("healthy");
+    expect(body.status).toBe("unhealthy");
   });
 });
