@@ -1,5 +1,17 @@
 import { RoomServiceClient, SipClient } from "livekit-server-sdk";
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import {
+  buildQueuedOutboundCallEnvelope,
+  buildQueuedOutboundCallKey,
+  parseQueuedOutboundCallEnvelope,
+  parseQueuedOutboundCallResult,
+  type QueuedOutboundCallRequest,
+  type QueuedOutboundCallResult,
+  VOICE_OUTBOUND_CALL_ACTION_TYPE,
+  VOICE_OUTBOUND_CALL_WAIT_POLL_MS,
+  VOICE_OUTBOUND_CALL_WAIT_TIMEOUT_MS,
+} from "@/lib/outbound-call-queue";
 
 export type OutboundCallInput = {
   workspaceId: string;
@@ -9,12 +21,7 @@ export type OutboundCallInput = {
   reason?: string;
 };
 
-export type OutboundCallResult = {
-  roomName: string;
-  normalizedPhone: string;
-  resolvedTrunkId: string;
-  callerNumber: string | null;
-};
+export type OutboundCallResult = QueuedOutboundCallResult;
 
 function getLivekitApiBaseUrl() {
   const raw = (process.env.LIVEKIT_URL || "").trim();
@@ -22,6 +29,20 @@ function getLivekitApiBaseUrl() {
   if (/^wss:/i.test(raw)) return raw.replace(/^wss:/i, "https:");
   if (/^ws:/i.test(raw)) return raw.replace(/^ws:/i, "http:");
   return raw;
+}
+
+function getOutboundCallControlMode(env: NodeJS.ProcessEnv = process.env) {
+  const explicit = (env.VOICE_OUTBOUND_CALL_CONTROL_MODE || "").trim().toLowerCase();
+  if (explicit === "direct" || explicit === "queue") {
+    return explicit;
+  }
+
+  return (env.NODE_ENV || "").trim() === "production" ? "queue" : "direct";
+}
+
+function getOutboundCallWaitTimeoutMs(env: NodeJS.ProcessEnv = process.env) {
+  const raw = Number.parseInt((env.VOICE_OUTBOUND_CALL_WAIT_TIMEOUT_MS || "").trim(), 10);
+  return Number.isInteger(raw) && raw > 0 ? raw : VOICE_OUTBOUND_CALL_WAIT_TIMEOUT_MS;
 }
 
 function normalizePhone(phone?: string | null) {
@@ -32,6 +53,10 @@ function normalizePhone(phone?: string | null) {
   if (cleaned.startsWith("0")) return `+61${cleaned.slice(1)}`;
   if (cleaned.startsWith("61")) return `+${cleaned}`;
   return cleaned;
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function getSipClient() {
@@ -56,39 +81,22 @@ function getRoomClient() {
   return new RoomServiceClient(livekitUrl, apiKey, apiSecret);
 }
 
-/**
- * Resolve the outbound SIP trunk for a specific workspace.
- * Prefers the workspace's own Twilio trunk if it has one,
- * otherwise falls back to the platform-level outbound trunk.
- */
-async function resolveWorkspaceOutboundTrunk(workspaceId: string, sipClient: SipClient) {
-  // Check if workspace has its own SIP trunk
-  const workspace = await db.workspace.findUnique({
-    where: { id: workspaceId },
-    select: {
-      twilioPhoneNumber: true,
-      twilioPhoneNumberNormalized: true,
-      twilioSipTrunkSid: true,
-    },
-  });
-
+async function resolveWorkspaceOutboundTrunk(workspaceCallerNumber: string | null, sipClient: SipClient) {
   const outboundTrunks = await sipClient.listSipOutboundTrunk();
 
-  // Try to find a trunk that matches the workspace's Twilio number
-  if (workspace?.twilioPhoneNumberNormalized) {
+  if (workspaceCallerNumber) {
     const workspaceTrunk = outboundTrunks.find((trunk) => {
-      const numbers = Array.isArray(trunk.numbers) ? trunk.numbers.map(String) : [];
-      return numbers.includes(workspace.twilioPhoneNumberNormalized!);
+      const numbers = Array.isArray(trunk.numbers) ? trunk.numbers.map(String).map((value) => normalizePhone(value)) : [];
+      return numbers.includes(workspaceCallerNumber);
     });
     if (workspaceTrunk) {
       return {
         trunkId: String(workspaceTrunk.sipTrunkId || ""),
-        callerNumber: workspace.twilioPhoneNumberNormalized,
+        callerNumber: workspaceCallerNumber,
       };
     }
   }
 
-  // Fall back to configured trunk or first available
   const configuredTrunkId = (process.env.LIVEKIT_SIP_TRUNK_ID || "").trim();
   const resolved = configuredTrunkId
     ? outboundTrunks.find((trunk) => String(trunk.sipTrunkId) === configuredTrunkId)
@@ -98,28 +106,166 @@ async function resolveWorkspaceOutboundTrunk(workspaceId: string, sipClient: Sip
     throw new Error("No outbound SIP trunk available for this workspace.");
   }
 
-  const callerNumber = workspace?.twilioPhoneNumberNormalized
-    || (Array.isArray(resolved.numbers) ? resolved.numbers.find((n) => String(n) !== "*") : null)
+  const callerNumber = workspaceCallerNumber
+    || (Array.isArray(resolved.numbers) ? resolved.numbers.map((value) => normalizePhone(String(value))).find((value) => value && value !== "*") : null)
     || null;
 
   return {
     trunkId: String(resolved.sipTrunkId || ""),
-    callerNumber: callerNumber ? String(callerNumber) : null,
+    callerNumber,
   };
 }
 
-/**
- * Place an outbound call from Tracey (the AI agent) to a contact.
- * The AI agent will join the room and converse with the contact
- * using the workspace's voice grounding (same as inbound calls).
- */
-export async function initiateOutboundCall(input: OutboundCallInput): Promise<OutboundCallResult> {
+async function initiateOutboundCallDirect(request: QueuedOutboundCallRequest): Promise<OutboundCallResult> {
+  const sipClient = getSipClient();
+  const roomClient = getRoomClient();
+  const trunk = await resolveWorkspaceOutboundTrunk(request.workspaceCallerNumber, sipClient);
+
+  const roomName = `outbound-${request.workspaceId.slice(0, 8)}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
+  await roomClient.createRoom({
+    name: roomName,
+    emptyTimeout: 300,
+    maxParticipants: 2,
+    metadata: JSON.stringify({
+      callType: "normal",
+      outbound: true,
+      workspaceId: request.workspaceId,
+      contactName: request.contactName,
+      phone: request.contactPhone,
+      calledPhone: request.workspaceCallerNumber || "",
+      dealId: request.dealId || "",
+      reason: request.reason,
+    }),
+  });
+
+  await sipClient.createSipParticipant(trunk.trunkId, request.contactPhone, roomName, {
+    fromNumber: trunk.callerNumber || undefined,
+    participantName: request.contactName || request.contactPhone,
+    participantIdentity: `outbound-caller-${request.contactPhone}`,
+    playDialtone: true,
+  });
+
+  return {
+    roomName,
+    normalizedPhone: request.contactPhone,
+    resolvedTrunkId: trunk.trunkId,
+    callerNumber: trunk.callerNumber,
+    transport: "livekit_control",
+  };
+}
+
+async function enqueueOutboundCallRequest(request: QueuedOutboundCallRequest) {
+  const idempotencyKey = buildQueuedOutboundCallKey(request);
+  const envelope = buildQueuedOutboundCallEnvelope({ request });
+
+  try {
+    await db.actionExecution.create({
+      data: {
+        idempotencyKey,
+        actionType: VOICE_OUTBOUND_CALL_ACTION_TYPE,
+        status: "IN_PROGRESS",
+        result: envelope,
+        error: null,
+      },
+    });
+    return { idempotencyKey, completedResult: null as OutboundCallResult | null };
+  } catch (error) {
+    const errorCode = error instanceof Prisma.PrismaClientKnownRequestError
+      ? error.code
+      : (error as { code?: string } | null)?.code;
+
+    if (errorCode !== "P2002") {
+      throw error;
+    }
+
+    const existing = await db.actionExecution.findUnique({
+      where: { idempotencyKey },
+      select: {
+        status: true,
+        result: true,
+      },
+    });
+
+    if (!existing) {
+      throw new Error("Outbound call queue claim raced and the existing request could not be found.");
+    }
+
+    if (existing.status === "COMPLETED") {
+      const completedResult = parseQueuedOutboundCallResult(existing.result);
+      if (completedResult) {
+        return { idempotencyKey, completedResult };
+      }
+    }
+
+    if (existing.status === "FAILED") {
+      const existingEnvelope = parseQueuedOutboundCallEnvelope(existing.result) || envelope;
+      const reclaimed = await db.actionExecution.updateMany({
+        where: {
+          idempotencyKey,
+          status: "FAILED",
+        },
+        data: {
+          status: "IN_PROGRESS",
+          result: buildQueuedOutboundCallEnvelope({
+            request: existingEnvelope.request,
+            enqueuedAt: existingEnvelope.queue.enqueuedAt,
+          }),
+          error: null,
+        },
+      });
+
+      if (reclaimed.count > 0) {
+        return { idempotencyKey, completedResult: null };
+      }
+    }
+
+    return { idempotencyKey, completedResult: null };
+  }
+}
+
+async function waitForQueuedOutboundCall(idempotencyKey: string) {
+  const timeoutMs = getOutboundCallWaitTimeoutMs();
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt <= timeoutMs) {
+    const existing = await db.actionExecution.findUnique({
+      where: { idempotencyKey },
+      select: {
+        status: true,
+        result: true,
+        error: true,
+      },
+    });
+
+    if (!existing) {
+      throw new Error("Queued outbound call disappeared before completion.");
+    }
+
+    if (existing.status === "COMPLETED") {
+      const completedResult = parseQueuedOutboundCallResult(existing.result);
+      if (!completedResult) {
+        throw new Error("Queued outbound call completed without a valid result payload.");
+      }
+      return completedResult;
+    }
+
+    if (existing.status === "FAILED") {
+      throw new Error(existing.error || "Queued outbound call failed.");
+    }
+
+    await sleep(VOICE_OUTBOUND_CALL_WAIT_POLL_MS);
+  }
+
+  throw new Error("Timed out waiting for the voice worker to place the outbound call.");
+}
+
+async function buildQueuedRequest(input: OutboundCallInput): Promise<QueuedOutboundCallRequest> {
   const normalizedPhone = normalizePhone(input.contactPhone);
   if (!normalizedPhone) {
     throw new Error("Valid phone number required for outbound call.");
   }
 
-  // Look up workspace's calling phone
   const workspace = await db.workspace.findUnique({
     where: { id: input.workspaceId },
     select: {
@@ -133,41 +279,32 @@ export async function initiateOutboundCall(input: OutboundCallInput): Promise<Ou
     throw new Error("Workspace not found.");
   }
 
-  const sipClient = getSipClient();
-  const roomClient = getRoomClient();
-  const trunk = await resolveWorkspaceOutboundTrunk(input.workspaceId, sipClient);
-
-  const roomName = `outbound-${input.workspaceId.slice(0, 8)}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-
-  // Create room with metadata so the agent knows context
-  await roomClient.createRoom({
-    name: roomName,
-    emptyTimeout: 300,
-    maxParticipants: 2,
-    metadata: JSON.stringify({
-      callType: "normal",
-      outbound: true,
-      workspaceId: input.workspaceId,
-      contactName: input.contactName || "",
-      phone: normalizedPhone,
-      calledPhone: workspace.twilioPhoneNumberNormalized || workspace.twilioPhoneNumber || "",
-      dealId: input.dealId || "",
-      reason: input.reason || "",
-    }),
-  });
-
-  // Dial the contact
-  await sipClient.createSipParticipant(trunk.trunkId, normalizedPhone, roomName, {
-    fromNumber: trunk.callerNumber || undefined,
-    participantName: input.contactName || normalizedPhone,
-    participantIdentity: `outbound-caller-${normalizedPhone}`,
-    playDialtone: true,
-  });
-
   return {
-    roomName,
-    normalizedPhone,
-    resolvedTrunkId: trunk.trunkId,
-    callerNumber: trunk.callerNumber,
+    workspaceId: input.workspaceId,
+    workspaceName: workspace.name || "",
+    workspaceCallerNumber: normalizePhone(workspace.twilioPhoneNumberNormalized || workspace.twilioPhoneNumber),
+    contactPhone: normalizedPhone,
+    contactName: (input.contactName || "").trim(),
+    dealId: input.dealId || null,
+    reason: (input.reason || "").trim(),
+  };
+}
+
+export async function initiateOutboundCall(input: OutboundCallInput): Promise<OutboundCallResult> {
+  const request = await buildQueuedRequest(input);
+
+  if (getOutboundCallControlMode() === "direct") {
+    return initiateOutboundCallDirect(request);
+  }
+
+  const queued = await enqueueOutboundCallRequest(request);
+  if (queued.completedResult) {
+    return queued.completedResult;
+  }
+
+  const completed = await waitForQueuedOutboundCall(queued.idempotencyKey);
+  return {
+    ...completed,
+    transport: "worker_queue",
   };
 }

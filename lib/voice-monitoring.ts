@@ -7,6 +7,7 @@ import type { VoiceIncidentObservation } from "@/lib/voice-incidents";
 import type { VoiceFleetHealth, VoiceSurface, VoiceSurfaceSaturationHealth } from "@/lib/voice-fleet";
 import type { TwilioVoiceCallHealth } from "@/lib/twilio-voice-call-health";
 import type { DemoCallHealth } from "@/lib/demo-call-health";
+import type { OutboundCallHealth } from "@/lib/outbound-call-health";
 
 export function combineVoiceStatuses(statuses: Array<"healthy" | "degraded" | "unhealthy">) {
   if (statuses.includes("unhealthy")) return "unhealthy";
@@ -151,6 +152,22 @@ export function buildDemoCallIncidentObservations(demoCalls: DemoCallHealth): Vo
       summary: demoCalls.summary,
       details: {
         demoCalls,
+      },
+    },
+  ];
+}
+
+export function buildOutboundCallIncidentObservations(outboundCalls: OutboundCallHealth): VoiceIncidentObservation[] {
+  if (outboundCalls.status === "healthy") return [];
+
+  return [
+    {
+      incidentKey: "voice:outbound:queued-calls",
+      surface: "normal",
+      severity: outboundCalls.status === "unhealthy" ? "critical" : "warning",
+      summary: outboundCalls.summary,
+      details: {
+        outboundCalls,
       },
     },
   ];

@@ -68,6 +68,10 @@ import {
   buildNormalPrompt,
 } from "./voice-prompts";
 import { startWorkerBackgroundLoops } from "./background-tasks";
+import {
+  executeQueuedOutboundCall,
+  type VoiceWorkerQueuedOutboundCallRequest,
+} from "./outbound-call-control";
 
 loadEnv({ path: '.env.local' });
 assertRequiredVoiceAgentEnv();
@@ -89,6 +93,7 @@ const DEPLOY_GIT_SHA = process.env.DEPLOY_GIT_SHA || "unknown";
 const AGENT_STARTED_AT = new Date().toISOString();
 const VOICE_AGENT_HEARTBEAT_MS = 60 * 1000;
 const VOICE_GROUNDING_CACHE_TTL_MS = 5 * 60 * 1000;
+const VOICE_OUTBOUND_CALL_QUEUE_POLL_MS = 2_000;
 console.log(`[agent-version] ${JSON.stringify({ gitSha: DEPLOY_GIT_SHA, startedAt: AGENT_STARTED_AT })}`);
 
 const NORMAL_WRAP_UP_MS = 8 * 60 * 1000;
@@ -1352,6 +1357,105 @@ async function postVoiceAgentStatus() {
       console.warn("[agent] Failed to write worker health snapshot after heartbeat failure:", snapshotError);
     });
     throw error;
+  }
+}
+
+function shouldProcessQueuedOutboundCalls() {
+  return getConfiguredWorkerSurfaces().includes("normal");
+}
+
+async function sendQueuedOutboundCallCompletion(params: {
+  idempotencyKey: string;
+  success: boolean;
+  result?: Awaited<ReturnType<typeof executeQueuedOutboundCall>>;
+  error?: string;
+}) {
+  const appUrl = getAppBaseUrl();
+  const secret = getVoiceAgentWebhookSecret();
+  if (!appUrl || !secret) {
+    throw new Error("Missing APP URL or worker webhook secret for outbound queue completion.");
+  }
+
+  const response = await fetch(`${appUrl.replace(/\/$/, "")}/api/internal/voice-outbound-queue`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-voice-agent-secret": secret,
+    },
+    body: JSON.stringify({
+      action: "complete",
+      idempotencyKey: params.idempotencyKey,
+      success: params.success,
+      result: params.result,
+      error: params.error,
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`Outbound queue completion failed: ${response.status} ${body}`);
+  }
+}
+
+async function processQueuedOutboundCalls() {
+  if (!shouldProcessQueuedOutboundCalls()) {
+    return;
+  }
+
+  const appUrl = getAppBaseUrl();
+  const secret = getVoiceAgentWebhookSecret();
+  if (!appUrl || !secret) {
+    return;
+  }
+
+  for (let processed = 0; processed < 3; processed += 1) {
+    const response = await fetch(`${appUrl.replace(/\/$/, "")}/api/internal/voice-outbound-queue`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-voice-agent-secret": secret,
+      },
+      body: JSON.stringify({
+        action: "claim",
+        workerRole: getConfiguredWorkerRole(),
+        hostId: getConfiguredHostId(),
+      }),
+    });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      throw new Error(`Outbound queue claim failed: ${response.status} ${body}`);
+    }
+
+    const claimPayload = await response.json() as {
+      claimed?: boolean;
+      idempotencyKey?: string;
+      request?: VoiceWorkerQueuedOutboundCallRequest;
+    };
+
+    if (!claimPayload.claimed || !claimPayload.idempotencyKey || !claimPayload.request) {
+      return;
+    }
+
+    try {
+      const result = await executeQueuedOutboundCall(claimPayload.request);
+      await sendQueuedOutboundCallCompletion({
+        idempotencyKey: claimPayload.idempotencyKey,
+        success: true,
+        result,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await sendQueuedOutboundCallCompletion({
+        idempotencyKey: claimPayload.idempotencyKey,
+        success: false,
+        error: message,
+      });
+      console.error("[agent] Queued outbound call failed:", {
+        idempotencyKey: claimPayload.idempotencyKey,
+        error: message,
+      });
+    }
   }
 }
 
@@ -2649,8 +2753,10 @@ export function startVoiceWorkerBackgroundTasks(logPrefix = "[agent]") {
     writeWorkerHealthSnapshot,
     refreshVoiceGroundingIndex,
     postVoiceAgentStatus,
+    processQueuedOutboundCalls: shouldProcessQueuedOutboundCalls() ? processQueuedOutboundCalls : undefined,
     voiceGroundingCacheTtlMs: VOICE_GROUNDING_CACHE_TTL_MS,
     voiceAgentHeartbeatMs: VOICE_AGENT_HEARTBEAT_MS,
+    queuedOutboundCallPollMs: VOICE_OUTBOUND_CALL_QUEUE_POLL_MS,
   });
 }
 

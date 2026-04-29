@@ -12,6 +12,7 @@ import { getVoiceMonitorStaleAfterMs } from "@/lib/voice-monitor-config";
 import { combineVoiceStatuses } from "@/lib/voice-monitoring";
 import { isVoiceAgentSecretAuthorized } from "@/lib/voice-agent-auth";
 import { getDemoCallHealth } from "@/lib/demo-call-health";
+import { getOutboundCallHealth } from "@/lib/outbound-call-health";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,7 @@ export async function GET(req: NextRequest) {
     twilioRouting,
     livekitSip,
     demoCalls,
+    outboundCalls,
     recentCalls,
     latency,
     passiveProduction,
@@ -44,6 +46,7 @@ export async function GET(req: NextRequest) {
     auditTwilioVoiceRouting({ apply: false }),
     getLivekitSipHealth(),
     getDemoCallHealth(),
+    getOutboundCallHealth(),
     getTwilioVoiceCallHealth({ lookbackMinutes: 30, limitPerAccount: 30 }),
     getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 }),
     getPassiveProductionHealth(),
@@ -60,6 +63,7 @@ export async function GET(req: NextRequest) {
     twilioRouting.status,
     livekitSip.status,
     demoCalls.status,
+    outboundCalls.status,
     invariants.status,
     recentCalls.status,
     latency.status,
@@ -78,6 +82,7 @@ export async function GET(req: NextRequest) {
       twilioRouting,
       livekitSip,
       demoCalls,
+      outboundCalls,
       invariants,
       recentCalls,
       latency,

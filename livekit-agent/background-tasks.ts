@@ -4,8 +4,10 @@ type BackgroundTaskOptions = {
   writeWorkerHealthSnapshot: () => Promise<void>;
   refreshVoiceGroundingIndex: (force?: boolean) => Promise<void>;
   postVoiceAgentStatus: () => Promise<void>;
+  processQueuedOutboundCalls?: () => Promise<void>;
   voiceGroundingCacheTtlMs: number;
   voiceAgentHeartbeatMs: number;
+  queuedOutboundCallPollMs?: number;
 };
 
 export function startWorkerBackgroundLoops({
@@ -14,8 +16,10 @@ export function startWorkerBackgroundLoops({
   writeWorkerHealthSnapshot,
   refreshVoiceGroundingIndex,
   postVoiceAgentStatus,
+  processQueuedOutboundCalls,
   voiceGroundingCacheTtlMs,
   voiceAgentHeartbeatMs,
+  queuedOutboundCallPollMs,
 }: BackgroundTaskOptions) {
   setWorkerBootReady(true);
 
@@ -38,11 +42,25 @@ export function startWorkerBackgroundLoops({
     console.error(`${logPrefix} Failed to post worker-status heartbeat:`, error);
   });
 
+  if (processQueuedOutboundCalls) {
+    void processQueuedOutboundCalls().catch((error) => {
+      console.error(`${logPrefix} Failed to process initial queued outbound calls:`, error);
+    });
+  }
+
   const heartbeatTimer = setInterval(() => {
     void postVoiceAgentStatus().catch((error) => {
       console.error(`${logPrefix} Failed to post worker-status heartbeat:`, error);
     });
   }, voiceAgentHeartbeatMs);
+
+  const queuedOutboundCallTimer = processQueuedOutboundCalls && queuedOutboundCallPollMs
+    ? setInterval(() => {
+        void processQueuedOutboundCalls().catch((error) => {
+          console.error(`${logPrefix} Failed to process queued outbound calls:`, error);
+        });
+      }, queuedOutboundCallPollMs)
+    : null;
 
   // Keep the Node event loop pinned so heartbeats continue even when the LiveKit
   // worker is otherwise idle between calls. If this timer is unref'd, the worker
@@ -51,5 +69,6 @@ export function startWorkerBackgroundLoops({
   return {
     groundingRefreshTimer,
     heartbeatTimer,
+    queuedOutboundCallTimer,
   };
 }

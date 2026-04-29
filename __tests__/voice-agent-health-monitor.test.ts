@@ -31,6 +31,11 @@ describe("buildVoiceAgentHealthMonitorDetails", () => {
         summary: "demo callbacks healthy",
         warnings: [],
       },
+      outboundCalls: {
+        status: "degraded",
+        summary: "1 recent queued outbound call request(s) failed, but at least one succeeded.",
+        warnings: ["1 recent queued outbound call request(s) failed."],
+      },
       invariants: {
         status: "healthy",
         summary: "invariants healthy",
@@ -56,6 +61,7 @@ describe("buildVoiceAgentHealthMonitorDetails", () => {
 
     expect(details.livekitSipStatus).toBe("unhealthy");
     expect(details.demoCallStatus).toBe("healthy");
+    expect(details.outboundCallStatus).toBe("degraded");
     expect(details.primaryIssue).toEqual({
       key: "livekitSip",
       status: "unhealthy",
@@ -68,6 +74,12 @@ describe("buildVoiceAgentHealthMonitorDetails", () => {
         status: "unhealthy",
         summary: "LiveKit SIP is missing the inbound trunk or dispatch state required for Earlymark inbound.",
         warnings: ["No LiveKit SIP dispatch rules are configured."],
+      },
+      {
+        key: "outboundCalls",
+        status: "degraded",
+        summary: "1 recent queued outbound call request(s) failed, but at least one succeeded.",
+        warnings: ["1 recent queued outbound call request(s) failed."],
       },
       {
         key: "recentCalls",

@@ -1,3 +1,31 @@
+## 2026-04-29 (Codex) - Moved production customer outbound-call control onto the OCI worker
+
+- Files changed:
+  - `lib/outbound-call.ts`
+  - `lib/outbound-call-queue.ts`
+  - `lib/outbound-call-health.ts`
+  - `app/api/internal/voice-outbound-queue/route.ts`
+  - `app/api/internal/voice-fleet-health/route.ts`
+  - `lib/voice-agent-health-monitor.ts`
+  - `lib/voice-monitoring.ts`
+  - `livekit-agent/outbound-call-control.ts`
+  - `livekit-agent/agent.ts`
+  - `livekit-agent/background-tasks.ts`
+  - `__tests__/outbound-call.test.ts`
+  - `__tests__/outbound-call-health.test.ts`
+  - `__tests__/voice-outbound-queue-route.test.ts`
+  - `__tests__/voice-agent-health-monitor.test.ts`
+  - `__tests__/voice-fleet-health-route.test.ts`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Replaced the production web-runtime direct LiveKit control path for `normal` outbound calls with a queued worker-owned path.
+  - The app now enqueues outbound-call requests in `ActionExecution`, the healthy `tracey-customer-agent` worker claims and executes them locally on OCI against `http://127.0.0.1:7880`, and the app waits for the worker result instead of trying to control LiveKit from Vercel.
+  - Added queued outbound-call health into `voice-fleet-health` and the scheduled voice monitor so stalled or failed worker-owned outbound requests show up as first-class voice incidents.
+- Why:
+  - The real production failure was not the homepage fallback path anymore; it was the architectural mismatch where Vercel-side code for scheduled calls, automation callbacks, and internal outbound calls still assumed it could reach the LiveKit control API directly.
+  - The canonical control-plane truth in this topology lives on the OCI host, so the clean fix is to keep outbound control on the worker host that can actually reach it and then monitor that queue explicitly.
+
 ## 2026-04-28 (Codex) - Moved worker heartbeat startup into the long-lived agent process
 
 - Files changed:

@@ -1,11 +1,12 @@
 # Voice Operating Brief
 
-Updated: 2026-04-28 AEST
+Updated: 2026-04-29 AEST
 
 ## Production topology
 
 - Live voice stack: Twilio PSTN/SIP -> `app/api/webhooks/twilio-voice-gateway` -> LiveKit SIP -> OCI voice workers.
 - Public website demo callbacks now have an emergency recovery path: if the web app cannot reach the LiveKit control API, it may originate the callback with Twilio and bridge the caller into the existing Earlymark SIP ingress instead of failing the lead immediately.
+- Production customer outbound calls now use a worker-owned control path: the web app enqueues the request in the app database, and the OCI `tracey-customer-agent` worker claims and executes it against local LiveKit control at `http://127.0.0.1:7880`.
 - Core LiveKit infrastructure is Dockerized on OCI under `/opt/livekit`.
 - Voice workers are Dockerized on OCI under `/opt/earlymark-worker` and orchestrated by `ops/docker/worker-compose.yml`.
 - Shared worker env is persisted at `/opt/earlymark-worker-shared/.env.local`.
@@ -108,6 +109,7 @@ Updated: 2026-04-28 AEST
   - fleet
   - Twilio routing
   - LiveKit SIP health
+  - queued outbound-call health
   - recent-call health
   - latency health
   - passive production health
@@ -139,6 +141,7 @@ Updated: 2026-04-28 AEST
 - LiveKit SIP health and outbound demo-trunk resolution must compare phone numbers in normalized E.164 form. Formatting differences like `0485...`, `61...`, spaces, or punctuation must not create false-unhealthy voice gates.
 - Public `/api/health` must mirror launch-readiness truth plus database reachability. Do not reintroduce a separate fragmented public health aggregation for voice, Twilio, readiness, and release state.
 - Deploy verification must not hard-gate on the web runtime reaching the LiveKit control API at `live.earlymark.ai`. Canonical worker-side control lives on the OCI box at `http://localhost:7880`, so deploy truth should come from worker heartbeat convergence, Twilio routing health, and the spoken PSTN canary.
+- Production outbound customer calls, scheduled callbacks, and automation-triggered callbacks must not depend on the Vercel runtime reaching LiveKit control directly. If the web app needs to originate a `normal` outbound call, it should enqueue the request and let the healthy OCI customer worker execute it locally against `http://127.0.0.1:7880`.
 - Worker heartbeats and health snapshots must start from the long-lived LiveKit agent process during `prewarm`, not only from the wrapper/bootstrap process. A single boot heartbeat followed by silence usually means the background loop is attached to the wrong process.
 - Public `/api/health` is a real production signal, not an internal debug route. Do not hide it behind production middleware rewrites.
 
