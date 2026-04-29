@@ -235,6 +235,21 @@ describe("GET /api/health", () => {
         warnings: [],
         lookbackMinutes: 60,
         scopes: [],
+        proof: {
+          status: "healthy",
+          summary: "Recent inbound_demo latency proof has 2 phone sample(s), including 1 spoken-canary sample(s).",
+          surfaces: [
+            {
+              surface: "inbound_demo",
+              status: "healthy",
+              summary: "Recent inbound_demo latency proof has 2 phone sample(s), including 1 spoken-canary sample(s).",
+              sampleCount: 2,
+              syntheticProbeSampleCount: 1,
+              latestCallAt: "2026-03-17T01:58:00.000Z",
+              latestSyntheticProbeCallAt: "2026-03-17T01:55:00.000Z",
+            },
+          ],
+        },
       },
     });
   });
@@ -247,6 +262,7 @@ describe("GET /api/health", () => {
     expect(body.status).toBe("ok");
     expect(body.services.launchReadiness).toBe("healthy");
     expect(body.services.passiveProduction).toBe("healthy");
+    expect(body.services.voiceLatency).toBe("healthy");
     expect(body.voiceWorker).toMatchObject({
       status: "healthy",
       summary: "voice worker ready",
@@ -258,6 +274,16 @@ describe("GET /api/health", () => {
     expect(body.twilioMessagingRouting).toMatchObject({
       status: "healthy",
       managedNumberCount: 1,
+    });
+    expect(body.voiceLatencyProof).toMatchObject({
+      status: "healthy",
+      surfaces: [
+        expect.objectContaining({
+          surface: "inbound_demo",
+          sampleCount: 2,
+          syntheticProbeSampleCount: 1,
+        }),
+      ],
     });
   });
 

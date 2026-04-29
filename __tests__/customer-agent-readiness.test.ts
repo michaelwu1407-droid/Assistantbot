@@ -54,6 +54,21 @@ import { getCustomerAgentReadiness } from "@/lib/customer-agent-readiness";
 
 const originalEnv = { ...process.env };
 
+function createVoiceLatencyHealth() {
+  return {
+    status: "healthy" as const,
+    summary: "latency ready",
+    warnings: [],
+    lookbackMinutes: 60,
+    scopes: [],
+    proof: {
+      status: "healthy" as const,
+      summary: "latency proof ready",
+      surfaces: [],
+    },
+  };
+}
+
 function createVoiceFleetHealth() {
   return {
     status: "healthy" as const,
@@ -172,13 +187,7 @@ describe("getCustomerAgentReadiness", () => {
         latestHeartbeat: null,
       },
       voiceFleet: createVoiceFleetHealth(),
-      voiceLatency: {
-        status: "healthy",
-        summary: "latency ready",
-        warnings: [],
-        lookbackMinutes: 60,
-        scopes: [],
-      },
+      voiceLatency: createVoiceLatencyHealth(),
       livekitSip: {
         status: "healthy",
         summary: "livekit sip ready",
@@ -254,13 +263,7 @@ describe("getCustomerAgentReadiness", () => {
         latestHeartbeat: null,
       },
       voiceFleet: createVoiceFleetHealth(),
-      voiceLatency: {
-        status: "healthy",
-        summary: "latency ready",
-        warnings: [],
-        lookbackMinutes: 60,
-        scopes: [],
-      },
+      voiceLatency: createVoiceLatencyHealth(),
       livekitSip: {
         status: "healthy",
         summary: "livekit sip ready",
@@ -342,13 +345,7 @@ describe("getCustomerAgentReadiness", () => {
         latestHeartbeat: null,
       },
       voiceFleet: createVoiceFleetHealth(),
-      voiceLatency: {
-        status: "healthy",
-        summary: "latency ready",
-        warnings: [],
-        lookbackMinutes: 60,
-        scopes: [],
-      },
+      voiceLatency: createVoiceLatencyHealth(),
       livekitSip: {
         status: "healthy",
         summary: "livekit sip ready",

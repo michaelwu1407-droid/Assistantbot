@@ -122,6 +122,11 @@ describe("getLaunchReadiness", () => {
       status: "healthy",
       summary: "latency healthy",
       warnings: [],
+      proof: {
+        status: "healthy",
+        summary: "latency proof healthy",
+        surfaces: [],
+      },
     });
     mocks.getMonitorRunHealth.mockResolvedValue({
       status: "healthy",
@@ -214,5 +219,34 @@ describe("getLaunchReadiness", () => {
     expect(result.summary).toBe("Spoken canary failed to capture assistant speech.");
     expect(result.canary.callSid).toBe("CA123");
     expect(result.canary.targetNumber).toBe("+61485010634");
+  });
+
+  it("lets degraded latency proof drive degraded launch readiness even when the core voice checks are healthy", async () => {
+    mocks.getVoiceLatencyHealth.mockResolvedValueOnce({
+      status: "degraded",
+      summary: "No recent inbound_demo calls have been persisted, so latency cannot be verified.",
+      warnings: ["No recent inbound_demo calls have been persisted, so latency cannot be verified."],
+      proof: {
+        status: "degraded",
+        summary: "No recent inbound_demo calls have been persisted, so latency cannot be verified.",
+        surfaces: [
+          {
+            surface: "inbound_demo",
+            status: "degraded",
+            summary: "No recent inbound_demo calls have been persisted, so latency cannot be verified.",
+            sampleCount: 0,
+            syntheticProbeSampleCount: 0,
+            latestCallAt: null,
+            latestSyntheticProbeCallAt: null,
+          },
+        ],
+      },
+    });
+
+    const result = await getLaunchReadiness();
+
+    expect(result.latency.status).toBe("degraded");
+    expect(result.status).toBe("degraded");
+    expect(result.summary).toBe("No recent inbound_demo calls have been persisted, so latency cannot be verified.");
   });
 });

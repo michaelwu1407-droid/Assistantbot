@@ -42,6 +42,7 @@ export async function GET() {
     const launchStatus = launchReadiness?.status || "unhealthy";
     const isUnhealthy = database.status === "unhealthy" || launchStatus === "unhealthy";
     const appRelease = getCurrentAppReleaseInfo();
+    const voiceLatencyProof = launchReadiness?.latency.proof || null;
     const summary =
       database.status === "unhealthy"
         ? database.error || "Database health check failed"
@@ -59,6 +60,7 @@ export async function GET() {
         launchReadiness: launchStatus,
         voiceCritical: launchReadiness?.voiceCritical.status || "unhealthy",
         passiveProduction: launchReadiness?.passiveProduction.status || "unhealthy",
+        voiceLatency: launchReadiness?.latency.status || "unhealthy",
         communications: launchReadiness?.communications.status || "unhealthy",
         provisioning: launchReadiness?.provisioning.status || "unhealthy",
         monitoring: launchReadiness?.monitoring.status || "unhealthy",
@@ -76,6 +78,7 @@ export async function GET() {
       voiceWorker: launchReadiness?.voiceCritical.voiceWorker || null,
       voiceFleet: launchReadiness?.voiceCritical.voiceFleet || null,
       voiceLatency: launchReadiness?.latency || null,
+      voiceLatencyProof,
       twilioVoiceRouting: launchReadiness?.voiceCritical.twilioVoiceRouting || null,
       twilioMessagingRouting: launchReadiness
         ? {

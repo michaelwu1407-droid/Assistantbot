@@ -260,6 +260,7 @@ export async function getLaunchReadiness(options?: {
   const overallStatus = [
     voiceCritical.status,
     canary.status,
+    latency.status,
     passiveProduction.status,
     monitoring.status,
     communications.status,
@@ -273,6 +274,8 @@ export async function getLaunchReadiness(options?: {
       ? voiceCritical.summary
       : canary.status !== "healthy"
         ? canary.summary
+        : latency.status !== "healthy"
+          ? latency.summary
       : passiveProduction.status !== "healthy"
         ? passiveProduction.summary
         : monitoring.status !== "healthy"

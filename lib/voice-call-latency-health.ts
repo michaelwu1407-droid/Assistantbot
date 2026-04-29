@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { phoneMatches, getKnownEarlymarkInboundNumbers } from "@/lib/earlymark-inbound-config";
 import type { RuntimeStatus, VoiceSurface } from "@/lib/voice-fleet";
 
 type VoiceLatencyThresholds = {
@@ -17,6 +18,9 @@ export type VoiceLatencyHealthScope = {
   summary: string;
   warnings: string[];
   sampleCount: number;
+  syntheticProbeSampleCount: number;
+  latestCallAt: string | null;
+  latestSyntheticProbeCallAt: string | null;
   averages: {
     llmTtftAvgMs: number;
     ttsTtfbAvgMs: number;
@@ -35,7 +39,18 @@ export type VoiceLatencyHealthScope = {
     dominantBottleneck: "tts_ttfb" | "llm_ttft" | "turn_start" | "balanced";
     ttsVoiceId: string | null;
     ttsLanguage: string | null;
+    syntheticProbeCall: boolean;
   }>;
+};
+
+export type VoiceLatencyProofSurface = {
+  surface: VoiceSurface;
+  status: RuntimeStatus;
+  summary: string;
+  sampleCount: number;
+  syntheticProbeSampleCount: number;
+  latestCallAt: string | null;
+  latestSyntheticProbeCallAt: string | null;
 };
 
 export type VoiceLatencyHealth = {
@@ -44,6 +59,11 @@ export type VoiceLatencyHealth = {
   warnings: string[];
   lookbackMinutes: number;
   scopes: VoiceLatencyHealthScope[];
+  proof: {
+    status: RuntimeStatus;
+    summary: string;
+    surfaces: VoiceLatencyProofSurface[];
+  };
 };
 
 const THRESHOLDS: Record<VoiceSurface, VoiceLatencyThresholds> = {
@@ -80,6 +100,10 @@ function readNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
+function readBoolean(value: unknown) {
+  return typeof value === "boolean" ? value : null;
+}
+
 function avg(values: number[]) {
   if (values.length === 0) return 0;
   return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
@@ -94,12 +118,51 @@ function requiresRecentProof(surface: VoiceSurface) {
   return CRITICAL_PROOF_SURFACES.includes(surface);
 }
 
+function getConfiguredSyntheticProbeCaller() {
+  return (process.env.VOICE_MONITOR_PROBE_CALLER_NUMBER || process.env.VOICE_ALERT_SMS_TO || "").trim();
+}
+
+function getConfiguredSyntheticProbeTargets() {
+  const explicitTarget = (process.env.VOICE_MONITOR_PROBE_TARGET_NUMBER || "").trim();
+  const knownInboundNumbers = getKnownEarlymarkInboundNumbers();
+  return explicitTarget ? [explicitTarget, ...knownInboundNumbers] : knownInboundNumbers;
+}
+
+function detectSyntheticProbeCall(call: {
+  roomName: string;
+  callerPhone?: string | null;
+  calledPhone?: string | null;
+  metadata: Prisma.JsonValue | null;
+}) {
+  const metadata = isJsonObject(call.metadata) ? call.metadata : null;
+  const monitoring = isJsonObject(metadata?.monitoring) ? metadata.monitoring : null;
+  const explicitFlag = readBoolean(monitoring?.syntheticProbeCall) ?? readBoolean(metadata?.syntheticProbeCall);
+  if (explicitFlag !== null) {
+    return explicitFlag;
+  }
+
+  const configuredProbeCaller = getConfiguredSyntheticProbeCaller();
+  const configuredProbeTargets = getConfiguredSyntheticProbeTargets();
+  if (
+    configuredProbeCaller &&
+    configuredProbeTargets.length > 0 &&
+    phoneMatches(call.callerPhone, configuredProbeCaller) &&
+    configuredProbeTargets.some((target) => phoneMatches(call.calledPhone, target))
+  ) {
+    return true;
+  }
+
+  return /(^|[_-])probe([_-]|$)/i.test(call.roomName);
+}
+
 function extractLatency(call: {
   latency: Prisma.JsonValue | null;
   metadata: Prisma.JsonValue | null;
   callId: string;
   roomName: string;
   createdAt: Date;
+  callerPhone: string | null;
+  calledPhone: string | null;
 }) {
   const latency = isJsonObject(call.latency) ? call.latency : null;
   const metadata = isJsonObject(call.metadata) ? call.metadata : null;
@@ -135,6 +198,7 @@ function extractLatency(call: {
     dominantBottleneck,
     ttsVoiceId: typeof metadata?.ttsVoiceId === "string" ? metadata.ttsVoiceId : null,
     ttsLanguage: typeof metadata?.ttsLanguage === "string" ? metadata.ttsLanguage : null,
+    syntheticProbeCall: detectSyntheticProbeCall(call),
   };
 }
 
@@ -142,6 +206,9 @@ function evaluateScope(surface: VoiceSurface, recentCalls: VoiceLatencyHealthSco
   const thresholds = THRESHOLDS[surface];
   const warnings: string[] = [];
   const requiresProof = requiresRecentProof(surface);
+  const syntheticProbeSampleCount = recentCalls.filter((call) => call.syntheticProbeCall).length;
+  const latestCallAt = recentCalls[0]?.createdAt || null;
+  const latestSyntheticProbeCallAt = recentCalls.find((call) => call.syntheticProbeCall)?.createdAt || null;
   const llmValues = recentCalls.map((call) => call.llmTtftAvgMs).filter((value) => value > 0);
   const ttsValues = recentCalls.map((call) => call.ttsTtfbAvgMs).filter((value) => value > 0);
   const totalValues = recentCalls.map((call) => call.totalTurnStartMs).filter((value) => value > 0);
@@ -228,9 +295,43 @@ function evaluateScope(surface: VoiceSurface, recentCalls: VoiceLatencyHealthSco
         : warnings[0] || (recentCalls.length === 0 ? noRecentCallsSummary : `${surface} latency has regressed`),
     warnings,
     sampleCount: recentCalls.length,
+    syntheticProbeSampleCount,
+    latestCallAt,
+    latestSyntheticProbeCallAt,
     averages,
     thresholds,
     recentCalls,
+  };
+}
+
+function buildLatencyProof(scopes: VoiceLatencyHealthScope[]) {
+  const surfaces = scopes
+    .filter((scope) => requiresRecentProof(scope.surface))
+    .map<VoiceLatencyProofSurface>((scope) => ({
+      surface: scope.surface,
+      status: scope.status,
+      summary:
+        scope.sampleCount === 0
+          ? scope.summary
+          : scope.syntheticProbeSampleCount > 0
+            ? `Recent ${scope.surface} latency proof has ${scope.sampleCount} phone sample(s), including ${scope.syntheticProbeSampleCount} spoken-canary sample(s).`
+            : `Recent ${scope.surface} latency proof has ${scope.sampleCount} phone sample(s), but none came from the spoken canary yet.`,
+      sampleCount: scope.sampleCount,
+      syntheticProbeSampleCount: scope.syntheticProbeSampleCount,
+      latestCallAt: scope.latestCallAt,
+      latestSyntheticProbeCallAt: scope.latestSyntheticProbeCallAt,
+    }));
+
+  const status = surfaces.reduce<RuntimeStatus>((current, scope) => maxStatus(current, scope.status), "healthy");
+  const summary =
+    surfaces.find((scope) => scope.status !== "healthy")?.summary ||
+    surfaces[0]?.summary ||
+    "No latency-proof surfaces are configured.";
+
+  return {
+    status,
+    summary,
+    surfaces,
   };
 }
 
@@ -253,6 +354,8 @@ export async function getVoiceLatencyHealth(options?: {
       callType: true,
       roomName: true,
       createdAt: true,
+      callerPhone: true,
+      calledPhone: true,
       latency: true,
       metadata: true,
     },
@@ -275,6 +378,7 @@ export async function getVoiceLatencyHealth(options?: {
   const scopes = (["demo", "inbound_demo", "normal"] as VoiceSurface[]).map((surface) =>
     evaluateScope(surface, grouped[surface]),
   );
+  const proof = buildLatencyProof(scopes);
   const status = scopes.reduce<RuntimeStatus>((current, scope) => maxStatus(current, scope.status), "healthy");
 
   return {
@@ -286,5 +390,6 @@ export async function getVoiceLatencyHealth(options?: {
     warnings: scopes.flatMap((scope) => scope.warnings),
     lookbackMinutes,
     scopes,
+    proof,
   };
 }

@@ -1,3 +1,25 @@
+## 2026-04-29 (Codex) - Exposed phone-call latency proof and reduced session TTS cold starts
+
+- Files changed:
+  - `app/api/health/route.ts`
+  - `lib/customer-agent-readiness.ts`
+  - `lib/launch-readiness.ts`
+  - `lib/voice-call-latency-health.ts`
+  - `livekit-agent/agent.ts`
+  - `__tests__/customer-agent-readiness.test.ts`
+  - `__tests__/health-route.test.ts`
+  - `__tests__/launch-readiness.test.ts`
+  - `__tests__/voice-call-latency-health.test.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added explicit latency-proof reporting for recent phone-call samples, including per-surface sample counts, last-sample timestamps, and spoken-canary sample counts for `inbound_demo`.
+  - Updated launch readiness and public health output so degraded phone-latency proof actually surfaces instead of hiding behind otherwise healthy voice checks.
+  - Marked persisted synthetic-probe calls explicitly in voice-call metadata and taught latency health to recognize them, which makes post-deploy measurement much cleaner.
+  - Reduced low-risk TTS cold-start cost by warming the session Cartesia client immediately and prewarming newly detected non-English reply languages as soon as we know the caller language.
+- Why:
+  - We needed a better answer to "is voice fast right now?" than raw averages with vague sample coverage, especially for real PSTN calls and canary-backed proof.
+  - The previous process-level TTS warmup helped, but each live session still created a fresh Cartesia client; overlapping a tiny warmup with session setup trims that first real-reply cost without changing call behavior.
+
 ## 2026-04-29 (Codex) - Consolidated voice monitoring cadence and made latency proof explicit
 
 - Files changed:

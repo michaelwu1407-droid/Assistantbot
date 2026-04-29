@@ -468,6 +468,7 @@ class MultilingualTTS extends agentsTts.TTS {
   readonly label = 'multilingual-cartesia';
   #defaultTts: cartesia.TTS;
   #ttsByLang = new Map<string, cartesia.TTS>();
+  #langWarmups = new Map<string, Promise<void>>();
   #currentReplyLanguage: string;
   #opts: { model: string; voice: string; chunkTimeout: number };
 
@@ -481,6 +482,9 @@ class MultilingualTTS extends agentsTts.TTS {
 
   setReplyLanguage(detected: string | null | undefined): void {
     this.#currentReplyLanguage = normalizeReplyLanguage(detected);
+    if (this.#currentReplyLanguage !== 'en-AU' && this.#currentReplyLanguage !== 'en') {
+      this.#prewarmLanguageTts(this.#currentReplyLanguage);
+    }
   }
 
   getCurrentReplyLanguage(): string {
@@ -504,8 +508,7 @@ class MultilingualTTS extends agentsTts.TTS {
     });
   }
 
-  #getTts(): cartesia.TTS {
-    const lang = this.#currentReplyLanguage;
+  #getOrCreateTts(lang: string): cartesia.TTS {
     if (lang === 'en-AU' || lang === 'en') return this.#defaultTts;
     if (!this.#ttsByLang.has(lang)) {
       const tts = new cartesia.TTS({
@@ -518,6 +521,19 @@ class MultilingualTTS extends agentsTts.TTS {
       this.#ttsByLang.set(lang, tts);
     }
     return this.#ttsByLang.get(lang)!;
+  }
+
+  #prewarmLanguageTts(lang: string): void {
+    if (this.#langWarmups.has(lang)) return;
+    const tts = this.#getOrCreateTts(lang);
+    const warmup = warmCartesiaTts(tts, "Hi there.", `[voice-latency:${lang}]`).finally(() => {
+      this.#langWarmups.delete(lang);
+    });
+    this.#langWarmups.set(lang, warmup);
+  }
+
+  #getTts(): cartesia.TTS {
+    return this.#getOrCreateTts(this.#currentReplyLanguage);
   }
 
   synthesize(text: string, connOptions?: unknown, abortSignal?: AbortSignal): agentsTts.ChunkedStream {
@@ -632,6 +648,38 @@ function getKnownEarlymarkNumbers(): string[] {
     .map((value) => normalizePhone(value))
     .filter(Boolean) as string[];
   return Array.from(new Set(values));
+}
+
+function getConfiguredSyntheticProbeCaller() {
+  return normalizePhone(process.env.VOICE_MONITOR_PROBE_CALLER_NUMBER || process.env.VOICE_ALERT_SMS_TO || "");
+}
+
+function getConfiguredSyntheticProbeTargets() {
+  const explicitTarget = normalizePhone(process.env.VOICE_MONITOR_PROBE_TARGET_NUMBER || "");
+  const values = explicitTarget ? [explicitTarget, ...getKnownEarlymarkNumbers()] : getKnownEarlymarkNumbers();
+  return Array.from(new Set(values.filter(Boolean)));
+}
+
+function isSyntheticProbeCall(args: {
+  callType: CallType;
+  roomName: string;
+  callerPhone?: string | null;
+  calledPhone?: string | null;
+}) {
+  if (args.callType !== "inbound_demo") return false;
+
+  const configuredCaller = getConfiguredSyntheticProbeCaller();
+  const configuredTargets = getConfiguredSyntheticProbeTargets();
+  if (
+    configuredCaller &&
+    configuredTargets.length > 0 &&
+    phoneMatches(args.callerPhone, configuredCaller) &&
+    configuredTargets.some((target) => phoneMatches(args.calledPhone, target))
+  ) {
+    return true;
+  }
+
+  return /(^|[_-])probe([_-]|$)/i.test(args.roomName);
 }
 
 function normalizeWorkerSurface(value: string): CallType | null {
@@ -889,10 +937,18 @@ function createCartesiaTts(language = resolveConfiguredTtsLanguage()) {
   });
 }
 
+async function warmCartesiaTts(tts: cartesia.TTS, text: string, logPrefix: string) {
+  try {
+    await tts.synthesize(text).collect();
+  } catch (error) {
+    console.warn(`${logPrefix} Failed to warm Cartesia TTS:`, error);
+  }
+}
+
 async function prewarmVoiceProcess(logPrefix = "[agent-prewarm]") {
   try {
     const warmTts = createCartesiaTts();
-    await warmTts.synthesize("Hi there.").collect();
+    await warmCartesiaTts(warmTts, "Hi there.", `${logPrefix} [VOICE_LATENCY]`);
     await Promise.allSettled(getSharedFixedLineAudioCache(warmTts, logPrefix).values());
     await Promise.allSettled(getSharedOpenerAudioCache(warmTts, logPrefix).values());
     await Promise.allSettled(getSharedSpeculativeHeadAudioCache(warmTts, logPrefix).values());
@@ -1812,6 +1868,7 @@ export default defineAgent({
     });
 
     const defaultTts = createCartesiaTts();
+    void warmCartesiaTts(defaultTts, "Yep.", "[voice-latency:session]");
     const ttsOpts = {
       model: resolveConfiguredTtsModel(),
       voice: resolveConfiguredTtsVoiceId(),
@@ -2813,6 +2870,14 @@ export default defineAgent({
           urgentEscalation,
           responsePolicyOutcomes,
           groundingCacheHit: Boolean(normalVoiceGrounding),
+          monitoring: {
+            syntheticProbeCall: isSyntheticProbeCall({
+              callType,
+              roomName,
+              callerPhone,
+              calledPhone,
+            }),
+          },
           roomMetadata,
           sipAttributes,
           providerCallIds: {

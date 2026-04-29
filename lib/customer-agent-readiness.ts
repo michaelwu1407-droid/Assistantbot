@@ -170,6 +170,11 @@ function buildVoiceLatencyFailure(message: string): VoiceLatencyHealth {
     warnings: [message],
     lookbackMinutes: 60,
     scopes: [],
+    proof: {
+      status: "unhealthy",
+      summary: message,
+      surfaces: [],
+    },
   };
 }
 

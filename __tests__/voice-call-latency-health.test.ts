@@ -29,6 +29,17 @@ describe("getVoiceLatencyHealth", () => {
     expect(inboundDemo?.warnings).toContain(
       "No recent inbound_demo calls have been persisted, so latency cannot be verified.",
     );
+    expect(result.proof.status).toBe("degraded");
+    expect(result.proof.surfaces).toEqual([
+      expect.objectContaining({
+        surface: "inbound_demo",
+        status: "degraded",
+        sampleCount: 0,
+        syntheticProbeSampleCount: 0,
+        latestCallAt: null,
+        latestSyntheticProbeCallAt: null,
+      }),
+    ]);
     expect(demo?.status).toBe("healthy");
     expect(result.status).toBe("degraded");
   });
@@ -149,7 +160,7 @@ describe("getVoiceLatencyHealth", () => {
       {
         callId: "inbound-fast-1",
         callType: "inbound_demo",
-        roomName: "room-fast-1",
+        roomName: "earlymark-inbound-_+61434955958_probe",
         createdAt: new Date("2026-04-07T09:00:00.000Z"),
         latency: {
           llmTtftAvgMs: 140,
@@ -192,6 +203,10 @@ describe("getVoiceLatencyHealth", () => {
 
     expect(inboundDemo?.status).toBe("healthy");
     expect(inboundDemo?.warnings).toEqual([]);
+    expect(inboundDemo?.syntheticProbeSampleCount).toBe(1);
+    expect(inboundDemo?.latestSyntheticProbeCallAt).toBe("2026-04-07T09:00:00.000Z");
+    expect(result.proof.status).toBe("healthy");
+    expect(result.proof.surfaces[0]?.summary).toContain("including 1 spoken-canary sample");
     expect(inboundDemo?.averages.firstTurnStartMs).toBe(163);
     expect(result.status).toBe("healthy");
   });
