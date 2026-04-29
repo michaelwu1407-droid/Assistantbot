@@ -179,4 +179,82 @@ describe("getVoiceLatencyHealth", () => {
     expect(inboundDemo?.averages.firstTurnStartMs).toBe(163);
     expect(result.status).toBe("healthy");
   });
+
+  it("tolerates one slow first-turn outlier when the majority of inbound demo calls stay fast", async () => {
+    db.voiceCall.findMany.mockResolvedValue([
+      {
+        callId: "inbound-majority-fast-1",
+        callType: "inbound_demo",
+        roomName: "room-majority-fast-1",
+        createdAt: new Date("2026-04-07T10:00:00.000Z"),
+        latency: {
+          llmTtftAvgMs: 121,
+          ttsTtfbAvgMs: 1049,
+          totalTurnStartAvgMs: 645,
+          firstTurnStartMs: 1179,
+        },
+        metadata: {},
+      },
+      {
+        callId: "inbound-majority-fast-2",
+        callType: "inbound_demo",
+        roomName: "room-majority-fast-2",
+        createdAt: new Date("2026-04-07T10:10:00.000Z"),
+        latency: {
+          llmTtftAvgMs: 156,
+          ttsTtfbAvgMs: 1231,
+          totalTurnStartAvgMs: 566,
+          firstTurnStartMs: 249,
+        },
+        metadata: {},
+      },
+      {
+        callId: "inbound-majority-fast-3",
+        callType: "inbound_demo",
+        roomName: "room-majority-fast-3",
+        createdAt: new Date("2026-04-07T10:20:00.000Z"),
+        latency: {
+          llmTtftAvgMs: 124,
+          ttsTtfbAvgMs: 1233,
+          totalTurnStartAvgMs: 1018,
+          firstTurnStartMs: 145,
+        },
+        metadata: {},
+      },
+      {
+        callId: "inbound-majority-fast-4",
+        callType: "inbound_demo",
+        roomName: "room-majority-fast-4",
+        createdAt: new Date("2026-04-07T10:30:00.000Z"),
+        latency: {
+          llmTtftAvgMs: 159,
+          ttsTtfbAvgMs: 1208,
+          totalTurnStartAvgMs: 911,
+          firstTurnStartMs: 208,
+        },
+        metadata: {},
+      },
+      {
+        callId: "inbound-majority-fast-5",
+        callType: "inbound_demo",
+        roomName: "room-majority-fast-5",
+        createdAt: new Date("2026-04-07T10:40:00.000Z"),
+        latency: {
+          llmTtftAvgMs: 131,
+          ttsTtfbAvgMs: 1214,
+          totalTurnStartAvgMs: 1009,
+          firstTurnStartMs: 160,
+        },
+        metadata: {},
+      },
+    ]);
+
+    const result = await getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 });
+    const inboundDemo = result.scopes.find((scope) => scope.surface === "inbound_demo");
+
+    expect(inboundDemo?.status).toBe("healthy");
+    expect(inboundDemo?.warnings).toEqual([]);
+    expect(inboundDemo?.averages.firstTurnStartMs).toBe(388);
+    expect(result.status).toBe("healthy");
+  });
 });

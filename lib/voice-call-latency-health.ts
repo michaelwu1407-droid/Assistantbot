@@ -147,13 +147,20 @@ function evaluateScope(surface: VoiceSurface, recentCalls: VoiceLatencyHealthSco
     firstTurnStartMs: avg(firstTurnValues),
   };
 
+  const perceivedStartHealthyThresholdMs = Math.min(thresholds.totalTurnStartMs, thresholds.ttsTtfbAvgMs + 100);
+  const fastPerceivedCallCount = recentCalls.filter((call) => (
+    call.firstTurnStartMs > 0 &&
+    call.firstTurnStartMs <= thresholds.firstTurnStartMs &&
+    call.totalTurnStartMs > 0 &&
+    call.totalTurnStartMs <= perceivedStartHealthyThresholdMs
+  )).length;
+
   const usesFastSpeechLead =
     (surface === "demo" || surface === "inbound_demo") &&
     recentCalls.length >= 3 &&
-    averages.firstTurnStartMs > 0 &&
-    averages.firstTurnStartMs <= thresholds.firstTurnStartMs &&
     averages.totalTurnStartMs > 0 &&
-    averages.totalTurnStartMs <= Math.min(thresholds.totalTurnStartMs, thresholds.ttsTtfbAvgMs + 100);
+    averages.totalTurnStartMs <= perceivedStartHealthyThresholdMs &&
+    fastPerceivedCallCount >= Math.max(3, Math.ceil(recentCalls.length * 0.6));
 
   if (recentCalls.length >= 3 && averages.llmTtftAvgMs > thresholds.llmTtftAvgMs) {
     warnings.push(`Average LLM TTFT is ${averages.llmTtftAvgMs}ms (threshold ${thresholds.llmTtftAvgMs}ms).`);
