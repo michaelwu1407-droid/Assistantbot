@@ -5735,3 +5735,28 @@ Rule: every agent change commit must include an entry in this file.
 - Why:
   - The live voice outage was ultimately caused by infrastructure drift plus incorrect operational assumptions in the docs. Leaving the old `/opt/livekit` story in place would make the next incident much more likely.
   - After the live recovery, the repo needed to tell the truth about the running production topology so monitoring, deploy, and incident work starts from the right baseline.
+
+## 2026-04-29 14:27 AEST - Harden launch readiness against monitor drift and Resend rate limits
+
+- Agent: Codex
+- Files:
+  - `lib/inbound-lead-email-readiness.ts`
+  - `lib/voice-monitor-config.ts`
+  - `app/api/cron/voice-monitor-watchdog/route.ts`
+  - `.github/workflows/voice-synthetic-probe.yml`
+  - `__tests__/inbound-lead-email-readiness.test.ts`
+  - `__tests__/voice-monitor-watchdog-route.test.ts`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- What changed:
+  - Stopped treating “no recent inbound email traffic” as launch-readiness failure when DNS and Resend inbound receiving are already configured correctly.
+  - Added a Resend detail-lookup fallback so provider `HTTP 429` rate limits do not falsely degrade inbound email readiness when the domain summary is already verified and receiving is enabled.
+  - Increased the default monitor stale window from 15 to 20 minutes to absorb normal GitHub Actions scheduler drift without waiting so long that real outages disappear into the noise.
+  - Extended the voice watchdog so it refreshes stale `passive-communications-health` runs inline, not just stale `voice-agent-health`.
+  - Put the spoken synthetic probe workflow back on a schedule so the active canary does not simply age into a stale red state.
+- Why:
+  - After the live voice recovery, public health was still being dragged down by stale monitor timing and by an email readiness check that treated vendor introspection hiccups as if customer-facing email were actually broken.
+  - The app already has a passive production health surface for real traffic failures, so launch readiness should focus on configuration truth and keep rate-limit noise from masking the real operational picture.
+- Verified with:
+  - `npx vitest run __tests__/inbound-lead-email-readiness.test.ts __tests__/voice-monitor-watchdog-route.test.ts __tests__/launch-readiness.test.ts __tests__/health-route.test.ts __tests__/customer-agent-readiness.test.ts`
+  - `npx tsc --noEmit`

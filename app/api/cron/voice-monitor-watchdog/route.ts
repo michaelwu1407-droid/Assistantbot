@@ -5,6 +5,7 @@ import { dispatchVoiceIncidentNotifications } from "@/lib/voice-incident-alert";
 import { reconcileVoiceIncidents } from "@/lib/voice-incidents";
 import { getVoiceMonitorStaleAfterMs } from "@/lib/voice-monitor-config";
 import { buildMonitorIncidentObservations } from "@/lib/voice-monitoring";
+import { getPassiveProductionHealth } from "@/lib/passive-production-health";
 import {
   buildVoiceAgentHealthMonitorDetails,
   getVoiceAgentHealthMonitorSummary,
@@ -24,6 +25,8 @@ export async function GET(req: NextRequest) {
   try {
     let voiceAgentHealth = await getMonitorRunHealth("voice-agent-health", staleAfterMs);
     let refreshedVoiceAgentHealthRun = null;
+    let passiveTrafficHealth = await getMonitorRunHealth("passive-communications-health", staleAfterMs);
+    let refreshedPassiveTrafficRun = null;
 
     if (voiceAgentHealth.status !== "healthy") {
       const refreshCheckedAt = new Date();
@@ -59,22 +62,75 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    if (passiveTrafficHealth.status !== "healthy") {
+      const refreshCheckedAt = new Date();
+
+      try {
+        refreshedPassiveTrafficRun = await getPassiveProductionHealth();
+        await recordMonitorRun({
+          monitorKey: "passive-communications-health",
+          status: refreshedPassiveTrafficRun.status,
+          summary: refreshedPassiveTrafficRun.summary,
+          details: {
+            checkedAt: refreshedPassiveTrafficRun.checkedAt,
+            voiceStatus: refreshedPassiveTrafficRun.voice.status,
+            smsStatus: refreshedPassiveTrafficRun.sms.status,
+            emailStatus: refreshedPassiveTrafficRun.email.status,
+            activeWorkspaceCount: refreshedPassiveTrafficRun.activeWorkspaceCount,
+            unhealthyActiveWorkspaceCount: refreshedPassiveTrafficRun.unhealthyActiveWorkspaceCount,
+            unknownWorkspaceCount: refreshedPassiveTrafficRun.unknownWorkspaceCount,
+            refreshedBy: "voice-monitor-watchdog",
+          },
+          checkedAt: refreshCheckedAt,
+          succeeded: true,
+        });
+        passiveTrafficHealth = await getMonitorRunHealth("passive-communications-health", staleAfterMs);
+      } catch (refreshError) {
+        const refreshMessage = refreshError instanceof Error ? refreshError.message : "Unknown passive monitor refresh failure";
+        await recordMonitorRun({
+          monitorKey: "passive-communications-health",
+          status: "unhealthy",
+          summary: `Passive communications monitor crashed: ${refreshMessage}`,
+          details: {
+            checkedAt: refreshCheckedAt.toISOString(),
+            error: refreshMessage,
+            refreshedBy: "voice-monitor-watchdog",
+          },
+          checkedAt: refreshCheckedAt,
+          succeeded: false,
+        }).catch(() => null);
+        throw refreshError;
+      }
+    }
+
     const observations = buildMonitorIncidentObservations(voiceAgentHealth);
     const incidents = await reconcileVoiceIncidents(observations, {
       resolveKeys: ["voice:monitor:stale"],
     });
 
+    const watchdogStatus =
+      voiceAgentHealth.status === "unhealthy" || passiveTrafficHealth.status === "unhealthy"
+        ? "unhealthy"
+        : voiceAgentHealth.status === "degraded" || passiveTrafficHealth.status === "degraded"
+          ? "degraded"
+          : "healthy";
+    const watchdogSummary =
+      watchdogStatus === "healthy"
+        ? "Voice monitor watchdog completed successfully"
+        : voiceAgentHealth.status !== "healthy"
+          ? voiceAgentHealth.summary
+          : passiveTrafficHealth.summary;
+
     await recordMonitorRun({
       monitorKey: "voice-monitor-watchdog",
-      status: voiceAgentHealth.status,
-      summary:
-        voiceAgentHealth.status === "healthy"
-          ? "Voice monitor watchdog completed successfully"
-          : voiceAgentHealth.summary,
+      status: watchdogStatus,
+      summary: watchdogSummary,
       details: {
         checkedAt: checkedAt.toISOString(),
         voiceAgentHealth,
+        passiveTrafficHealth,
         refreshedVoiceAgentHealthRun,
+        refreshedPassiveTrafficRun,
       },
       checkedAt,
       succeeded: true,
@@ -82,13 +138,15 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(
       {
-        status: voiceAgentHealth.status,
+        status: watchdogStatus,
         checkedAt: checkedAt.toISOString(),
         voiceAgentHealth,
+        passiveTrafficHealth,
         refreshedVoiceAgentHealthRun,
+        refreshedPassiveTrafficRun,
         incidents,
       },
-      { status: voiceAgentHealth.status === "unhealthy" ? 500 : 200 },
+      { status: watchdogStatus === "unhealthy" ? 500 : 200 },
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown watchdog failure";

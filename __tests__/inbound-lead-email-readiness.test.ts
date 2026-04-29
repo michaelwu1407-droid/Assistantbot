@@ -135,7 +135,7 @@ describe("getInboundLeadEmailReadiness", () => {
     expect(result.lastInboundEmailSuccessAt).toBe("2026-03-17T01:00:00.000Z");
   });
 
-  it("requires a recent successful inbound webhook before marking inbound email ready", async () => {
+  it("treats provider-verified inbound email as ready even before recent traffic has proven it", async () => {
     resolveMx.mockResolvedValue([
       {
         exchange: "inbound-smtp.ap-northeast-1.amazonaws.com",
@@ -180,9 +180,53 @@ describe("getInboundLeadEmailReadiness", () => {
 
     const result = await getInboundLeadEmailReadiness("inbound.earlymark.ai");
 
-    expect(result.ready).toBe(false);
+    expect(result.ready).toBe(true);
     expect(result.resendDomainStatus).toBe("not_started");
     expect(result.providerVerified).toBe(true);
-    expect(result.issues.some((issue) => issue.includes("has not been confirmed by a successful email.received webhook event"))).toBe(true);
+    expect(result.receivingConfirmed).toBe(false);
+    expect(result.issues).toEqual([]);
+    expect(result.stage).toBe("provider_verified");
+  });
+
+  it("falls back to the verified domain summary when Resend rate-limits detail lookups", async () => {
+    resolveMx.mockResolvedValue([
+      {
+        exchange: "inbound-smtp.ap-northeast-1.amazonaws.com",
+        priority: 10,
+      },
+    ]);
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            data: [
+              {
+                id: "domain_1",
+                name: "inbound.earlymark.ai",
+                status: "verified",
+                capabilities: { sending: "enabled", receiving: "enabled" },
+              },
+            ],
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            message: "rate limited",
+          }),
+          { status: 429 },
+        ),
+      );
+
+    const result = await getInboundLeadEmailReadiness("inbound.earlymark.ai");
+
+    expect(result.ready).toBe(true);
+    expect(result.providerVerified).toBe(true);
+    expect(result.resendReceivingEnabled).toBe(true);
+    expect(result.resendReceivingRecordStatus).toBe("rate_limited_assumed_verified");
+    expect(result.issues).toEqual([]);
+    expect(result.stage).toBe("provider_verified");
   });
 });

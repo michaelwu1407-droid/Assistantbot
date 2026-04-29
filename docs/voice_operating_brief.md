@@ -127,8 +127,10 @@ Updated: 2026-04-29 AEST
   - voice from persisted `VoiceCall` activity plus recent Twilio failures
   - inbound email from real `WebhookEvent(provider="resend", eventType="email.received")` success/failure data
 - Low/no traffic customer workspaces are surfaced as per-workspace `unknown`, but they do not drag top-level launch status down unless there is a real failure signal.
-- The synthetic probe is no longer the routine production health source. It is reserved for deploy verification and manual incident recovery.
+- The synthetic probe is still a higher-cost active check than passive traffic health, but it now runs on a scheduled cadence for real outage detection in addition to deploy verification and manual recovery.
 - The spoken PSTN canary is only considered healthy when Twilio completes the probe call and the app persists a matching `VoiceCall` with both caller and Tracey speech.
+- The default monitor stale window is now 20 minutes to tolerate normal GitHub Actions scheduler drift without masking genuine outages for hours.
+- The watchdog should refresh stale `voice-agent-health` and stale `passive-communications-health` state inline instead of waiting for their dedicated workflows to run again.
 - Worker shutdown must wait for `VoiceCall` persistence to finish after disconnect. Do not fire-and-forget the `/api/internal/voice-calls` write or the deploy-only spoken canary will produce false negatives even when Tracey answered correctly.
 - Launch-critical release truth now has a dedicated internal route at `/api/internal/launch-readiness`, which aggregates:
   - live web release SHA
@@ -146,6 +148,7 @@ Updated: 2026-04-29 AEST
 - App-side heartbeat freshness must use the server receipt timestamp, not the worker-reported wall clock. OCI/Docker host clock skew should never be able to make a healthy worker look stale in fleet truth, launch-readiness, or deploy verification.
 - LiveKit SIP health and outbound demo-trunk resolution must compare phone numbers in normalized E.164 form. Formatting differences like `0485...`, `61...`, spaces, or punctuation must not create false-unhealthy voice gates.
 - Public `/api/health` must mirror launch-readiness truth plus database reachability. Do not reintroduce a separate fragmented public health aggregation for voice, Twilio, readiness, and release state.
+- Inbound lead-email readiness should represent setup truth, not recent traffic volume. Real email activity belongs in passive communications health; a Resend API `429` or zero recent inbound messages should not by itself mark launch readiness degraded when DNS plus provider configuration are already verified.
 - Deploy verification must not hard-gate on the web runtime reaching the LiveKit control API at `live.earlymark.ai`. Canonical worker-side control lives on the OCI box at `http://localhost:7880`, so deploy truth should come from worker heartbeat convergence, Twilio routing health, and the spoken PSTN canary.
 - Production outbound customer calls, scheduled callbacks, and automation-triggered callbacks must not depend on the Vercel runtime reaching LiveKit control directly. If the web app needs to originate a `normal` outbound call, it should enqueue the request and let the healthy OCI customer worker execute it locally against `http://127.0.0.1:7880`.
 - Worker heartbeats and health snapshots must start from the long-lived LiveKit agent process during `prewarm`, not only from the wrapper/bootstrap process. A single boot heartbeat followed by silence usually means the background loop is attached to the wrong process.

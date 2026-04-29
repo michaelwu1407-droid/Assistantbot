@@ -11,6 +11,7 @@ const {
   runVoiceAgentHealthMonitor,
   getVoiceAgentHealthMonitorSummary,
   buildVoiceAgentHealthMonitorDetails,
+  getPassiveProductionHealth,
 } = vi.hoisted(() => ({
   getMonitorRunHealth: vi.fn(),
   recordMonitorRun: vi.fn(),
@@ -21,6 +22,7 @@ const {
   runVoiceAgentHealthMonitor: vi.fn(),
   getVoiceAgentHealthMonitorSummary: vi.fn(),
   buildVoiceAgentHealthMonitorDetails: vi.fn(),
+  getPassiveProductionHealth: vi.fn(),
 }));
 
 vi.mock("@/lib/ops-monitor-runs", () => ({
@@ -55,6 +57,10 @@ vi.mock("@/lib/voice-agent-health-monitor", () => ({
   buildVoiceAgentHealthMonitorDetails,
 }));
 
+vi.mock("@/lib/passive-production-health", () => ({
+  getPassiveProductionHealth,
+}));
+
 import { GET } from "@/app/api/cron/voice-monitor-watchdog/route";
 
 describe("GET /api/cron/voice-monitor-watchdog", () => {
@@ -72,6 +78,17 @@ describe("GET /api/cron/voice-monitor-watchdog", () => {
       nonHealthyChecks: [],
       primaryIssue: null,
       incidentCounts: { opened: 0, resolved: 0 },
+    });
+    getPassiveProductionHealth.mockResolvedValue({
+      status: "healthy",
+      summary: "Passive production traffic looks healthy.",
+      checkedAt: "2026-03-12T14:03:39.000Z",
+      voice: { status: "healthy" },
+      sms: { status: "healthy" },
+      email: { status: "healthy" },
+      activeWorkspaceCount: 1,
+      unhealthyActiveWorkspaceCount: 0,
+      unknownWorkspaceCount: 0,
     });
   });
 
@@ -98,6 +115,17 @@ describe("GET /api/cron/voice-monitor-watchdog", () => {
         lastFailureAt: null,
         ageMs: 1_000,
         staleAfterMs: 900_000,
+      })
+      .mockResolvedValueOnce({
+        monitorKey: "passive-communications-health",
+        status: "healthy",
+        summary: "passive-communications-health is reporting on schedule",
+        warnings: [],
+        checkedAt: "2026-03-12T14:03:40.000Z",
+        lastSuccessAt: "2026-03-12T14:03:39.000Z",
+        lastFailureAt: null,
+        ageMs: 1_000,
+        staleAfterMs: 900_000,
       });
     runVoiceAgentHealthMonitor.mockResolvedValue({
       status: "healthy",
@@ -117,7 +145,7 @@ describe("GET /api/cron/voice-monitor-watchdog", () => {
 
     expect(response.status).toBe(200);
     expect(runVoiceAgentHealthMonitor).toHaveBeenCalledTimes(1);
-    expect(getMonitorRunHealth).toHaveBeenCalledTimes(2);
+    expect(getMonitorRunHealth).toHaveBeenCalledTimes(3);
     expect(recordMonitorRun).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
@@ -141,6 +169,72 @@ describe("GET /api/cron/voice-monitor-watchdog", () => {
     expect(body.refreshedVoiceAgentHealthRun.status).toBe("healthy");
   });
 
+  it("refreshes passive communications health inline when it is stale", async () => {
+    getMonitorRunHealth
+      .mockResolvedValueOnce({
+        monitorKey: "voice-agent-health",
+        status: "healthy",
+        summary: "voice-agent-health is reporting on schedule",
+        warnings: [],
+        checkedAt: "2026-03-12T14:03:40.000Z",
+        lastSuccessAt: "2026-03-12T14:03:39.000Z",
+        lastFailureAt: null,
+        ageMs: 1_000,
+        staleAfterMs: 900_000,
+      })
+      .mockResolvedValueOnce({
+        monitorKey: "passive-communications-health",
+        status: "unhealthy",
+        summary: "passive-communications-health last succeeded 24 minute(s) ago, beyond the 15-minute window.",
+        warnings: ["stale"],
+        checkedAt: "2026-03-12T14:03:32.452Z",
+        lastSuccessAt: "2026-03-12T13:39:53.112Z",
+        lastFailureAt: null,
+        ageMs: 1_419_409,
+        staleAfterMs: 900_000,
+      })
+      .mockResolvedValueOnce({
+        monitorKey: "passive-communications-health",
+        status: "healthy",
+        summary: "passive-communications-health is reporting on schedule",
+        warnings: [],
+        checkedAt: "2026-03-12T14:03:40.000Z",
+        lastSuccessAt: "2026-03-12T14:03:39.000Z",
+        lastFailureAt: null,
+        ageMs: 1_000,
+        staleAfterMs: 900_000,
+      });
+
+    const response = await GET(new NextRequest("https://app.example.com/api/cron/voice-monitor-watchdog"));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(runVoiceAgentHealthMonitor).not.toHaveBeenCalled();
+    expect(getPassiveProductionHealth).toHaveBeenCalledTimes(1);
+    expect(recordMonitorRun).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        monitorKey: "passive-communications-health",
+        status: "healthy",
+        details: expect.objectContaining({
+          emailStatus: "healthy",
+          refreshedBy: "voice-monitor-watchdog",
+        }),
+        succeeded: true,
+      }),
+    );
+    expect(recordMonitorRun).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        monitorKey: "voice-monitor-watchdog",
+        status: "healthy",
+        succeeded: true,
+      }),
+    );
+    expect(body.status).toBe("healthy");
+    expect(body.refreshedPassiveTrafficRun.status).toBe("healthy");
+  });
+
   it("refreshes voice-agent-health inline when the last run is still fresh but degraded", async () => {
     getMonitorRunHealth
       .mockResolvedValueOnce({
@@ -158,6 +252,17 @@ describe("GET /api/cron/voice-monitor-watchdog", () => {
         monitorKey: "voice-agent-health",
         status: "healthy",
         summary: "voice-agent-health is reporting on schedule",
+        warnings: [],
+        checkedAt: "2026-03-12T14:03:40.000Z",
+        lastSuccessAt: "2026-03-12T14:03:39.000Z",
+        lastFailureAt: null,
+        ageMs: 1_000,
+        staleAfterMs: 900_000,
+      })
+      .mockResolvedValueOnce({
+        monitorKey: "passive-communications-health",
+        status: "healthy",
+        summary: "passive-communications-health is reporting on schedule",
         warnings: [],
         checkedAt: "2026-03-12T14:03:40.000Z",
         lastSuccessAt: "2026-03-12T14:03:39.000Z",
