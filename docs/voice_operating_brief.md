@@ -152,6 +152,7 @@ Updated: 2026-04-29 AEST
 - Deploy verification must not hard-gate on the web runtime reaching the LiveKit control API at `live.earlymark.ai`. Canonical worker-side control lives on the OCI box at `http://localhost:7880`, so deploy truth should come from worker heartbeat convergence, Twilio routing health, and the spoken PSTN canary.
 - Production outbound customer calls, scheduled callbacks, and automation-triggered callbacks must not depend on the Vercel runtime reaching LiveKit control directly. If the web app needs to originate a `normal` outbound call, it should enqueue the request and let the healthy OCI customer worker execute it locally against `http://127.0.0.1:7880`.
 - Worker heartbeats and health snapshots must start from the long-lived LiveKit agent process during `prewarm`, not only from the wrapper/bootstrap process. A single boot heartbeat followed by silence usually means the background loop is attached to the wrong process.
+- Docker worker request gating must use the child agent health snapshot, not only the parent process in-memory counters. The `worker-entry.ts` parent process does not share `bootReady` / `activeCalls` state with the child LiveKit agent, so trusting in-memory state there can make healthy workers reject every inbound job.
 - Public `/api/health` is a real production signal, not an internal debug route. Do not hide it behind production middleware rewrites.
 
 ## Active known risks

@@ -5760,3 +5760,22 @@ Rule: every agent change commit must include an entry in this file.
 - Verified with:
   - `npx vitest run __tests__/inbound-lead-email-readiness.test.ts __tests__/voice-monitor-watchdog-route.test.ts __tests__/launch-readiness.test.ts __tests__/health-route.test.ts __tests__/customer-agent-readiness.test.ts`
   - `npx tsc --noEmit`
+
+## 2026-04-29 14:54 AEST - Fix worker request gating that was rejecting live voice jobs
+
+- Agent: Codex
+- Files:
+  - `livekit-agent/worker-entry.ts`
+  - `__tests__/voice-worker-entry.test.ts`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- What changed:
+  - Changed Docker worker request gating to read the child agent's fresh health snapshot from disk before rejecting a job for readiness/capacity.
+  - Kept the existing in-memory runtime-state checks only as a fallback when no fresh snapshot exists.
+  - Added focused tests covering the exact cross-process failure mode where the parent wrapper thinks the worker is unavailable while the child agent snapshot says it is ready.
+- Why:
+  - Live OCI logs showed the sales worker repeatedly rejecting inbound demo jobs with `worker is not accepting new calls` even while `activeCalls: 0`.
+  - The parent `worker-entry.ts` process does not share `bootReady` / `activeCalls` state with the child agent process that actually handles calls, so the old gate could silently reject every inbound call and make the spoken canary fail intermittently.
+- Verified with:
+  - `npx vitest run __tests__/voice-worker-entry.test.ts __tests__/voice-monitor-watchdog-route.test.ts __tests__/inbound-lead-email-readiness.test.ts`
+  - `npx tsc --noEmit`
