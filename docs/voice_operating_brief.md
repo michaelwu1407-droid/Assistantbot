@@ -7,7 +7,10 @@ Updated: 2026-04-29 AEST
 - Live voice stack: Twilio PSTN/SIP -> `app/api/webhooks/twilio-voice-gateway` -> LiveKit SIP -> OCI voice workers.
 - Public website demo callbacks now have an emergency recovery path: if the web app cannot reach the LiveKit control API, it may originate the callback with Twilio and bridge the caller into the existing Earlymark SIP ingress instead of failing the lead immediately.
 - Production customer outbound calls now use a worker-owned control path: the web app enqueues the request in the app database, and the OCI `tracey-customer-agent` worker claims and executes it against local LiveKit control at `http://127.0.0.1:7880`.
-- Core LiveKit infrastructure is Dockerized on OCI under `/opt/livekit`.
+- Production LiveKit server + SIP currently run as Docker containers on OCI, but their bind-mounted config lives under `/home/ubuntu/livekit/live.earlymark.ai`.
+- The OCI host's Snap Docker setup does not reliably mount `/opt/livekit`; treat `/opt/livekit` as legacy drift, not the canonical runtime root for core LiveKit containers.
+- TLS for `https://live.earlymark.ai` is currently terminated by the host Caddy service (`/etc/caddy.yaml`), not by a `livekit-caddy-1` container.
+- Redis for LiveKit is currently provided by the host service on `127.0.0.1:6379`, not by a `livekit-redis-1` container.
 - Voice workers are Dockerized on OCI under `/opt/earlymark-worker` and orchestrated by `ops/docker/worker-compose.yml`.
 - Shared worker env is persisted at `/opt/earlymark-worker-shared/.env.local`.
 - `/opt/earlymark-agent` is no longer a supported worker runtime or env fallback. Treat it only as a legacy artifact until it is explicitly removed from the host.
@@ -15,6 +18,9 @@ Updated: 2026-04-29 AEST
   - `earlymark-sales-agent`
   - `earlymark-customer-agent`
 - Canonical deploy workflow: `.github/workflows/deploy-livekit.yml`
+- Canonical current core runtime:
+  - Docker: `livekit-livekit-1`, `livekit-sip`
+  - Host services: `caddy`, `redis-server`
 
 ## Twilio provisioning topology
 

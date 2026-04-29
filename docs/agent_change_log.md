@@ -5717,3 +5717,21 @@ Rule: every agent change commit must include an entry in this file.
   - `npx vitest run __tests__/demo-call.test.ts __tests__/demo-call-action.test.ts __tests__/contact-route.test.ts __tests__/demo-call-health.test.ts __tests__/voice-agent-health-monitor.test.ts __tests__/voice-fleet-health-route.test.ts __tests__/livekit-sip-health.test.ts`
   - `npx tsc --noEmit`
   - `npm test`
+
+## 2026-04-29 13:42 AEST - Correct voice runtime docs after live OCI recovery
+
+- Agent: Codex
+- Files:
+  - `AGENTS.md`
+  - `docs/voice_operating_brief.md`
+  - `docs/current_agent_handoff.md`
+  - `docs/OCI_LEGACY_REDIS_SIDECAR_CLEANUP.md`
+  - `docs/agent_change_log.md`
+- What changed:
+  - Updated the canonical voice runtime docs to match the recovered OCI topology: Dockerized `livekit-livekit-1` + `livekit-sip` using bind mounts rooted at `/home/ubuntu/livekit/live.earlymark.ai`, with host `caddy` and host `redis-server` providing TLS and Redis.
+  - Added the Snap Docker `/opt/livekit` bind-mount caveat so future operators do not misread the `read-only file system` startup failure as a disk problem.
+  - Rewrote the short handoff doc to reflect the now-healthy voice state, the remaining email-only degradation, and the need for the next normal deploy to restore worker `deployGitSha` labeling.
+  - Updated the legacy Redis-sidecar cleanup note so it no longer tells operators to preserve or recreate `livekit-redis-1` / `livekit-caddy-1`.
+- Why:
+  - The live voice outage was ultimately caused by infrastructure drift plus incorrect operational assumptions in the docs. Leaving the old `/opt/livekit` story in place would make the next incident much more likely.
+  - After the live recovery, the repo needed to tell the truth about the running production topology so monitoring, deploy, and incident work starts from the right baseline.
