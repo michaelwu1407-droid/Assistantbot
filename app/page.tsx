@@ -6,8 +6,8 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import {
     ArrowRight, ChevronDown,
-    Phone, Calendar, MapPin, Users,
-    BarChart3, CheckCircle2,
+    Phone, Calendar, MapPin, Users, UsersRound,
+    BarChart3, CheckCircle2, MessageSquare, Layers, FileText,
 } from "lucide-react";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
@@ -48,10 +48,14 @@ const EASE_STANDARD: [number, number, number, number] = [0.16, 1, 0.3, 1];
 // ─── Static data ──────────────────────────────────────────────────────────────
 
 const FEATURE_CARDS = [
-    { icon: Calendar, title: "Smart Scheduling" },
-    { icon: MapPin,   title: "Job Map" },
-    { icon: Users,    title: "Team Management" },
-    { icon: BarChart3,title: "Revenue Analytics" },
+    { icon: MessageSquare, title: "Inbox" },
+    { icon: Users,         title: "Contacts" },
+    { icon: Layers,        title: "Jobs Pipeline" },
+    { icon: FileText,      title: "Quotes & Invoices" },
+    { icon: Calendar,      title: "Smart Scheduling" },
+    { icon: MapPin,        title: "Job Map" },
+    { icon: UsersRound,    title: "Team Management" },
+    { icon: BarChart3,     title: "Revenue Analytics" },
 ];
 
 const TRACEY_WORKFLOW = [
@@ -59,27 +63,27 @@ const TRACEY_WORKFLOW = [
         label: "Customer calls",
         icon: Phone,
         points: [
-            "Tracey picks up 24/7, day or night",
-            "Tracey qualifies the lead with the info you've taught her",
-            "Tracey books the job straight into your calendar — and logs every detail to your CRM",
+            "Answers every call 24/7 — no voicemail, no missed jobs",
+            "Qualifies the lead and explains your services automatically",
+            "Books into your calendar and logs every detail to your CRM",
         ],
     },
     {
         label: "While you work",
         icon: Calendar,
         points: [
-            "Tracey clusters nearby jobs together so you spend less time driving",
-            "Tracey handles the rest of your inbound — calls, SMS, emails — without interrupting you",
-            "Tracey moves jobs through your pipeline as they progress",
+            "Clusters nearby jobs to cut drive time",
+            "Handles calls, SMS, and emails while you're on the tools",
+            "Moves jobs through your pipeline as work progresses",
         ],
     },
     {
         label: "After the job",
         icon: CheckCircle2,
         points: [
-            "Tracey sends the invoice and chases payment",
-            "Tracey follows up on quotes that haven't been confirmed",
-            "Tracey politely asks for a review and logs the response",
+            "Sends the invoice and follows up on payment automatically",
+            "Chases unconfirmed quotes before they go cold",
+            "Asks for a review — and logs the response",
         ],
     },
 ];
@@ -363,46 +367,37 @@ export default function Home() {
                         </p>
                     </motion.div>
 
-                    <motion.div {...fadeUp(0.06)} className="rounded-[2rem] border border-emerald-900/10 bg-[linear-gradient(145deg,#103126_0%,#1B4637_52%,#2B5F4D_100%)] p-1 shadow-[0_24px_80px_rgba(15,23,42,0.14)]">
-                        <div className="rounded-[1.7rem] bg-[linear-gradient(180deg,rgba(247,250,249,0.98)_0%,rgba(240,247,243,0.98)_100%)] p-6 md:p-10">
-                            <div className="mb-8 text-center">
-                                <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">What Tracey handles</p>
-                                <h3 className="mt-2 text-2xl font-extrabold tracking-[-0.02em] text-midnight">From first call to follow-up</h3>
-                            </div>
-                            <div className="grid gap-4 sm:grid-cols-3">
-                                {TRACEY_WORKFLOW.map(({ label, icon: Icon, points }) => (
-                                    <div key={label} className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm flex flex-col gap-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 shrink-0">
-                                                <Icon className="h-5 w-5 text-primary" />
-                                            </div>
-                                            <h4 className="text-base font-bold text-midnight">{label}</h4>
+                    <motion.div {...fadeUp(0.06)} className="rounded-[2rem] border border-emerald-900/10 bg-[linear-gradient(145deg,#103126_0%,#1B4637_52%,#2B5F4D_100%)] shadow-[0_24px_80px_rgba(15,23,42,0.14)]">
+                        <div className="grid divide-y sm:divide-y-0 sm:divide-x divide-white/10 sm:grid-cols-3 p-8 md:p-12">
+                            {TRACEY_WORKFLOW.map(({ label, icon: Icon, points }, i) => (
+                                <div key={label} className="flex flex-col gap-5 sm:px-8 first:pl-0 last:pr-0 py-8 sm:py-0 first:pt-0 last:pb-0">
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-xs font-bold tabular-nums text-white/30 tracking-widest">0{i + 1}</span>
+                                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10">
+                                            <Icon className="h-4 w-4 text-white" />
                                         </div>
-                                        <div className="space-y-3">
-                                            {points.map((point) => (
-                                                <div key={point} className="flex items-start gap-3">
-                                                    <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#E0FAF2]">
-                                                        <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
-                                                    </div>
-                                                    <p className="text-sm leading-relaxed text-slate-body">{point}</p>
-                                                </div>
-                                            ))}
-                                        </div>
+                                        <h4 className="text-base font-bold text-white">{label}</h4>
                                     </div>
-                                ))}
-                            </div>
+                                    <ul className="space-y-3">
+                                        {points.map((point) => (
+                                            <li key={point} className="flex items-start gap-2.5">
+                                                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                                                <span className="text-sm leading-relaxed text-white/75">{point}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            ))}
                         </div>
                     </motion.div>
 
-                    <motion.div {...fadeUp(0.10)} className="mt-6 rounded-[1.5rem] bg-[#E0FAF2] border border-emerald-200 px-8 py-6">
-                        <p className="text-center text-base font-bold text-midnight mb-4">You stay in control.</p>
-                        <div className="flex flex-wrap justify-center gap-3">
-                            {["Approval rules", "Execution / Draft / Info-only mode", "Review every conversation"].map((pill) => (
-                                <span key={pill} className="inline-flex items-center rounded-full border border-emerald-300 bg-white px-4 py-1.5 text-sm font-medium text-emerald-800 shadow-sm">
-                                    {pill}
-                                </span>
-                            ))}
-                        </div>
+                    <motion.div {...fadeUp(0.10)} className="rounded-b-[2rem] bg-[#E0FAF2] border border-t-0 border-emerald-200 px-8 py-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+                        <span className="text-sm font-bold text-midnight">You stay in control.</span>
+                        {["Approval rules", "Action or draft mode", "Full conversation history"].map((pill) => (
+                            <span key={pill} className="inline-flex items-center rounded-full border border-emerald-300 bg-white px-4 py-1.5 text-sm font-medium text-emerald-800 shadow-sm">
+                                {pill}
+                            </span>
+                        ))}
                     </motion.div>
                 </div>
             </section>
@@ -438,14 +433,11 @@ export default function Home() {
 
                     <motion.div {...fadeUp(0.06)} className="grid items-center gap-8 md:grid-cols-2">
                         <div className="flex flex-col gap-6">
-                            <p className="text-base leading-relaxed text-slate-body">
-                                Your CRM updates itself from every call, message, and job Tracey handles — no manual entry, ever. When you need to make a change, just tell Tracey.
-                            </p>
                             <ul className="flex flex-col gap-3">
                                 {[
-                                    "Update any job in seconds — just tell Tracey what changed",
-                                    "Query revenue, pipeline, schedule, or any customer on demand",
-                                    "No forms, no manual data entry, ever",
+                                    "Move a job, reschedule a customer, or chase a quote — just say it",
+                                    "Ask for revenue, pipeline, or any customer record in plain English",
+                                    "No forms, no manual data entry — ever",
                                 ].map((b) => (
                                     <li key={b} className="flex items-center gap-2.5 text-sm text-slate-body">
                                         <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
@@ -460,8 +452,8 @@ export default function Home() {
                     </motion.div>
 
                     <motion.div {...fadeUp(0.10)}>
-                        <p className="text-center text-xs font-bold uppercase tracking-[0.2em] text-slate-400 mb-6">Live in your dashboard.</p>
-                        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                        <p className="text-center text-xs font-bold uppercase tracking-[0.2em] text-slate-400 mb-6">A full CRM. Not a stripped-down one.</p>
+                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                             {FEATURE_CARDS.map(({ icon: Icon, title }) => (
                                 <div key={title} className="flex flex-col items-center gap-3 rounded border border-slate-200 bg-[#F8FAFC] px-4 py-6 text-center">
                                     <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#E0FAF2]">
