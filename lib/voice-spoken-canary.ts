@@ -52,6 +52,17 @@ export type VoiceSpokenCanaryResult = {
   verification: SpokenCanaryVerification | null;
 };
 
+type VoiceCallVerificationCandidate = {
+  callId: string;
+  createdAt: Date;
+  startedAt: Date | null;
+  callerPhone: string | null;
+  calledPhone: string | null;
+  participantIdentity: string;
+  transcriptText: string | null;
+  metadata: unknown;
+};
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -103,6 +114,84 @@ function transcriptHeardProbePhrase(transcript: string) {
   return hasGreeting && hasMonitorProbe;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function readString(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function extractProviderCallIds(metadata: unknown) {
+  const root = isRecord(metadata) ? metadata : null;
+  const providerCallIds = isRecord(root?.providerCallIds) ? root.providerCallIds : null;
+  const roomMetadata = isRecord(root?.roomMetadata) ? root.roomMetadata : null;
+  const sipAttributes = isRecord(root?.sipAttributes) ? root.sipAttributes : null;
+
+  return {
+    twilioCallSid:
+      readString(providerCallIds?.twilioCallSid) ||
+      readString(roomMetadata?.twilioCallSid) ||
+      readString(roomMetadata?.callSid) ||
+      readString(sipAttributes?.["twilio.callSid"]) ||
+      readString(sipAttributes?.callSid),
+    sipCallId:
+      readString(providerCallIds?.sipCallId) ||
+      readString(sipAttributes?.["sip.callID"]) ||
+      readString(sipAttributes?.["sip.callId"]) ||
+      readString(sipAttributes?.["sip.call_id"]) ||
+      readString(sipAttributes?.["sip.callSid"]) ||
+      readString(sipAttributes?.["sip.call_sid"]),
+  };
+}
+
+function buildVerification(candidate: VoiceCallVerificationCandidate): SpokenCanaryVerification {
+  const transcript = candidate.transcriptText || "";
+
+  return {
+    callId: candidate.callId,
+    createdAt: candidate.createdAt.toISOString(),
+    heardProbePhrase: transcriptHeardProbePhrase(transcript),
+    capturedCallerSpeech: /Caller:/i.test(transcript),
+    capturedAssistantSpeech: /Tracey:/i.test(transcript),
+    heardGreeting: /Tracey/i.test(transcript),
+    transcriptExcerpt: transcript ? transcript.slice(0, 400) : null,
+  };
+}
+
+function scoreCandidate(
+  candidate: VoiceCallVerificationCandidate,
+  verification: SpokenCanaryVerification,
+  params: {
+    probeCaller: string;
+    targetNumber: string;
+    startedAt: Date;
+    callSid?: string | null;
+  },
+) {
+  if (!phoneMatches(candidate.callerPhone, params.probeCaller) || !phoneMatches(candidate.calledPhone, params.targetNumber)) {
+    return -1;
+  }
+
+  const matchedTimestamp = candidate.startedAt || candidate.createdAt;
+  const deltaMs = Math.abs(matchedTimestamp.getTime() - params.startedAt.getTime());
+  if (deltaMs > 5 * 60_000) {
+    return -1;
+  }
+
+  const providerCallIds = extractProviderCallIds(candidate.metadata);
+  let score = Math.max(0, 300 - Math.round(deltaMs / 1000));
+
+  if (params.callSid && providerCallIds.twilioCallSid === params.callSid) score += 1_000;
+  if (verification.heardProbePhrase) score += 100;
+  if (verification.capturedCallerSpeech) score += 30;
+  if (verification.capturedAssistantSpeech) score += 30;
+  if (verification.heardGreeting) score += 10;
+  if (/probe/i.test(candidate.participantIdentity || "")) score += 5;
+
+  return score;
+}
+
 function parseDurationSeconds(value?: string | null) {
   if (!value) return null;
   const parsed = Number.parseInt(value, 10);
@@ -127,6 +216,7 @@ async function findVoiceCallVerification(params: {
   probeCaller: string;
   targetNumber: string;
   startedAt: Date;
+  callSid?: string | null;
 }) {
   const candidates = await db.voiceCall.findMany({
     where: {
@@ -150,36 +240,31 @@ async function findVoiceCallVerification(params: {
       startedAt: true,
       callerPhone: true,
       calledPhone: true,
+      participantIdentity: true,
       transcriptText: true,
+      metadata: true,
     },
-    orderBy: { createdAt: "desc" },
-    take: 20,
+    orderBy: [{ startedAt: "desc" }, { createdAt: "desc" }],
+    take: 40,
   });
 
-  const matchedCall = candidates.find((candidate) => {
-    const matchedTimestamp = candidate.startedAt || candidate.createdAt;
-    return (
-      matchedTimestamp >= new Date(params.startedAt.getTime() - 60_000) &&
-      phoneMatches(candidate.callerPhone, params.probeCaller) &&
-      phoneMatches(candidate.calledPhone, params.targetNumber)
-    );
-  });
+  const matchedCall = candidates
+    .map((candidate) => {
+      const verification = buildVerification(candidate);
+      return {
+        candidate,
+        verification,
+        score: scoreCandidate(candidate, verification, params),
+      };
+    })
+    .filter((entry) => entry.score >= 0)
+    .sort((left, right) => right.score - left.score)[0];
 
   if (!matchedCall) {
     return null;
   }
 
-  const transcript = matchedCall.transcriptText || "";
-
-  return {
-    callId: matchedCall.callId,
-    createdAt: matchedCall.createdAt.toISOString(),
-    heardProbePhrase: transcriptHeardProbePhrase(transcript),
-    capturedCallerSpeech: /Caller:/i.test(transcript),
-    capturedAssistantSpeech: /Tracey:/i.test(transcript),
-    heardGreeting: /Tracey/i.test(transcript),
-    transcriptExcerpt: transcript ? transcript.slice(0, 400) : null,
-  } satisfies SpokenCanaryVerification;
+  return matchedCall.verification;
 }
 
 async function waitForVoiceCallVerification(params: {
@@ -187,6 +272,7 @@ async function waitForVoiceCallVerification(params: {
   targetNumber: string;
   startedAt: Date;
   maxWaitMs: number;
+  callSid?: string | null;
 }) {
   const deadline = Date.now() + params.maxWaitMs;
   let verification = await findVoiceCallVerification(params);
@@ -320,6 +406,7 @@ export async function runVoiceSpokenPstnCanary(params: {
       targetNumber,
       startedAt,
       maxWaitMs: getVoiceMonitorProbeMaxWaitSeconds() * 1_000,
+      callSid: createdCall.sid,
     });
 
     if (!verification) {

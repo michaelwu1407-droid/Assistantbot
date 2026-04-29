@@ -63,7 +63,9 @@ describe("runVoiceSpokenPstnCanary", () => {
         startedAt: new Date("2026-03-17T06:00:01.000Z"),
         callerPhone: "+61434955958",
         calledPhone: "+61485010634",
+        participantIdentity: "sip-participant",
         transcriptText: "Caller: Hello Tracey. This is the voice monitor probe. Can you hear me?\nTracey: Yes, I can hear you clearly.",
+        metadata: null,
       },
     ]);
   });
@@ -152,7 +154,9 @@ describe("runVoiceSpokenPstnCanary", () => {
         startedAt: new Date("2026-03-17T06:00:01.000Z"),
         callerPhone: "+61434955958",
         calledPhone: "+61485010634",
+        participantIdentity: "sip-participant",
         transcriptText: "Caller: Hello, Tracy.\nCaller: Monitor probe.\nTracey: Hi, this is Tracey from Earlymark AI. How can I help?",
+        metadata: null,
       },
     ]);
 
@@ -164,5 +168,43 @@ describe("runVoiceSpokenPstnCanary", () => {
 
     expect(result.status).toBe("healthy");
     expect(result.verification?.heardProbePhrase).toBe(true);
+  });
+
+  it("prefers the persisted call whose metadata matches the originating Twilio call SID", async () => {
+    db.voiceCall.findMany.mockResolvedValue([
+      {
+        callId: "voice_call_nearby",
+        createdAt: new Date("2026-03-17T06:00:05.000Z"),
+        startedAt: new Date("2026-03-17T06:00:01.000Z"),
+        callerPhone: "+61434955958",
+        calledPhone: "+61485010634",
+        participantIdentity: "sip-participant-nearby",
+        transcriptText: "Caller: Hello Tracey.\nTracey: Hi there.",
+        metadata: null,
+      },
+      {
+        callId: "voice_call_exact",
+        createdAt: new Date("2026-03-17T06:00:07.000Z"),
+        startedAt: new Date("2026-03-17T06:00:03.000Z"),
+        callerPhone: "+61434955958",
+        calledPhone: "+61485010634",
+        participantIdentity: "sip-participant-exact",
+        transcriptText: "Caller: Hello Tracey. This is the voice monitor probe.\nTracey: Yes, I can hear you clearly.",
+        metadata: {
+          providerCallIds: {
+            twilioCallSid: "CA123",
+          },
+        },
+      },
+    ]);
+
+    const result = await runVoiceSpokenPstnCanary({
+      probeCaller: "+61434955958",
+      targetNumber: "+61485010634",
+      checkedAt: new Date("2026-03-17T06:00:00.000Z"),
+    });
+
+    expect(result.status).toBe("healthy");
+    expect(result.verification?.callId).toBe("voice_call_exact");
   });
 });

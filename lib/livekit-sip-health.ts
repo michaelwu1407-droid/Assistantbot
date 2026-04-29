@@ -2,8 +2,9 @@ import { SipClient } from "livekit-server-sdk";
 import { getKnownEarlymarkInboundNumbers } from "@/lib/earlymark-inbound-config";
 import { resolveLivekitDemoOutboundTrunk } from "@/lib/demo-call";
 import { normalizePhone } from "@/lib/phone-utils";
+import type { WorkerLivekitSipHealth } from "@/livekit-agent/livekit-sip-runtime";
 import { isEarlymarkInboundRoomName } from "@/lib/voice-room-routing";
-import type { RuntimeStatus } from "@/lib/voice-fleet";
+import { getLatestVoiceWorkerSnapshots, type RuntimeStatus } from "@/lib/voice-fleet";
 
 export type LivekitSipHealth = {
   status: RuntimeStatus;
@@ -41,8 +42,10 @@ export type LivekitSipHealth = {
     name: string;
     trunkIds: string[];
     roomPrefix: string | null;
-    attributes: Record<string, string>;
+      attributes: Record<string, string>;
   }>;
+  source?: "web_probe" | "worker_summary";
+  observedHostIds?: string[];
 };
 
 function getLivekitApiBaseUrl() {
@@ -72,7 +75,82 @@ function summarizeDispatchRule(rule: Record<string, unknown>) {
   };
 }
 
-export async function getLivekitSipHealth(): Promise<LivekitSipHealth> {
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function maxStatus(left: RuntimeStatus, right: RuntimeStatus): RuntimeStatus {
+  const order: RuntimeStatus[] = ["healthy", "degraded", "unhealthy"];
+  return order[Math.max(order.indexOf(left), order.indexOf(right))];
+}
+
+function readWorkerLivekitSipHealth(summary: Record<string, unknown> | null): WorkerLivekitSipHealth | null {
+  const candidate = summary?.livekitSip;
+  if (!isJsonObject(candidate)) return null;
+
+  const status = candidate.status;
+  const summaryText = candidate.summary;
+  const warnings = candidate.warnings;
+  if (
+    (status !== "healthy" && status !== "degraded" && status !== "unhealthy") ||
+    typeof summaryText !== "string" ||
+    !Array.isArray(warnings)
+  ) {
+    return null;
+  }
+
+  return candidate as unknown as WorkerLivekitSipHealth;
+}
+
+async function getWorkerReportedLivekitSipHealth(): Promise<LivekitSipHealth | null> {
+  const snapshots = await getLatestVoiceWorkerSnapshots();
+  const latestByHost = new Map<string, { hostId: string; checkedAt: string; health: WorkerLivekitSipHealth }>();
+
+  for (const snapshot of snapshots) {
+    const health = readWorkerLivekitSipHealth(snapshot.summary);
+    if (!health) continue;
+
+    const current = latestByHost.get(snapshot.hostId);
+    if (!current || health.checkedAt > current.checkedAt) {
+      latestByHost.set(snapshot.hostId, {
+        hostId: snapshot.hostId,
+        checkedAt: health.checkedAt,
+        health,
+      });
+    }
+  }
+
+  const hostReports = Array.from(latestByHost.values());
+  if (hostReports.length === 0) return null;
+
+  const [base, ...rest] = hostReports
+    .slice()
+    .sort((left, right) => right.checkedAt.localeCompare(left.checkedAt));
+  const status = hostReports.reduce<RuntimeStatus>((current, report) => maxStatus(current, report.health.status), "healthy");
+  const warnings = Array.from(
+    new Set([
+      ...hostReports.flatMap((report) => report.health.warnings),
+      ...(rest.some((report) => report.health.status !== base.health.status)
+        ? ["Worker hosts disagree about LiveKit SIP health; using the freshest host report as the detail source."]
+        : []),
+    ]),
+  );
+
+  return {
+    ...base.health,
+    status,
+    summary:
+      status === "healthy"
+        ? "Worker-reported LiveKit SIP inbound and outbound demo routing are configured."
+        : hostReports.find((report) => report.health.status !== "healthy")?.health.summary || base.health.summary,
+    warnings,
+    checkedAt: base.health.checkedAt,
+    source: "worker_summary",
+    observedHostIds: hostReports.map((report) => report.hostId),
+  };
+}
+
+async function getWebProbeLivekitSipHealth(): Promise<LivekitSipHealth> {
   const checkedAt = new Date().toISOString();
   const livekitUrl = getLivekitApiBaseUrl();
   const apiKey = (process.env.LIVEKIT_API_KEY || "").trim();
@@ -103,6 +181,7 @@ export async function getLivekitSipHealth(): Promise<LivekitSipHealth> {
         callerNumber: null,
       },
       dispatchRules: [],
+      source: "web_probe",
     };
   }
 
@@ -203,6 +282,7 @@ export async function getLivekitSipHealth(): Promise<LivekitSipHealth> {
         callerNumber: outboundDemo.callerNumber,
       },
       dispatchRules,
+      source: "web_probe",
     };
   } catch (error) {
     return {
@@ -228,6 +308,16 @@ export async function getLivekitSipHealth(): Promise<LivekitSipHealth> {
         callerNumber: null,
       },
       dispatchRules: [],
+      source: "web_probe",
     };
   }
+}
+
+export async function getLivekitSipHealth(): Promise<LivekitSipHealth> {
+  const workerReported = await getWorkerReportedLivekitSipHealth().catch(() => null);
+  if (workerReported) {
+    return workerReported;
+  }
+
+  return getWebProbeLivekitSipHealth();
 }

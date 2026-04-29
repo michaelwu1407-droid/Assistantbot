@@ -72,6 +72,7 @@ import {
   executeQueuedOutboundCall,
   type VoiceWorkerQueuedOutboundCallRequest,
 } from "./outbound-call-control";
+import { getWorkerLivekitSipHealth } from "./livekit-sip-runtime";
 
 loadEnv({ path: '.env.local' });
 assertRequiredVoiceAgentEnv();
@@ -1242,7 +1243,7 @@ function getVoiceAgentRuntimeFingerprint() {
   return buildVoiceAgentRuntimeFingerprint(process.env);
 }
 
-function buildVoiceAgentRuntimeSummary() {
+async function buildVoiceAgentRuntimeSummary() {
   return {
     hostId: getConfiguredHostId(),
     workerRole: getConfiguredWorkerRole(),
@@ -1280,11 +1281,37 @@ function buildVoiceAgentRuntimeSummary() {
     targetCallTypes: process.env.VOICE_LATENCY_TARGET_CALL_TYPES || DEFAULT_VOICE_LATENCY_TARGET_CALL_TYPES,
     knownInboundNumbers: getKnownEarlymarkNumbers(),
     groundingCacheEntries: groundingCache.size,
+    livekitSip: await getWorkerLivekitSipHealth().catch((error) => ({
+      status: "unhealthy",
+      summary: "Worker-side LiveKit SIP health check crashed while preparing the worker heartbeat.",
+      warnings: [error instanceof Error ? error.message : String(error)],
+      checkedAt: new Date().toISOString(),
+      livekitUrl: null,
+      inboundTrunkCount: 0,
+      outboundTrunkCount: 0,
+      dispatchRuleCount: 0,
+      expectedInboundNumbers: getKnownEarlymarkNumbers(),
+      missingInboundNumbers: getKnownEarlymarkNumbers(),
+      inboundTrunks: [],
+      outboundTrunks: [],
+      demoOutbound: {
+        status: "unhealthy",
+        summary: "Worker-side LiveKit outbound SIP health check crashed while preparing the worker heartbeat.",
+        warnings: [error instanceof Error ? error.message : String(error)],
+        configuredTrunkId: (process.env.LIVEKIT_SIP_TRUNK_ID || "").trim() || null,
+        resolvedTrunkId: null,
+        configuredTrunkMatched: false,
+        callerNumber: null,
+      },
+      dispatchRules: [],
+      source: "worker_control" as const,
+    })),
   };
 }
 
 async function writeWorkerHealthSnapshot() {
   const healthPath = getVoiceWorkerHealthPath();
+  const summary = await buildVoiceAgentRuntimeSummary();
   const snapshot = {
     updatedAt: new Date().toISOString(),
     deployGitSha: DEPLOY_GIT_SHA,
@@ -1299,7 +1326,7 @@ async function writeWorkerHealthSnapshot() {
     lastHeartbeatAttemptAt: workerHealthState.lastHeartbeatAttemptAt,
     lastHeartbeatSuccessAt: workerHealthState.lastHeartbeatSuccessAt,
     lastHeartbeatError: workerHealthState.lastHeartbeatError,
-    summary: buildVoiceAgentRuntimeSummary(),
+    summary,
   };
 
   await mkdir(dirname(healthPath), { recursive: true });
@@ -1322,6 +1349,7 @@ async function postVoiceAgentStatus() {
 
   const route = `${appUrl.replace(/\/$/, "")}/api/internal/voice-agent-status`;
   try {
+    const summary = await buildVoiceAgentRuntimeSummary();
     const response = await fetch(route, {
       method: "POST",
       headers: {
@@ -1339,7 +1367,7 @@ async function postVoiceAgentStatus() {
         pid: process.pid,
         startedAt: AGENT_STARTED_AT,
         heartbeatAt: new Date().toISOString(),
-        summary: buildVoiceAgentRuntimeSummary(),
+        summary,
       }),
     });
 
@@ -1755,19 +1783,22 @@ export default defineAgent({
     let callerEmail = "";
     let callerPhone = "";
     let calledPhone = "";
+    let roomMetadata: Record<string, unknown> | null = null;
+    let participantAttributes: Record<string, string> = {};
 
     try {
       const roomMeta = ctx.room.metadata;
       if (roomMeta) {
-        const meta = JSON.parse(roomMeta) as Record<string, string>;
+        const meta = JSON.parse(roomMeta) as Record<string, unknown>;
+        roomMetadata = meta;
         if (meta.callType === "demo") callType = "demo";
         if (meta.callType === "inbound_demo") callType = "inbound_demo";
-        callerFirstName = meta.firstName || "";
-        callerLastName = meta.lastName || "";
-        callerBusiness = meta.businessName || "";
-        callerEmail = meta.email || "";
-        callerPhone = meta.phone || "";
-        calledPhone = meta.calledPhone || "";
+        callerFirstName = typeof meta.firstName === "string" ? meta.firstName : "";
+        callerLastName = typeof meta.lastName === "string" ? meta.lastName : "";
+        callerBusiness = typeof meta.businessName === "string" ? meta.businessName : "";
+        callerEmail = typeof meta.email === "string" ? meta.email : "";
+        callerPhone = typeof meta.phone === "string" ? meta.phone : "";
+        calledPhone = typeof meta.calledPhone === "string" ? meta.calledPhone : "";
       }
     } catch {
       // Ignore invalid room metadata.
@@ -1775,6 +1806,7 @@ export default defineAgent({
 
     try {
       const attrs = (participant.attributes || {}) as Record<string, string>;
+      participantAttributes = attrs;
       if (attrs.callType === "demo") callType = "demo";
       if (attrs.callType === "inbound_demo") callType = "inbound_demo";
       callerFirstName = callerFirstName || attrs.firstName || "";
@@ -2685,6 +2717,11 @@ export default defineAgent({
         .sort((a, b) => a.createdAt - b.createdAt)
         .map((turn) => `${turn.role === "assistant" ? "Tracey" : "Caller"}: ${turn.text}`)
         .join("\n");
+      const sipAttributes = Object.fromEntries(
+        Object.entries(participantAttributes).filter(
+          ([key, value]) => typeof value === "string" && (key.startsWith("sip.") || /call/i.test(key)),
+        ),
+      );
 
       voiceCallPersistencePromise = persistVoiceCall({
         callId,
@@ -2721,6 +2758,23 @@ export default defineAgent({
           urgentEscalation,
           responsePolicyOutcomes,
           groundingCacheHit: Boolean(normalVoiceGrounding),
+          roomMetadata,
+          sipAttributes,
+          providerCallIds: {
+            twilioCallSid:
+              (typeof roomMetadata?.twilioCallSid === "string" && roomMetadata.twilioCallSid) ||
+              (typeof roomMetadata?.callSid === "string" && roomMetadata.callSid) ||
+              participantAttributes["twilio.callSid"] ||
+              participantAttributes.callSid ||
+              null,
+            sipCallId:
+              participantAttributes["sip.callID"] ||
+              participantAttributes["sip.callId"] ||
+              participantAttributes["sip.call_id"] ||
+              participantAttributes["sip.callSid"] ||
+              participantAttributes["sip.call_sid"] ||
+              null,
+          },
           voiceLatency: {
             enabled: voiceLatencyConfig.enabled,
             openerBankEnabled: voiceLatencyConfig.openerBankEnabled,

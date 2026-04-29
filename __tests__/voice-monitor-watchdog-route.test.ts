@@ -152,7 +152,7 @@ describe("GET /api/cron/voice-monitor-watchdog", () => {
         lastSuccessAt: "2026-03-12T14:03:31.112Z",
         lastFailureAt: null,
         ageMs: 1_340,
-        staleAfterMs: 420_000,
+        staleAfterMs: 900_000,
       })
       .mockResolvedValueOnce({
         monitorKey: "voice-agent-health",
@@ -163,7 +163,7 @@ describe("GET /api/cron/voice-monitor-watchdog", () => {
         lastSuccessAt: "2026-03-12T14:03:39.000Z",
         lastFailureAt: null,
         ageMs: 1_000,
-        staleAfterMs: 420_000,
+        staleAfterMs: 900_000,
       });
     runVoiceAgentHealthMonitor.mockResolvedValue({
       status: "healthy",
