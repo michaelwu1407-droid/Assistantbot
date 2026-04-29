@@ -1559,6 +1559,7 @@ function buildSchedulingTools(grounding: WorkspaceVoiceGrounding): livekitLlm.To
 
 export default defineAgent({
   prewarm: async () => {
+    startVoiceWorkerBackgroundTasks("[agent-prewarm]");
     await prewarmVoiceProcess();
   },
   entry: async (ctx) => {

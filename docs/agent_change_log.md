@@ -1,3 +1,15 @@
+## 2026-04-28 (Codex) - Moved worker heartbeat startup into the long-lived agent process
+
+- Files changed:
+  - `livekit-agent/agent.ts`
+  - `livekit-agent/worker-entry.ts`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Started worker background tasks from the LiveKit agent's `prewarm` hook and removed the same startup from the wrapper entrypoint.
+- Why:
+  - Production kept showing the same pattern even after the timer change: a fresh heartbeat immediately after deploy, then silence. That points to the heartbeat loop being attached to the short-lived wrapper/bootstrap process instead of the long-lived agent process that survives between calls.
+
 ## 2026-04-28 (Codex) - Removed invalid web-side LiveKit gate from worker deploy verification
 
 - Files changed:

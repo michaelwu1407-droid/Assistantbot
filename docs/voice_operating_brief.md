@@ -139,6 +139,7 @@ Updated: 2026-04-28 AEST
 - LiveKit SIP health and outbound demo-trunk resolution must compare phone numbers in normalized E.164 form. Formatting differences like `0485...`, `61...`, spaces, or punctuation must not create false-unhealthy voice gates.
 - Public `/api/health` must mirror launch-readiness truth plus database reachability. Do not reintroduce a separate fragmented public health aggregation for voice, Twilio, readiness, and release state.
 - Deploy verification must not hard-gate on the web runtime reaching the LiveKit control API at `live.earlymark.ai`. Canonical worker-side control lives on the OCI box at `http://localhost:7880`, so deploy truth should come from worker heartbeat convergence, Twilio routing health, and the spoken PSTN canary.
+- Worker heartbeats and health snapshots must start from the long-lived LiveKit agent process during `prewarm`, not only from the wrapper/bootstrap process. A single boot heartbeat followed by silence usually means the background loop is attached to the wrong process.
 - Public `/api/health` is a real production signal, not an internal debug route. Do not hide it behind production middleware rewrites.
 
 ## Active known risks
