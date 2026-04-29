@@ -2835,6 +2835,13 @@ export default defineAgent({
         ),
       );
 
+      const syntheticProbeCall = isSyntheticProbeCall({
+        callType,
+        roomName,
+        callerPhone,
+        calledPhone,
+      });
+
       voiceCallPersistencePromise = persistVoiceCall({
         callId,
         callType,
@@ -2870,14 +2877,7 @@ export default defineAgent({
           urgentEscalation,
           responsePolicyOutcomes,
           groundingCacheHit: Boolean(normalVoiceGrounding),
-          monitoring: {
-            syntheticProbeCall: isSyntheticProbeCall({
-              callType,
-              roomName,
-              callerPhone,
-              calledPhone,
-            }),
-          },
+          monitoring: syntheticProbeCall ? { syntheticProbeCall: true } : {},
           roomMetadata,
           sipAttributes,
           providerCallIds: {

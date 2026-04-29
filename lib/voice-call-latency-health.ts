@@ -137,8 +137,8 @@ function detectSyntheticProbeCall(call: {
   const metadata = isJsonObject(call.metadata) ? call.metadata : null;
   const monitoring = isJsonObject(metadata?.monitoring) ? metadata.monitoring : null;
   const explicitFlag = readBoolean(monitoring?.syntheticProbeCall) ?? readBoolean(metadata?.syntheticProbeCall);
-  if (explicitFlag !== null) {
-    return explicitFlag;
+  if (explicitFlag === true) {
+    return true;
   }
 
   const configuredProbeCaller = getConfiguredSyntheticProbeCaller();

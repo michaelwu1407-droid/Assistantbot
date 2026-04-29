@@ -162,13 +162,19 @@ describe("getVoiceLatencyHealth", () => {
         callType: "inbound_demo",
         roomName: "earlymark-inbound-_+61434955958_probe",
         createdAt: new Date("2026-04-07T09:00:00.000Z"),
+        callerPhone: "+61434955958",
+        calledPhone: "+61485010634",
         latency: {
           llmTtftAvgMs: 140,
           ttsTtfbAvgMs: 1230,
           totalTurnStartAvgMs: 1010,
           firstTurnStartMs: 150,
         },
-        metadata: {},
+        metadata: {
+          monitoring: {
+            syntheticProbeCall: false,
+          },
+        },
       },
       {
         callId: "inbound-fast-2",

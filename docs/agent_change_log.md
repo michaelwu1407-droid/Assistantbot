@@ -1,3 +1,16 @@
+## 2026-04-29 (Codex) - Count canary calls in latency proof even when worker tagging is incomplete
+
+- Files changed:
+  - `lib/voice-call-latency-health.ts`
+  - `livekit-agent/agent.ts`
+  - `__tests__/voice-call-latency-health.test.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Stopped treating `syntheticProbeCall: false` as authoritative when stronger canary heuristics still match, so the latency proof layer keeps counting real spoken probes instead of dropping them.
+  - Updated the worker to only persist `monitoring.syntheticProbeCall` when it can positively identify the canary, which avoids poisoning later proof detection with a false negative.
+- Why:
+  - The first fresh post-deploy spoken canary was real and healthy, but the worker stored `syntheticProbeCall: false`, which would have hidden the exact proof sample we need for optimization work.
+
 ## 2026-04-29 (Codex) - Exposed phone-call latency proof and reduced session TTS cold starts
 
 - Files changed:
