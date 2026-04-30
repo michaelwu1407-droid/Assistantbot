@@ -200,7 +200,7 @@ function InterviewForm() {
 
     return (
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <input required type="text" placeholder="First name"
                     value={form.firstName} onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
                     className={INPUT_CLASS} />
@@ -259,7 +259,7 @@ function TestimonialsCarousel() {
     );
     return (
         <div className="relative">
-            <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar md:hidden">
+            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide md:hidden">
                 {TESTIMONIALS.map((t, i) => <div key={i} className="shrink-0 w-[84vw] snap-center"><Card t={t} /></div>)}
             </div>
             <div className="relative hidden overflow-hidden md:block">
@@ -325,12 +325,12 @@ export default function Home() {
             <Navbar />
 
             {/* Hero */}
-            <section className="pt-32 pb-24 px-6 relative overflow-hidden isolate bg-[linear-gradient(180deg,#F5F7F8_0%,#F4F7F5_55%,#F7F6F3_100%)]">
+            <section className="pt-24 sm:pt-32 pb-16 sm:pb-24 px-6 relative overflow-hidden isolate bg-[linear-gradient(180deg,#F5F7F8_0%,#F4F7F5_55%,#F7F6F3_100%)]">
                 <div className="absolute inset-0 z-0 pointer-events-none" style={{ background: `radial-gradient(110% 70% at 50% 10%, rgba(16,185,129,0.20) 0%, rgba(16,185,129,0.10) 42%, rgba(16,185,129,0.00) 74%),radial-gradient(90% 50% at 50% 86%, rgba(34,197,94,0.30) 0%, rgba(34,197,94,0.14) 32%, rgba(34,197,94,0.00) 72%),radial-gradient(70% 34% at 50% 86%, rgba(163,230,53,0.22) 0%, rgba(163,230,53,0.00) 75%)` }} />
                 <div className="absolute inset-y-[2%] left-0 w-[32%] z-0 pointer-events-none opacity-60" style={{ background: "linear-gradient(180deg, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.05) 48%, rgba(16,185,129,0.00) 100%)", clipPath: "polygon(0 0, 100% 6%, 76% 100%, 0 100%)" }} />
                 <div className="absolute inset-y-[2%] right-0 w-[32%] z-0 pointer-events-none opacity-60" style={{ background: "linear-gradient(180deg, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.05) 48%, rgba(16,185,129,0.00) 100%)", clipPath: "polygon(24% 0, 100% 0, 100% 100%, 0 100%)" }} />
                 <div className="container mx-auto max-w-6xl relative z-10 flex flex-col items-center gap-8">
-                    <motion.h1 {...fadeUp(0.06)} className="text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.08] text-midnight text-balance text-center">
+                    <motion.h1 {...fadeUp(0.06)} className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.08] text-midnight text-balance text-center">
                         Your AI assistant &amp; CRM.
                         <span className="block">Here to give you an <span className="text-primary">early mark</span></span>
                     </motion.h1>

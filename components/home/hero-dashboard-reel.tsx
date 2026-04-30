@@ -410,7 +410,7 @@ export function HeroDashboardReel({ className = "" }: { className?: string }) {
                 </div>
 
                 {/* Screen area */}
-                <div className="relative overflow-hidden" style={{ height: 500 }}>
+                <div className="relative overflow-hidden h-[280px] sm:h-[380px] md:h-[500px]">
                     <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border border-white/80 bg-white/88 px-3.5 py-2 shadow-sm backdrop-blur">
                         <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-600">
                             <ActiveStepIcon className="h-3.5 w-3.5 text-emerald-600" />
