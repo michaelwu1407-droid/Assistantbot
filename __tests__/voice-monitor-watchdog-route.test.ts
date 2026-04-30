@@ -336,7 +336,7 @@ describe("GET /api/cron/voice-monitor-watchdog", () => {
     expect(body.refreshedVoiceAgentHealthRun.status).toBe("healthy");
   });
 
-  it("refreshes the spoken probe inline on cadence and then reruns voice-agent-health", async () => {
+  it("refreshes the spoken probe inline on cadence without rerunning healthy voice-agent-health", async () => {
     getMonitorRunHealth
       .mockResolvedValueOnce(
         monitorHealth({
@@ -371,22 +371,14 @@ describe("GET /api/cron/voice-monitor-watchdog", () => {
           summary: "voice-synthetic-probe is reporting on schedule",
           staleAfterMs: 2_700_000,
         }),
-      )
-      .mockResolvedValueOnce(
-        monitorHealth({
-          monitorKey: "voice-agent-health",
-          status: "healthy",
-          summary: "voice-agent-health is reporting on schedule",
-        }),
       );
-    runVoiceAgentHealthMonitor.mockResolvedValue(healthyVoiceAgentRun());
 
     const response = await GET(new NextRequest("https://app.example.com/api/cron/voice-monitor-watchdog"));
     const body = await response.json();
 
     expect(response.status).toBe(200);
     expect(runVoiceSyntheticProbe).toHaveBeenCalledTimes(1);
-    expect(runVoiceAgentHealthMonitor).toHaveBeenCalledTimes(1);
+    expect(runVoiceAgentHealthMonitor).not.toHaveBeenCalled();
     expect(recordMonitorRun).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
@@ -398,7 +390,7 @@ describe("GET /api/cron/voice-monitor-watchdog", () => {
       }),
     );
     expect(body.refreshedSyntheticProbeRun.status).toBe("healthy");
-    expect(body.refreshedVoiceAgentHealthRun.status).toBe("healthy");
+    expect(body.refreshedVoiceAgentHealthRun).toBeNull();
   });
 
   it("rejects unauthorized callers", async () => {

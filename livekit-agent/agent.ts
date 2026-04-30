@@ -290,6 +290,8 @@ let sharedSpeculativeHeadAudioCache: Map<SpeculativeHeadId, Promise<AudioFrame>>
 const FIXED_LINE_BANK = {
   demo_default_greeting: "Hi there.",
   inbound_demo_greeting: "Hi, this is Tracey from Earlymark AI. How can I help?",
+  inbound_demo_hello_ack: "Hi there.",
+  inbound_demo_can_hear_you: "Yep, I can hear you.",
 } as const;
 type FixedLineId = keyof typeof FIXED_LINE_BANK;
 let sharedFixedLineAudioCache: Map<FixedLineId, Promise<AudioFrame>> | null = null;
@@ -2508,6 +2510,35 @@ export default defineAgent({
       let speculativeHeadEntry: SpeculativeHeadBankEntry | null = null;
 
       (tts as MultilingualTTS).setReplyLanguage(ev.language);
+
+      if (callType === "inbound_demo") {
+        const fastReplyId = voiceLatency.resolveInboundDemoFastReplyId(transcript);
+        if (fastReplyId) {
+          const fastReplyFrame = await getCachedOpenerAudioFrame(fixedLineAudioCache, fastReplyId, 50);
+
+          session.clearUserTurn();
+          pendingLatencyTurn = null;
+
+          await session.say(FIXED_LINE_BANK[fastReplyId], {
+            ...(fastReplyFrame ? { audio: audioFrameToReadableStream(fastReplyFrame) } : {}),
+            allowInterruptions: true,
+            addToChatCtx: true,
+          });
+
+          console.log(
+            `[voice-fast-reply] ${JSON.stringify({
+              callId,
+              room: ctx.room.name,
+              participant: participant.identity,
+              transcript,
+              fastReplyId,
+            })}`,
+          );
+
+          resetActiveVoiceTurn();
+          return;
+        }
+      }
 
       if (
         isEarlymarkCall &&

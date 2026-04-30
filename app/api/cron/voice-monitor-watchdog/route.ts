@@ -74,7 +74,10 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    if (voiceAgentHealth.status !== "healthy" || refreshedSyntheticProbeRun) {
+    // Don't immediately rerun fleet health just because the watchdog placed its own
+    // spoken canary call. The sales worker is single-capacity, so the canary can
+    // transiently mark demo/inbound_demo as saturated until the next heartbeat lands.
+    if (voiceAgentHealth.status !== "healthy") {
       const refreshCheckedAt = new Date();
 
       try {

@@ -204,6 +204,27 @@ export const SPECULATIVE_HEAD_BANK: SpeculativeHeadBankEntry[] = [
   },
 ];
 
+const INBOUND_DEMO_GREETING_PATTERNS = [
+  /^hi(?: tracey| tracy)?$/,
+  /^hello(?: tracey| tracy)?$/,
+  /^hey(?: tracey| tracy)?$/,
+  /^gday(?: tracey| tracy)?$/,
+  /^good morning(?: tracey| tracy)?$/,
+  /^good afternoon(?: tracey| tracy)?$/,
+  /^good evening(?: tracey| tracy)?$/,
+];
+
+const INBOUND_DEMO_HEARING_CHECK_PATTERNS = [
+  /\bmonitor probe\b/,
+  /\bvoice monitor probe\b/,
+  /\bhear me\b/,
+  /\bcan you hear me\b/,
+];
+
+export type InboundDemoFastReplyId =
+  | 'inbound_demo_hello_ack'
+  | 'inbound_demo_can_hear_you';
+
 export function getPhaseTwoBacklog(): string[] {
   return [...PHASE_TWO_BACKLOG];
 }
@@ -298,6 +319,21 @@ export function resolveSpeculativeHeadEntry(args: {
       ? SPECULATIVE_HEAD_BANK.find((entry) => entry.id === 'capability_explanation') || null
       : null)
   );
+}
+
+export function resolveInboundDemoFastReplyId(transcript: string): InboundDemoFastReplyId | null {
+  const normalizedTranscript = normalizeVoiceLatencyTranscript(transcript);
+  if (!normalizedTranscript) return null;
+
+  if (INBOUND_DEMO_HEARING_CHECK_PATTERNS.some((pattern) => pattern.test(normalizedTranscript))) {
+    return 'inbound_demo_can_hear_you';
+  }
+
+  if (INBOUND_DEMO_GREETING_PATTERNS.some((pattern) => pattern.test(normalizedTranscript))) {
+    return 'inbound_demo_hello_ack';
+  }
+
+  return null;
 }
 
 export function predictVoiceTurn(transcript: string, source: 'interim' | 'final'): VoiceTurnPrediction {
@@ -745,6 +781,7 @@ const voiceLatency = {
   getPhaseTwoBacklog,
   normalizeVoiceLatencyTranscript,
   predictVoiceTurn,
+  resolveInboundDemoFastReplyId,
   resolveOpenerEntry,
   resolveSpeculativeHeadEntry,
   resolveVoiceLatencyConfig,

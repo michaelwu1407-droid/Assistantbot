@@ -1,3 +1,18 @@
+## 2026-04-30 (Codex) - Smoothed inbound demo low-signal turns and stopped the watchdog tripping over its own canary
+
+- Files changed:
+  - `livekit-agent/voice-latency.ts`
+  - `livekit-agent/agent.ts`
+  - `app/api/cron/voice-monitor-watchdog/route.ts`
+  - `__tests__/voice-latency-config.test.ts`
+  - `__tests__/voice-monitor-watchdog-route.test.ts`
+- Summary:
+  - Added a narrow fixed-audio fast path for low-signal `inbound_demo` turns like greeting-only openings and hearing checks, so the agent stops wasting a full LLM reply on "Hello, Tracy" / "Can you hear me?" style turns.
+  - Stopped the watchdog from immediately rerunning `voice-agent-health` after it launches its own spoken canary, which was creating false degraded runs while the single sales worker was temporarily busy with the probe call.
+- Why:
+  - Fresh prod canary rows showed most of the remaining first-turn slowness coming from redundant intro replies on low-signal inbound-demo turns, not from the model itself.
+  - The watchdog was also poisoning its own health status by checking fleet capacity during the canary it had just launched, so successful probes could still leave Actions red for the wrong reason.
+
 ## 2026-04-29 (Codex) - Count canary calls in latency proof even when worker tagging is incomplete
 
 - Files changed:
