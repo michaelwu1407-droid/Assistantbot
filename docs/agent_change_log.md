@@ -5854,6 +5854,25 @@ Rule: every agent change commit must include an entry in this file.
   - `npx vitest run __tests__/inbound-lead-email-readiness.test.ts __tests__/voice-monitor-watchdog-route.test.ts __tests__/launch-readiness.test.ts __tests__/health-route.test.ts __tests__/customer-agent-readiness.test.ts`
   - `npx tsc --noEmit`
 
+## 2026-04-30 22:43 AEST - Preserve caller transcript in inbound demo fast path
+
+- Agent: Codex
+- Files:
+  - `livekit-agent/agent.ts`
+  - `docs/agent_change_log.md`
+- What changed:
+  - Added a small transcript helper so manually injected turns do not double-write identical entries.
+  - When the `inbound_demo` low-signal fast path handles probe-style turns, it now records the caller utterance and latency turn before clearing the session turn and speaking the cached reply.
+  - Switched normal transcript appends to use the same helper so the fast path and the standard conversation-item path stay in sync.
+- Why:
+  - The latency optimization in `f34b04b7` sped up spoken canary turns, but it also cleared the user turn before the caller transcript was safely persisted.
+  - That made production canary verification go unhealthy even though the assistant replied correctly, because the stored transcript no longer showed both sides of the exchange.
+- Verified with:
+  - `npx vitest run __tests__/voice-spoken-canary.test.ts __tests__/voice-latency-config.test.ts __tests__/voice-monitor-watchdog-route.test.ts`
+  - `npx tsc --noEmit`
+  - `npm test`
+  - `npm run build`
+
 ## 2026-04-29 14:54 AEST - Fix worker request gating that was rejecting live voice jobs
 
 - Agent: Codex

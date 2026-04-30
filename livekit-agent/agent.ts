@@ -1304,6 +1304,22 @@ function extractTextFromConversationItem(item: unknown): string | null {
   return text || null;
 }
 
+function appendTranscriptTurn(
+  transcriptTurns: TranscriptTurn[],
+  turn: TranscriptTurn,
+) {
+  const lastTurn = transcriptTurns[transcriptTurns.length - 1];
+  if (
+    lastTurn &&
+    lastTurn.role === turn.role &&
+    lastTurn.text === turn.text &&
+    lastTurn.createdAt === turn.createdAt
+  ) {
+    return;
+  }
+  transcriptTurns.push(turn);
+}
+
 async function persistVoiceCall(payload: {
   callId: string;
   callType: CallType;
@@ -2410,7 +2426,7 @@ export default defineAgent({
       if (!role || !text) return;
 
       transcriptItemIds.add(itemId);
-      transcriptTurns.push({
+      appendTranscriptTurn(transcriptTurns, {
         role,
         text,
         createdAt: ev.createdAt,
@@ -2516,6 +2532,16 @@ export default defineAgent({
         if (fastReplyId) {
           const fastReplyFrame = await getCachedOpenerAudioFrame(fixedLineAudioCache, fastReplyId, 50);
 
+          appendTranscriptTurn(transcriptTurns, {
+            role: "user",
+            text: transcript,
+            createdAt: ev.createdAt,
+          });
+          pendingUserTurns.push({
+            transcript,
+            createdAt: ev.createdAt,
+            language: ev.language,
+          });
           session.clearUserTurn();
           pendingLatencyTurn = null;
 
