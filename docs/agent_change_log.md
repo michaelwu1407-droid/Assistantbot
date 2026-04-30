@@ -5892,6 +5892,29 @@ Rule: every agent change commit must include an entry in this file.
   - `npm test`
   - `npm run build`
 
+## 2026-05-01 02:27 AEST - Stabilize remaining Linux-sensitive flow tests
+
+- Agent: Codex
+- Files:
+  - `__tests__/onboarding-ready-workspace-flow.test.ts`
+  - `__tests__/billing-activation-flow.test.ts`
+  - `__tests__/lead-to-deal-flow.test.ts`
+  - `__tests__/chat-agent-crm-mutation-flow.test.ts`
+  - `docs/agent_change_log.md`
+- What changed:
+  - Narrowed fake timers in the remaining flow-style integration tests to freeze `Date` only instead of intercepting every timer primitive.
+  - Hoisted heavyweight dynamic imports out of hot test bodies so Linux CI no longer pays extra startup cost inside the per-test timeout window.
+  - Reused the same stabilization pattern that already fixed `deal-lifecycle-flow.test.ts`, applying it to the sibling tests most likely to fail next under GitHub Actions.
+- Why:
+  - The previous CI red was a Linux-only timeout in a similar flow test, and these four files shared the same risk pattern: fake timers plus expensive module loading during the test body.
+  - Tightening them proactively is lower risk than waiting for GitHub to fail one sibling at a time.
+- Verified with:
+  - `npx vitest run __tests__/onboarding-ready-workspace-flow.test.ts __tests__/billing-activation-flow.test.ts __tests__/lead-to-deal-flow.test.ts __tests__/chat-agent-crm-mutation-flow.test.ts`
+  - `npx tsc --noEmit`
+  - `npm test`
+  - `CI=true GITHUB_ACTIONS=true npm test`
+  - `npm run build`
+
 ## 2026-04-29 14:54 AEST - Fix worker request gating that was rejecting live voice jobs
 
 - Agent: Codex

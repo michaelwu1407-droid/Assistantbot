@@ -199,7 +199,7 @@ describe("integration: new lead to deal flow", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
+    vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-04-02T10:00:00.000Z"));
 
     contacts = [];

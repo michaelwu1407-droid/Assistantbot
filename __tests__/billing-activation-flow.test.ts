@@ -103,13 +103,16 @@ vi.mock("@/lib/billing-plan", () => ({
   getStripePriceIdForInterval,
 }));
 
+const billingActionsPromise = import("@/actions/billing-actions");
+const stripeWebhookRoutePromise = import("@/app/api/webhooks/stripe/route");
+
 describe("integration: billing activation flow", () => {
   let workspace: WorkspaceState;
   let webhookEvents: Array<{ provider: string; eventType: string; status: string; payload?: unknown; error?: string }>;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
+    vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-04-02T10:00:00.000Z"));
 
     workspace = {
@@ -230,8 +233,8 @@ describe("integration: billing activation flow", () => {
   });
 
   it("moves a workspace from checkout request to active and provisioned", async () => {
-    const { createCheckoutSession } = await import("@/actions/billing-actions");
-    const { POST } = await import("@/app/api/webhooks/stripe/route");
+    const { createCheckoutSession } = await billingActionsPromise;
+    const { POST } = await stripeWebhookRoutePromise;
 
     await expect(createCheckoutSession("ws_1", "monthly", true)).rejects.toThrow(
       "REDIRECT:https://checkout.stripe.com/session/test_123",
