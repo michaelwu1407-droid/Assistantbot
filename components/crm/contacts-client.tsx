@@ -396,9 +396,9 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
                     >
                       Last contact {sortMode === "last_interacted" && <span className="ml-0.5 text-xs text-primary">↓</span>}
                     </th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Last job</th>
+                    <th className="hidden sm:table-cell px-4 py-3 text-left text-sm font-medium text-muted-foreground">Last job</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Job status</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Balance</th>
+                    <th className="hidden sm:table-cell px-4 py-3 text-left text-sm font-medium text-muted-foreground">Balance</th>
                     <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
@@ -452,7 +452,7 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
                         <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">
                           {formatLastContact(contact.lastActivityDate)}
                         </td>
-                        <td className="px-4 py-2.5">
+                        <td className="hidden sm:table-cell px-4 py-2.5">
                           <span className="block max-w-[220px] truncate text-sm font-medium text-neutral-900">{contact.primaryDealTitle ?? "-"}</span>
                         </td>
                         <td className="px-4 py-2.5">
@@ -464,7 +464,7 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
                             <span className="text-sm text-muted-foreground">-</span>
                           )}
                         </td>
-                        <td className="px-4 py-2.5 text-muted-foreground">{contact.balanceLabel}</td>
+                        <td className="hidden sm:table-cell px-4 py-2.5 text-muted-foreground">{contact.balanceLabel}</td>
                         <td className="px-4 py-2.5 text-right">
                           <div className="flex items-center justify-end gap-0.5">
                             {contact.phone && (
