@@ -244,6 +244,11 @@ vi.mock("@/lib/kanban-columns", () => ({
 }));
 vi.mock("next/cache", () => ({ revalidatePath }));
 
+const contactActionsPromise = import("@/actions/contact-actions");
+const dealActionsPromise = import("@/actions/deal-actions");
+const automationActionsPromise = import("@/actions/automation-actions");
+const taskActionsPromise = import("@/actions/task-actions");
+
 describe("integration: deal lifecycle with automations", () => {
   let workspace: WorkspaceRecord;
   let users: UserRecord[];
@@ -256,7 +261,7 @@ describe("integration: deal lifecycle with automations", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
+    vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-04-02T10:00:00.000Z"));
 
     workspace = {
@@ -520,10 +525,10 @@ describe("integration: deal lifecycle with automations", () => {
   });
 
   it("moves a lead through contact, automation, and completion follow-up flows", async () => {
-    const { createContact } = await import("@/actions/contact-actions");
-    const { createDeal, updateDealStage } = await import("@/actions/deal-actions");
-    const { createAutomation } = await import("@/actions/automation-actions");
-    const { getTasks } = await import("@/actions/task-actions");
+    const { createContact } = await contactActionsPromise;
+    const { createDeal, updateDealStage } = await dealActionsPromise;
+    const { createAutomation } = await automationActionsPromise;
+    const { getTasks } = await taskActionsPromise;
 
     const contact = await createContact({
       name: "Alex Smith",
@@ -581,5 +586,5 @@ describe("integration: deal lifecycle with automations", () => {
         entityId: "deal_1",
       }),
     );
-  }, 15000);
+  }, 45000);
 });

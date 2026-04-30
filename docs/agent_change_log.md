@@ -5854,6 +5854,25 @@ Rule: every agent change commit must include an entry in this file.
   - `npx vitest run __tests__/inbound-lead-email-readiness.test.ts __tests__/voice-monitor-watchdog-route.test.ts __tests__/launch-readiness.test.ts __tests__/health-route.test.ts __tests__/customer-agent-readiness.test.ts`
   - `npx tsc --noEmit`
 
+## 2026-05-01 01:43 AEST - Stabilize Linux CI deal lifecycle flow
+
+- Agent: Codex
+- Files:
+  - `__tests__/deal-lifecycle-flow.test.ts`
+  - `docs/agent_change_log.md`
+- What changed:
+  - Moved the heavy action-module imports for the deal lifecycle integration test out of the timed test body and into shared promises.
+  - Narrowed the fake-timer setup to freeze `Date` only, instead of faking every timer primitive.
+  - Increased that single integration test's timeout from 15 seconds to 45 seconds so cold Linux runners have realistic headroom.
+- Why:
+  - Production voice had recovered, but GitHub `CI Quality Checks` was still red because `__tests__/deal-lifecycle-flow.test.ts` timed out on `ubuntu-latest` while passing locally.
+  - Reproducing the workflow inside a Linux `node:20` container showed this was a runner-specific timeout, not a voice regression.
+- Verified with:
+  - `npx vitest run __tests__/deal-lifecycle-flow.test.ts`
+  - `docker run --rm -v "C:/Users/micha/Projects/Assistantbot:/app" -w /app node:20 bash -lc "npx vitest run __tests__/deal-lifecycle-flow.test.ts --reporter=verbose"`
+  - `npx tsc --noEmit`
+  - `npm test`
+
 ## 2026-04-30 22:43 AEST - Preserve caller transcript in inbound demo fast path
 
 - Agent: Codex
