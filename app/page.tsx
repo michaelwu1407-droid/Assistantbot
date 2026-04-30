@@ -292,7 +292,7 @@ function FaqSection() {
     const toggle = (idx: number) =>
         setOpenIndices((prev) => prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx]);
     return (
-        <section className="py-20 px-4 bg-white">
+        <section className="py-10 md:py-20 px-4 bg-white">
             <div className="max-w-3xl mx-auto">
                 <h2 className="text-3xl font-bold text-center text-midnight mb-10">Frequently Asked Questions</h2>
                 <div className="space-y-3">
@@ -348,17 +348,17 @@ export default function Home() {
             </section>
 
             {/* Testimonials */}
-            <section className="bg-slate-50 px-6 py-24 overflow-hidden">
+            <section className="bg-slate-50 px-6 py-12 md:py-24 overflow-hidden">
                 <div className="container mx-auto max-w-7xl">
-                    <motion.div {...fadeUp()} className="text-center mb-12">
-                        <h2 className="text-3xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em]">Loved by service businesses with non-stop calls</h2>
+                    <motion.div {...fadeUp()} className="text-center mb-8 md:mb-12">
+                        <h2 className="text-2xl sm:text-3xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em]">Loved by service businesses with non-stop calls</h2>
                     </motion.div>
                     <motion.div {...fadeUp(0.08)} className="-mx-6 px-6"><TestimonialsCarousel /></motion.div>
                 </div>
             </section>
 
             {/* Section 1 — Meet Tracey */}
-            <section id="meet-tracey" className="bg-[#F8FAFC] px-6 py-24">
+            <section id="meet-tracey" className="bg-[#F8FAFC] px-6 py-12 md:py-24">
                 <div className="container mx-auto max-w-7xl">
                     <motion.div {...fadeUp()} className="mx-auto mb-14 max-w-3xl text-center">
                         <h2 className="text-4xl font-extrabold tracking-[-0.03em] text-midnight md:text-5xl">Meet Tracey</h2>
@@ -403,7 +403,7 @@ export default function Home() {
             </section>
 
             {/* Interview form — narrative bridge */}
-            <section id="interview-assistant" className="py-24 px-6 relative overflow-hidden bg-[#1E232B]">
+            <section id="interview-assistant" className="py-12 md:py-24 px-6 relative overflow-hidden bg-[#1E232B]">
                 <div className="container mx-auto max-w-7xl">
                     <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
                         <div className="flex flex-col gap-8">
@@ -421,7 +421,7 @@ export default function Home() {
             </section>
 
             {/* Section 2 — A CRM that fills itself in */}
-            <section id="product" className="py-24 px-6 bg-white">
+            <section id="product" className="py-12 md:py-24 px-6 bg-white">
                 <div className="container mx-auto max-w-7xl flex flex-col gap-16">
                     <motion.div {...fadeUp()} className="text-center max-w-2xl mx-auto">
                         <h2 className="text-4xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em]">A CRM that fills itself in.</h2>
@@ -470,7 +470,7 @@ export default function Home() {
             <FaqSection />
 
             {/* Final CTA */}
-            <section className="py-24 px-6 bg-[linear-gradient(135deg,#0f172a_0%,#065f46_100%)]">
+            <section className="py-14 md:py-24 px-6 bg-[linear-gradient(135deg,#0f172a_0%,#065f46_100%)]">
                 <div className="mx-auto max-w-3xl text-center flex flex-col items-center gap-6">
                     <motion.h2 {...fadeUp()} className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-white leading-tight text-balance">Give yourself an early mark today</motion.h2>
                     <motion.p {...fadeUp(0.04)} className="text-lg text-white/65 leading-7 max-w-xl">Focus on the job, not the admin.</motion.p>

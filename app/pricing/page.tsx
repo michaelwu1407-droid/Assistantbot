@@ -186,7 +186,7 @@ export default function PricingPage() {
 
       <main>
         {/* ── 1. Hero / Pricing Header ── */}
-        <section className="pt-32 pb-16 px-6 relative overflow-hidden isolate bg-[linear-gradient(180deg,#F5F7F8_0%,#F4F7F5_60%,#F7F6F3_100%)]">
+        <section className="pt-24 sm:pt-32 pb-10 md:pb-16 px-6 relative overflow-hidden isolate bg-[linear-gradient(180deg,#F5F7F8_0%,#F4F7F5_60%,#F7F6F3_100%)]">
           <div
             className="absolute inset-0 z-0 pointer-events-none"
             style={{
@@ -365,7 +365,7 @@ export default function PricingPage() {
         </section>
 
         {/* ── 3. ROI Justification ── */}
-        <section className="py-20 px-6 bg-white border-t border-slate-200/60">
+        <section className="py-10 md:py-20 px-6 bg-white border-t border-slate-200/60">
           <div className="max-w-4xl mx-auto">
             <motion.div {...fadeUp()} className="text-center mb-14">
               <h2 className="text-3xl font-extrabold text-midnight">Pays for itself by saving 1 missed job</h2>
@@ -390,7 +390,7 @@ export default function PricingPage() {
         </section>
 
         {/* ── 4. Feature Grid ── */}
-        <section className="py-20 px-6 bg-[#F8FAFC] border-t border-slate-200/60">
+        <section className="py-10 md:py-20 px-6 bg-[#F8FAFC] border-t border-slate-200/60">
           <div className="max-w-5xl mx-auto">
             <motion.div {...fadeUp()} className="text-center mb-14">
               <h2 className="text-3xl font-extrabold text-midnight">Everything you need is included</h2>
@@ -421,7 +421,7 @@ export default function PricingPage() {
         </section>
 
         {/* ── 5. FAQ ── */}
-        <section className="py-20 px-6 bg-white border-t border-slate-200/60">
+        <section className="py-10 md:py-20 px-6 bg-white border-t border-slate-200/60">
           <div className="max-w-3xl mx-auto">
             <motion.div {...fadeUp()} className="text-center mb-10">
               <h2 className="text-3xl font-extrabold text-midnight">Pricing questions</h2>
@@ -434,7 +434,7 @@ export default function PricingPage() {
         </section>
 
         {/* ── 6. Contact Form ── */}
-        <section id="contact-form" className="py-20 px-6 bg-[#F8FAFC] border-t border-slate-200/60 scroll-mt-20">
+        <section id="contact-form" className="py-10 md:py-20 px-6 bg-[#F8FAFC] border-t border-slate-200/60 scroll-mt-20">
           <div className="container mx-auto max-w-xl">
             <motion.div {...fadeUp()} className="text-center mb-10">
               <h2 className="text-3xl font-extrabold text-midnight">Still have questions?</h2>
@@ -583,7 +583,7 @@ export default function PricingPage() {
         </section>
 
         {/* ── 7. Final CTA ── */}
-        <section className="py-24 px-6 bg-[linear-gradient(135deg,#0f172a_0%,#065f46_100%)]">
+        <section className="py-14 md:py-24 px-6 bg-[linear-gradient(135deg,#0f172a_0%,#065f46_100%)]">
           <div className="mx-auto max-w-3xl text-center flex flex-col items-center gap-6">
             <motion.h2
               {...fadeUp()}

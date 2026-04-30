@@ -486,7 +486,7 @@ export default function FeaturesPage() {
       <main>
 
         {/* ── 1. Hero ── */}
-        <section className="pt-32 pb-20 px-6 bg-[linear-gradient(180deg,#F5F7F8_0%,#F4F7F5_60%,#F7F6F3_100%)] relative overflow-hidden isolate">
+        <section className="pt-24 sm:pt-32 pb-12 md:pb-20 px-6 bg-[linear-gradient(180deg,#F5F7F8_0%,#F4F7F5_60%,#F7F6F3_100%)] relative overflow-hidden isolate">
           <div className="absolute inset-0 z-0 pointer-events-none" style={{
             background: "radial-gradient(110% 60% at 50% 0%,rgba(16,185,129,0.18) 0%,rgba(16,185,129,0.00) 72%)",
           }} />
@@ -494,7 +494,7 @@ export default function FeaturesPage() {
             <motion.p {...fadeUp(0)} className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">
               Product
             </motion.p>
-            <motion.h1 {...fadeUp(0.04)} className="text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.07] text-midnight text-balance">
+            <motion.h1 {...fadeUp(0.04)} className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.07] text-midnight text-balance">
               From first call to final invoice —<br />Tracey&apos;s got it.
             </motion.h1>
             <motion.p {...fadeUp(0.08)} className="text-lg leading-8 text-slate-600 max-w-xl text-balance">
@@ -513,14 +513,14 @@ export default function FeaturesPage() {
           </div>
 
           {/* Full-width dashboard reel */}
-          <motion.div {...fadeUp(0.16)} className="relative z-10 mx-auto mt-14 max-w-6xl px-4">
+          <motion.div {...fadeUp(0.16)} className="relative z-10 mx-auto mt-8 md:mt-14 max-w-6xl px-4">
             <div className="absolute inset-x-[8%] top-8 -z-10 h-32 rounded-full bg-emerald-300/20 blur-3xl" />
             <HeroDashboardReel />
           </motion.div>
         </section>
 
         {/* ── 2. Core jobs ── */}
-        <section className="py-20 px-6 bg-white border-y border-slate-200/70">
+        <section className="py-10 md:py-20 px-6 bg-white border-y border-slate-200/70">
           <div className="mx-auto max-w-5xl">
             <motion.p {...fadeUp()} className="text-center text-[11px] font-semibold uppercase tracking-[0.28em] text-primary mb-10">
               What Tracey does for you
@@ -554,7 +554,7 @@ export default function FeaturesPage() {
           const Mockup = FEATURE_MOCKUPS[i]
           const bg = isEven ? "bg-white" : "bg-[#F8FAFC]"
           return (
-            <section key={feat.eyebrow} className={`py-20 px-6 ${bg} border-b border-slate-200/60`}>
+            <section key={feat.eyebrow} className={`py-10 md:py-20 px-6 ${bg} border-b border-slate-200/60`}>
               <div className="mx-auto max-w-6xl grid md:grid-cols-2 gap-10 lg:gap-16 items-center">
 
                 {/* Text col */}
@@ -577,7 +577,7 @@ export default function FeaturesPage() {
                 </motion.div>
 
                 {/* Mockup col */}
-                <motion.div {...fadeUp(0.08)} className={`h-[360px] rounded overflow-hidden shadow-[0_8px_48px_rgba(15,23,42,0.12)] ${!isEven ? "md:order-1" : ""}`}>
+                <motion.div {...fadeUp(0.08)} className={`h-[260px] sm:h-[320px] md:h-[360px] rounded overflow-hidden shadow-[0_8px_48px_rgba(15,23,42,0.12)] ${!isEven ? "md:order-1" : ""}`}>
                   {Mockup && <Mockup />}
                 </motion.div>
 
@@ -587,7 +587,7 @@ export default function FeaturesPage() {
         })}
 
         {/* ── 4. How it works ── */}
-        <section className="py-20 px-6 bg-white border-b border-slate-200/60">
+        <section className="py-10 md:py-20 px-6 bg-white border-b border-slate-200/60">
           <div className="mx-auto max-w-5xl">
             <motion.div {...fadeUp()} className="text-center mb-14">
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">How it works</p>
@@ -615,7 +615,7 @@ export default function FeaturesPage() {
         </section>
 
         {/* ── 5. Comparison table ── */}
-        <section className="py-20 px-6 bg-[#F8FAFC] border-b border-slate-200/60">
+        <section className="py-10 md:py-20 px-6 bg-[#F8FAFC] border-b border-slate-200/60">
           <div className="mx-auto max-w-4xl">
             <motion.div {...fadeUp()} className="text-center mb-12">
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">Why switch</p>
@@ -649,7 +649,7 @@ export default function FeaturesPage() {
         </section>
 
         {/* ── 6. Testimonials ── */}
-        <section className="py-20 px-6 bg-white border-b border-slate-200/60">
+        <section className="py-10 md:py-20 px-6 bg-white border-b border-slate-200/60">
           <div className="mx-auto max-w-4xl">
             <motion.div {...fadeUp()} className="text-center mb-12">
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">What customers say</p>
@@ -678,7 +678,7 @@ export default function FeaturesPage() {
         </section>
 
         {/* ── 7. Final CTA ── */}
-        <section className="py-24 px-6 bg-[linear-gradient(135deg,#0f172a_0%,#065f46_100%)]">
+        <section className="py-14 md:py-24 px-6 bg-[linear-gradient(135deg,#0f172a_0%,#065f46_100%)]">
           <div className="mx-auto max-w-3xl text-center flex flex-col items-center gap-6">
             <motion.p {...fadeUp()} className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-400">
               Ready to start
