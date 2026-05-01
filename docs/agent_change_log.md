@@ -1,3 +1,16 @@
+## 2026-05-01 (Codex) - Removed unsupported Vercel cron so web deploys can succeed again
+
+- Files changed:
+  - `vercel.json`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Removed the unsupported 5-minute and 15-minute Vercel cron entries from `vercel.json`.
+  - Reasserted GitHub Actions schedules as the real recurring scheduler for `voice-monitor-watchdog` and `customer-agent-reconcile` on the current Vercel Hobby plan.
+- Why:
+  - Manual production deploy verification showed Vercel was rejecting the web deploy entirely because Hobby only allows daily cron cadence, which left the web app stuck on old SHA `e73d4af3` even while workers kept updating.
+  - The recurring scheduler must stay on GitHub until the project is upgraded to a Vercel plan that supports sub-daily cron.
+
 ## 2026-05-01 (Codex) - Restored GitHub cron backstops while Vercel owns primary voice cadence
 
 - Files changed:
