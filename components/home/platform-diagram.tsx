@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Phone, Database, ArrowLeftRight, CheckCircle2 } from "lucide-react";
+import { Phone, Database, ArrowLeftRight, CheckCircle2, MessageCircle, Mail, MessageSquare } from "lucide-react";
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
@@ -14,7 +14,14 @@ const VOICE_POINTS = [
 const CRM_POINTS = [
     "Auto-logs every call, SMS & email",
     "Live pipeline, jobs & payments",
-    "Run it by chat or dashboard",
+    "Chat with Tracey in-app or via WhatsApp",
+];
+
+const CHANNELS = [
+    { label: "Phone calls", icon: Phone },
+    { label: "WhatsApp", icon: MessageCircle },
+    { label: "SMS", icon: MessageSquare },
+    { label: "Email", icon: Mail },
 ];
 
 export function PlatformDiagram() {
@@ -94,15 +101,26 @@ export function PlatformDiagram() {
                 </motion.div>
             </div>
 
-            <motion.p
+            <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-60px" }}
                 transition={{ duration: 0.5, delay: 0.3, ease: EASE }}
-                className="mt-8 text-center text-sm font-medium text-slate-500"
+                className="mt-10 flex flex-col items-center gap-4"
             >
-                One platform. Every conversation flows from the phone straight into your CRM — and back out as the next action.
-            </motion.p>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Reach Tracey &amp; the CRM on any channel</p>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                    {CHANNELS.map(({ label, icon: Icon }) => (
+                        <span key={label} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm">
+                            <Icon className="h-4 w-4 text-emerald-600" />
+                            {label}
+                        </span>
+                    ))}
+                </div>
+                <p className="max-w-2xl text-center text-sm text-slate-500">
+                    Every conversation flows into your CRM — and back out as the next action. Message Tracey on WhatsApp to update jobs, chase quotes, or pull a customer&apos;s history without opening the app.
+                </p>
+            </motion.div>
         </div>
     );
 }

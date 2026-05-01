@@ -8,6 +8,7 @@ import {
     ArrowRight, ChevronDown,
     Phone, Calendar, MapPin, Users, UsersRound,
     BarChart3, CheckCircle2, MessageSquare, Layers, FileText,
+    Inbox, ShieldCheck, Globe, Sparkles, Receipt,
 } from "lucide-react";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
@@ -57,14 +58,18 @@ const EASE_STANDARD: [number, number, number, number] = [0.16, 1, 0.3, 1];
 // ─── Static data ──────────────────────────────────────────────────────────────
 
 const FEATURE_CARDS = [
-    { icon: MessageSquare, title: "Inbox" },
-    { icon: Users,         title: "Contacts" },
-    { icon: Layers,        title: "Jobs Pipeline" },
-    { icon: FileText,      title: "Quotes & Invoices" },
-    { icon: Calendar,      title: "Smart Scheduling" },
-    { icon: MapPin,        title: "Job Map" },
-    { icon: UsersRound,    title: "Team Management" },
-    { icon: BarChart3,     title: "Revenue Analytics" },
+    { icon: Inbox,         title: "Unified inbox",         desc: "Calls, SMS, email & WhatsApp in one timeline" },
+    { icon: Users,         title: "Contacts",              desc: "Every customer record auto-enriched as Tracey works" },
+    { icon: Layers,        title: "Jobs pipeline",         desc: "Drag-and-drop Kanban with team-member filtering" },
+    { icon: Receipt,       title: "Quotes & Xero invoices",desc: "On-site signatures, draft invoices filed to Xero" },
+    { icon: Calendar,      title: "Smart scheduling",      desc: "Calendar sync, travel-aware booking, reminders" },
+    { icon: MapPin,        title: "Job map",               desc: "See today's jobs by location and route" },
+    { icon: ShieldCheck,   title: "Lead qualification",    desc: "Tracey triages leads against your no-go rules" },
+    { icon: Sparkles,      title: "Actionable alerts",     desc: "Approve, confirm or reply right from the notification" },
+    { icon: Globe,         title: "Customer portal",       desc: "Token-secured page where customers track their job" },
+    { icon: UsersRound,    title: "Team management",       desc: "Invites, roles and per-member workload" },
+    { icon: BarChart3,     title: "Revenue analytics",     desc: "Pipeline trends and revenue breakdowns by range" },
+    { icon: MessageSquare, title: "In-app AI chat",        desc: "Ask Tracey anything — or run the CRM by chat" },
 ];
 
 const TRACEY_WORKFLOW = [
@@ -448,10 +453,11 @@ export default function Home() {
             <section id="product" className="py-12 md:py-24 px-6 bg-white">
                 <div className="container mx-auto max-w-7xl flex flex-col gap-16">
                     <motion.div {...fadeUp()} className="text-center max-w-2xl mx-auto">
+                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600 mb-3">The CRM</p>
                         <h2 className="text-4xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em]">A CRM that fills itself in.</h2>
                         <p className="text-slate-body mt-3 text-lg leading-relaxed">
-                            Tracey writes every call, SMS, email, job, and payment to your CRM as it happens.<br />
-                            Run it by chat, or open the dashboard to see everything live.
+                            Tracey writes every call, SMS, email, WhatsApp, job, quote, and payment to your CRM as it happens.<br />
+                            Run it from the dashboard, the in-app chat, or just message Tracey on WhatsApp.
                         </p>
                     </motion.div>
 
@@ -459,12 +465,14 @@ export default function Home() {
                         <div className="flex flex-col gap-6">
                             <ul className="flex flex-col gap-3">
                                 {[
-                                    "Move a job, reschedule a customer, or chase a quote — just say it",
-                                    "Ask for revenue, pipeline, or any customer record in plain English",
-                                    "No forms, no manual data entry — ever",
+                                    "Message Tracey on WhatsApp to move a job, send a quote, or pull a customer record",
+                                    "In-app chat sidebar that drives the CRM — no forms, no manual data entry",
+                                    "Actionable notifications: confirm jobs, approve completions, reply to customers in one tap",
+                                    "Lead bouncer triages every enquiry against your no-go rules before it hits the pipeline",
+                                    "Xero-ready invoicing with on-site signature capture and draft filing",
                                 ].map((b) => (
-                                    <li key={b} className="flex items-center gap-2.5 text-sm text-slate-body">
-                                        <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                                    <li key={b} className="flex items-start gap-2.5 text-sm text-slate-body">
+                                        <CheckCircle2 className="mt-0.5 w-4 h-4 text-primary shrink-0" />
                                         <span>{b}</span>
                                     </li>
                                 ))}
@@ -477,13 +485,16 @@ export default function Home() {
 
                     <motion.div {...fadeUp(0.10)}>
                         <p className="text-center text-xs font-bold uppercase tracking-[0.2em] text-slate-400 mb-6">A full CRM. Not a stripped-down one.</p>
-                        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                            {FEATURE_CARDS.map(({ icon: Icon, title }) => (
-                                <div key={title} className="flex flex-col items-center gap-3 rounded border border-slate-200 bg-[#F8FAFC] px-4 py-6 text-center">
-                                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#E0FAF2]">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                            {FEATURE_CARDS.map(({ icon: Icon, title, desc }) => (
+                                <div key={title} className="flex items-start gap-3 rounded-xl border border-slate-200 bg-[#F8FAFC] p-5">
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E0FAF2]">
                                         <Icon className="h-5 w-5 text-primary" />
                                     </div>
-                                    <span className="text-sm font-semibold text-midnight">{title}</span>
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-sm font-semibold text-midnight">{title}</span>
+                                        <span className="text-xs leading-relaxed text-slate-500">{desc}</span>
+                                    </div>
                                 </div>
                             ))}
                         </div>
