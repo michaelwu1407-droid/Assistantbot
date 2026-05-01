@@ -35,6 +35,7 @@ export type InboundLeadEmailReadiness = {
   ready: boolean;
   domain: string;
   issues: string[];
+  warnings: string[];
   dnsMxHosts: string[];
   dnsReady: boolean;
   resendDomainStatus: string | null;
@@ -109,6 +110,7 @@ export async function getInboundLeadEmailReadiness(
 ): Promise<InboundLeadEmailReadiness> {
   const domain = resolveInboundLeadDomain(configuredDomain).toLowerCase();
   const issues: string[] = [];
+  const warnings: string[] = [];
   let dnsMxHosts: string[] = [];
   let dnsReady = false;
   let resendDomainStatus: string | null = null;
@@ -178,6 +180,7 @@ export async function getInboundLeadEmailReadiness(
       ready: false,
       domain,
       issues: Array.from(new Set(issues)),
+      warnings: Array.from(new Set(warnings)),
       dnsMxHosts,
       dnsReady,
       resendDomainStatus,
@@ -225,6 +228,9 @@ export async function getInboundLeadEmailReadiness(
         if (message.includes("HTTP 429") && resendReceivingEnabled && isVerifiedDomainStatus(resendDomainStatus)) {
           providerVerified = true;
           resendReceivingRecordStatus = "rate_limited_assumed_verified";
+          warnings.push(
+            `Resend admin verification is rate-limited: ${message}. Using the verified domain summary for ${domain} for now.`,
+          );
         } else {
           throw error;
         }
@@ -232,7 +238,15 @@ export async function getInboundLeadEmailReadiness(
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown Resend verification failure";
-    issues.push(`Inbound email receiving verification failed: ${message}`);
+    if (message.includes("HTTP 429")) {
+      const recentTrafficSuffix =
+        recentInboundEmailSuccessCount > 0
+          ? " Recent inbound email traffic has still been observed."
+          : "";
+      issues.push(`Resend admin verification is rate-limited: ${message}.${recentTrafficSuffix}`);
+    } else {
+      issues.push(`Resend admin verification failed: ${message}`);
+    }
   }
 
   const receivingConfirmed = recentInboundEmailSuccessCount > 0;
@@ -241,6 +255,7 @@ export async function getInboundLeadEmailReadiness(
     ready: issues.length === 0,
     domain,
     issues: Array.from(new Set(issues)),
+    warnings: Array.from(new Set(warnings)),
     dnsMxHosts,
     dnsReady,
     resendDomainStatus,

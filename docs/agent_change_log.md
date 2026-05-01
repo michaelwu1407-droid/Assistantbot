@@ -1,3 +1,23 @@
+## 2026-05-01 (Codex) - Clarified Resend admin verification health without hiding it
+
+- Files changed:
+  - `lib/inbound-lead-email-readiness.ts`
+  - `lib/launch-readiness.ts`
+  - `__tests__/inbound-lead-email-readiness.test.ts`
+  - `__tests__/launch-readiness.test.ts`
+  - `__tests__/customer-agent-readiness.test.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Split inbound lead-email readiness into blocking `issues` and non-blocking `warnings`.
+  - Kept the existing verified-summary fallback for Resend domain-detail `429` responses, but now surface that rate limit explicitly as a warning instead of hiding it.
+  - Reworded domains-list failures so they read as a Resend admin verification problem, not as a vague "inbound email is broken" message.
+  - Taught launch readiness to forward both blocking issues and non-blocking admin warnings in the communications/email payload.
+- Why:
+  - We want real Resend admin/control-plane trouble to stay visible so it can be fixed, but we also do not want a verified inbound email setup to look customer-broken just because a provider admin endpoint is rate-limited.
+- Verified with:
+  - `npx vitest run __tests__/inbound-lead-email-readiness.test.ts __tests__/launch-readiness.test.ts __tests__/customer-agent-readiness.test.ts`
+  - `npx tsc --noEmit`
+
 ## 2026-05-01 (Codex) - Documented post-reliability voice optimization backlog
 
 - Files changed:

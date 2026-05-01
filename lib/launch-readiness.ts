@@ -161,7 +161,9 @@ export async function getLaunchReadiness(options?: {
         ? "degraded"
         : "healthy";
 
-  const emailWarnings = Array.from(new Set(emailReadiness.issues.filter(Boolean)));
+  const emailWarnings = Array.from(
+    new Set([...(emailReadiness.issues || []), ...(emailReadiness.warnings || [])].filter(Boolean)),
+  );
   const emailStatus: RuntimeStatus = emailReadiness.ready ? "healthy" : "degraded";
   const communicationsStatus = [smsStatus, emailStatus].reduce<RuntimeStatus>(
     (current, candidate) => maxStatus(current, candidate),
@@ -250,10 +252,10 @@ export async function getLaunchReadiness(options?: {
       expectedSmsWebhookUrl: twilioMessagingRouting.expectedSmsWebhookUrl,
     },
     email: {
+      ...emailReadiness,
       status: emailStatus,
       summary: summarizeStatus(emailStatus, emailWarnings, "Inbound lead email is ready."),
       warnings: emailWarnings,
-      ...emailReadiness,
     },
   };
 

@@ -137,6 +137,7 @@ describe("getLaunchReadiness", () => {
     mocks.getInboundLeadEmailReadiness.mockResolvedValue({
       ready: true,
       issues: [],
+      warnings: [],
       domain: "inbound.earlymark.ai",
     });
     mocks.getProvisioningReadinessSummary.mockResolvedValue({
@@ -175,6 +176,25 @@ describe("getLaunchReadiness", () => {
     expect(mocks.getMonitorRunHealth).toHaveBeenNthCalledWith(2, "voice-monitor-watchdog", 420_000);
     expect(mocks.getMonitorRunHealth).toHaveBeenNthCalledWith(3, "passive-communications-health", 420_000);
     expect(mocks.getMonitorRunHealth).toHaveBeenNthCalledWith(4, "voice-synthetic-probe", 2_700_000);
+  });
+
+  it("surfaces non-blocking Resend admin warnings without degrading communications", async () => {
+    mocks.getInboundLeadEmailReadiness.mockResolvedValueOnce({
+      ready: true,
+      issues: [],
+      warnings: [
+        "Resend admin verification is rate-limited: Resend domain detail returned HTTP 429. Using the verified domain summary for inbound.earlymark.ai for now.",
+      ],
+      domain: "inbound.earlymark.ai",
+    });
+
+    const result = await getLaunchReadiness();
+
+    expect(result.communications.status).toBe("healthy");
+    expect(result.communications.email.status).toBe("healthy");
+    expect(result.communications.email.warnings).toEqual([
+      "Resend admin verification is rate-limited: Resend domain detail returned HTTP 429. Using the verified domain summary for inbound.earlymark.ai for now.",
+    ]);
   });
 
   it("lets the spoken canary drive unhealthy launch readiness when the latest probe failed", async () => {

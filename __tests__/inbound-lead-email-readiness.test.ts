@@ -62,6 +62,7 @@ describe("getInboundLeadEmailReadiness", () => {
     expect(result.domain).toBe("inbound.earlymark.ai");
     expect(result.issues.some((issue) => issue.includes("no valid MX record"))).toBe(true);
     expect(result.issues.some((issue) => issue.includes("not configured in Resend"))).toBe(true);
+    expect(result.warnings).toEqual([]);
     expect(result.stage).toBe("reserved");
     expect(result.receivingConfirmed).toBe(false);
   });
@@ -129,6 +130,7 @@ describe("getInboundLeadEmailReadiness", () => {
     expect(result.dnsReady).toBe(true);
     expect(result.providerVerified).toBe(true);
     expect(result.receivingConfirmed).toBe(true);
+    expect(result.warnings).toEqual([]);
     expect(result.stage).toBe("receiving_confirmed");
     expect(result.recentInboundEmailSuccessCount).toBe(1);
     expect(result.recentInboundEmailFailureCount).toBe(1);
@@ -185,6 +187,7 @@ describe("getInboundLeadEmailReadiness", () => {
     expect(result.providerVerified).toBe(true);
     expect(result.receivingConfirmed).toBe(false);
     expect(result.issues).toEqual([]);
+    expect(result.warnings).toEqual([]);
     expect(result.stage).toBe("provider_verified");
   });
 
@@ -227,6 +230,42 @@ describe("getInboundLeadEmailReadiness", () => {
     expect(result.resendReceivingEnabled).toBe(true);
     expect(result.resendReceivingRecordStatus).toBe("rate_limited_assumed_verified");
     expect(result.issues).toEqual([]);
+    expect(result.warnings).toEqual([
+      "Resend admin verification is rate-limited: Resend domain detail returned HTTP 429. Using the verified domain summary for inbound.earlymark.ai for now.",
+    ]);
     expect(result.stage).toBe("provider_verified");
+  });
+
+  it("surfaces a domains-list rate limit as an admin verification issue instead of calling inbound email broken", async () => {
+    findMany.mockResolvedValue([
+      {
+        status: "success",
+        createdAt: new Date("2026-03-17T01:00:00.000Z"),
+      },
+    ]);
+    resolveMx.mockResolvedValue([
+      {
+        exchange: "inbound-smtp.ap-northeast-1.amazonaws.com",
+        priority: 10,
+      },
+    ]);
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          message: "rate limited",
+        }),
+        { status: 429 },
+      ),
+    );
+
+    const result = await getInboundLeadEmailReadiness("inbound.earlymark.ai");
+
+    expect(result.ready).toBe(false);
+    expect(result.issues).toEqual([
+      "Resend admin verification is rate-limited: Resend domains list returned HTTP 429. Recent inbound email traffic has still been observed.",
+    ]);
+    expect(result.warnings).toEqual([]);
+    expect(result.receivingConfirmed).toBe(true);
+    expect(result.stage).toBe("receiving_confirmed");
   });
 });
