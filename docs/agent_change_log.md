@@ -5960,6 +5960,22 @@ Rule: every agent change commit must include an entry in this file.
 
 - Agent: Codex
 - Files:
+  - `app/api/health/route.ts`
+  - `__tests__/health-route.test.ts`
+- What changed:
+  - Split the public health route into `voiceStatus`, `coreStatus`, and `overallStatus` so healthy voice/runtime no longer looks like a full outage just because passive communications or monitor freshness is degraded.
+  - Kept the detailed passive-production and monitoring signals in the payload, and added a clearer summary when core voice is healthy but secondary ops signals are not.
+  - Added coverage for the exact case we were seeing in prod: healthy core voice with an unhealthy passive SMS rollup.
+- Why:
+  - The public `/api/health` contract was conflating "voice is broken" with "a passive SMS workspace signal is red", which made the live story much noisier than the actual runtime truth.
+  - We still want the red details, but we need the top-level health to distinguish launch-critical voice/runtime health from secondary traffic-monitoring issues.
+- Verified with:
+  - `npx vitest run __tests__/health-route.test.ts __tests__/launch-readiness.test.ts`
+  - `npx tsc --noEmit`
+  - `npm run build`
+
+- Agent: Codex
+- Files:
   - `__tests__/onboarding-ready-workspace-flow.test.ts`
   - `__tests__/billing-activation-flow.test.ts`
   - `__tests__/lead-to-deal-flow.test.ts`
