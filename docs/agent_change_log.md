@@ -1,3 +1,14 @@
+## 2026-05-01 (Codex) - Retried voice watchdog fleet health after its own spoken probe
+
+- Files changed:
+  - `app/api/cron/voice-monitor-watchdog/route.ts`
+  - `__tests__/voice-monitor-watchdog-route.test.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Taught the watchdog to retry `voice-agent-health` once after it refreshes its own spoken canary when the only reported problem is temporary fleet call-capacity pressure.
+- Why:
+  - The watchdog could still create a false degraded voice result by checking fleet health while its own probe call was occupying the single sales worker. This keeps the monitor strict about real failures without letting it trip over its own synthetic load.
+
 ## 2026-05-01 (Codex) - Waited for the new-deal modal reset state in Linux CI
 
 - Files changed:

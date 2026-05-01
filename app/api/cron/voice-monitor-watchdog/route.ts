@@ -12,12 +12,61 @@ import { buildMonitorIncidentObservations } from "@/lib/voice-monitoring";
 import { getPassiveProductionHealth } from "@/lib/passive-production-health";
 import { runVoiceSyntheticProbe } from "@/lib/voice-synthetic-probe";
 import {
+  buildVoiceAgentHealthComponentSnapshots,
   buildVoiceAgentHealthMonitorDetails,
   getVoiceAgentHealthMonitorSummary,
   runVoiceAgentHealthMonitor,
 } from "@/lib/voice-agent-health-monitor";
 
 export const dynamic = "force-dynamic";
+const SYNTHETIC_PROBE_FLEET_RETRY_DELAY_MS = process.env.NODE_ENV === "test" ? 0 : 15_000;
+
+function wait(ms: number) {
+  if (ms <= 0) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function shouldRetryVoiceAgentHealthAfterSyntheticProbe(
+  syntheticProbeRun: Awaited<ReturnType<typeof runVoiceSyntheticProbe>> | null,
+  voiceAgentHealthRun: Awaited<ReturnType<typeof runVoiceAgentHealthMonitor>>,
+) {
+  if (!syntheticProbeRun || syntheticProbeRun.status !== "healthy") {
+    return false;
+  }
+
+  const nonHealthyChecks = buildVoiceAgentHealthComponentSnapshots(voiceAgentHealthRun).filter(
+    (component) => component.status !== "healthy",
+  );
+
+  return (
+    nonHealthyChecks.length === 1 &&
+    nonHealthyChecks[0]?.key === "fleet" &&
+    voiceAgentHealthRun.fleet.status === "degraded" &&
+    voiceAgentHealthRun.fleet.warnings.some((warning) =>
+      warning.toLowerCase().includes("call capacity"),
+    )
+  );
+}
+
+async function refreshVoiceAgentHealthRun(
+  syntheticProbeRun: Awaited<ReturnType<typeof runVoiceSyntheticProbe>> | null,
+) {
+  let voiceAgentHealthRun = await runVoiceAgentHealthMonitor(new Date());
+
+  if (!shouldRetryVoiceAgentHealthAfterSyntheticProbe(syntheticProbeRun, voiceAgentHealthRun)) {
+    return voiceAgentHealthRun;
+  }
+
+  await wait(SYNTHETIC_PROBE_FLEET_RETRY_DELAY_MS);
+  voiceAgentHealthRun = await runVoiceAgentHealthMonitor(new Date());
+
+  return voiceAgentHealthRun;
+}
 
 export async function GET(req: NextRequest) {
   if (!isOpsAuthorized(req)) {
@@ -78,10 +127,11 @@ export async function GET(req: NextRequest) {
     // spoken canary call. The sales worker is single-capacity, so the canary can
     // transiently mark demo/inbound_demo as saturated until the next heartbeat lands.
     if (voiceAgentHealth.status !== "healthy") {
-      const refreshCheckedAt = new Date();
+      let refreshCheckedAt = new Date();
 
       try {
-        refreshedVoiceAgentHealthRun = await runVoiceAgentHealthMonitor(refreshCheckedAt);
+        refreshedVoiceAgentHealthRun = await refreshVoiceAgentHealthRun(refreshedSyntheticProbeRun);
+        refreshCheckedAt = new Date(refreshedVoiceAgentHealthRun.checkedAt);
         await recordMonitorRun({
           monitorKey: "voice-agent-health",
           status: refreshedVoiceAgentHealthRun.status,

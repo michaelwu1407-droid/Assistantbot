@@ -9,6 +9,7 @@ const {
   reconcileVoiceIncidents,
   buildMonitorIncidentObservations,
   runVoiceAgentHealthMonitor,
+  buildVoiceAgentHealthComponentSnapshots,
   getVoiceAgentHealthMonitorSummary,
   buildVoiceAgentHealthMonitorDetails,
   getPassiveProductionHealth,
@@ -21,6 +22,7 @@ const {
   reconcileVoiceIncidents: vi.fn(),
   buildMonitorIncidentObservations: vi.fn(),
   runVoiceAgentHealthMonitor: vi.fn(),
+  buildVoiceAgentHealthComponentSnapshots: vi.fn(),
   getVoiceAgentHealthMonitorSummary: vi.fn(),
   buildVoiceAgentHealthMonitorDetails: vi.fn(),
   getPassiveProductionHealth: vi.fn(),
@@ -55,6 +57,7 @@ vi.mock("@/lib/voice-monitoring", () => ({
 
 vi.mock("@/lib/voice-agent-health-monitor", () => ({
   runVoiceAgentHealthMonitor,
+  buildVoiceAgentHealthComponentSnapshots,
   getVoiceAgentHealthMonitorSummary,
   buildVoiceAgentHealthMonitorDetails,
 }));
@@ -84,18 +87,43 @@ function monitorHealth(overrides: Record<string, unknown>) {
   };
 }
 
+function healthyComponent(status = "healthy", summary = "component healthy", warnings: string[] = []) {
+  return {
+    status,
+    summary,
+    warnings,
+  };
+}
+
 function healthyVoiceAgentRun() {
   return {
     status: "healthy",
     checkedAt: "2026-03-12T14:03:39.000Z",
-    fleet: { status: "healthy" },
-    customerSaturation: { status: "healthy" },
-    twilioRouting: { status: "healthy" },
-    livekitSip: { status: "healthy" },
-    invariants: { status: "healthy" },
-    recentCalls: { status: "healthy" },
-    latency: { status: "healthy" },
-    incidents: [],
+    fleet: healthyComponent("healthy", "fleet healthy"),
+    customerSaturation: healthyComponent("healthy", "customer saturation healthy"),
+    twilioRouting: healthyComponent("healthy", "routing healthy"),
+    livekitSip: healthyComponent("healthy", "LiveKit healthy"),
+    demoCalls: healthyComponent("healthy", "demo calls healthy"),
+    outboundCalls: healthyComponent("healthy", "outbound calls healthy"),
+    invariants: healthyComponent("healthy", "invariants healthy"),
+    recentCalls: healthyComponent("healthy", "recent calls healthy"),
+    latency: healthyComponent("healthy", "latency healthy"),
+    incidents: {
+      opened: [],
+      resolved: [],
+    },
+  };
+}
+
+function capacityOnlyDegradedVoiceAgentRun() {
+  return {
+    ...healthyVoiceAgentRun(),
+    status: "degraded",
+    fleet: healthyComponent(
+      "degraded",
+      "All routable workers for this surface are at configured call capacity.",
+      ["All routable workers for this surface are at configured call capacity."],
+    ),
   };
 }
 
@@ -107,6 +135,62 @@ describe("GET /api/cron/voice-monitor-watchdog", () => {
     reconcileVoiceIncidents.mockResolvedValue([]);
     dispatchVoiceIncidentNotifications.mockResolvedValue(null);
     buildMonitorIncidentObservations.mockReturnValue([]);
+    buildVoiceAgentHealthComponentSnapshots.mockImplementation((result) => [
+      {
+        key: "fleet",
+        status: result.fleet.status,
+        summary: result.fleet.summary,
+        warnings: result.fleet.warnings,
+      },
+      {
+        key: "customerSaturation",
+        status: result.customerSaturation.status,
+        summary: result.customerSaturation.summary,
+        warnings: result.customerSaturation.warnings,
+      },
+      {
+        key: "twilioRouting",
+        status: result.twilioRouting.status,
+        summary: result.twilioRouting.summary,
+        warnings: result.twilioRouting.warnings,
+      },
+      {
+        key: "livekitSip",
+        status: result.livekitSip.status,
+        summary: result.livekitSip.summary,
+        warnings: result.livekitSip.warnings,
+      },
+      {
+        key: "demoCalls",
+        status: result.demoCalls.status,
+        summary: result.demoCalls.summary,
+        warnings: result.demoCalls.warnings,
+      },
+      {
+        key: "outboundCalls",
+        status: result.outboundCalls.status,
+        summary: result.outboundCalls.summary,
+        warnings: result.outboundCalls.warnings,
+      },
+      {
+        key: "invariants",
+        status: result.invariants.status,
+        summary: result.invariants.summary,
+        warnings: result.invariants.warnings,
+      },
+      {
+        key: "recentCalls",
+        status: result.recentCalls.status,
+        summary: result.recentCalls.summary,
+        warnings: result.recentCalls.warnings,
+      },
+      {
+        key: "latency",
+        status: result.latency.status,
+        summary: result.latency.summary,
+        warnings: result.latency.warnings,
+      },
+    ]);
     getVoiceAgentHealthMonitorSummary.mockReturnValue("Voice agent health monitor completed successfully");
     buildVoiceAgentHealthMonitorDetails.mockReturnValue({
       checkedAt: "2026-03-12T14:03:39.000Z",
@@ -391,6 +475,77 @@ describe("GET /api/cron/voice-monitor-watchdog", () => {
     );
     expect(body.refreshedSyntheticProbeRun.status).toBe("healthy");
     expect(body.refreshedVoiceAgentHealthRun).toBeNull();
+  });
+
+  it("retries voice-agent-health once after its own spoken probe saturates the sales worker", async () => {
+    getMonitorRunHealth
+      .mockResolvedValueOnce(
+        monitorHealth({
+          monitorKey: "voice-agent-health",
+          status: "unhealthy",
+          summary: "voice-agent-health last succeeded 31 minute(s) ago, beyond the 30-minute window.",
+          warnings: ["stale"],
+          ageMs: 1_900_000,
+        }),
+      )
+      .mockResolvedValueOnce(
+        monitorHealth({
+          monitorKey: "passive-communications-health",
+          status: "healthy",
+          summary: "passive-communications-health is reporting on schedule",
+        }),
+      )
+      .mockResolvedValueOnce(
+        monitorHealth({
+          monitorKey: "voice-synthetic-probe",
+          status: "healthy",
+          summary: "voice-synthetic-probe is reporting on schedule",
+          lastSuccessAt: "2026-03-12T13:47:39.000Z",
+          ageMs: 960_000,
+          staleAfterMs: 2_700_000,
+        }),
+      )
+      .mockResolvedValueOnce(
+        monitorHealth({
+          monitorKey: "voice-synthetic-probe",
+          status: "healthy",
+          summary: "voice-synthetic-probe is reporting on schedule",
+          staleAfterMs: 2_700_000,
+        }),
+      )
+      .mockResolvedValueOnce(
+        monitorHealth({
+          monitorKey: "voice-agent-health",
+          status: "healthy",
+          summary: "voice-agent-health is reporting on schedule",
+        }),
+      );
+    runVoiceAgentHealthMonitor
+      .mockResolvedValueOnce(capacityOnlyDegradedVoiceAgentRun())
+      .mockResolvedValueOnce(healthyVoiceAgentRun());
+
+    const response = await GET(new NextRequest("https://app.example.com/api/cron/voice-monitor-watchdog"));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(runVoiceSyntheticProbe).toHaveBeenCalledTimes(1);
+    expect(runVoiceAgentHealthMonitor).toHaveBeenCalledTimes(2);
+    expect(recordMonitorRun).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        monitorKey: "voice-synthetic-probe",
+        status: "healthy",
+      }),
+    );
+    expect(recordMonitorRun).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        monitorKey: "voice-agent-health",
+        status: "healthy",
+      }),
+    );
+    expect(body.status).toBe("healthy");
+    expect(body.refreshedVoiceAgentHealthRun.status).toBe("healthy");
   });
 
   it("rejects unauthorized callers", async () => {
