@@ -1,9 +1,23 @@
 import Link from "next/link";
-import { ArrowRight, Phone, MessageSquare, CheckCircle2 } from "lucide-react";
+import {
+  ArrowRight, Phone, MessageSquare, CheckCircle2,
+  Zap, Wrench, Trees, Sparkles, Bug, Key, Paintbrush, Thermometer,
+} from "lucide-react";
 import { Footer } from "@/components/layout/footer";
 import { Navbar } from "@/components/layout/navbar";
 import { Button } from "@/components/ui/button";
 import { TRADE_SERVICES, TRADE_SERVICES_SUMMARY } from "@/lib/trade-services";
+
+const TRADE_ICONS: Record<string, typeof Zap> = {
+  electricians: Zap,
+  plumbers: Wrench,
+  landscapers: Trees,
+  cleaners: Sparkles,
+  "pest-control": Bug,
+  locksmiths: Key,
+  painters: Paintbrush,
+  hvac: Thermometer,
+};
 
 export const metadata = {
   title: "Solutions | Earlymark",
@@ -63,27 +77,31 @@ export default function SolutionsPage() {
         </section>
 
         {/* Trade cards */}
-        <section className="flex flex-col gap-8">
+        <section className="flex flex-col gap-6">
           {TRADE_SERVICES.map((service, index) => {
             const reverse = index % 2 === 1;
+            const Icon = TRADE_ICONS[service.slug] ?? Sparkles;
             return (
               <article
                 key={service.slug}
-                className="grid gap-0 rounded-[18px] border border-slate-200/80 bg-white shadow-sm overflow-hidden md:grid-cols-2"
+                className="grid gap-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.06)] transition-shadow hover:shadow-[0_12px_40px_rgba(15,23,42,0.10)] md:grid-cols-[1.1fr_1fr]"
               >
                 {/* Text side */}
                 <div className={`flex flex-col justify-center gap-5 p-8 md:p-10 ${reverse ? "md:order-2" : ""}`}>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-700">
                       {service.summaryTitle}
                     </p>
-                    <h2 className="mt-3 text-2xl font-extrabold tracking-[-0.03em] text-midnight md:text-3xl">
-                      {service.summaryTeaser}
-                    </h2>
-                    <p className="mt-3 text-base leading-7 text-slate-600">
-                      {service.summaryAngle}
-                    </p>
                   </div>
+                  <h2 className="text-2xl font-extrabold tracking-[-0.02em] text-midnight md:text-3xl">
+                    {service.summaryTeaser}
+                  </h2>
+                  <p className="text-base leading-7 text-slate-600">
+                    {service.summaryAngle}
+                  </p>
                   <div>
                     <Link href={`/solutions/${service.slug}`}>
                       <Button variant="outline">
@@ -94,26 +112,26 @@ export default function SolutionsPage() {
                   </div>
                 </div>
 
-                {/* Visual side — mint-tinted panel with workflow cards */}
-                <div className={`bg-[#E0FAF2] p-8 md:p-10 flex flex-col justify-center gap-4 ${reverse ? "md:order-1" : ""}`}>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary/70">
+                {/* Visual side — dark green panel with workflow list */}
+                <div className={`relative flex flex-col justify-center gap-5 bg-[linear-gradient(155deg,#0f172a_0%,#0d3b2a_55%,#065f46_100%)] p-8 md:p-10 ${reverse ? "md:order-1" : ""}`}>
+                  <div className="pointer-events-none absolute inset-0 opacity-40" style={{ background: "radial-gradient(60% 50% at 80% 0%, rgba(16,185,129,0.25) 0%, rgba(16,185,129,0) 70%)" }} />
+                  <p className="relative text-[11px] font-bold uppercase tracking-[0.24em] text-emerald-300">
                     What Tracey handles
                   </p>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {service.workflows.slice(0, 2).map((workflow) => (
-                      <div
+                  <ul className="relative flex flex-col gap-3">
+                    {service.workflows.slice(0, 3).map((workflow) => (
+                      <li
                         key={workflow.title}
-                        className="rounded-[18px] border border-primary/15 bg-white/80 p-4"
+                        className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-3.5 backdrop-blur-sm"
                       >
-                        <p className="text-sm font-semibold text-midnight">
-                          {workflow.title}
-                        </p>
-                        <p className="mt-1.5 text-xs leading-5 text-slate-600">
-                          {workflow.body}
-                        </p>
-                      </div>
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-sm font-semibold text-white">{workflow.title}</span>
+                          <span className="text-xs leading-5 text-white/65 line-clamp-2">{workflow.body}</span>
+                        </div>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 </div>
               </article>
             );
