@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
   ]);
   const invariants = await getVoiceBusinessInvariantHealth(twilioRouting);
 
-  const status = combineVoiceStatuses([
+  const voiceStatus = combineVoiceStatuses([
     fleet.status,
     customerSaturation.status,
     twilioRouting.status,
@@ -69,15 +69,30 @@ export async function GET(req: NextRequest) {
     recentCalls.status,
     latency.status,
     passiveProduction.voice.status,
+    probeHealth.status,
+  ]);
+  const communicationsStatus = combineVoiceStatuses([
+    passiveProduction.sms.status,
+    passiveProduction.email.status,
+  ]);
+  const monitoringStatus = combineVoiceStatuses([
     monitorHealth.status,
     watchdogHealth.status,
     passiveMonitorHealth.status,
-    probeHealth.status,
+  ]);
+  const overallStatus = combineVoiceStatuses([
+    voiceStatus,
+    communicationsStatus,
+    monitoringStatus,
   ]);
 
   return NextResponse.json(
     {
-      status,
+      status: voiceStatus,
+      voiceStatus,
+      communicationsStatus,
+      monitoringStatus,
+      overallStatus,
       checkedAt: new Date().toISOString(),
       fleet,
       customerSaturation,
@@ -94,6 +109,6 @@ export async function GET(req: NextRequest) {
       passiveMonitorHealth,
       probeHealth,
     },
-    { status: status === "unhealthy" ? 500 : 200 },
+    { status: voiceStatus === "unhealthy" ? 500 : 200 },
   );
 }

@@ -302,4 +302,61 @@ describe("getPassiveProductionHealth", () => {
     expect(result.workspaceRows[0]?.sms.classification).toBe("failure");
     expect(result.workspaceRows[0]?.contributesToGlobalRollup).toBe(true);
   });
+
+  it("downgrades SMS to recovered when later workspace SMS traffic succeeds after a failure", async () => {
+    db.workspace.findMany.mockResolvedValue([
+      {
+        id: "ws_sms",
+        name: "SMS Plumbing",
+        voiceEnabled: true,
+        twilioPhoneNumber: "+61400000009",
+        inboundEmail: null,
+        inboundEmailAlias: null,
+      },
+    ]);
+    db.voiceCall.findMany.mockResolvedValue([
+      {
+        workspaceId: "ws_sms",
+        callType: "normal",
+        startedAt: isoHoursAgo(3),
+      },
+    ]);
+    db.webhookEvent.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          eventType: "sms.reply",
+          status: "success",
+          createdAt: isoHoursAgo(0.5),
+          payload: { workspaceId: "ws_sms" },
+        },
+        {
+          eventType: "sms.reply",
+          status: "error",
+          createdAt: isoHoursAgo(1),
+          payload: { workspaceId: "ws_sms" },
+        },
+      ]);
+    getTwilioVoiceCallHealth.mockResolvedValue({
+      status: "healthy",
+      summary: "healthy",
+      warnings: [],
+      lookbackMinutes: 360,
+      scopes: [
+        createTwilioScope("earlymark", "healthy"),
+        createTwilioScope("ws_sms", "healthy"),
+      ],
+      failingCalls: [],
+    });
+
+    const result = await getPassiveProductionHealth();
+
+    expect(result.status).toBe("degraded");
+    expect(result.sms.status).toBe("degraded");
+    expect(result.sms.failureWorkspaceCount).toBe(0);
+    expect(result.workspaceRows[0]?.overallStatus).toBe("degraded");
+    expect(result.workspaceRows[0]?.overallClassification).toBe("recovered");
+    expect(result.workspaceRows[0]?.sms.classification).toBe("recovered");
+    expect(result.workspaceRows[0]?.contributesToGlobalRollup).toBe(false);
+  });
 });

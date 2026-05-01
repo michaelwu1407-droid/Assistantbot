@@ -1,3 +1,17 @@
+## 2026-05-01 (Codex) - Split core voice health from passive comms noise
+
+- Files changed:
+  - `app/api/internal/voice-fleet-health/route.ts`
+  - `lib/passive-production-health.ts`
+  - `__tests__/voice-fleet-health-route.test.ts`
+  - `__tests__/passive-production-health.test.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Separated the internal voice fleet endpoint into `voiceStatus`, `communicationsStatus`, `monitoringStatus`, and `overallStatus`, while keeping the top-level `status` focused on core voice health.
+  - Taught passive SMS health to downgrade to a recovered/degraded state when later SMS traffic proves the path recovered after a failure.
+- Why:
+  - We were still conflating a healthy voice stack with stale monitors or a separate customer SMS issue, which made the architecture look worse than it really was.
+
 ## 2026-05-01 (Codex) - Retried voice watchdog fleet health after its own spoken probe
 
 - Files changed:
