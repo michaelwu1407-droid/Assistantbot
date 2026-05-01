@@ -119,6 +119,9 @@ type LatencyAudit = {
   ttsTtfbMs: number[];
   eouMs: number[];
   transcriptionDelayMs: number[];
+  llmMsByProvider: Record<LlmProviderName, number[]>;
+  llmTtftMsByProvider: Record<LlmProviderName, number[]>;
+  llmTurnsByProvider: Record<LlmProviderName, number>;
 };
 
 type PendingUserTurn = {
@@ -141,6 +144,8 @@ type TurnAudit = {
   onUserTurnCompletedDelayMs: number;
   llmMs: number;
   llmTtftMs: number;
+  llmProvider: LlmProviderName | null;
+  llmModel: string | null;
   ttsMs: number;
   ttsTtfbMs: number;
 };
@@ -594,6 +599,8 @@ function summarizeTurnLatency(turn: TurnAudit) {
     userInitiated: turn.userInitiated,
     transcript: turn.transcript,
     transcriptLanguage: turn.transcriptLanguage,
+    llmProvider: turn.llmProvider,
+    llmModel: turn.llmModel,
     timings: {
       eouMs: turn.eouMs,
       transcriptionDelayMs: turn.transcriptionDelayMs,
@@ -930,6 +937,46 @@ function resolveConfiguredTtsModel() {
   return (process.env.VOICE_TTS_MODEL || "sonic-3").trim();
 }
 
+function resolveSttModel() {
+  return (process.env.VOICE_STT_MODEL || "nova-3").trim();
+}
+
+const VOICE_STT_BASE_KEYTERMS = [
+  "Earlymark",
+  "earlymark.ai",
+  "Tracey",
+  "Tracy",
+  "Ottorize",
+  "Alexandria Automotive Services",
+  "Alexandria Automotive",
+  "Assistantbot",
+  "LiveKit",
+  "Cartesia",
+  "Deepgram",
+  "Sonic",
+  "Nova",
+  "Groq",
+  "DeepInfra",
+  "Llama",
+  "Sydney",
+  "Alexandria",
+  "Marrickville",
+  "Newtown",
+  "Erskineville",
+  "Redfern",
+  "Mascot",
+  "Botany",
+];
+
+function resolveSttKeyterms(): string[] {
+  const fromEnv = (process.env.VOICE_STT_KEYTERMS || "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  const merged = [...VOICE_STT_BASE_KEYTERMS, ...fromEnv];
+  return Array.from(new Set(merged));
+}
+
 function createCartesiaTts(language = resolveConfiguredTtsLanguage()) {
   return new cartesia.TTS({
     model: resolveConfiguredTtsModel(),
@@ -970,6 +1017,8 @@ class ProviderFallbackLLM extends livekitLlm.LLM {
   #fallbackCount = 0;
   #selectionCount = 0;
   #lastFailure: string | null = null;
+  #lastSelectedProvider: LlmProviderName | null = null;
+  #lastSelectedModel: string | null = null;
 
   constructor(args: {
     primary: openai.LLM;
@@ -998,6 +1047,16 @@ class ProviderFallbackLLM extends livekitLlm.LLM {
     this.#selectionCount += 1;
     this.#actualProviders.add(config.provider);
     this.#actualModels.add(config.model);
+    this.#lastSelectedProvider = config.provider;
+    this.#lastSelectedModel = config.model;
+  }
+
+  get lastSelectedProvider(): LlmProviderName | null {
+    return this.#lastSelectedProvider;
+  }
+
+  get lastSelectedModel(): string | null {
+    return this.#lastSelectedModel;
   }
 
   recordFallback() {
@@ -1961,8 +2020,9 @@ export default defineAgent({
 
     callType = resolveCallType(callType, calledPhone, roomName);
     const voiceTurnTuning = resolveVoiceTurnTuning(callType);
+    const sttKeyterms = resolveSttKeyterms();
     const stt = new deepgram.STT({
-      model: (process.env.VOICE_STT_MODEL || "nova-3") as DeepgramSTTOptions["model"],
+      model: resolveSttModel() as DeepgramSTTOptions["model"],
       language: "multi",
       detectLanguage: true,
       interimResults: true,
@@ -1970,7 +2030,14 @@ export default defineAgent({
       noDelay: true,
       punctuate: true,
       smartFormat: true,
+      keyterm: sttKeyterms,
     });
+    console.log(`[voice-stt-config] ${JSON.stringify({
+      callId,
+      provider: "deepgram",
+      model: resolveSttModel(),
+      keytermCount: sttKeyterms.length,
+    })}`);
     markCallStarted();
     let activeCallReleased = false;
     let voiceCallPersistencePromise: Promise<void> | null = null;
@@ -2159,6 +2226,9 @@ export default defineAgent({
       ttsTtfbMs: [],
       eouMs: [],
       transcriptionDelayMs: [],
+      llmMsByProvider: { groq: [], deepinfra: [] },
+      llmTtftMsByProvider: { groq: [], deepinfra: [] },
+      llmTurnsByProvider: { groq: 0, deepinfra: 0 },
     };
     const pendingUserTurns: PendingUserTurn[] = [];
     const turnAudits = new Map<string, TurnAudit>();
@@ -2218,6 +2288,8 @@ export default defineAgent({
         onUserTurnCompletedDelayMs: 0,
         llmMs: 0,
         llmTtftMs: 0,
+        llmProvider: null,
+        llmModel: null,
         ttsMs: 0,
         ttsTtfbMs: 0,
       };
@@ -2372,22 +2444,42 @@ export default defineAgent({
       };
       if (!metrics?.type) return;
 
+      const metricTags: { provider?: string; model?: string } = {};
+
       switch (metrics.type) {
         case "stt_metrics":
           latencyAudit.sttMs.push(Number(metrics.durationMs || 0));
+          metricTags.provider = "deepgram";
+          metricTags.model = resolveSttModel();
           break;
-        case "llm_metrics":
-          latencyAudit.llmMs.push(Number(metrics.durationMs || 0));
-          latencyAudit.llmTtftMs.push(Number(metrics.ttftMs || 0));
+        case "llm_metrics": {
+          const durationMs = Number(metrics.durationMs || 0);
+          const ttftMs = Number(metrics.ttftMs || 0);
+          latencyAudit.llmMs.push(durationMs);
+          latencyAudit.llmTtftMs.push(ttftMs);
+          const provider = llm.lastSelectedProvider;
+          const model = llm.lastSelectedModel;
+          if (provider) {
+            latencyAudit.llmMsByProvider[provider].push(durationMs);
+            latencyAudit.llmTtftMsByProvider[provider].push(ttftMs);
+            latencyAudit.llmTurnsByProvider[provider] += 1;
+            metricTags.provider = provider;
+          }
+          if (model) metricTags.model = model;
           if (metrics.speechId) {
             const turn = getOrCreateTurnAudit(metrics.speechId);
-            turn.llmMs = Number(metrics.durationMs || 0);
-            turn.llmTtftMs = Number(metrics.ttftMs || 0);
+            turn.llmMs = durationMs;
+            turn.llmTtftMs = ttftMs;
+            turn.llmProvider = provider;
+            turn.llmModel = model;
           }
           break;
+        }
         case "tts_metrics":
           latencyAudit.ttsMs.push(Number(metrics.durationMs || 0));
           latencyAudit.ttsTtfbMs.push(Number(metrics.ttfbMs || 0));
+          metricTags.provider = "cartesia";
+          metricTags.model = resolveConfiguredTtsModel();
           if (metrics.speechId) {
             const turn = getOrCreateTurnAudit(metrics.speechId);
             turn.ttsMs = Number(metrics.durationMs || 0);
@@ -2407,7 +2499,7 @@ export default defineAgent({
           break;
       }
 
-      console.log(`[voice-metric] ${JSON.stringify({ callId, room: ctx.room.name, participant: participant.identity, ...metrics })}`);
+      console.log(`[voice-metric] ${JSON.stringify({ callId, room: ctx.room.name, participant: participant.identity, ...metricTags, ...metrics })}`);
     });
 
     session.on(voice.AgentSessionEventTypes.ConversationItemAdded, (ev) => {
@@ -2806,14 +2898,35 @@ export default defineAgent({
         .filter((value) => Number.isFinite(value) && value > 0);
       const firstUserResponseTurn = turnSummaries.find((turn) => turn.userInitiated && Boolean(turn.transcript));
       const llmRunSummary = llm.getRunSummary();
+      const llmByProvider = {
+        groq: {
+          turns: latencyAudit.llmTurnsByProvider.groq,
+          llmAvgMs: avg(latencyAudit.llmMsByProvider.groq),
+          llmP95Ms: p95(latencyAudit.llmMsByProvider.groq),
+          llmTtftAvgMs: avg(latencyAudit.llmTtftMsByProvider.groq),
+          llmTtftP95Ms: p95(latencyAudit.llmTtftMsByProvider.groq),
+        },
+        deepinfra: {
+          turns: latencyAudit.llmTurnsByProvider.deepinfra,
+          llmAvgMs: avg(latencyAudit.llmMsByProvider.deepinfra),
+          llmP95Ms: p95(latencyAudit.llmMsByProvider.deepinfra),
+          llmTtftAvgMs: avg(latencyAudit.llmTtftMsByProvider.deepinfra),
+          llmTtftP95Ms: p95(latencyAudit.llmTtftMsByProvider.deepinfra),
+        },
+      };
       const latency = {
         sttAvgMs: avg(latencyAudit.sttMs),
+        sttProvider: "deepgram",
+        sttModel: resolveSttModel(),
         llmAvgMs: avg(latencyAudit.llmMs),
         llmP95Ms: p95(latencyAudit.llmMs),
         llmTtftAvgMs: avg(latencyAudit.llmTtftMs),
+        llmByProvider,
         ttsAvgMs: avg(latencyAudit.ttsMs),
         ttsP95Ms: p95(latencyAudit.ttsMs),
         ttsTtfbAvgMs: avg(latencyAudit.ttsTtfbMs),
+        ttsProvider: "cartesia",
+        ttsModel: resolveConfiguredTtsModel(),
         eouAvgMs: avg(latencyAudit.eouMs),
         transcriptionDelayAvgMs: avg(latencyAudit.transcriptionDelayMs),
         totalTurnStartAvgMs: avg(measuredTurnStarts),
@@ -2852,12 +2965,17 @@ export default defineAgent({
           },
           latency: {
             sttAvgMs: avg(latencyAudit.sttMs),
+            sttProvider: latency.sttProvider,
+            sttModel: latency.sttModel,
             llmAvgMs: avg(latencyAudit.llmMs),
             llmP95Ms: p95(latencyAudit.llmMs),
             llmTtftAvgMs: avg(latencyAudit.llmTtftMs),
+            llmByProvider,
             ttsAvgMs: avg(latencyAudit.ttsMs),
             ttsP95Ms: p95(latencyAudit.ttsMs),
             ttsTtfbAvgMs: avg(latencyAudit.ttsTtfbMs),
+            ttsProvider: latency.ttsProvider,
+            ttsModel: latency.ttsModel,
             eouAvgMs: avg(latencyAudit.eouMs),
             transcriptionDelayAvgMs: avg(latencyAudit.transcriptionDelayMs),
             totalTurnStartAvgMs: latency.totalTurnStartAvgMs,
