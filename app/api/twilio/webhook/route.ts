@@ -6,6 +6,7 @@ import { getWorkspaceTwilioClient } from "@/lib/twilio"
 import { generateSMSResponse } from "@/lib/ai/sms-agent"
 import { findContactByPhone, findWorkspaceByTwilioNumber } from "@/lib/workspace-routing"
 import { saveTriageRecommendation, triageIncomingLead } from "@/lib/ai/triage"
+import { isReplyableSmsAddress } from "@/lib/sms-address"
 
 export const maxDuration = 60;
 
@@ -19,6 +20,7 @@ type SmsWebhookEventPayload = {
     messageSid?: string | null;
     responseMessageSid?: string | null;
     autoRespondEnabled?: boolean;
+    replySuppressedReason?: string | null;
 };
 
 const ACTIVE_DEAL_STAGES = ["NEW", "CONTACTED", "NEGOTIATION", "SCHEDULED", "PIPELINE", "INVOICED", "PENDING_COMPLETION"] as const;
@@ -168,6 +170,7 @@ export async function POST(req: NextRequest) {
         const interactionId = interaction.id;
         const workspaceId = workspace.id;
         const contactId = contact.id;
+        const canReplyToSender = isReplyableSmsAddress(From);
 
         const processPromise = (async () => {
             try {
@@ -309,6 +312,23 @@ export async function POST(req: NextRequest) {
                         });
                         return;
                     }
+                }
+
+                if (!canReplyToSender) {
+                    await recordSmsWebhookEvent({
+                        eventType: "sms.reply",
+                        status: "success",
+                        payload: {
+                            workspaceId,
+                            workspaceName: workspace.name,
+                            from: To,
+                            to: From,
+                            messageSid: MessageSid || null,
+                            autoRespondEnabled: false,
+                            replySuppressedReason: "non_replyable_sender",
+                        },
+                    });
+                    return;
                 }
 
                 const aiResponse = await generateSMSResponse(interactionId, Body, workspaceId);

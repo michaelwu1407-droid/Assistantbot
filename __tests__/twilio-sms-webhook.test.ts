@@ -80,12 +80,12 @@ vi.mock("@/lib/workspace-routing", () => ({
 
 import { POST } from "@/app/api/twilio/webhook/route";
 
-function buildSmsRequest() {
+function buildSmsRequest(overrides?: Partial<Record<"From" | "To" | "Body" | "MessageSid", string>>) {
   const body = new URLSearchParams({
-    From: "+61400000000",
-    To: "+61485010634",
-    Body: "Need a quote",
-    MessageSid: "SM123",
+    From: overrides?.From ?? "+61400000000",
+    To: overrides?.To ?? "+61485010634",
+    Body: overrides?.Body ?? "Need a quote",
+    MessageSid: overrides?.MessageSid ?? "SM123",
   });
 
   return new NextRequest("https://app.example.com/api/twilio/webhook", {
@@ -262,5 +262,36 @@ describe("POST /api/twilio/webhook", () => {
       }),
     });
     expect(generateSMSResponse).not.toHaveBeenCalled();
+  });
+
+  it("suppresses auto-replies to non-replyable sender ids", async () => {
+    findWorkspaceByTwilioNumber.mockResolvedValue({
+      id: "ws_1",
+      name: "Alpha Plumbing",
+      settings: {},
+      twilioPhoneNumber: "+61485010634",
+    });
+    findContactByPhone.mockResolvedValue({ id: "contact_1", name: "Anaconda" });
+
+    const response = await POST(buildSmsRequest({ From: "Anaconda", Body: "Sale ends Sunday" }));
+    expect(response.status).toBe(200);
+
+    await waitUntil.mock.calls[0][0];
+
+    expect(generateSMSResponse).not.toHaveBeenCalled();
+    expect(prisma.webhookEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        provider: "twilio",
+        eventType: "sms.reply",
+        status: "success",
+        payload: expect.objectContaining({
+          workspaceId: "ws_1",
+          from: "+61485010634",
+          to: "Anaconda",
+          autoRespondEnabled: false,
+          replySuppressedReason: "non_replyable_sender",
+        }),
+      }),
+    });
   });
 });

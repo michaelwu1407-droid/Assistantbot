@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { getTwilioVoiceCallHealth, type VoiceCallScopeHealth } from "@/lib/twilio-voice-call-health";
+import { isReplyableSmsAddress } from "@/lib/sms-address";
 import type { RuntimeStatus } from "@/lib/voice-fleet";
 
 const RECENT_SIGNAL_LOOKBACK_DAYS = 7;
@@ -97,6 +98,24 @@ function extractWorkspaceId(payload: unknown): string | null {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null;
   const workspaceId = (payload as Record<string, unknown>).workspaceId;
   return typeof workspaceId === "string" && workspaceId.trim() ? workspaceId.trim() : null;
+}
+
+function extractSmsPayloadAddress(payload: unknown, key: "from" | "to"): string | null {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null;
+
+  const value = (payload as Record<string, unknown>)[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function shouldIgnoreSmsFailureEvent(event: {
+  eventType: string;
+  payload: unknown;
+}) {
+  if (event.eventType !== "sms.reply") {
+    return false;
+  }
+
+  return !isReplyableSmsAddress(extractSmsPayloadAddress(event.payload, "to"));
 }
 
 function buildHealthyChannel(
@@ -425,6 +444,10 @@ export async function getPassiveProductionHealth(): Promise<PassiveProductionHea
       } else if (event.eventType === "sms.reply") {
         recentReplySmsSuccessCount += 1;
       }
+      continue;
+    }
+
+    if (shouldIgnoreSmsFailureEvent(event)) {
       continue;
     }
 

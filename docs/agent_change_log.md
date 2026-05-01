@@ -1,3 +1,23 @@
+## 2026-05-01 (Codex) - Ignore impossible SMS auto-replies to alphanumeric sender IDs
+
+- Files changed:
+  - `app/api/twilio/webhook/route.ts`
+  - `lib/passive-production-health.ts`
+  - `lib/sms-address.ts`
+  - `__tests__/twilio-sms-webhook.test.ts`
+  - `__tests__/passive-production-health.test.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added a shared `isReplyableSmsAddress()` helper for SMS sender/recipient validation.
+  - Stopped the inbound Twilio SMS webhook from attempting automated SMS replies to non-replyable sender IDs such as `Anaconda`, and recorded those cases as intentionally suppressed instead of failed.
+  - Taught passive communications health to ignore historical `sms.reply` error events whose destination was never a real replyable SMS address.
+- Why:
+  - Production passive SMS health was red because Alexandria Automotive Services received inbound SMS from an alphanumeric sender ID and the app tried to auto-reply to that sender as if it were a phone number.
+  - That is not a real customer-facing SMS outage, so it should neither trigger an outbound reply attempt nor keep passive health red.
+- Verified with:
+  - `npx vitest run __tests__/twilio-sms-webhook.test.ts __tests__/passive-production-health.test.ts`
+  - `npx tsc --noEmit`
+
 ## 2026-05-01 (Codex) - Removed unsupported Vercel cron so web deploys can succeed again
 
 - Files changed:
