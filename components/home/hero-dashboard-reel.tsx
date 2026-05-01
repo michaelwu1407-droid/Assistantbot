@@ -360,7 +360,7 @@ function CalendarScreen() {
 
 // ── Reel ──────────────────────────────────────────────────────────────────────
 const SCREENS = [ChatScreen, DashboardScreen, InboxScreen, MapScreen, CalendarScreen];
-const INTERVAL_MS = 3500;
+const INTERVAL_MS = 6500;
 
 function ReelChrome({ children }: { children: React.ReactNode }) {
     return (

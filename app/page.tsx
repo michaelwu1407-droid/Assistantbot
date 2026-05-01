@@ -35,6 +35,15 @@ const PulsingLogo = dynamic(
     },
 );
 
+const AutonomyModeTabs = dynamic(
+    () => import("@/components/home/autonomy-mode-tabs").then((mod) => mod.AutonomyModeTabs),
+    {
+        loading: () => (
+            <div className="mx-auto w-full max-w-4xl h-56 rounded-2xl bg-slate-100 animate-pulse" />
+        ),
+    },
+);
+
 const PlatformDiagram = dynamic(
     () => import("@/components/home/platform-diagram").then((mod) => mod.PlatformDiagram),
     {
@@ -292,7 +301,8 @@ function TestimonialsCarousel() {
 // ─── FAQ ──────────────────────────────────────────────────────────────────────
 
 const FAQ_ITEMS = [
-    { q: "What is Tracey?", a: "Tracey is your AI-powered receptionist, CRM manager, and follow-up specialist built for trade and service businesses. She answers every inbound call 24/7, logs jobs, sends quotes, chases payments, and keeps your pipeline moving — all without you lifting a finger. Think of her as a full-time admin assistant who never sleeps and never misses a message." },
+    { q: "What is Earlymark?", a: "Earlymark is one platform with two halves: an AI voice assistant called Tracey and a CRM that fills itself in. Tracey answers every call and text 24/7, qualifies leads, books jobs and sends quotes — and every conversation she has is logged straight into the CRM as a contact, job, quote or invoice. The CRM gives you the traditional pipeline, scheduling, inbox, invoicing and analytics you'd expect, but you can also run the whole thing by chat or by messaging Tracey on WhatsApp. Built for trade and service businesses who want the admin handled without hiring more staff." },
+    { q: "Who is Tracey?", a: "Tracey is the AI assistant that lives inside Earlymark. She picks up your calls, replies to your texts and WhatsApp messages, qualifies leads against your rules, books jobs into your calendar, sends quotes and invoices, and chases payments. You stay in control: pick draft mode, approval mode, or full auto, and Tracey works within whatever guardrails you set." },
     { q: "How does Tracey answer my calls?", a: "Your business number simply forwards to Tracey when you're unavailable — or always, if you prefer. She answers professionally in your business name, gathers job details, answers common questions about your services and pricing, and logs everything straight into your CRM. She can also provide quotes and book appointments on the spot, based on the rules and availability you've set." },
     { q: "How long does it take to get set up?", a: "Most businesses are live within a day. When you sign up, Tracey interviews you about your business — your services, pricing, availability, and preferences — in a natural conversation. No forms to fill in, no spreadsheets. Once that's done, she's ready to start answering calls and managing your pipeline." },
     { q: "What types of businesses does Earlymark support?", a: "Earlymark is built for any trade or service business — plumbers, electricians, builders, landscapers, cleaners, HVAC technicians, pest controllers, locksmiths, painters, and more. If you're running jobs and need someone to handle the phones and admin, Tracey can help." },
@@ -350,7 +360,7 @@ export default function Home() {
                     </motion.h1>
                     <motion.div {...fadeUp(0.10)} className="flex flex-col sm:flex-row gap-3">
                         <Link href="/auth"><Button size="lg" variant="mint">Get started</Button></Link>
-                        <Link href="#interview-assistant"><Button size="lg" variant="outline">Interview your assistant</Button></Link>
+                        <a href="#interview-assistant"><Button size="lg" variant="outline">Interview your assistant</Button></a>
                     </motion.div>
                     <motion.div {...fadeUp(0.14)} className="relative w-full max-w-5xl mx-auto mt-8">
                         <HeroDashboardReel />
@@ -372,12 +382,12 @@ export default function Home() {
             </section>
 
             {/* Interview form — invitation to try Tracey */}
-            <section id="interview-assistant" className="py-12 md:py-24 px-6 relative overflow-hidden bg-[#1E232B]">
+            <section id="interview-assistant" className="scroll-mt-28 py-12 md:py-24 px-6 relative overflow-hidden bg-[#1E232B]">
                 <div className="container mx-auto max-w-7xl">
                     <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
                         <div className="flex flex-col gap-8">
                             <motion.h2 {...fadeUp()} className="text-3xl md:text-5xl font-extrabold text-white tracking-[-0.03em] leading-tight">
-                                Tracey lives in your CRM. She will contact customers and run your CRM so you don&apos;t have to.
+                                Interview your assistant now. She will contact customers and run your CRM so you don&apos;t have to.
                             </motion.h2>
                         </div>
                         <motion.div {...fadeUp(0.1)} className="bg-white/95 backdrop-blur-md rounded border border-white/40 p-7 shadow-xl">
@@ -394,9 +404,9 @@ export default function Home() {
                 <div className="container mx-auto max-w-7xl">
                     <motion.div {...fadeUp()} className="mx-auto mb-12 max-w-3xl text-center">
                         <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600 mb-3">The platform</p>
-                        <h2 className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-midnight">A voice agent and CRM, working as one.</h2>
+                        <h2 className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-midnight">One comprehensive platform.</h2>
                         <p className="mt-4 text-lg text-slate-body">
-                            Earlymark pairs an AI voice agent with a CRM that talks back. Every call updates your pipeline, and every CRM action can be triggered by chat or a phone conversation.
+                            An AI assistant and a CRM that runs itself, so you don&apos;t have to.
                         </p>
                     </motion.div>
                     <motion.div {...fadeUp(0.08)}>
@@ -439,13 +449,9 @@ export default function Home() {
                         </div>
                     </motion.div>
 
-                    <motion.div {...fadeUp(0.10)} className="rounded-b-[2rem] bg-[#E0FAF2] border border-t-0 border-emerald-200 px-8 py-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-                        <span className="text-sm font-bold text-midnight">You stay in control.</span>
-                        {["Approval rules", "Action or draft mode", "Full conversation history"].map((pill) => (
-                            <span key={pill} className="inline-flex items-center rounded-full border border-emerald-300 bg-white px-4 py-1.5 text-sm font-medium text-emerald-800 shadow-sm">
-                                {pill}
-                            </span>
-                        ))}
+                    <motion.div {...fadeUp(0.10)} className="mt-12 flex flex-col items-center gap-5">
+                        <p className="text-sm font-bold uppercase tracking-[0.2em] text-emerald-700">Total control. Pick your mode:</p>
+                        <AutonomyModeTabs />
                     </motion.div>
                 </div>
             </section>
@@ -483,13 +489,16 @@ export default function Home() {
                         </div>
                     </motion.div>
 
-                    <motion.div {...fadeUp(0.10)}>
-                        <p className="text-center text-xs font-bold uppercase tracking-[0.2em] text-slate-400 mb-6">A full CRM. Not a stripped-down one.</p>
+                    <motion.div {...fadeUp(0.10)} className="flex flex-col gap-6">
+                        <div className="text-center">
+                            <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">Everything in the box</p>
+                            <h3 className="mt-2 text-2xl font-extrabold tracking-[-0.02em] text-midnight md:text-3xl">A full-featured CRM, built for the way trades actually work.</h3>
+                        </div>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             {FEATURE_CARDS.map(({ icon: Icon, title, desc }) => (
-                                <div key={title} className="flex items-start gap-3 rounded-xl border border-slate-200 bg-[#F8FAFC] p-5">
-                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E0FAF2]">
-                                        <Icon className="h-5 w-5 text-primary" />
+                                <div key={title} className="group flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-[0_12px_36px_rgba(15,23,42,0.08)]">
+                                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-100 group-hover:bg-emerald-100">
+                                        <Icon className="h-5 w-5 text-emerald-600" />
                                     </div>
                                     <div className="flex flex-col gap-1">
                                         <span className="text-sm font-semibold text-midnight">{title}</span>
