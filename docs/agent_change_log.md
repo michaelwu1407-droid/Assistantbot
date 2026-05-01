@@ -1,3 +1,19 @@
+## 2026-05-01 (Codex) - Moved recurring voice monitor cadence onto Vercel cron
+
+- Files changed:
+  - `vercel.json`
+  - `.github/workflows/voice-monitor-watchdog.yml`
+  - `.github/workflows/customer-agent-reconcile.yml`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added production Vercel cron schedules for `voice-monitor-watchdog` and `customer-agent-reconcile`.
+  - Removed the recurring GitHub schedules for those two workflows and kept them as manual operator tools.
+  - Documented that the live app platform, not GitHub Actions, is now the primary scheduler for voice freshness and drift checks.
+- Why:
+  - Core voice was healthy, but public health was still degrading because monitor freshness depended on a single external scheduler path that stopped updating `voice-monitor-watchdog`, `voice-agent-health`, and `voice-synthetic-probe`.
+  - Running the recurring cadence from Vercel keeps the checks closer to the live runtime and removes the stale-monitor single point of failure.
+
 ## 2026-05-01 (Codex) - Split core voice health from passive comms noise
 
 - Files changed:

@@ -1,1 +1,12 @@
-{}
+{
+  "crons": [
+    {
+      "path": "/api/cron/voice-monitor-watchdog",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/customer-agent-reconcile",
+      "schedule": "*/15 * * * *"
+    }
+  ]
+}
