@@ -289,6 +289,13 @@ type GroundingCacheEntry = {
 };
 
 let groundingRefreshPromise: Promise<void> | null = null;
+let groundingRefreshStartedAt: number | null = null;
+let prewarmHealthReported = false;
+let groundingLastSuccessAt: number | null = null;
+let groundingLastFailureAt: number | null = null;
+let groundingConsecutiveFailures = 0;
+let groundingLastError: string | null = null;
+const GROUNDING_INFLIGHT_DEDUP_WINDOW_MS = 500;
 const groundingCache = new Map<string, GroundingCacheEntry>();
 let sharedOpenerAudioCache: Map<OpenerId, Promise<AudioFrame>> | null = null;
 let sharedSpeculativeHeadAudioCache: Map<SpeculativeHeadId, Promise<AudioFrame>> | null = null;
@@ -1174,14 +1181,18 @@ function createVoiceLlm(callType: CallType) {
 }
 
 async function refreshVoiceGroundingIndex(force = false) {
-  if (!force && groundingRefreshPromise) {
-    return groundingRefreshPromise;
+  if (groundingRefreshPromise) {
+    const inflightAgeMs = groundingRefreshStartedAt ? Date.now() - groundingRefreshStartedAt : Infinity;
+    if (!force || inflightAgeMs < GROUNDING_INFLIGHT_DEDUP_WINDOW_MS) {
+      return groundingRefreshPromise;
+    }
   }
 
   const appUrl = getAppBaseUrl();
   const secret = getVoiceAgentWebhookSecret();
   if (!appUrl || !secret) return;
 
+  groundingRefreshStartedAt = Date.now();
   groundingRefreshPromise = (async () => {
     try {
       const response = await fetch(`${appUrl.replace(/\/$/, "")}/api/internal/voice-grounding-index`, {
@@ -1195,7 +1206,7 @@ async function refreshVoiceGroundingIndex(force = false) {
         throw new Error(`voice-grounding-index returned ${response.status}`);
       }
 
-      const payload = await response.json().catch(() => null);
+      const payload = (await response.json().catch(() => null)) as { groundings?: unknown } | null;
       const entries = Array.isArray(payload?.groundings) ? payload.groundings : [];
       const nextCache = new Map<string, GroundingCacheEntry>();
       const now = Date.now();
@@ -1220,14 +1231,36 @@ async function refreshVoiceGroundingIndex(force = false) {
       for (const [phone, entry] of nextCache.entries()) {
         groundingCache.set(phone, entry);
       }
+      groundingLastSuccessAt = Date.now();
+      groundingConsecutiveFailures = 0;
+      groundingLastError = null;
     } catch (error) {
-      console.warn("[agent] Failed to refresh voice grounding cache:", error);
+      groundingLastFailureAt = Date.now();
+      groundingConsecutiveFailures += 1;
+      groundingLastError = error instanceof Error ? error.message : String(error);
+      console.warn(`[voice-grounding-refresh-failed] ${JSON.stringify({
+        consecutiveFailures: groundingConsecutiveFailures,
+        lastSuccessAt: groundingLastSuccessAt,
+        error: groundingLastError,
+      })}`);
     } finally {
       groundingRefreshPromise = null;
+      groundingRefreshStartedAt = null;
     }
   })();
 
   return groundingRefreshPromise;
+}
+
+export function getVoiceGroundingHealth() {
+  return {
+    cacheSize: groundingCache.size,
+    lastSuccessAt: groundingLastSuccessAt,
+    lastFailureAt: groundingLastFailureAt,
+    consecutiveFailures: groundingConsecutiveFailures,
+    lastError: groundingLastError,
+    inflight: Boolean(groundingRefreshPromise),
+  };
 }
 
 function getCachedVoiceGrounding(calledPhone?: string | null) {
@@ -1240,8 +1273,18 @@ function getCachedVoiceGrounding(calledPhone?: string | null) {
     return null;
   }
 
-  if (Date.now() - cached.fetchedAt > VOICE_GROUNDING_CACHE_TTL_MS) {
+  const ageMs = Date.now() - cached.fetchedAt;
+  if (ageMs > VOICE_GROUNDING_CACHE_TTL_MS) {
     void refreshVoiceGroundingIndex(true).catch(() => {});
+    if (groundingConsecutiveFailures > 0) {
+      console.warn(`[voice-grounding-degraded] ${JSON.stringify({
+        normalizedPhone,
+        cacheAgeMs: ageMs,
+        ttlMs: VOICE_GROUNDING_CACHE_TTL_MS,
+        consecutiveFailures: groundingConsecutiveFailures,
+        lastError: groundingLastError,
+      })}`);
+    }
     return cached.value;
   }
 
@@ -2021,9 +2064,11 @@ export default defineAgent({
     callType = resolveCallType(callType, calledPhone, roomName);
     const voiceTurnTuning = resolveVoiceTurnTuning(callType);
     const sttKeyterms = resolveSttKeyterms();
+    const sttModelName = resolveSttModel();
+    const sttLanguageMode = "multi";
     const stt = new deepgram.STT({
-      model: resolveSttModel() as DeepgramSTTOptions["model"],
-      language: "multi",
+      model: sttModelName as DeepgramSTTOptions["model"],
+      language: sttLanguageMode,
       detectLanguage: true,
       interimResults: true,
       endpointing: voiceTurnTuning.sttEndpointingMs,
@@ -2032,11 +2077,20 @@ export default defineAgent({
       smartFormat: true,
       keyterm: sttKeyterms,
     });
+    const ttsModelName = resolveConfiguredTtsModel();
+    const ttsVoiceId = resolveConfiguredTtsVoiceId();
     console.log(`[voice-stt-config] ${JSON.stringify({
       callId,
       provider: "deepgram",
-      model: resolveSttModel(),
+      model: sttModelName,
+      languageMode: sttLanguageMode,
       keytermCount: sttKeyterms.length,
+    })}`);
+    console.log(`[voice-tts-config] ${JSON.stringify({
+      callId,
+      provider: "cartesia",
+      model: ttsModelName,
+      voiceId: ttsVoiceId,
     })}`);
     markCallStarted();
     let activeCallReleased = false;
@@ -2099,6 +2153,29 @@ export default defineAgent({
       ? getSharedSpeculativeHeadAudioCache(defaultTts, logPrefix)
       : new Map<SpeculativeHeadId, Promise<AudioFrame>>();
     const fixedLineAudioCache = getSharedFixedLineAudioCache(defaultTts, logPrefix);
+
+    if (!prewarmHealthReported) {
+      prewarmHealthReported = true;
+      void (async () => {
+        const tally = async <K>(label: string, cache: Map<K, Promise<unknown>>) => {
+          const results = await Promise.allSettled(Array.from(cache.values()));
+          const failed = results.filter((r) => r.status === "rejected").length;
+          return { label, total: results.length, failed };
+        };
+        const reports = await Promise.all([
+          tally("opener", openerAudioCache),
+          tally("speculative_head", speculativeHeadAudioCache),
+          tally("fixed_line", fixedLineAudioCache),
+        ]);
+        const degraded = reports.filter((r) => r.failed > 0);
+        if (degraded.length > 0) {
+          console.warn(`[voice-prewarm-degraded] ${JSON.stringify({
+            workerLogPrefix: logPrefix,
+            caches: degraded,
+          })}`);
+        }
+      })();
+    }
 
     console.log(`${logPrefix} Call started ${JSON.stringify({
       callId,
@@ -2450,7 +2527,7 @@ export default defineAgent({
         case "stt_metrics":
           latencyAudit.sttMs.push(Number(metrics.durationMs || 0));
           metricTags.provider = "deepgram";
-          metricTags.model = resolveSttModel();
+          metricTags.model = sttModelName;
           break;
         case "llm_metrics": {
           const durationMs = Number(metrics.durationMs || 0);
@@ -2479,7 +2556,7 @@ export default defineAgent({
           latencyAudit.ttsMs.push(Number(metrics.durationMs || 0));
           latencyAudit.ttsTtfbMs.push(Number(metrics.ttfbMs || 0));
           metricTags.provider = "cartesia";
-          metricTags.model = resolveConfiguredTtsModel();
+          metricTags.model = ttsModelName;
           if (metrics.speechId) {
             const turn = getOrCreateTurnAudit(metrics.speechId);
             turn.ttsMs = Number(metrics.durationMs || 0);
@@ -2917,7 +2994,8 @@ export default defineAgent({
       const latency = {
         sttAvgMs: avg(latencyAudit.sttMs),
         sttProvider: "deepgram",
-        sttModel: resolveSttModel(),
+        sttModel: sttModelName,
+        sttLanguageMode,
         llmAvgMs: avg(latencyAudit.llmMs),
         llmP95Ms: p95(latencyAudit.llmMs),
         llmTtftAvgMs: avg(latencyAudit.llmTtftMs),
@@ -2926,7 +3004,8 @@ export default defineAgent({
         ttsP95Ms: p95(latencyAudit.ttsMs),
         ttsTtfbAvgMs: avg(latencyAudit.ttsTtfbMs),
         ttsProvider: "cartesia",
-        ttsModel: resolveConfiguredTtsModel(),
+        ttsModel: ttsModelName,
+        ttsVoiceId,
         eouAvgMs: avg(latencyAudit.eouMs),
         transcriptionDelayAvgMs: avg(latencyAudit.transcriptionDelayMs),
         totalTurnStartAvgMs: avg(measuredTurnStarts),
@@ -2939,6 +3018,10 @@ export default defineAgent({
         openerCacheMisses: voiceLatencyAudit.openerCacheMisses,
         guardTimeouts: voiceLatencyAudit.guardTimeouts,
         guardEligibleTurns: voiceLatencyAudit.guardEligibleTurns,
+        guardTimeoutBudgetMs: voiceLatencyConfig.guardTimeoutMs,
+        guardTimeoutRate: voiceLatencyAudit.guardEligibleTurns > 0
+          ? voiceLatencyAudit.guardTimeouts / voiceLatencyAudit.guardEligibleTurns
+          : 0,
         openerUsage: voiceLatencyAudit.openerUsage,
         speculativeHeadLeadAvgMs: avg(voiceLatencyAudit.speculativeHeadLeadMs),
         speculativeHeadGapAvgMs: avg(voiceLatencyAudit.speculativeHeadGapMs),
@@ -2967,6 +3050,7 @@ export default defineAgent({
             sttAvgMs: avg(latencyAudit.sttMs),
             sttProvider: latency.sttProvider,
             sttModel: latency.sttModel,
+            sttLanguageMode: latency.sttLanguageMode,
             llmAvgMs: avg(latencyAudit.llmMs),
             llmP95Ms: p95(latencyAudit.llmMs),
             llmTtftAvgMs: avg(latencyAudit.llmTtftMs),
@@ -2976,6 +3060,7 @@ export default defineAgent({
             ttsTtfbAvgMs: avg(latencyAudit.ttsTtfbMs),
             ttsProvider: latency.ttsProvider,
             ttsModel: latency.ttsModel,
+            ttsVoiceId: latency.ttsVoiceId,
             eouAvgMs: avg(latencyAudit.eouMs),
             transcriptionDelayAvgMs: avg(latencyAudit.transcriptionDelayMs),
             totalTurnStartAvgMs: latency.totalTurnStartAvgMs,
@@ -2987,6 +3072,8 @@ export default defineAgent({
             openerHits: voiceLatencyAudit.openerHits,
             openerCacheMisses: voiceLatencyAudit.openerCacheMisses,
             guardTimeouts: voiceLatencyAudit.guardTimeouts,
+            guardTimeoutBudgetMs: latency.guardTimeoutBudgetMs,
+            guardTimeoutRate: latency.guardTimeoutRate,
             openerUsage: voiceLatencyAudit.openerUsage,
             speculativeHeadLeadAvgMs: avg(voiceLatencyAudit.speculativeHeadLeadMs),
             speculativeHeadGapAvgMs: avg(voiceLatencyAudit.speculativeHeadGapMs),
