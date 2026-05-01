@@ -1,3 +1,14 @@
+## 2026-05-01 (Codex) - Documented post-reliability voice optimization backlog
+
+- Files changed:
+  - `docs/voice_agent_improvement_backlog.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added a review-only backlog for voice-agent improvements after the recent reliability work.
+  - Captured the strongest latency/quality ideas, plus my view on which ones are solid, premature, or based on incorrect assumptions about the current codebase.
+- Why:
+  - We now have voice stability back, so the next tuning pass should be deliberate and reviewable instead of being mixed into outage recovery work.
+
 ## 2026-05-01 (Codex) - Ignore impossible SMS auto-replies to alphanumeric sender IDs
 
 - Files changed:
