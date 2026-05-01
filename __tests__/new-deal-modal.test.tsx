@@ -317,7 +317,9 @@ describe("NewDealModal", () => {
     expect(onClose).toHaveBeenCalled();
     expect(routerPush).toHaveBeenCalledWith("/crm/deals/deal_new");
     expect(routerRefresh).toHaveBeenCalled();
-    expect(screen.getByLabelText(/job description/i)).toHaveValue("");
+    await waitFor(() => {
+      expect(screen.getByLabelText(/job description/i)).toHaveValue("");
+    });
   });
 
   it("shows a clear inline error for an invalid email", async () => {

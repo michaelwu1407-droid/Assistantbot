@@ -1,3 +1,13 @@
+## 2026-05-01 (Codex) - Waited for the new-deal modal reset state in Linux CI
+
+- Files changed:
+  - `__tests__/new-deal-modal.test.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Changed the post-submit reset assertion in the modal test to wait for the cleared job-description field instead of assuming the form resets synchronously.
+- Why:
+  - The next Linux-only failure after the map fix was a timing edge: the modal had already created the deal and navigated, but the test checked the cleared input a moment too early on the GitHub runner.
+
 ## 2026-05-01 (Codex) - Removed a Linux-only clipboard teardown trap from the Google map route-mode test
 
 - Files changed:
