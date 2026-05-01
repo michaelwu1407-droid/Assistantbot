@@ -34,6 +34,15 @@ const PulsingLogo = dynamic(
     },
 );
 
+const PlatformDiagram = dynamic(
+    () => import("@/components/home/platform-diagram").then((mod) => mod.PlatformDiagram),
+    {
+        loading: () => (
+            <div className="mx-auto h-72 w-full max-w-5xl animate-pulse rounded-2xl bg-slate-100" />
+        ),
+    },
+);
+
 // ─── Animation helpers ────────────────────────────────────────────────────────
 
 const fadeUp = (delay = 0) => ({
@@ -357,7 +366,41 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* Section 1 — Meet Tracey */}
+            {/* Interview form — invitation to try Tracey */}
+            <section id="interview-assistant" className="py-12 md:py-24 px-6 relative overflow-hidden bg-[#1E232B]">
+                <div className="container mx-auto max-w-7xl">
+                    <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
+                        <div className="flex flex-col gap-8">
+                            <motion.h2 {...fadeUp()} className="text-3xl md:text-5xl font-extrabold text-white tracking-[-0.03em] leading-tight">
+                                Tracey lives in your CRM. She will contact customers and run your CRM so you don&apos;t have to.
+                            </motion.h2>
+                        </div>
+                        <motion.div {...fadeUp(0.1)} className="bg-white/95 backdrop-blur-md rounded border border-white/40 p-7 shadow-xl">
+                            <h3 className="font-bold text-midnight text-lg mb-1">Interview Tracey for free</h3>
+                            <p className="text-slate-body text-sm mb-6 leading-relaxed">Tracey will call you and answer questions, explain her capabilities, or roleplay as your very own AI receptionist.</p>
+                            <InterviewForm />
+                        </motion.div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Platform diagram — voice agent + CRM */}
+            <section id="platform" className="bg-white px-6 py-12 md:py-24">
+                <div className="container mx-auto max-w-7xl">
+                    <motion.div {...fadeUp()} className="mx-auto mb-12 max-w-3xl text-center">
+                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600 mb-3">The platform</p>
+                        <h2 className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-midnight">A voice agent and CRM, working as one.</h2>
+                        <p className="mt-4 text-lg text-slate-body">
+                            Earlymark pairs an AI voice agent with a CRM that talks back. Every call updates your pipeline, and every CRM action can be triggered by chat or a phone conversation.
+                        </p>
+                    </motion.div>
+                    <motion.div {...fadeUp(0.08)}>
+                        <PlatformDiagram />
+                    </motion.div>
+                </div>
+            </section>
+
+            {/* Section 1 — Meet Tracey (the voice agent) */}
             <section id="meet-tracey" className="bg-[#F8FAFC] px-6 py-12 md:py-24">
                 <div className="container mx-auto max-w-7xl">
                     <motion.div {...fadeUp()} className="mx-auto mb-14 max-w-3xl text-center">
@@ -401,25 +444,6 @@ export default function Home() {
                     </motion.div>
                 </div>
             </section>
-
-            {/* Interview form — narrative bridge */}
-            <section id="interview-assistant" className="py-12 md:py-24 px-6 relative overflow-hidden bg-[#1E232B]">
-                <div className="container mx-auto max-w-7xl">
-                    <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
-                        <div className="flex flex-col gap-8">
-                            <motion.h2 {...fadeUp()} className="text-3xl md:text-5xl font-extrabold text-white tracking-[-0.03em] leading-tight">
-                                Tracey lives in your CRM. She will contact customers and run your CRM so you don&apos;t have to.
-                            </motion.h2>
-                        </div>
-                        <motion.div {...fadeUp(0.1)} className="bg-white/95 backdrop-blur-md rounded border border-white/40 p-7 shadow-xl">
-                            <h3 className="font-bold text-midnight text-lg mb-1">Interview Tracey for free</h3>
-                            <p className="text-slate-body text-sm mb-6 leading-relaxed">Tracey will call you and answer questions, explain her capabilities, or roleplay as your very own AI receptionist.</p>
-                            <InterviewForm />
-                        </motion.div>
-                    </div>
-                </div>
-            </section>
-
             {/* Section 2 — A CRM that fills itself in */}
             <section id="product" className="py-12 md:py-24 px-6 bg-white">
                 <div className="container mx-auto max-w-7xl flex flex-col gap-16">
