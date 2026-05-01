@@ -444,8 +444,8 @@ describe("GET /api/cron/voice-monitor-watchdog", () => {
           status: "healthy",
           summary: "voice-synthetic-probe is reporting on schedule",
           lastSuccessAt: "2026-03-12T13:47:39.000Z",
-          ageMs: 960_000,
-          staleAfterMs: 2_700_000,
+          ageMs: 10_900_000,
+          staleAfterMs: 14_400_000,
         }),
       )
       .mockResolvedValueOnce(
@@ -453,7 +453,7 @@ describe("GET /api/cron/voice-monitor-watchdog", () => {
           monitorKey: "voice-synthetic-probe",
           status: "healthy",
           summary: "voice-synthetic-probe is reporting on schedule",
-          staleAfterMs: 2_700_000,
+          staleAfterMs: 14_400_000,
         }),
       );
 
@@ -501,8 +501,8 @@ describe("GET /api/cron/voice-monitor-watchdog", () => {
           status: "healthy",
           summary: "voice-synthetic-probe is reporting on schedule",
           lastSuccessAt: "2026-03-12T13:47:39.000Z",
-          ageMs: 960_000,
-          staleAfterMs: 2_700_000,
+          ageMs: 10_900_000,
+          staleAfterMs: 14_400_000,
         }),
       )
       .mockResolvedValueOnce(
@@ -510,7 +510,7 @@ describe("GET /api/cron/voice-monitor-watchdog", () => {
           monitorKey: "voice-synthetic-probe",
           status: "healthy",
           summary: "voice-synthetic-probe is reporting on schedule",
-          staleAfterMs: 2_700_000,
+          staleAfterMs: 14_400_000,
         }),
       )
       .mockResolvedValueOnce(

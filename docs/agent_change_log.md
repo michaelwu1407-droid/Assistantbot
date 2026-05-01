@@ -1,3 +1,20 @@
+## 2026-05-01 (Codex) - Reduce default spoken PSTN canary cadence to control Twilio spend
+
+- Files changed:
+  - `lib/voice-monitor-config.ts`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Changed the default synthetic-probe refresh cadence from 15 minutes to 180 minutes so the paid spoken PSTN canary now runs about every 3 hours instead of every 30 minutes under the current watchdog schedule.
+  - Widened the default synthetic-probe stale window from 45 minutes to 240 minutes so health does not flap unhealthy between the less-frequent probe runs.
+  - Documented this as a temporary cost-control setting that should be revisited later, ideally after separating the cheap gateway probe from the paid spoken PSTN canary path.
+- Why:
+  - Live Twilio usage showed the spoken PSTN canary was the dominant variable monitoring cost, while passive checks and watchdog freshness were already giving us strong safety coverage.
+  - This keeps the watchdog and passive health checks frequent while reducing the paid active-call cadence for now.
+- Verified with:
+  - `npx tsc --noEmit`
+  - `npx vitest run __tests__/launch-readiness.test.ts __tests__/voice-fleet-health-route.test.ts __tests__/voice-monitor-watchdog-route.test.ts`
+
 ## 2026-05-01 (Codex) - Clarified Resend admin verification health without hiding it
 
 - Files changed:

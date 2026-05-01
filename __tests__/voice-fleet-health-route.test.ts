@@ -132,7 +132,7 @@ describe("GET /api/internal/voice-fleet-health", () => {
     expect(getMonitorRunHealth).toHaveBeenNthCalledWith(1, "voice-agent-health", 1_800_000);
     expect(getMonitorRunHealth).toHaveBeenNthCalledWith(2, "voice-monitor-watchdog", 1_800_000);
     expect(getMonitorRunHealth).toHaveBeenNthCalledWith(3, "passive-communications-health", 1_800_000);
-    expect(getMonitorRunHealth).toHaveBeenNthCalledWith(4, "voice-synthetic-probe", 2_700_000);
+    expect(getMonitorRunHealth).toHaveBeenNthCalledWith(4, "voice-synthetic-probe", 14_400_000);
     expect(combineVoiceStatuses).toHaveBeenNthCalledWith(1, [
       "healthy",
       "healthy",

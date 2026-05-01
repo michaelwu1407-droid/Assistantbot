@@ -129,6 +129,7 @@ Updated: 2026-04-29 AEST
   - inbound email from real `WebhookEvent(provider="resend", eventType="email.received")` success/failure data
 - Low/no traffic customer workspaces are surfaced as per-workspace `unknown`, but they do not drag top-level launch status down unless there is a real failure signal.
 - The synthetic probe is still a higher-cost active check than passive traffic health, but it now runs on a scheduled cadence for real outage detection in addition to deploy verification and manual recovery.
+- Temporary cost-control default: the spoken PSTN canary refresh cadence is now 3 hours with a 4-hour stale window. Revisit this once commercial traffic grows or once we split cheap gateway probing from the paid PSTN spoken canary path.
 - On the current Vercel Hobby plan, recurring monitor freshness must come from GitHub Actions schedules for `voice-monitor-watchdog` and `customer-agent-reconcile`. Do not rely on Vercel cron for 5-minute or 15-minute cadence unless the project is upgraded to a plan that supports those schedules.
 - The spoken PSTN canary is only considered healthy when Twilio completes the probe call and the app persists a matching `VoiceCall` with both caller and Tracey speech.
 - The default monitor stale window is now 20 minutes to tolerate normal GitHub Actions scheduler drift without masking genuine outages for hours.
