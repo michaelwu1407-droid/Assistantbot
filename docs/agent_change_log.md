@@ -1,3 +1,16 @@
+## 2026-05-01 (Codex) - Removed a Linux-only clipboard teardown trap from the Google map route-mode test
+
+- Files changed:
+  - `__tests__/google-map-view.test.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Replaced `@testing-library/user-event` with plain `fireEvent` in the Google map route-mode test because the scenario only needs two button clicks.
+  - Kept the suite's stubs focused on `open` and `google` rather than depending on the broader clipboard-aware user-event path.
+  - Added explicit cleanup for the test's env/global stubs.
+- Why:
+  - The real remaining GitHub Actions failure reproduced in Linux as a `navigator.clipboard` teardown crash inside `@testing-library/user-event`.
+  - This suite never needed clipboard behavior, so removing that dependency is the simplest and lowest-risk fix.
+
 ## 2026-04-30 (Codex) - Smoothed inbound demo low-signal turns and stopped the watchdog tripping over its own canary
 
 - Files changed:

@@ -1,7 +1,6 @@
 import React from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 vi.mock("@react-google-maps/api", () => ({
   GoogleMap: ({ children }: { children: React.ReactNode }) => <div data-testid="google-map">{children}</div>,
@@ -27,13 +26,7 @@ describe("GoogleMapView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv("NEXT_PUBLIC_GOOGLE_MAPS_API_KEY", "test-google-maps-key");
-    vi.stubGlobal(
-      "window",
-      {
-        ...window,
-        open: vi.fn(),
-      },
-    );
+    vi.stubGlobal("open", vi.fn());
     vi.stubGlobal(
       "google",
       {
@@ -53,8 +46,12 @@ describe("GoogleMapView", () => {
     );
   });
 
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
   it("keeps route mode useful by surfacing the next upcoming job after today is complete", async () => {
-    const user = userEvent.setup();
     const today = new Date();
     today.setHours(9, 0, 0, 0);
     const tomorrow = new Date(today);
@@ -91,13 +88,13 @@ describe("GoogleMapView", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /enable route mode/i }));
+    fireEvent.click(screen.getByRole("button", { name: /enable route mode/i }));
 
     expect(screen.getByText("All Done!")).toBeInTheDocument();
     expect(screen.getByText(/Next upcoming job/i)).toBeInTheDocument();
     expect(screen.getByText("Next Up Plumbing")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /show all upcoming jobs/i }));
+    fireEvent.click(screen.getByRole("button", { name: /show all upcoming jobs/i }));
 
     expect(screen.queryByRole("button", { name: /exit route mode/i })).not.toBeInTheDocument();
     expect(screen.queryByText("All Done!")).not.toBeInTheDocument();
