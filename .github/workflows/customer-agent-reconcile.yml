@@ -1,6 +1,8 @@
 name: Customer Agent Reconcile
 
 on:
+  schedule:
+    - cron: "22,52 * * * *"
   workflow_dispatch:
 
 jobs:

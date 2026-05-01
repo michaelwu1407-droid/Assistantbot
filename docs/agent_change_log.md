@@ -1,3 +1,18 @@
+## 2026-05-01 (Codex) - Restored GitHub cron backstops while Vercel owns primary voice cadence
+
+- Files changed:
+  - `.github/workflows/voice-monitor-watchdog.yml`
+  - `.github/workflows/customer-agent-reconcile.yml`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Restored lower-frequency GitHub schedules for `voice-monitor-watchdog` and `customer-agent-reconcile` while keeping Vercel cron as the primary recurring scheduler.
+  - Staggered the GitHub schedules so they act as a safety net rather than competing with the live app cadence.
+  - Documented the dual-scheduler model explicitly in the voice operating brief.
+- Why:
+  - GitHub workflow schedules update immediately when `main` changes, but Vercel cron only becomes real after the matching web deploy is live.
+  - Removing the GitHub schedules first created a freshness gap even though the underlying voice stack was healthy.
+
 ## 2026-05-01 (Codex) - Moved recurring voice monitor cadence onto Vercel cron
 
 - Files changed:
