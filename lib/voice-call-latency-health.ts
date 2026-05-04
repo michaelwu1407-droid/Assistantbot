@@ -11,6 +11,8 @@ type VoiceLatencyThresholds = {
 };
 
 const CRITICAL_PROOF_SURFACES: VoiceSurface[] = ["inbound_demo"];
+const ADVISORY_PROOF_SURFACES: VoiceSurface[] = ["demo", "normal"];
+const MIN_SAMPLES_FOR_CONFIDENCE = 3;
 
 export type VoiceLatencyHealthScope = {
   surface: VoiceSurface;
@@ -51,6 +53,8 @@ export type VoiceLatencyProofSurface = {
   syntheticProbeSampleCount: number;
   latestCallAt: string | null;
   latestSyntheticProbeCallAt: string | null;
+  samplesSufficient: boolean;
+  minSamplesForConfidence: number;
 };
 
 export type VoiceLatencyHealth = {
@@ -63,6 +67,7 @@ export type VoiceLatencyHealth = {
     status: RuntimeStatus;
     summary: string;
     surfaces: VoiceLatencyProofSurface[];
+    advisorySurfaces: VoiceLatencyProofSurface[];
   };
 };
 
@@ -304,23 +309,52 @@ function evaluateScope(surface: VoiceSurface, recentCalls: VoiceLatencyHealthSco
   };
 }
 
+function buildCriticalProofSurface(scope: VoiceLatencyHealthScope): VoiceLatencyProofSurface {
+  const samplesSufficient = scope.sampleCount >= MIN_SAMPLES_FOR_CONFIDENCE;
+  return {
+    surface: scope.surface,
+    status: scope.status,
+    summary:
+      scope.sampleCount === 0
+        ? scope.summary
+        : scope.syntheticProbeSampleCount > 0
+          ? `Recent ${scope.surface} latency proof has ${scope.sampleCount} phone sample(s), including ${scope.syntheticProbeSampleCount} spoken-canary sample(s).`
+          : `Recent ${scope.surface} latency proof has ${scope.sampleCount} phone sample(s), but none came from the spoken canary yet.`,
+    sampleCount: scope.sampleCount,
+    syntheticProbeSampleCount: scope.syntheticProbeSampleCount,
+    latestCallAt: scope.latestCallAt,
+    latestSyntheticProbeCallAt: scope.latestSyntheticProbeCallAt,
+    samplesSufficient,
+    minSamplesForConfidence: MIN_SAMPLES_FOR_CONFIDENCE,
+  };
+}
+
+function buildAdvisoryProofSurface(scope: VoiceLatencyHealthScope): VoiceLatencyProofSurface {
+  const samplesSufficient = scope.sampleCount >= MIN_SAMPLES_FOR_CONFIDENCE;
+  const summary = samplesSufficient
+    ? `Recent ${scope.surface} latency has ${scope.sampleCount} sample(s), enough to evaluate optimization wins.`
+    : `Only ${scope.sampleCount} recent ${scope.surface} sample(s); need ${MIN_SAMPLES_FOR_CONFIDENCE}+ before claiming optimization wins.`;
+  return {
+    surface: scope.surface,
+    status: scope.status,
+    summary,
+    sampleCount: scope.sampleCount,
+    syntheticProbeSampleCount: scope.syntheticProbeSampleCount,
+    latestCallAt: scope.latestCallAt,
+    latestSyntheticProbeCallAt: scope.latestSyntheticProbeCallAt,
+    samplesSufficient,
+    minSamplesForConfidence: MIN_SAMPLES_FOR_CONFIDENCE,
+  };
+}
+
 function buildLatencyProof(scopes: VoiceLatencyHealthScope[]) {
   const surfaces = scopes
     .filter((scope) => requiresRecentProof(scope.surface))
-    .map<VoiceLatencyProofSurface>((scope) => ({
-      surface: scope.surface,
-      status: scope.status,
-      summary:
-        scope.sampleCount === 0
-          ? scope.summary
-          : scope.syntheticProbeSampleCount > 0
-            ? `Recent ${scope.surface} latency proof has ${scope.sampleCount} phone sample(s), including ${scope.syntheticProbeSampleCount} spoken-canary sample(s).`
-            : `Recent ${scope.surface} latency proof has ${scope.sampleCount} phone sample(s), but none came from the spoken canary yet.`,
-      sampleCount: scope.sampleCount,
-      syntheticProbeSampleCount: scope.syntheticProbeSampleCount,
-      latestCallAt: scope.latestCallAt,
-      latestSyntheticProbeCallAt: scope.latestSyntheticProbeCallAt,
-    }));
+    .map(buildCriticalProofSurface);
+
+  const advisorySurfaces = scopes
+    .filter((scope) => ADVISORY_PROOF_SURFACES.includes(scope.surface))
+    .map(buildAdvisoryProofSurface);
 
   const status = surfaces.reduce<RuntimeStatus>((current, scope) => maxStatus(current, scope.status), "healthy");
   const summary =
@@ -332,6 +366,7 @@ function buildLatencyProof(scopes: VoiceLatencyHealthScope[]) {
     status,
     summary,
     surfaces,
+    advisorySurfaces,
   };
 }
 

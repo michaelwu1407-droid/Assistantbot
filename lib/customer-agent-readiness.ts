@@ -174,6 +174,7 @@ function buildVoiceLatencyFailure(message: string): VoiceLatencyHealth {
       status: "unhealthy",
       summary: message,
       surfaces: [],
+      advisorySurfaces: [],
     },
   };
 }

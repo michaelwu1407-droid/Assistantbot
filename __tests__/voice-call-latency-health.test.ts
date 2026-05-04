@@ -294,4 +294,33 @@ describe("getVoiceLatencyHealth", () => {
     expect(inboundDemo?.averages.firstTurnStartMs).toBe(388);
     expect(result.status).toBe("healthy");
   });
+
+  it("flags demo and normal advisory surfaces as insufficient when fewer than 3 real samples exist", async () => {
+    db.voiceCall.findMany.mockResolvedValue([
+      {
+        callId: "demo-1",
+        callType: "demo",
+        roomName: "room-demo-1",
+        createdAt: new Date("2026-04-07T08:00:00.000Z"),
+        latency: { llmTtftAvgMs: 200, ttsTtfbAvgMs: 600, totalTurnStartAvgMs: 900, firstTurnStartMs: 200 },
+        metadata: {},
+      },
+    ]);
+
+    const result = await getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 });
+
+    const advisory = result.proof.advisorySurfaces;
+    const demoAdvisory = advisory.find((s) => s.surface === "demo");
+    const normalAdvisory = advisory.find((s) => s.surface === "normal");
+
+    expect(demoAdvisory).toBeDefined();
+    expect(demoAdvisory?.samplesSufficient).toBe(false);
+    expect(demoAdvisory?.minSamplesForConfidence).toBe(3);
+    expect(demoAdvisory?.summary).toContain("Only 1 recent demo sample");
+    expect(normalAdvisory?.samplesSufficient).toBe(false);
+    expect(normalAdvisory?.summary).toContain("Only 0 recent normal sample");
+
+    // Critical proof shape and aggregate status must remain unchanged.
+    expect(result.proof.surfaces.map((s) => s.surface)).toEqual(["inbound_demo"]);
+  });
 });

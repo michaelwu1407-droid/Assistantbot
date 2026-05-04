@@ -65,6 +65,7 @@ function createVoiceLatencyHealth() {
       status: "healthy" as const,
       summary: "latency proof ready",
       surfaces: [],
+      advisorySurfaces: [],
     },
   };
 }

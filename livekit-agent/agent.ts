@@ -984,6 +984,49 @@ function resolveSttKeyterms(): string[] {
   return Array.from(new Set(merged));
 }
 
+type TurnDetectionMode = "stt" | "vad";
+
+function resolveRequestedTurnDetectionMode(callType: CallType): TurnDetectionMode {
+  if (callType !== "inbound_demo") return "stt";
+  const raw = (process.env.VOICE_INBOUND_DEMO_TURN_DETECTION || "stt").trim().toLowerCase();
+  return raw === "vad" ? "vad" : "stt";
+}
+
+let cachedVadInstance: unknown = null;
+let vadLoadAttempted = false;
+
+async function resolveTurnDetector(callType: CallType): Promise<{
+  mode: TurnDetectionMode;
+  vad: unknown;
+  requestedMode: TurnDetectionMode;
+  vadAvailable: boolean;
+}> {
+  const requestedMode = resolveRequestedTurnDetectionMode(callType);
+  if (requestedMode !== "vad") {
+    return { mode: "stt", vad: null, requestedMode, vadAvailable: false };
+  }
+
+  if (!vadLoadAttempted) {
+    vadLoadAttempted = true;
+    try {
+      const sileroModule = (await import("@livekit/agents-plugin-silero" as string).catch(
+        () => null,
+      )) as { VAD?: { load: () => Promise<unknown> } } | null;
+      if (sileroModule?.VAD?.load) {
+        cachedVadInstance = await sileroModule.VAD.load();
+      }
+    } catch (error) {
+      console.warn(`[voice-turn-detection] Failed to load Silero VAD: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  if (!cachedVadInstance) {
+    return { mode: "stt", vad: null, requestedMode, vadAvailable: false };
+  }
+
+  return { mode: "vad", vad: cachedVadInstance, requestedMode, vadAvailable: true };
+}
+
 function createCartesiaTts(language = resolveConfiguredTtsLanguage()) {
   return new cartesia.TTS({
     model: resolveConfiguredTtsModel(),
@@ -2262,13 +2305,31 @@ export default defineAgent({
       }
     }
 
+    const turnDetectorChoice = await resolveTurnDetector(callType);
+    if (turnDetectorChoice.requestedMode === "vad" && !turnDetectorChoice.vadAvailable) {
+      console.warn(`[voice-turn-detection] ${JSON.stringify({
+        callId,
+        callType,
+        requested: turnDetectorChoice.requestedMode,
+        active: turnDetectorChoice.mode,
+        reason: "vad_module_unavailable",
+      })}`);
+    } else {
+      console.log(`[voice-turn-detection] ${JSON.stringify({
+        callId,
+        callType,
+        requested: turnDetectorChoice.requestedMode,
+        active: turnDetectorChoice.mode,
+      })}`);
+    }
+
     const agent = new TraceyVoiceAgent({
       instructions: isEarlymarkCall ? buildEarlymarkPrompt(callType, caller) : buildNormalPrompt(caller, normalVoiceGrounding),
       stt,
       llm,
       tts,
       tools,
-      turnDetection: "stt",
+      turnDetection: turnDetectorChoice.mode,
       minConsecutiveSpeechDelay: voiceTurnTuning.minConsecutiveSpeechDelayMs,
     });
 
@@ -2430,7 +2491,8 @@ export default defineAgent({
     };
 
     const session = new voice.AgentSession({
-      turnDetection: "stt",
+      turnDetection: turnDetectorChoice.mode,
+      ...(turnDetectorChoice.vad ? { vad: turnDetectorChoice.vad as voice.AgentSession["vad"] } : {}),
       voiceOptions: {
         preemptiveGeneration: true,
         minEndpointingDelay: voiceTurnTuning.minEndpointingDelayMs,
@@ -2996,6 +3058,8 @@ export default defineAgent({
         sttProvider: "deepgram",
         sttModel: sttModelName,
         sttLanguageMode,
+        turnDetectionMode: turnDetectorChoice.mode,
+        turnDetectionRequested: turnDetectorChoice.requestedMode,
         llmAvgMs: avg(latencyAudit.llmMs),
         llmP95Ms: p95(latencyAudit.llmMs),
         llmTtftAvgMs: avg(latencyAudit.llmTtftMs),
@@ -3051,6 +3115,8 @@ export default defineAgent({
             sttProvider: latency.sttProvider,
             sttModel: latency.sttModel,
             sttLanguageMode: latency.sttLanguageMode,
+            turnDetectionMode: latency.turnDetectionMode,
+            turnDetectionRequested: latency.turnDetectionRequested,
             llmAvgMs: avg(latencyAudit.llmMs),
             llmP95Ms: p95(latencyAudit.llmMs),
             llmTtftAvgMs: avg(latencyAudit.llmTtftMs),
