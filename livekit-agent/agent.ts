@@ -481,14 +481,21 @@ function normalizeReplyLanguage(detected: string | null | undefined): string {
 class MultilingualTTS extends agentsTts.TTS {
   readonly label = 'multilingual-cartesia';
   #defaultTts: cartesia.TTS;
+  #ownsDefaultTts: boolean;
   #ttsByLang = new Map<string, cartesia.TTS>();
   #langWarmups = new Map<string, Promise<void>>();
   #currentReplyLanguage: string;
   #opts: { model: string; voice: string; chunkTimeout: number };
+  #attachedListeners: Array<{ tts: cartesia.TTS; metricsHandler: (metrics: unknown) => void; errorHandler: (error: unknown) => void }> = [];
 
-  constructor(defaultTts: cartesia.TTS, opts: { model: string; voice: string; chunkTimeout: number }) {
+  constructor(
+    defaultTts: cartesia.TTS,
+    opts: { model: string; voice: string; chunkTimeout: number },
+    options?: { ownsDefaultTts?: boolean },
+  ) {
     super(defaultTts.sampleRate, defaultTts.numChannels, defaultTts.capabilities);
     this.#defaultTts = defaultTts;
+    this.#ownsDefaultTts = options?.ownsDefaultTts ?? true;
     this.#opts = opts;
     this.#currentReplyLanguage = 'en-AU';
     this.#forwardTtsEvents(defaultTts);
@@ -514,12 +521,17 @@ class MultilingualTTS extends agentsTts.TTS {
   }
 
   #forwardTtsEvents(tts: cartesia.TTS): void {
-    tts.on('metrics_collected', (metrics) => {
+    const metricsHandler = (metrics: unknown) => {
+      // @ts-expect-error -- forwarding event regardless of param schema
       this.emit('metrics_collected', metrics);
-    });
-    tts.on('error', (error) => {
+    };
+    const errorHandler = (error: unknown) => {
+      // @ts-expect-error -- forwarding event regardless of param schema
       this.emit('error', error);
-    });
+    };
+    tts.on('metrics_collected', metricsHandler as never);
+    tts.on('error', errorHandler as never);
+    this.#attachedListeners.push({ tts, metricsHandler, errorHandler });
   }
 
   #getOrCreateTts(lang: string): cartesia.TTS {
@@ -565,7 +577,14 @@ class MultilingualTTS extends agentsTts.TTS {
   }
 
   async close(): Promise<void> {
-    await this.#defaultTts.close();
+    for (const { tts, metricsHandler, errorHandler } of this.#attachedListeners) {
+      tts.off('metrics_collected', metricsHandler as never);
+      tts.off('error', errorHandler as never);
+    }
+    this.#attachedListeners = [];
+    if (this.#ownsDefaultTts) {
+      await this.#defaultTts.close();
+    }
     for (const t of this.#ttsByLang.values()) {
       if (t !== this.#defaultTts) await t.close();
     }
@@ -1027,13 +1046,38 @@ async function resolveTurnDetector(callType: CallType): Promise<{
   return { mode: "vad", vad: cachedVadInstance, requestedMode, vadAvailable: true };
 }
 
+function resolveTtsChunkTimeoutMs(): number {
+  return Number(process.env.VOICE_TTS_CHUNK_TIMEOUT_MS || 1000);
+}
+
+function resolveCartesiaBaseUrl(): string {
+  return (process.env.CARTESIA_BASE_URL || "https://api.cartesia.ai").trim();
+}
+
 function createCartesiaTts(language = resolveConfiguredTtsLanguage()) {
   return new cartesia.TTS({
     model: resolveConfiguredTtsModel(),
     voice: resolveConfiguredTtsVoiceId(),
     language,
-    chunkTimeout: Number(process.env.VOICE_TTS_CHUNK_TIMEOUT_MS || 1500),
+    chunkTimeout: resolveTtsChunkTimeoutMs(),
+    baseUrl: resolveCartesiaBaseUrl(),
   });
+}
+
+let cachedDefaultTts: cartesia.TTS | null = null;
+let cachedDefaultTtsCreatedAt: number | null = null;
+
+function getOrCreatePersistentDefaultTts(): { tts: cartesia.TTS; reused: boolean; ageMs: number } {
+  if (cachedDefaultTts) {
+    return {
+      tts: cachedDefaultTts,
+      reused: true,
+      ageMs: cachedDefaultTtsCreatedAt ? Date.now() - cachedDefaultTtsCreatedAt : 0,
+    };
+  }
+  cachedDefaultTts = createCartesiaTts();
+  cachedDefaultTtsCreatedAt = Date.now();
+  return { tts: cachedDefaultTts, reused: false, ageMs: 0 };
 }
 
 async function warmCartesiaTts(tts: cartesia.TTS, text: string, logPrefix: string) {
@@ -2030,14 +2074,19 @@ export default defineAgent({
       },
     });
 
-    const defaultTts = createCartesiaTts();
-    void warmCartesiaTts(defaultTts, "Yep.", "[voice-latency:session]");
+    const ttsChunkTimeoutMs = resolveTtsChunkTimeoutMs();
+    const ttsBaseUrl = resolveCartesiaBaseUrl();
+    const persistentDefaultTts = getOrCreatePersistentDefaultTts();
+    const defaultTts = persistentDefaultTts.tts;
+    if (!persistentDefaultTts.reused) {
+      void warmCartesiaTts(defaultTts, "Yep.", "[voice-latency:session]");
+    }
     const ttsOpts = {
       model: resolveConfiguredTtsModel(),
       voice: resolveConfiguredTtsVoiceId(),
-      chunkTimeout: Number(process.env.VOICE_TTS_CHUNK_TIMEOUT_MS || 1500),
+      chunkTimeout: ttsChunkTimeoutMs,
     };
-    const tts = new MultilingualTTS(defaultTts, ttsOpts);
+    const tts = new MultilingualTTS(defaultTts, ttsOpts, { ownsDefaultTts: false });
 
     await ctx.connect(undefined, AutoSubscribe.AUDIO_ONLY);
     const participant = await ctx.waitForParticipant();
@@ -2134,6 +2183,10 @@ export default defineAgent({
       provider: "cartesia",
       model: ttsModelName,
       voiceId: ttsVoiceId,
+      chunkTimeoutMs: ttsChunkTimeoutMs,
+      baseUrl: ttsBaseUrl,
+      defaultInstanceReused: persistentDefaultTts.reused,
+      defaultInstanceAgeMs: persistentDefaultTts.ageMs,
     })}`);
     markCallStarted();
     let activeCallReleased = false;
@@ -3070,6 +3123,10 @@ export default defineAgent({
         ttsProvider: "cartesia",
         ttsModel: ttsModelName,
         ttsVoiceId,
+        ttsChunkTimeoutMs,
+        ttsBaseUrl,
+        ttsDefaultInstanceReused: persistentDefaultTts.reused,
+        ttsDefaultInstanceAgeMs: persistentDefaultTts.ageMs,
         eouAvgMs: avg(latencyAudit.eouMs),
         transcriptionDelayAvgMs: avg(latencyAudit.transcriptionDelayMs),
         totalTurnStartAvgMs: avg(measuredTurnStarts),
@@ -3127,6 +3184,10 @@ export default defineAgent({
             ttsProvider: latency.ttsProvider,
             ttsModel: latency.ttsModel,
             ttsVoiceId: latency.ttsVoiceId,
+            ttsChunkTimeoutMs: latency.ttsChunkTimeoutMs,
+            ttsBaseUrl: latency.ttsBaseUrl,
+            ttsDefaultInstanceReused: latency.ttsDefaultInstanceReused,
+            ttsDefaultInstanceAgeMs: latency.ttsDefaultInstanceAgeMs,
             eouAvgMs: avg(latencyAudit.eouMs),
             transcriptionDelayAvgMs: avg(latencyAudit.transcriptionDelayMs),
             totalTurnStartAvgMs: latency.totalTurnStartAvgMs,
