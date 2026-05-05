@@ -6,6 +6,17 @@
 
 import { sharedExpire, sharedGet, sharedIncr } from "@/lib/shared-store";
 
+/** Best-effort client IP from forwarding headers; safe to use as a rate-limit key. */
+export function getClientIp(req: Request): string {
+  const fromForwardedFor = (req.headers.get("x-forwarded-for") || "").split(",")[0]?.trim();
+  if (fromForwardedFor) return fromForwardedFor;
+  const fromVercel = req.headers.get("x-vercel-forwarded-for");
+  if (fromVercel) return fromVercel.split(",")[0]?.trim() || "unknown";
+  const fromRealIp = req.headers.get("x-real-ip");
+  if (fromRealIp) return fromRealIp.trim();
+  return "unknown";
+}
+
 /**
  * Check whether a request should be allowed.
  * @param key     Unique identifier (e.g. `chat:${workspaceId}`)

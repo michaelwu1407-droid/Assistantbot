@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import crypto from "crypto";
+import { signOAuthState } from "@/lib/oauth-state";
 
 // ─── Constants ───────────────────────────────────────────────────────
 
@@ -359,7 +360,7 @@ export function buildXeroAuthUrl(workspaceId: string): string {
     client_id: clientId,
     redirect_uri: redirectUri,
     scope: "openid profile email accounting.transactions accounting.contacts offline_access",
-    state: workspaceId,
+    state: signOAuthState({ workspaceId, provider: "xero", intent: "connect" }),
   });
 
   return `https://login.xero.com/identity/connect/authorize?${params.toString()}`;

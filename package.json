@@ -17,6 +17,7 @@
     "db:seed:referral": "npx tsx prisma/seed-referral.ts",
     "db:promote-manager": "npx tsx scripts/promote-user-to-manager.ts",
     "verify:integrations": "npx tsx scripts/verify-real-integrations.ts",
+    "smoke:concurrency": "npx tsx scripts/smoke-concurrency.ts",
     "test:live:chatbot": "node scripts/run-live-chatbot-regression.mjs",
     "retell:create-agent": "npx tsx scripts/create-retell-agent.ts",
     "twilio:list-bundles": "npx tsx scripts/list-regulatory-bundles.ts",

@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { getSubaccountClient, twilioMasterClient } from "@/lib/twilio";
+import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
 
 function getWorkspaceSettings(settings: unknown): Record<string, unknown> {
   if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
@@ -70,8 +71,9 @@ export async function sendProvisionedWelcomeSmsIfNeeded(params: {
     };
   }
 
+  const safeTo = assertSafeRecipient("sms", params.ownerPhone);
   await client.messages.create({
-    to: params.ownerPhone,
+    to: safeTo,
     from: workspace.twilioPhoneNumber,
     body: buildTraceyWelcomeSmsBody(params.businessName, workspace.twilioPhoneNumber),
   });

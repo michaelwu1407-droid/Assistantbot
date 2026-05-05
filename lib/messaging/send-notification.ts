@@ -2,6 +2,7 @@ import { db } from "@/lib/db"
 import { getWorkspaceTwilioClient } from "@/lib/twilio"
 import { buildPublicJobPortalUrl } from "@/lib/public-job-portal"
 import { getNotificationChannel, NotificationScenario, type NotificationChannel } from "./channel-router"
+import { checkSafeRecipient } from "./safe-recipient"
 
 type WorkspaceMessagingConfig = {
   id: string
@@ -80,10 +81,14 @@ export async function sendNotification(
       return { channel, sent: false, error: "No usable Twilio client" }
     }
 
+    const smsRecipient = checkSafeRecipient("sms", contact.phone)
+    if (!smsRecipient.ok) {
+      return { channel, sent: false, error: `Refusing SMS: ${smsRecipient.reason}` }
+    }
     let smsSid: string | undefined
     try {
       const msg = await client.messages.create({
-        to: contact.phone,
+        to: smsRecipient.target,
         from: workspace.twilioPhoneNumber,
         body,
       })
@@ -137,11 +142,15 @@ export async function sendNotification(
     ? `${options.emailBody}\n\nTrack your appointment: ${portalUrl}`
     : options.emailBody
 
+  const emailRecipient = checkSafeRecipient("email", contact.email)
+  if (!emailRecipient.ok) {
+    return { channel, sent: false, error: `Refusing email: ${emailRecipient.reason}` }
+  }
   const { Resend } = await import("resend")
   const resend = new Resend(resendKey)
   const { error } = await resend.emails.send({
     from: `${workspace.name} <noreply@${fromDomain}>`,
-    to: [contact.email],
+    to: [emailRecipient.target],
     subject: options.emailSubject,
     text: emailBody,
   })

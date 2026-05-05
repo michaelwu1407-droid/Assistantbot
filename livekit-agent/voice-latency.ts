@@ -280,7 +280,7 @@ export function resolveVoiceLatencyConfig(args: {
           baseURL:
             process.env.VOICE_GUARD_BASE_URL ||
             (guardProvider === 'groq' ? 'https://api.groq.com/openai/v1' : 'https://api.deepinfra.com/v1/openai'),
-          timeoutMs: clampNumber(process.env.VOICE_GUARD_TIMEOUT_MS, 100, 40, 250),
+          timeoutMs: clampNumber(process.env.VOICE_GUARD_TIMEOUT_MS, 120, 80, 300),
           maxCompletionTokens: clampNumber(process.env.VOICE_GUARD_MAX_COMPLETION_TOKENS, 64, 16, 128),
           temperature: clampNumber(process.env.VOICE_GUARD_TEMPERATURE, 0, 0, 0.3),
         }
@@ -294,7 +294,7 @@ export function resolveVoiceLatencyConfig(args: {
     targetCallTypes,
     speculativeHeadSurfaces,
     openerConfidenceThreshold: clampNumber(process.env.VOICE_OPENER_CONFIDENCE_THRESHOLD, 0.72, 0.4, 0.95),
-    guardTimeoutMs: guardRuntime?.timeoutMs ?? clampNumber(process.env.VOICE_GUARD_TIMEOUT_MS, 100, 40, 250),
+    guardTimeoutMs: guardRuntime?.timeoutMs ?? clampNumber(process.env.VOICE_GUARD_TIMEOUT_MS, 120, 80, 300),
     guardMinChars: clampNumber(process.env.VOICE_GUARD_MIN_CHARS, 18, 8, 80),
     empathyTurnGap: clampNumber(process.env.VOICE_EMPATHY_TURN_GAP, 3, 1, 8),
     guardRuntime,

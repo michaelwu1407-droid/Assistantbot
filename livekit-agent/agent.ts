@@ -119,6 +119,9 @@ type LatencyAudit = {
   ttsTtfbMs: number[];
   eouMs: number[];
   transcriptionDelayMs: number[];
+  llmMsByProvider: Record<LlmProviderName, number[]>;
+  llmTtftMsByProvider: Record<LlmProviderName, number[]>;
+  llmTurnsByProvider: Record<LlmProviderName, number>;
 };
 
 type PendingUserTurn = {
@@ -141,6 +144,8 @@ type TurnAudit = {
   onUserTurnCompletedDelayMs: number;
   llmMs: number;
   llmTtftMs: number;
+  llmProvider: LlmProviderName | null;
+  llmModel: string | null;
   ttsMs: number;
   ttsTtfbMs: number;
 };
@@ -284,6 +289,13 @@ type GroundingCacheEntry = {
 };
 
 let groundingRefreshPromise: Promise<void> | null = null;
+let groundingRefreshStartedAt: number | null = null;
+let prewarmHealthReported = false;
+let groundingLastSuccessAt: number | null = null;
+let groundingLastFailureAt: number | null = null;
+let groundingConsecutiveFailures = 0;
+let groundingLastError: string | null = null;
+const GROUNDING_INFLIGHT_DEDUP_WINDOW_MS = 500;
 const groundingCache = new Map<string, GroundingCacheEntry>();
 let sharedOpenerAudioCache: Map<OpenerId, Promise<AudioFrame>> | null = null;
 let sharedSpeculativeHeadAudioCache: Map<SpeculativeHeadId, Promise<AudioFrame>> | null = null;
@@ -469,14 +481,21 @@ function normalizeReplyLanguage(detected: string | null | undefined): string {
 class MultilingualTTS extends agentsTts.TTS {
   readonly label = 'multilingual-cartesia';
   #defaultTts: cartesia.TTS;
+  #ownsDefaultTts: boolean;
   #ttsByLang = new Map<string, cartesia.TTS>();
   #langWarmups = new Map<string, Promise<void>>();
   #currentReplyLanguage: string;
   #opts: { model: string; voice: string; chunkTimeout: number };
+  #attachedListeners: Array<{ tts: cartesia.TTS; metricsHandler: (metrics: unknown) => void; errorHandler: (error: unknown) => void }> = [];
 
-  constructor(defaultTts: cartesia.TTS, opts: { model: string; voice: string; chunkTimeout: number }) {
+  constructor(
+    defaultTts: cartesia.TTS,
+    opts: { model: string; voice: string; chunkTimeout: number },
+    options?: { ownsDefaultTts?: boolean },
+  ) {
     super(defaultTts.sampleRate, defaultTts.numChannels, defaultTts.capabilities);
     this.#defaultTts = defaultTts;
+    this.#ownsDefaultTts = options?.ownsDefaultTts ?? true;
     this.#opts = opts;
     this.#currentReplyLanguage = 'en-AU';
     this.#forwardTtsEvents(defaultTts);
@@ -502,12 +521,17 @@ class MultilingualTTS extends agentsTts.TTS {
   }
 
   #forwardTtsEvents(tts: cartesia.TTS): void {
-    tts.on('metrics_collected', (metrics) => {
+    const metricsHandler = (metrics: unknown) => {
+      // @ts-expect-error -- forwarding event regardless of param schema
       this.emit('metrics_collected', metrics);
-    });
-    tts.on('error', (error) => {
+    };
+    const errorHandler = (error: unknown) => {
+      // @ts-expect-error -- forwarding event regardless of param schema
       this.emit('error', error);
-    });
+    };
+    tts.on('metrics_collected', metricsHandler as never);
+    tts.on('error', errorHandler as never);
+    this.#attachedListeners.push({ tts, metricsHandler, errorHandler });
   }
 
   #getOrCreateTts(lang: string): cartesia.TTS {
@@ -553,7 +577,14 @@ class MultilingualTTS extends agentsTts.TTS {
   }
 
   async close(): Promise<void> {
-    await this.#defaultTts.close();
+    for (const { tts, metricsHandler, errorHandler } of this.#attachedListeners) {
+      tts.off('metrics_collected', metricsHandler as never);
+      tts.off('error', errorHandler as never);
+    }
+    this.#attachedListeners = [];
+    if (this.#ownsDefaultTts) {
+      await this.#defaultTts.close();
+    }
     for (const t of this.#ttsByLang.values()) {
       if (t !== this.#defaultTts) await t.close();
     }
@@ -594,6 +625,8 @@ function summarizeTurnLatency(turn: TurnAudit) {
     userInitiated: turn.userInitiated,
     transcript: turn.transcript,
     transcriptLanguage: turn.transcriptLanguage,
+    llmProvider: turn.llmProvider,
+    llmModel: turn.llmModel,
     timings: {
       eouMs: turn.eouMs,
       transcriptionDelayMs: turn.transcriptionDelayMs,
@@ -930,13 +963,121 @@ function resolveConfiguredTtsModel() {
   return (process.env.VOICE_TTS_MODEL || "sonic-3").trim();
 }
 
+function resolveSttModel() {
+  return (process.env.VOICE_STT_MODEL || "nova-3").trim();
+}
+
+const VOICE_STT_BASE_KEYTERMS = [
+  "Earlymark",
+  "earlymark.ai",
+  "Tracey",
+  "Tracy",
+  "Ottorize",
+  "Alexandria Automotive Services",
+  "Alexandria Automotive",
+  "Assistantbot",
+  "LiveKit",
+  "Cartesia",
+  "Deepgram",
+  "Sonic",
+  "Nova",
+  "Groq",
+  "DeepInfra",
+  "Llama",
+  "Sydney",
+  "Alexandria",
+  "Marrickville",
+  "Newtown",
+  "Erskineville",
+  "Redfern",
+  "Mascot",
+  "Botany",
+];
+
+function resolveSttKeyterms(): string[] {
+  const fromEnv = (process.env.VOICE_STT_KEYTERMS || "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  const merged = [...VOICE_STT_BASE_KEYTERMS, ...fromEnv];
+  return Array.from(new Set(merged));
+}
+
+type TurnDetectionMode = "stt" | "vad";
+
+function resolveRequestedTurnDetectionMode(callType: CallType): TurnDetectionMode {
+  if (callType !== "inbound_demo") return "stt";
+  const raw = (process.env.VOICE_INBOUND_DEMO_TURN_DETECTION || "stt").trim().toLowerCase();
+  return raw === "vad" ? "vad" : "stt";
+}
+
+let cachedVadInstance: unknown = null;
+let vadLoadAttempted = false;
+
+async function resolveTurnDetector(callType: CallType): Promise<{
+  mode: TurnDetectionMode;
+  vad: unknown;
+  requestedMode: TurnDetectionMode;
+  vadAvailable: boolean;
+}> {
+  const requestedMode = resolveRequestedTurnDetectionMode(callType);
+  if (requestedMode !== "vad") {
+    return { mode: "stt", vad: null, requestedMode, vadAvailable: false };
+  }
+
+  if (!vadLoadAttempted) {
+    vadLoadAttempted = true;
+    try {
+      const sileroModule = (await import("@livekit/agents-plugin-silero" as string).catch(
+        () => null,
+      )) as { VAD?: { load: () => Promise<unknown> } } | null;
+      if (sileroModule?.VAD?.load) {
+        cachedVadInstance = await sileroModule.VAD.load();
+      }
+    } catch (error) {
+      console.warn(`[voice-turn-detection] Failed to load Silero VAD: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  if (!cachedVadInstance) {
+    return { mode: "stt", vad: null, requestedMode, vadAvailable: false };
+  }
+
+  return { mode: "vad", vad: cachedVadInstance, requestedMode, vadAvailable: true };
+}
+
+function resolveTtsChunkTimeoutMs(): number {
+  return Number(process.env.VOICE_TTS_CHUNK_TIMEOUT_MS || 1000);
+}
+
+function resolveCartesiaBaseUrl(): string {
+  return (process.env.CARTESIA_BASE_URL || "https://api.cartesia.ai").trim();
+}
+
 function createCartesiaTts(language = resolveConfiguredTtsLanguage()) {
   return new cartesia.TTS({
     model: resolveConfiguredTtsModel(),
     voice: resolveConfiguredTtsVoiceId(),
     language,
-    chunkTimeout: Number(process.env.VOICE_TTS_CHUNK_TIMEOUT_MS || 1500),
+    chunkTimeout: resolveTtsChunkTimeoutMs(),
+    baseUrl: resolveCartesiaBaseUrl(),
   });
+}
+
+let cachedDefaultTts: cartesia.TTS | null = null;
+let cachedDefaultTtsCreatedAt: number | null = null;
+
+function getOrCreatePersistentDefaultTts(): { tts: cartesia.TTS; reused: boolean; ageMs: number } {
+  if (cachedDefaultTts) {
+    return {
+      tts: cachedDefaultTts,
+      reused: true,
+      ageMs: cachedDefaultTtsCreatedAt ? Date.now() - cachedDefaultTtsCreatedAt : 0,
+    };
+  }
+  cachedDefaultTts = createCartesiaTts();
+  cachedDefaultTtsCreatedAt = Date.now();
+  return { tts: cachedDefaultTts, reused: false, ageMs: 0 };
 }
 
 async function warmCartesiaTts(tts: cartesia.TTS, text: string, logPrefix: string) {
@@ -970,6 +1111,8 @@ class ProviderFallbackLLM extends livekitLlm.LLM {
   #fallbackCount = 0;
   #selectionCount = 0;
   #lastFailure: string | null = null;
+  #lastSelectedProvider: LlmProviderName | null = null;
+  #lastSelectedModel: string | null = null;
 
   constructor(args: {
     primary: openai.LLM;
@@ -998,6 +1141,16 @@ class ProviderFallbackLLM extends livekitLlm.LLM {
     this.#selectionCount += 1;
     this.#actualProviders.add(config.provider);
     this.#actualModels.add(config.model);
+    this.#lastSelectedProvider = config.provider;
+    this.#lastSelectedModel = config.model;
+  }
+
+  get lastSelectedProvider(): LlmProviderName | null {
+    return this.#lastSelectedProvider;
+  }
+
+  get lastSelectedModel(): string | null {
+    return this.#lastSelectedModel;
   }
 
   recordFallback() {
@@ -1115,14 +1268,18 @@ function createVoiceLlm(callType: CallType) {
 }
 
 async function refreshVoiceGroundingIndex(force = false) {
-  if (!force && groundingRefreshPromise) {
-    return groundingRefreshPromise;
+  if (groundingRefreshPromise) {
+    const inflightAgeMs = groundingRefreshStartedAt ? Date.now() - groundingRefreshStartedAt : Infinity;
+    if (!force || inflightAgeMs < GROUNDING_INFLIGHT_DEDUP_WINDOW_MS) {
+      return groundingRefreshPromise;
+    }
   }
 
   const appUrl = getAppBaseUrl();
   const secret = getVoiceAgentWebhookSecret();
   if (!appUrl || !secret) return;
 
+  groundingRefreshStartedAt = Date.now();
   groundingRefreshPromise = (async () => {
     try {
       const response = await fetch(`${appUrl.replace(/\/$/, "")}/api/internal/voice-grounding-index`, {
@@ -1136,7 +1293,7 @@ async function refreshVoiceGroundingIndex(force = false) {
         throw new Error(`voice-grounding-index returned ${response.status}`);
       }
 
-      const payload = await response.json().catch(() => null);
+      const payload = (await response.json().catch(() => null)) as { groundings?: unknown } | null;
       const entries = Array.isArray(payload?.groundings) ? payload.groundings : [];
       const nextCache = new Map<string, GroundingCacheEntry>();
       const now = Date.now();
@@ -1161,14 +1318,36 @@ async function refreshVoiceGroundingIndex(force = false) {
       for (const [phone, entry] of nextCache.entries()) {
         groundingCache.set(phone, entry);
       }
+      groundingLastSuccessAt = Date.now();
+      groundingConsecutiveFailures = 0;
+      groundingLastError = null;
     } catch (error) {
-      console.warn("[agent] Failed to refresh voice grounding cache:", error);
+      groundingLastFailureAt = Date.now();
+      groundingConsecutiveFailures += 1;
+      groundingLastError = error instanceof Error ? error.message : String(error);
+      console.warn(`[voice-grounding-refresh-failed] ${JSON.stringify({
+        consecutiveFailures: groundingConsecutiveFailures,
+        lastSuccessAt: groundingLastSuccessAt,
+        error: groundingLastError,
+      })}`);
     } finally {
       groundingRefreshPromise = null;
+      groundingRefreshStartedAt = null;
     }
   })();
 
   return groundingRefreshPromise;
+}
+
+export function getVoiceGroundingHealth() {
+  return {
+    cacheSize: groundingCache.size,
+    lastSuccessAt: groundingLastSuccessAt,
+    lastFailureAt: groundingLastFailureAt,
+    consecutiveFailures: groundingConsecutiveFailures,
+    lastError: groundingLastError,
+    inflight: Boolean(groundingRefreshPromise),
+  };
 }
 
 function getCachedVoiceGrounding(calledPhone?: string | null) {
@@ -1181,8 +1360,18 @@ function getCachedVoiceGrounding(calledPhone?: string | null) {
     return null;
   }
 
-  if (Date.now() - cached.fetchedAt > VOICE_GROUNDING_CACHE_TTL_MS) {
+  const ageMs = Date.now() - cached.fetchedAt;
+  if (ageMs > VOICE_GROUNDING_CACHE_TTL_MS) {
     void refreshVoiceGroundingIndex(true).catch(() => {});
+    if (groundingConsecutiveFailures > 0) {
+      console.warn(`[voice-grounding-degraded] ${JSON.stringify({
+        normalizedPhone,
+        cacheAgeMs: ageMs,
+        ttlMs: VOICE_GROUNDING_CACHE_TTL_MS,
+        consecutiveFailures: groundingConsecutiveFailures,
+        lastError: groundingLastError,
+      })}`);
+    }
     return cached.value;
   }
 
@@ -1885,14 +2074,19 @@ export default defineAgent({
       },
     });
 
-    const defaultTts = createCartesiaTts();
-    void warmCartesiaTts(defaultTts, "Yep.", "[voice-latency:session]");
+    const ttsChunkTimeoutMs = resolveTtsChunkTimeoutMs();
+    const ttsBaseUrl = resolveCartesiaBaseUrl();
+    const persistentDefaultTts = getOrCreatePersistentDefaultTts();
+    const defaultTts = persistentDefaultTts.tts;
+    if (!persistentDefaultTts.reused) {
+      void warmCartesiaTts(defaultTts, "Yep.", "[voice-latency:session]");
+    }
     const ttsOpts = {
       model: resolveConfiguredTtsModel(),
       voice: resolveConfiguredTtsVoiceId(),
-      chunkTimeout: Number(process.env.VOICE_TTS_CHUNK_TIMEOUT_MS || 1500),
+      chunkTimeout: ttsChunkTimeoutMs,
     };
-    const tts = new MultilingualTTS(defaultTts, ttsOpts);
+    const tts = new MultilingualTTS(defaultTts, ttsOpts, { ownsDefaultTts: false });
 
     await ctx.connect(undefined, AutoSubscribe.AUDIO_ONLY);
     const participant = await ctx.waitForParticipant();
@@ -1961,16 +2155,39 @@ export default defineAgent({
 
     callType = resolveCallType(callType, calledPhone, roomName);
     const voiceTurnTuning = resolveVoiceTurnTuning(callType);
+    const sttKeyterms = resolveSttKeyterms();
+    const sttModelName = resolveSttModel();
+    const sttLanguageMode = "multi";
     const stt = new deepgram.STT({
-      model: (process.env.VOICE_STT_MODEL || "nova-3") as DeepgramSTTOptions["model"],
-      language: "multi",
+      model: sttModelName as DeepgramSTTOptions["model"],
+      language: sttLanguageMode,
       detectLanguage: true,
       interimResults: true,
       endpointing: voiceTurnTuning.sttEndpointingMs,
       noDelay: true,
       punctuate: true,
       smartFormat: true,
+      keyterm: sttKeyterms,
     });
+    const ttsModelName = resolveConfiguredTtsModel();
+    const ttsVoiceId = resolveConfiguredTtsVoiceId();
+    console.log(`[voice-stt-config] ${JSON.stringify({
+      callId,
+      provider: "deepgram",
+      model: sttModelName,
+      languageMode: sttLanguageMode,
+      keytermCount: sttKeyterms.length,
+    })}`);
+    console.log(`[voice-tts-config] ${JSON.stringify({
+      callId,
+      provider: "cartesia",
+      model: ttsModelName,
+      voiceId: ttsVoiceId,
+      chunkTimeoutMs: ttsChunkTimeoutMs,
+      baseUrl: ttsBaseUrl,
+      defaultInstanceReused: persistentDefaultTts.reused,
+      defaultInstanceAgeMs: persistentDefaultTts.ageMs,
+    })}`);
     markCallStarted();
     let activeCallReleased = false;
     let voiceCallPersistencePromise: Promise<void> | null = null;
@@ -2032,6 +2249,29 @@ export default defineAgent({
       ? getSharedSpeculativeHeadAudioCache(defaultTts, logPrefix)
       : new Map<SpeculativeHeadId, Promise<AudioFrame>>();
     const fixedLineAudioCache = getSharedFixedLineAudioCache(defaultTts, logPrefix);
+
+    if (!prewarmHealthReported) {
+      prewarmHealthReported = true;
+      void (async () => {
+        const tally = async <K>(label: string, cache: Map<K, Promise<unknown>>) => {
+          const results = await Promise.allSettled(Array.from(cache.values()));
+          const failed = results.filter((r) => r.status === "rejected").length;
+          return { label, total: results.length, failed };
+        };
+        const reports = await Promise.all([
+          tally("opener", openerAudioCache),
+          tally("speculative_head", speculativeHeadAudioCache),
+          tally("fixed_line", fixedLineAudioCache),
+        ]);
+        const degraded = reports.filter((r) => r.failed > 0);
+        if (degraded.length > 0) {
+          console.warn(`[voice-prewarm-degraded] ${JSON.stringify({
+            workerLogPrefix: logPrefix,
+            caches: degraded,
+          })}`);
+        }
+      })();
+    }
 
     console.log(`${logPrefix} Call started ${JSON.stringify({
       callId,
@@ -2118,13 +2358,31 @@ export default defineAgent({
       }
     }
 
+    const turnDetectorChoice = await resolveTurnDetector(callType);
+    if (turnDetectorChoice.requestedMode === "vad" && !turnDetectorChoice.vadAvailable) {
+      console.warn(`[voice-turn-detection] ${JSON.stringify({
+        callId,
+        callType,
+        requested: turnDetectorChoice.requestedMode,
+        active: turnDetectorChoice.mode,
+        reason: "vad_module_unavailable",
+      })}`);
+    } else {
+      console.log(`[voice-turn-detection] ${JSON.stringify({
+        callId,
+        callType,
+        requested: turnDetectorChoice.requestedMode,
+        active: turnDetectorChoice.mode,
+      })}`);
+    }
+
     const agent = new TraceyVoiceAgent({
       instructions: isEarlymarkCall ? buildEarlymarkPrompt(callType, caller) : buildNormalPrompt(caller, normalVoiceGrounding),
       stt,
       llm,
       tts,
       tools,
-      turnDetection: "stt",
+      turnDetection: turnDetectorChoice.mode,
       minConsecutiveSpeechDelay: voiceTurnTuning.minConsecutiveSpeechDelayMs,
     });
 
@@ -2159,6 +2417,9 @@ export default defineAgent({
       ttsTtfbMs: [],
       eouMs: [],
       transcriptionDelayMs: [],
+      llmMsByProvider: { groq: [], deepinfra: [] },
+      llmTtftMsByProvider: { groq: [], deepinfra: [] },
+      llmTurnsByProvider: { groq: 0, deepinfra: 0 },
     };
     const pendingUserTurns: PendingUserTurn[] = [];
     const turnAudits = new Map<string, TurnAudit>();
@@ -2218,6 +2479,8 @@ export default defineAgent({
         onUserTurnCompletedDelayMs: 0,
         llmMs: 0,
         llmTtftMs: 0,
+        llmProvider: null,
+        llmModel: null,
         ttsMs: 0,
         ttsTtfbMs: 0,
       };
@@ -2281,7 +2544,8 @@ export default defineAgent({
     };
 
     const session = new voice.AgentSession({
-      turnDetection: "stt",
+      turnDetection: turnDetectorChoice.mode,
+      ...(turnDetectorChoice.vad ? { vad: turnDetectorChoice.vad as voice.AgentSession["vad"] } : {}),
       voiceOptions: {
         preemptiveGeneration: true,
         minEndpointingDelay: voiceTurnTuning.minEndpointingDelayMs,
@@ -2372,22 +2636,42 @@ export default defineAgent({
       };
       if (!metrics?.type) return;
 
+      const metricTags: { provider?: string; model?: string } = {};
+
       switch (metrics.type) {
         case "stt_metrics":
           latencyAudit.sttMs.push(Number(metrics.durationMs || 0));
+          metricTags.provider = "deepgram";
+          metricTags.model = sttModelName;
           break;
-        case "llm_metrics":
-          latencyAudit.llmMs.push(Number(metrics.durationMs || 0));
-          latencyAudit.llmTtftMs.push(Number(metrics.ttftMs || 0));
+        case "llm_metrics": {
+          const durationMs = Number(metrics.durationMs || 0);
+          const ttftMs = Number(metrics.ttftMs || 0);
+          latencyAudit.llmMs.push(durationMs);
+          latencyAudit.llmTtftMs.push(ttftMs);
+          const provider = llm.lastSelectedProvider;
+          const model = llm.lastSelectedModel;
+          if (provider) {
+            latencyAudit.llmMsByProvider[provider].push(durationMs);
+            latencyAudit.llmTtftMsByProvider[provider].push(ttftMs);
+            latencyAudit.llmTurnsByProvider[provider] += 1;
+            metricTags.provider = provider;
+          }
+          if (model) metricTags.model = model;
           if (metrics.speechId) {
             const turn = getOrCreateTurnAudit(metrics.speechId);
-            turn.llmMs = Number(metrics.durationMs || 0);
-            turn.llmTtftMs = Number(metrics.ttftMs || 0);
+            turn.llmMs = durationMs;
+            turn.llmTtftMs = ttftMs;
+            turn.llmProvider = provider;
+            turn.llmModel = model;
           }
           break;
+        }
         case "tts_metrics":
           latencyAudit.ttsMs.push(Number(metrics.durationMs || 0));
           latencyAudit.ttsTtfbMs.push(Number(metrics.ttfbMs || 0));
+          metricTags.provider = "cartesia";
+          metricTags.model = ttsModelName;
           if (metrics.speechId) {
             const turn = getOrCreateTurnAudit(metrics.speechId);
             turn.ttsMs = Number(metrics.durationMs || 0);
@@ -2407,7 +2691,7 @@ export default defineAgent({
           break;
       }
 
-      console.log(`[voice-metric] ${JSON.stringify({ callId, room: ctx.room.name, participant: participant.identity, ...metrics })}`);
+      console.log(`[voice-metric] ${JSON.stringify({ callId, room: ctx.room.name, participant: participant.identity, ...metricTags, ...metrics })}`);
     });
 
     session.on(voice.AgentSessionEventTypes.ConversationItemAdded, (ev) => {
@@ -2806,14 +3090,43 @@ export default defineAgent({
         .filter((value) => Number.isFinite(value) && value > 0);
       const firstUserResponseTurn = turnSummaries.find((turn) => turn.userInitiated && Boolean(turn.transcript));
       const llmRunSummary = llm.getRunSummary();
+      const llmByProvider = {
+        groq: {
+          turns: latencyAudit.llmTurnsByProvider.groq,
+          llmAvgMs: avg(latencyAudit.llmMsByProvider.groq),
+          llmP95Ms: p95(latencyAudit.llmMsByProvider.groq),
+          llmTtftAvgMs: avg(latencyAudit.llmTtftMsByProvider.groq),
+          llmTtftP95Ms: p95(latencyAudit.llmTtftMsByProvider.groq),
+        },
+        deepinfra: {
+          turns: latencyAudit.llmTurnsByProvider.deepinfra,
+          llmAvgMs: avg(latencyAudit.llmMsByProvider.deepinfra),
+          llmP95Ms: p95(latencyAudit.llmMsByProvider.deepinfra),
+          llmTtftAvgMs: avg(latencyAudit.llmTtftMsByProvider.deepinfra),
+          llmTtftP95Ms: p95(latencyAudit.llmTtftMsByProvider.deepinfra),
+        },
+      };
       const latency = {
         sttAvgMs: avg(latencyAudit.sttMs),
+        sttProvider: "deepgram",
+        sttModel: sttModelName,
+        sttLanguageMode,
+        turnDetectionMode: turnDetectorChoice.mode,
+        turnDetectionRequested: turnDetectorChoice.requestedMode,
         llmAvgMs: avg(latencyAudit.llmMs),
         llmP95Ms: p95(latencyAudit.llmMs),
         llmTtftAvgMs: avg(latencyAudit.llmTtftMs),
+        llmByProvider,
         ttsAvgMs: avg(latencyAudit.ttsMs),
         ttsP95Ms: p95(latencyAudit.ttsMs),
         ttsTtfbAvgMs: avg(latencyAudit.ttsTtfbMs),
+        ttsProvider: "cartesia",
+        ttsModel: ttsModelName,
+        ttsVoiceId,
+        ttsChunkTimeoutMs,
+        ttsBaseUrl,
+        ttsDefaultInstanceReused: persistentDefaultTts.reused,
+        ttsDefaultInstanceAgeMs: persistentDefaultTts.ageMs,
         eouAvgMs: avg(latencyAudit.eouMs),
         transcriptionDelayAvgMs: avg(latencyAudit.transcriptionDelayMs),
         totalTurnStartAvgMs: avg(measuredTurnStarts),
@@ -2826,6 +3139,10 @@ export default defineAgent({
         openerCacheMisses: voiceLatencyAudit.openerCacheMisses,
         guardTimeouts: voiceLatencyAudit.guardTimeouts,
         guardEligibleTurns: voiceLatencyAudit.guardEligibleTurns,
+        guardTimeoutBudgetMs: voiceLatencyConfig.guardTimeoutMs,
+        guardTimeoutRate: voiceLatencyAudit.guardEligibleTurns > 0
+          ? voiceLatencyAudit.guardTimeouts / voiceLatencyAudit.guardEligibleTurns
+          : 0,
         openerUsage: voiceLatencyAudit.openerUsage,
         speculativeHeadLeadAvgMs: avg(voiceLatencyAudit.speculativeHeadLeadMs),
         speculativeHeadGapAvgMs: avg(voiceLatencyAudit.speculativeHeadGapMs),
@@ -2852,12 +3169,25 @@ export default defineAgent({
           },
           latency: {
             sttAvgMs: avg(latencyAudit.sttMs),
+            sttProvider: latency.sttProvider,
+            sttModel: latency.sttModel,
+            sttLanguageMode: latency.sttLanguageMode,
+            turnDetectionMode: latency.turnDetectionMode,
+            turnDetectionRequested: latency.turnDetectionRequested,
             llmAvgMs: avg(latencyAudit.llmMs),
             llmP95Ms: p95(latencyAudit.llmMs),
             llmTtftAvgMs: avg(latencyAudit.llmTtftMs),
+            llmByProvider,
             ttsAvgMs: avg(latencyAudit.ttsMs),
             ttsP95Ms: p95(latencyAudit.ttsMs),
             ttsTtfbAvgMs: avg(latencyAudit.ttsTtfbMs),
+            ttsProvider: latency.ttsProvider,
+            ttsModel: latency.ttsModel,
+            ttsVoiceId: latency.ttsVoiceId,
+            ttsChunkTimeoutMs: latency.ttsChunkTimeoutMs,
+            ttsBaseUrl: latency.ttsBaseUrl,
+            ttsDefaultInstanceReused: latency.ttsDefaultInstanceReused,
+            ttsDefaultInstanceAgeMs: latency.ttsDefaultInstanceAgeMs,
             eouAvgMs: avg(latencyAudit.eouMs),
             transcriptionDelayAvgMs: avg(latencyAudit.transcriptionDelayMs),
             totalTurnStartAvgMs: latency.totalTurnStartAvgMs,
@@ -2869,6 +3199,8 @@ export default defineAgent({
             openerHits: voiceLatencyAudit.openerHits,
             openerCacheMisses: voiceLatencyAudit.openerCacheMisses,
             guardTimeouts: voiceLatencyAudit.guardTimeouts,
+            guardTimeoutBudgetMs: latency.guardTimeoutBudgetMs,
+            guardTimeoutRate: latency.guardTimeoutRate,
             openerUsage: voiceLatencyAudit.openerUsage,
             speculativeHeadLeadAvgMs: avg(voiceLatencyAudit.speculativeHeadLeadMs),
             speculativeHeadGapAvgMs: avg(voiceLatencyAudit.speculativeHeadGapMs),
