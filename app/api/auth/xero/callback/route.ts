@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getXeroOAuthRedirectUri, storeXeroTokens } from "@/lib/xero";
+import { verifyWorkspaceState } from "@/lib/oauth-state";
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
-  const state = req.nextUrl.searchParams.get("state"); // workspaceId passed as state
+  const state = req.nextUrl.searchParams.get("state");
   const error = req.nextUrl.searchParams.get("error");
 
   if (error) {
@@ -18,6 +19,13 @@ export async function GET(req: NextRequest) {
         "/crm/settings/integrations?error=missing_code_or_state",
         req.url
       )
+    );
+  }
+
+  const workspaceId = verifyWorkspaceState(state);
+  if (!workspaceId) {
+    return NextResponse.redirect(
+      new URL("/crm/settings/integrations?error=invalid_state", req.url),
     );
   }
 
@@ -80,7 +88,7 @@ export async function GET(req: NextRequest) {
     }
 
     // 3. Store encrypted tokens in workspace settings
-    await storeXeroTokens(state, {
+    await storeXeroTokens(workspaceId, {
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
       expires_in: tokens.expires_in,

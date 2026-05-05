@@ -28,6 +28,32 @@ const nextConfig = {
       { source: '/dashboard/:path*', destination: '/crm/:path*', permanent: true },
     ]
   },
+  async headers() {
+    const securityHeaders = [
+      {
+        key: 'Content-Security-Policy',
+        value: [
+          "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://us.i.posthog.com https://us-assets.i.posthog.com https://maps.googleapis.com https://maps.gstatic.com",
+          "worker-src 'self' blob:",
+          "img-src 'self' data: blob:",
+          "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+          "font-src 'self' data: https://fonts.gstatic.com",
+        ].join('; '),
+      },
+      // Forces HTTPS for one year + subdomains. Preload submission is a separate manual step.
+      { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
+      // SAMEORIGIN keeps OAuth popups working while blocking third-party iframes.
+      { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+      { key: 'X-Content-Type-Options', value: 'nosniff' },
+      { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+      // Disable browser APIs the app does not use; tightens fingerprinting + click-attack surface.
+      {
+        key: 'Permissions-Policy',
+        value: 'camera=(), microphone=(self), geolocation=(self), payment=(self), usb=(), accelerometer=(), gyroscope=(), magnetometer=()',
+      },
+    ];
+    return [{ source: '/(.*)', headers: securityHeaders }];
+  },
 }
 
 export default withSentryConfig(nextConfig, {
@@ -51,27 +77,6 @@ export default withSentryConfig(nextConfig, {
   // Note: Check that the configured route will not match with your Next.js middleware, otherwise reporting of client-
   // side errors will fail.
   // tunnelRoute: "/monitoring",
-
-  // Add Content Security Policy headers
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'Content-Security-Policy',
-            value: [
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://us.i.posthog.com https://us-assets.i.posthog.com https://maps.googleapis.com https://maps.gstatic.com",
-              "worker-src 'self' blob:",
-              "img-src 'self' data: blob:",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "font-src 'self' data: https://fonts.gstatic.com",
-            ].join('; '),
-          },
-        ],
-      },
-    ];
-  },
 
   webpack: {
     // Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)

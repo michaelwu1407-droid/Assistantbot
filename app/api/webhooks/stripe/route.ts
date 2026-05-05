@@ -7,6 +7,7 @@ import Stripe from "stripe";
 import { processReferralConversionForCheckout } from "@/actions/referral-actions";
 import { logger } from "@/lib/logging";
 import { ensureWorkspaceProvisioned } from "@/lib/onboarding-provision";
+import { runIdempotent } from "@/lib/idempotency";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -41,14 +42,51 @@ export async function POST(req: Request) {
     }
 
     try {
-        const alreadyProcessed = await db.webhookEvent.findFirst({
-            where: { provider: "stripe", eventType: event.id, status: "success" },
-            select: { id: true },
+        const idempotency = await runIdempotent({
+            actionType: "stripe.webhook",
+            parts: [event.id],
+            bucketAt: new Date(),
+            resultFactory: async () => {
+                await processStripeEvent(event);
+                return { eventId: event.id, eventType: event.type };
+            },
+            waitForCompletionMs: 5000,
         });
-        if (alreadyProcessed) {
+        if (!idempotency.created) {
             return new NextResponse(null, { status: 200 });
         }
 
+        // Log the successful webhook event (now safe — runIdempotent guarantees single execution).
+        await db.webhookEvent.create({
+            data: {
+                provider: "stripe",
+                eventType: event.id,
+                status: "success",
+                payload: JSON.parse(JSON.stringify({ id: event.id, type: event.type })),
+            },
+        }).catch(() => { });
+    } catch (err: any) {
+        Sentry.captureException(err, {
+            tags: { webhook: "stripe", stage: "processing" },
+            extra: { eventType: event.type, eventId: event.id },
+        });
+
+        await db.webhookEvent.create({
+            data: {
+                provider: "stripe",
+                eventType: event.id,
+                status: "error",
+                error: err.message,
+            },
+        }).catch(() => { });
+
+        return new NextResponse("Internal server error", { status: 500 });
+    }
+
+    return new NextResponse(null, { status: 200 });
+}
+
+async function processStripeEvent(event: Stripe.Event): Promise<void> {
         switch (event.type) {
             case "checkout.session.completed": {
                 const session = event.data.object as Stripe.Checkout.Session;
@@ -147,34 +185,4 @@ export async function POST(req: Request) {
             default:
                 console.log(`Unhandled Stripe event type: ${event.type}`);
         }
-
-        // Log the successful webhook event
-        await db.webhookEvent.create({
-            data: {
-                provider: "stripe",
-                eventType: event.id,
-                status: "success",
-                payload: JSON.parse(JSON.stringify({ id: event.id, type: event.type })),
-            },
-        }).catch(() => { });
-
-    } catch (err: any) {
-        Sentry.captureException(err, {
-            tags: { webhook: "stripe", stage: "processing" },
-            extra: { eventType: event.type, eventId: event.id },
-        });
-
-        await db.webhookEvent.create({
-            data: {
-                provider: "stripe",
-                eventType: event.id,
-                status: "error",
-                error: err.message,
-            },
-        }).catch(() => { });
-
-        return new NextResponse("Internal server error", { status: 500 });
-    }
-
-    return new NextResponse(null, { status: 200 });
 }

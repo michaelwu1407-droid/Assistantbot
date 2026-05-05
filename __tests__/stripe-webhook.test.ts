@@ -51,6 +51,20 @@ vi.mock("@/lib/logging", () => ({
 vi.mock("@/lib/onboarding-provision", () => ({
   ensureWorkspaceProvisioned: hoisted.ensureWorkspaceProvisioned,
 }));
+vi.mock("@/lib/idempotency", () => {
+  const seen = new Set<string>();
+  return {
+    runIdempotent: vi.fn(async (params: { actionType: string; parts: unknown[]; resultFactory: () => Promise<unknown> }) => {
+      const key = `${params.actionType}|${JSON.stringify(params.parts)}`;
+      if (seen.has(key)) {
+        return { idempotencyKey: key, created: false, result: null };
+      }
+      seen.add(key);
+      const result = await params.resultFactory();
+      return { idempotencyKey: key, created: true, result };
+    }),
+  };
+});
 
 import { POST } from "@/app/api/webhooks/stripe/route";
 
@@ -112,11 +126,14 @@ describe("POST /api/webhooks/stripe", () => {
   });
 
   it("returns 200 immediately for already-processed events", async () => {
+    const idempotencyModule = await import("@/lib/idempotency");
+    const runIdempotent = idempotencyModule.runIdempotent as unknown as ReturnType<typeof vi.fn>;
+    runIdempotent.mockResolvedValueOnce({ idempotencyKey: "k", created: false, result: null });
+
     hoisted.constructEvent.mockReturnValue({
       id: "evt_duplicate",
       type: "checkout.session.completed",
     });
-    hoisted.db.webhookEvent.findFirst.mockResolvedValue({ id: "logged_1" });
 
     const response = await POST(
       new Request("https://app.example.com/api/webhooks/stripe", {

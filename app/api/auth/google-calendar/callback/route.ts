@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { upsertGoogleCalendarIntegration } from "@/lib/workspace-calendar";
+import { verifyWorkspaceState } from "@/lib/oauth-state";
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
@@ -12,6 +13,11 @@ export async function GET(req: NextRequest) {
 
   if (!code || !state) {
     return NextResponse.redirect(new URL("/crm/settings/integrations?error=missing_code_or_state", req.url));
+  }
+
+  const workspaceId = verifyWorkspaceState(state);
+  if (!workspaceId) {
+    return NextResponse.redirect(new URL("/crm/settings/integrations?error=invalid_state", req.url));
   }
 
   try {
@@ -40,7 +46,7 @@ export async function GET(req: NextRequest) {
     const userInfo = userInfoRes.ok ? await userInfoRes.json() : {};
 
     await upsertGoogleCalendarIntegration({
-      workspaceId: state,
+      workspaceId,
       emailAddress: typeof userInfo.email === "string" ? userInfo.email : null,
       accessToken: tokens.access_token,
       refreshToken: tokens.refresh_token || null,

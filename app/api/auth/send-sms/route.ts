@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 // MessageBird API configuration for Australian SMS
 const MESSAGEBIRD_API_KEY = process.env.MESSAGEBIRD_API_KEY;
@@ -19,6 +20,31 @@ declare global {
 export async function POST(request: NextRequest) {
   try {
     const { phoneNumber } = await request.json();
+
+    // Cost guard: cap OTP sends to 3/min by IP and 3/min by phone, plus 10/day per phone.
+    const ip = getClientIp(request);
+    const phoneKey = (phoneNumber || "no-phone").toString();
+    const ipRl = await rateLimit(`auth.send-sms.ip:${ip}`, 3, 60_000);
+    if (!ipRl.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests from this device; try again shortly.' },
+        { status: 429, headers: { "Retry-After": String(Math.ceil(ipRl.retryAfterMs / 1000)) } },
+      );
+    }
+    const phoneRl = await rateLimit(`auth.send-sms.phone-min:${phoneKey}`, 3, 60_000);
+    if (!phoneRl.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests for this number; try again shortly.' },
+        { status: 429, headers: { "Retry-After": String(Math.ceil(phoneRl.retryAfterMs / 1000)) } },
+      );
+    }
+    const phoneDailyRl = await rateLimit(`auth.send-sms.phone-day:${phoneKey}`, 10, 24 * 60 * 60_000);
+    if (!phoneDailyRl.allowed) {
+      return NextResponse.json(
+        { error: 'Daily verification limit reached for this number.' },
+        { status: 429, headers: { "Retry-After": String(Math.ceil(phoneDailyRl.retryAfterMs / 1000)) } },
+      );
+    }
 
     if (!MESSAGEBIRD_API_KEY) {
       return NextResponse.json(

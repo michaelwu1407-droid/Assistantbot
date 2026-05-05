@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { getWorkspaceTwilioClient } from "@/lib/twilio";
 import { buildPublicJobPortalUrl } from "@/lib/public-job-portal";
+import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
 
 /**
  * Sends an introductory SMS to a new lead.
@@ -45,10 +46,11 @@ export async function sendIntroSms(options: {
     throw new Error("No usable Twilio client for this workspace");
   }
 
+  const safeTo = assertSafeRecipient("sms", options.to);
   const message = await twilioClient.messages.create({
     body: introMessage,
     from: workspace.twilioPhoneNumber,
-    to: options.to,
+    to: safeTo,
   });
 
   await db.activity.create({

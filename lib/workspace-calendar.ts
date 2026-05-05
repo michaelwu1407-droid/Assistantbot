@@ -2,6 +2,7 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { decrypt, encrypt } from "@/lib/encryption";
+import { signOAuthState } from "@/lib/oauth-state";
 
 const GOOGLE_PROVIDER = "google";
 const GOOGLE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
@@ -371,7 +372,7 @@ export function buildGoogleCalendarAuthUrl(workspaceId: string) {
     response_type: "code",
     access_type: "offline",
     prompt: "consent",
-    state: workspaceId,
+    state: signOAuthState({ workspaceId, provider: "google-calendar", intent: "connect" }),
   });
 
   return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
