@@ -14,17 +14,9 @@ function getSafeOrigin(value?: string) {
 
 const INTERNAL_ONLY_PREFIXES = [
   "/api/test-",
+  "/api/debug",
   "/api/check-env",
-  "/api/test-env",
-  "/api/test-auth",
   "/api/health",
-  "/debug-auth",
-  "/debug-env",
-  "/auth-test",
-  "/minimal-auth-test",
-  "/test-auth",
-  "/test-supabase",
-  "/sentry-example-page",
 ]
 
 function shouldSkipSessionRefresh(pathname: string) {

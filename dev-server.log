@@ -1,1 +1,140 @@
-The system cannot find the file \" "\.
+
+> earlymark@0.1.0 dev
+> next dev --webpack
+
+▲ Next.js 16.1.6 (webpack)
+- Local:         http://localhost:3000
+- Network:       http://100.106.169.95:3000
+- Environments: .env.local, .env
+- Experiments (use with caution):
+  · clientTraceMetadata
+
+✓ Starting...
+○ Compiling /instrumentation ...
+✓ Ready in 22.4s
+○ Compiling / ...
+ GET / 200 in 307ms (compile: 14ms, proxy.ts: 58ms, render: 235ms)
+ GET / 200 in 218ms (compile: 10ms, proxy.ts: 22ms, render: 185ms)
+ GET / 200 in 185ms (compile: 8ms, proxy.ts: 13ms, render: 165ms)
+ GET / 200 in 841ms (compile: 256ms, proxy.ts: 19ms, render: 566ms)
+ GET / 200 in 739ms (compile: 256ms, proxy.ts: 22ms, render: 461ms)
+ GET / 200 in 439ms (compile: 151ms, proxy.ts: 44ms, render: 244ms)
+ GET / 200 in 1652ms (compile: 966ms, proxy.ts: 84ms, render: 602ms)
+ GET / 200 in 72ms (compile: 14ms, proxy.ts: 20ms, render: 38ms)
+ GET / 200 in 1132ms (compile: 9ms, proxy.ts: 12ms, render: 1111ms)
+ GET / 200 in 245ms (compile: 9ms, proxy.ts: 14ms, render: 222ms)
+ GET / 200 in 755ms (compile: 215ms, proxy.ts: 24ms, render: 516ms)
+ GET / 200 in 345ms (compile: 124ms, proxy.ts: 16ms, render: 205ms)
+ GET / 200 in 337ms (compile: 104ms, proxy.ts: 15ms, render: 218ms)
+ GET / 200 in 727ms (compile: 193ms, proxy.ts: 20ms, render: 513ms)
+ GET / 200 in 985ms (compile: 10ms, proxy.ts: 14ms, render: 962ms)
+ GET / 200 in 187ms (compile: 7ms, proxy.ts: 11ms, render: 169ms)
+ GET / 200 in 974ms (compile: 207ms, proxy.ts: 191ms, render: 576ms)
+ GET / 200 in 408ms (compile: 130ms, proxy.ts: 16ms, render: 262ms)
+ GET / 200 in 271ms (compile: 90ms, proxy.ts: 16ms, render: 165ms)
+○ Compiling /auth ...
+GoTrueClient@sb-uvqcplkfscuewrxnzmfe-auth-token:0 (2.95.3) 2026-04-27T04:20:11.338Z #_acquireLock begin 10000
+GoTrueClient@sb-uvqcplkfscuewrxnzmfe-auth-token:0 (2.95.3) 2026-04-27T04:20:11.355Z #_acquireLock lock acquired for storage key sb-uvqcplkfscuewrxnzmfe-auth-token
+GoTrueClient@sb-uvqcplkfscuewrxnzmfe-auth-token:0 (2.95.3) 2026-04-27T04:20:11.356Z #_recoverAndRefresh() begin
+GoTrueClient@sb-uvqcplkfscuewrxnzmfe-auth-token:0 (2.95.3) 2026-04-27T04:20:11.359Z #onAuthStateChange() registered callback with id Symbol(auth-callback)
+GoTrueClient@sb-uvqcplkfscuewrxnzmfe-auth-token:0 (2.95.3) 2026-04-27T04:20:11.389Z #_recoverAndRefresh() session from storage null
+GoTrueClient@sb-uvqcplkfscuewrxnzmfe-auth-token:0 (2.95.3) 2026-04-27T04:20:11.390Z #_recoverAndRefresh() session is not valid
+GoTrueClient@sb-uvqcplkfscuewrxnzmfe-auth-token:0 (2.95.3) 2026-04-27T04:20:11.391Z #_recoverAndRefresh() end
+GoTrueClient@sb-uvqcplkfscuewrxnzmfe-auth-token:0 (2.95.3) 2026-04-27T04:20:11.392Z #_handleVisibilityChange()
+GoTrueClient@sb-uvqcplkfscuewrxnzmfe-auth-token:0 (2.95.3) 2026-04-27T04:20:11.393Z #_initialize() end
+GoTrueClient@sb-uvqcplkfscuewrxnzmfe-auth-token:0 (2.95.3) 2026-04-27T04:20:11.394Z #_acquireLock lock released for storage key sb-uvqcplkfscuewrxnzmfe-auth-token
+GoTrueClient@sb-uvqcplkfscuewrxnzmfe-auth-token:0 (2.95.3) 2026-04-27T04:20:11.396Z #_acquireLock end
+GoTrueClient@sb-uvqcplkfscuewrxnzmfe-auth-token:0 (2.95.3) 2026-04-27T04:20:11.397Z #_acquireLock begin 10000
+GoTrueClient@sb-uvqcplkfscuewrxnzmfe-auth-token:0 (2.95.3) 2026-04-27T04:20:11.398Z #_acquireLock lock acquired for storage key sb-uvqcplkfscuewrxnzmfe-auth-token
+GoTrueClient@sb-uvqcplkfscuewrxnzmfe-auth-token:0 (2.95.3) 2026-04-27T04:20:11.398Z #_useSession begin
+GoTrueClient@sb-uvqcplkfscuewrxnzmfe-auth-token:0 (2.95.3) 2026-04-27T04:20:11.399Z #__loadSession() begin
+GoTrueClient@sb-uvqcplkfscuewrxnzmfe-auth-token:0 (2.95.3) 2026-04-27T04:20:11.400Z #_acquireLock lock released for storage key sb-uvqcplkfscuewrxnzmfe-auth-token
+GoTrueClient@sb-uvqcplkfscuewrxnzmfe-auth-token:0 (2.95.3) 2026-04-27T04:20:11.401Z #getSession() session from storage null
+GoTrueClient@sb-uvqcplkfscuewrxnzmfe-auth-token:0 (2.95.3) 2026-04-27T04:20:11.402Z #__loadSession() end
+GoTrueClient@sb-uvqcplkfscuewrxnzmfe-auth-token:0 (2.95.3) 2026-04-27T04:20:11.402Z #_acquireLock end
+GoTrueClient@sb-uvqcplkfscuewrxnzmfe-auth-token:0 (2.95.3) 2026-04-27T04:20:11.404Z INITIAL_SESSION callback id Symbol(auth-callback) session null
+GoTrueClient@sb-uvqcplkfscuewrxnzmfe-auth-token:0 (2.95.3) 2026-04-27T04:20:11.405Z #_useSession end
+ GET /auth 200 in 31.6s (compile: 28.7s, proxy.ts: 62ms, render: 2.9s)
+ GET / 200 in 1098ms (compile: 121ms, proxy.ts: 858ms, render: 120ms)
+ GET /auth 200 in 676ms (compile: 351ms, proxy.ts: 60ms, render: 264ms)
+ GET / 200 in 203ms (compile: 59ms, proxy.ts: 66ms, render: 78ms)
+ GET / 200 in 427ms (compile: 13ms, proxy.ts: 23ms, render: 391ms)
+ GET / 200 in 229ms (compile: 11ms, proxy.ts: 13ms, render: 206ms)
+ GET / 200 in 2.4s (compile: 1099ms, proxy.ts: 26ms, render: 1282ms)
+ GET / 200 in 942ms (compile: 234ms, proxy.ts: 16ms, render: 692ms)
+ GET / 200 in 584ms (compile: 149ms, proxy.ts: 16ms, render: 419ms)
+ GET / 200 in 622ms (compile: 181ms, proxy.ts: 15ms, render: 426ms)
+ GET / 200 in 586ms (compile: 205ms, proxy.ts: 17ms, render: 363ms)
+ GET / 200 in 628ms (compile: 131ms, proxy.ts: 12ms, render: 485ms)
+ GET / 200 in 911ms (compile: 239ms, proxy.ts: 13ms, render: 660ms)
+ GET / 200 in 838ms (compile: 219ms, proxy.ts: 15ms, render: 603ms)
+ GET / 200 in 786ms (compile: 197ms, proxy.ts: 13ms, render: 576ms)
+ GET / 200 in 1732ms (compile: 8ms, proxy.ts: 16ms, render: 1709ms)
+ GET / 200 in 210ms (compile: 8ms, proxy.ts: 14ms, render: 188ms)
+ GET / 200 in 569ms (compile: 176ms, proxy.ts: 17ms, render: 376ms)
+[Demo Call] Initiated: {
+  name: 'mike w',
+  phone: '0434955958',
+  room: 'demo-1777264873456-rurwtd',
+  trunkId: 'ST_uDswJfRVbtwB',
+  callerNumber: '+61485010634',
+  warnings: []
+}
+ POST / 200 in 1500ms (compile: 17ms, proxy.ts: 41ms, render: 1442ms)
+ GET / 200 in 1977ms (compile: 29ms, proxy.ts: 57ms, render: 1891ms)
+ GET / 200 in 1994ms (compile: 230ms, proxy.ts: 13ms, render: 1752ms)
+ GET / 200 in 159ms (compile: 6ms, proxy.ts: 10ms, render: 143ms)
+ GET / 200 in 229ms (compile: 10ms, proxy.ts: 12ms, render: 207ms)
+ GET / 500 in 4.4s (compile: 3.5s, proxy.ts: 108ms, render: 824ms)
+ GET / 200 in 379ms (compile: 116ms, proxy.ts: 20ms, render: 243ms)
+ GET / 200 in 388ms (compile: 7ms, proxy.ts: 16ms, render: 365ms)
+ GET / 200 in 209ms (compile: 9ms, proxy.ts: 15ms, render: 185ms)
+ GET / 200 in 402ms (compile: 104ms, proxy.ts: 17ms, render: 280ms)
+ GET / 500 in 427ms (compile: 9ms, proxy.ts: 17ms, render: 400ms)
+ GET / 200 in 303ms (compile: 77ms, proxy.ts: 16ms, render: 210ms)
+ GET / 500 in 503ms (compile: 12ms, proxy.ts: 35ms, render: 456ms)
+ GET / 200 in 3.4s (compile: 2.6s, proxy.ts: 119ms, render: 712ms)
+ GET / 200 in 4.9s (compile: 3.8s, proxy.ts: 89ms, render: 1003ms)
+ GET / 500 in 5.3s (compile: 4.3s, proxy.ts: 232ms, render: 702ms)
+ GET / 200 in 1399ms (compile: 995ms, proxy.ts: 86ms, render: 318ms)
+○ Compiling /_error ...
+ GET / 500 in 18.0s (compile: 17.0s, proxy.ts: 53ms, render: 898ms)
+ GET / 200 in 10.4s (compile: 9.8s, proxy.ts: 91ms, render: 534ms)
+ GET / 200 in 97ms (compile: 9ms, proxy.ts: 20ms, render: 68ms)
+ GET / 200 in 1675ms (compile: 8ms, proxy.ts: 16ms, render: 1652ms)
+ GET / 200 in 303ms (compile: 9ms, proxy.ts: 13ms, render: 281ms)
+ GET / 200 in 1042ms (compile: 275ms, proxy.ts: 17ms, render: 750ms)
+ GET / 200 in 859ms (compile: 255ms, proxy.ts: 22ms, render: 581ms)
+ GET / 200 in 1379ms (compile: 387ms, proxy.ts: 26ms, render: 966ms)
+ GET / 200 in 398ms (compile: 96ms, proxy.ts: 8ms, render: 293ms)
+ GET / 200 in 550ms (compile: 161ms, proxy.ts: 12ms, render: 377ms)
+ GET / 200 in 528ms (compile: 131ms, proxy.ts: 17ms, render: 380ms)
+ GET / 200 in 1007ms (compile: 233ms, proxy.ts: 15ms, render: 759ms)
+ GET / 200 in 751ms (compile: 196ms, proxy.ts: 19ms, render: 536ms)
+ GET / 200 in 695ms (compile: 161ms, proxy.ts: 12ms, render: 522ms)
+ GET / 200 in 1298ms (compile: 346ms, proxy.ts: 21ms, render: 931ms)
+ GET / 200 in 6.3s (compile: 173ms, proxy.ts: 338ms, render: 5.8s)
+ GET / 200 in 551ms (compile: 27ms, proxy.ts: 70ms, render: 454ms)
+ GET / 200 in 354ms (compile: 13ms, proxy.ts: 25ms, render: 317ms)
+○ Compiling /contact ...
+ GET /contact 200 in 50s (compile: 45s, proxy.ts: 33ms, render: 4.8s)
+ GET /contact 200 in 39.1s (compile: 33.7s, proxy.ts: 535ms, render: 4.8s)
+ GET /contact 200 in 41s (compile: 33.7s, proxy.ts: 535ms, render: 6.3s)
+ GET / 200 in 1771ms (compile: 1345ms, proxy.ts: 198ms, render: 229ms)
+ GET / 200 in 229ms (compile: 47ms, proxy.ts: 56ms, render: 126ms)
+ GET / 200 in 505ms (compile: 26ms, proxy.ts: 22ms, render: 458ms)
+ GET / 200 in 377ms (compile: 11ms, proxy.ts: 19ms, render: 348ms)
+ GET /contact 200 in 175ms (compile: 12ms, proxy.ts: 23ms, render: 140ms)
+ GET / 200 in 443ms (compile: 16ms, proxy.ts: 36ms, render: 391ms)
+ GET / 200 in 248ms (compile: 7ms, proxy.ts: 10ms, render: 231ms)
+ GET / 200 in 265ms (compile: 6ms, proxy.ts: 11ms, render: 248ms)
+ GET /contact 200 in 142ms (compile: 9ms, proxy.ts: 17ms, render: 116ms)
+ GET / 200 in 396ms (compile: 6ms, proxy.ts: 12ms, render: 378ms)
+ GET / 200 in 256ms (compile: 8ms, proxy.ts: 16ms, render: 232ms)
+ GET /contact 200 in 171ms (compile: 10ms, proxy.ts: 17ms, render: 144ms)
+ GET / 200 in 270ms (compile: 8ms, proxy.ts: 11ms, render: 251ms)
+ GET / 200 in 275ms (compile: 6ms, proxy.ts: 11ms, render: 258ms)
+ GET /contact 200 in 162ms (compile: 9ms, proxy.ts: 17ms, render: 136ms)
+ GET / 200 in 348ms (compile: 10ms, proxy.ts: 13ms, render: 326ms)
+ GET / 200 in 418ms (compile: 17ms, proxy.ts: 16ms, render: 384ms)
+ GET /contact 200 in 147ms (compile: 9ms, proxy.ts: 19ms, render: 119ms)

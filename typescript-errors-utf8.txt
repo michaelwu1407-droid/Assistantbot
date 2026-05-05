@@ -1,1 +1,0 @@
-﻿app/api/chat/route.ts(279,1): error TS1005: '}' expected.

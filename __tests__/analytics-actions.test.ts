@@ -154,4 +154,14 @@ describe("getReportsData", () => {
       { name: "Alice", jobs: 1, revenue: 450 },
     ]);
   });
+
+  it("uses shared user-facing stage labels in the stage breakdown", async () => {
+    const result = await getReportsData("ws_123", "30d");
+
+    expect(result.deals.byStage).toEqual([
+      { stage: "Quote sent", count: 1 },
+      { stage: "Scheduled", count: 1 },
+      { stage: "Completed", count: 2 },
+    ]);
+  });
 });

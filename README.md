@@ -180,4 +180,5 @@ See [.env.example](C:/Users/micha/Assistantbot/.env.example) for the full list. 
 - [DEPLOYMENT_CHECKLIST.md](C:/Users/micha/Assistantbot/DEPLOYMENT_CHECKLIST.md)
 - [LIVEKIT_SETUP.md](C:/Users/micha/Assistantbot/LIVEKIT_SETUP.md)
 - [APP_MANUAL.md](C:/Users/micha/Assistantbot/APP_MANUAL.md)
+- [docs/run-the-app-on-your-computer.md](C:/Users/micha/Assistantbot/docs/run-the-app-on-your-computer.md)
 - [AGENTS.md](C:/Users/micha/Assistantbot/AGENTS.md)

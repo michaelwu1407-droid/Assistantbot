@@ -1,0 +1,114 @@
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (188kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (139kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (133kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+⨯ ./components/home/PulsingLogo.js
+Error: 
+
+Caused by:
+    0: Failed to read source code from C:\Users\micha\Assistantbot\components\home\PulsingLogo.js
+    1: The system cannot find the file specified. (os error 2)
+
+Import trace for requested module:
+./components/home/PulsingLogo.js
+./app/page.tsx
+⨯ ./components/home/PulsingLogo.js
+Error: 
+
+Caused by:
+    0: Failed to read source code from C:\Users\micha\Assistantbot\components\home\PulsingLogo.js
+    1: The system cannot find the file specified. (os error 2)
+
+Import trace for requested module:
+./components/home/PulsingLogo.js
+./app/page.tsx
+⨯ ./components/home/PulsingLogo.js
+Error: 
+
+Caused by:
+    0: Failed to read source code from C:\Users\micha\Assistantbot\components\home\PulsingLogo.js
+    1: The system cannot find the file specified. (os error 2)
+
+Import trace for requested module:
+./components/home/PulsingLogo.js
+./app/page.tsx
+⨯ ./components/home/PulsingLogo.js
+Error: 
+
+Caused by:
+    0: Failed to read source code from C:\Users\micha\Assistantbot\components\home\PulsingLogo.js
+    1: The system cannot find the file specified. (os error 2)
+
+Import trace for requested module:
+./components/home/PulsingLogo.js
+./app/page.tsx
+⨯ ./components/home/PulsingLogo.js
+Error: 
+
+Caused by:
+    0: Failed to read source code from C:\Users\micha\Assistantbot\components\home\PulsingLogo.js
+    1: The system cannot find the file specified. (os error 2)
+
+Import trace for requested module:
+./components/home/PulsingLogo.js
+./app/page.tsx
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⨯ ReferenceError: TRACEY_OUTCOMES is not defined
+    at Home (app\page.tsx:889:34)
+  887 |
+  888 |                             <div className="space-y-4">
+> 889 |                                 {TRACEY_OUTCOMES.map(({ title, desc, icon: Icon }) => (
+      |                                  ^
+  890 |                                     <div key={title} className="flex gap-4 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
+  891 |                                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+  892 |                                             <Icon className="h-5 w-5 text-primary" /> {
+  digest: '1420286307'
+}
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⨯ ReferenceError: SERVICE_TYPES is not defined
+    at Home (app\page.tsx:847:26)
+  845 |
+  846 |                     <motion.div {...fadeUp(0.04)} className="mt-8 flex flex-wrap justify-center gap-2.5">
+> 847 |                         {SERVICE_TYPES.map((service) => (
+      |                          ^
+  848 |                             <span
+  849 |                                 key={service}
+  850 |                                 className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600" {
+  digest: '322626207'
+}
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⨯ ReferenceError: SERVICE_TYPES is not defined
+    at Home (app\page.tsx:873:26)
+  871 |
+  872 |                     <motion.div {...fadeUp(0.04)} className="mt-8 flex flex-wrap justify-center gap-2.5">
+> 873 |                         {SERVICE_TYPES.map((service) => (
+      |                          ^
+  874 |                             <span
+  875 |                                 key={service}
+  876 |                                 className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600" {
+  digest: '3705318495'
+}
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⨯ ReferenceError: TRACEY_SEQUENCE is not defined
+    at Home (app\page.tsx:936:34)
+  934 |
+  935 |                             <div className="grid gap-3 sm:grid-cols-2">
+> 936 |                                 {TRACEY_SEQUENCE.map(({ label, detail, icon: Icon }, index) => (
+      |                                  ^
+  937 |                                     <div key={label} className="rounded-[1.5rem] border border-slate-200 bg-slate-50/80 p-4">
+  938 |                                         <div className="flex items-center justify-between">
+  939 |                                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-sm"> {
+  digest: '518383048'
+}
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⨯ SyntaxError: Unexpected end of JSON input
+    at JSON.parse (<anonymous>) {
+  page: '/'
+}
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.

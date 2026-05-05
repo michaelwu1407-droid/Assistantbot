@@ -159,12 +159,12 @@ describe("ContactsClient", () => {
       />,
     );
 
-    expect(screen.getByText("Showing 3 of 8 contacts (page 1)")).toBeInTheDocument();
+    expect(screen.getByText("Showing 3 loaded contacts of 8 total (page 1)")).toBeInTheDocument();
 
     await user.type(screen.getByPlaceholderText("Search contacts..."), "drain");
 
     expect(
-      screen.getByText("Matches on this page: 1 of 3 loaded · 8 contacts in workspace · page 1"),
+      screen.getByText("Showing 1 matching contacts on this page (3 loaded of 8 total, page 1)"),
     ).toBeInTheDocument();
   });
 
@@ -187,4 +187,25 @@ describe("ContactsClient", () => {
     expect(toastError).toHaveBeenCalledWith("Delete blocked");
     expect(toastSuccess).not.toHaveBeenCalled();
   });
+
+  it("drops hidden selections when filters change so bulk actions stay truthful", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<ContactsClient contacts={contacts} />);
+
+    const table = container.querySelector("table");
+    expect(table).not.toBeNull();
+
+    const checkboxes = within(table as HTMLTableElement).getAllByRole("checkbox");
+    await user.click(checkboxes[1]);
+
+    expect(screen.getByText("1 selected")).toBeInTheDocument();
+
+    await user.type(screen.getByPlaceholderText("Search contacts..."), "sarah");
+
+    await waitFor(() => {
+      expect(screen.queryByText("1 selected")).not.toBeInTheDocument();
+    });
+    expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+  });
 });
+

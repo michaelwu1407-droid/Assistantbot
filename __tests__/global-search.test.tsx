@@ -46,14 +46,12 @@ vi.mock("@/components/ui/command", () => ({
   CommandGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   CommandItem: ({
     children,
-    onSelect,
     onClick,
   }: {
     children: React.ReactNode;
-    onSelect?: () => void;
     onClick?: () => void;
   }) => (
-    <button type="button" onClick={() => { onClick?.(); onSelect?.(); }}>
+    <button type="button" onClick={() => onClick?.()}>
       {children}
     </button>
   ),

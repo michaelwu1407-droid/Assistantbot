@@ -2,6 +2,7 @@ import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { toast } from "sonner";
 
 let currentRole: "OWNER" | "MANAGER" | "TEAM_MEMBER" = "OWNER";
 
@@ -109,6 +110,31 @@ describe("TeamPage", () => {
 
     expect(screen.queryByText(/invite sent to !/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/^Invite sent to\s*!$/)).not.toBeInTheDocument();
+  });
+
+  it("trims invite email before showing success copy", async () => {
+    const user = userEvent.setup();
+    createInvite.mockResolvedValue({ success: true, token: "generated_token" });
+
+    render(<TeamPage />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /invite member/i })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: /invite member/i }));
+    await user.type(screen.getByPlaceholderText("team@example.com"), "  trimmed@example.com  ");
+    await user.click(screen.getByRole("button", { name: /send invitation/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Invite sent to trimmed@example.com!")).toBeInTheDocument();
+    });
+
+    expect(createInvite).toHaveBeenCalledWith({
+      role: "TEAM_MEMBER",
+      email: "trimmed@example.com",
+    });
+    expect(toast.success).toHaveBeenCalledWith("Invite sent to trimmed@example.com!");
   });
 
   it("hides invite controls and pending invites for team members", async () => {

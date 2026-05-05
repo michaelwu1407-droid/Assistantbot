@@ -35,6 +35,7 @@ type ContactFormProps = {
 export function ContactForm({ mode, workspaceId, contact }: ContactFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [redirectNotice, setRedirectNotice] = useState<string | null>(null);
   const [contactType, setContactType] = useState<"PERSON" | "BUSINESS">(
     ((contact?.metadata?.contactType as string) === "BUSINESS" ? "BUSINESS" : "PERSON"),
   );
@@ -76,6 +77,7 @@ export function ContactForm({ mode, workspaceId, contact }: ContactFormProps) {
         }
 
         toast.success(result.merged ? "Matched and updated existing contact." : "Contact created.");
+        setRedirectNotice(result.merged ? "Opening the existing contact..." : "Opening the new contact...");
         router.replace(`/crm/contacts/${result.contactId}`);
         router.refresh();
         return;
@@ -101,6 +103,7 @@ export function ContactForm({ mode, workspaceId, contact }: ContactFormProps) {
       }
 
       toast.success("Contact updated.");
+      setRedirectNotice("Opening the updated contact...");
       router.replace(`/crm/contacts/${contact.id}`);
       router.refresh();
     });
@@ -118,6 +121,12 @@ export function ContactForm({ mode, workspaceId, contact }: ContactFormProps) {
       </div>
 
       <div className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm">
+        {redirectNotice && (
+          <div className="mb-5 rounded-[18px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            {redirectNotice}
+          </div>
+        )}
+
         <div className="grid gap-5 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="contact-type">Contact type</Label>
@@ -165,14 +174,14 @@ export function ContactForm({ mode, workspaceId, contact }: ContactFormProps) {
         </div>
 
         <div className="mt-6 flex flex-wrap gap-3">
-          <Button type="button" onClick={handleSubmit} disabled={isPending}>
-            {isPending ? "Saving..." : submitLabel}
+          <Button type="button" onClick={handleSubmit} disabled={isPending || redirectNotice !== null}>
+            {redirectNotice ? "Opening contact..." : isPending ? "Saving..." : submitLabel}
           </Button>
           <Button
             type="button"
             variant="outline"
             onClick={() => router.push(contact?.id ? `/crm/contacts/${contact.id}` : "/crm/contacts")}
-            disabled={isPending}
+            disabled={isPending || redirectNotice !== null}
           >
             Cancel
           </Button>

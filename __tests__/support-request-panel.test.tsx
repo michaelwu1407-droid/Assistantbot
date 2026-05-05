@@ -52,6 +52,7 @@ describe("SupportRequestPanel", () => {
 
   it("shows only the error state when the support request fails", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: false,
       json: async () => ({ success: false, error: "Support inbox unavailable" }),
     }));
 
@@ -62,19 +63,21 @@ describe("SupportRequestPanel", () => {
     fireEvent.submit(screen.getByRole("button", { name: /send support request/i }).closest("form")!);
 
     expect(await screen.findByText("Support inbox unavailable")).toBeInTheDocument();
-    expect(screen.queryByText(/we'll get back to you within 24 hours/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/we will get back to you within 24 hours/i)).not.toBeInTheDocument();
   });
 
   it("clears a previous error and shows only success after a retry succeeds", async () => {
     vi.stubGlobal(
-      "fetch",
-      vi.fn()
-        .mockResolvedValueOnce({
-          json: async () => ({ success: false, error: "Support inbox unavailable" }),
-        })
-        .mockResolvedValueOnce({
-          json: async () => ({ success: true }),
-        }),
+        "fetch",
+        vi.fn()
+          .mockResolvedValueOnce({
+            ok: false,
+            json: async () => ({ success: false, error: "Support inbox unavailable" }),
+          })
+          .mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({ success: true }),
+          }),
     );
 
     render(<SupportRequestPanel />);
@@ -91,7 +94,7 @@ describe("SupportRequestPanel", () => {
     fireEvent.submit(form);
 
     await waitFor(() => {
-      expect(screen.getByText(/we'll get back to you within 24 hours/i)).toBeInTheDocument();
+      expect(screen.getByText(/we will get back to you within 24 hours/i)).toBeInTheDocument();
     });
     expect(screen.queryByText("Support inbox unavailable")).not.toBeInTheDocument();
   });

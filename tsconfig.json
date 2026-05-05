@@ -44,6 +44,10 @@
   ],
   "exclude": [
     "node_modules",
-    "livekit-agent/**"
+    "livekit-agent/**",
+    "__tests__/**",
+    "e2e/**",
+    "archive/**",
+    "playwright.config.ts"
   ]
 }

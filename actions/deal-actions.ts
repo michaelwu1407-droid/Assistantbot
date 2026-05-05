@@ -163,6 +163,10 @@ function normalizeScheduledAtInput(
       : value instanceof Date
         ? new Date(value)
         : new Date(value);
+  if (!parsed) {
+    return null;
+  }
+
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 

@@ -9,7 +9,6 @@ import {
   Search,
   Phone,
   Mail,
-  FileText,
   ExternalLink,
   MessageSquare,
   MessageCircle,
@@ -19,7 +18,7 @@ import {
   ArrowDownAZ,
   Settings,
 } from "lucide-react"
-/** Direct file import avoids Turbopack HMR stale `bot.js` chunk after swapping Bot → Sparkles on the barrel import. */
+/** Direct file import avoids Turbopack HMR stale `bot.js` chunk after swapping Bot -> Sparkles on the barrel import. */
 import Sparkles from "lucide-react/dist/esm/icons/sparkles"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -55,7 +54,7 @@ const FAKE_TUTORIAL_INBOX: ActivityView[] = [
     contactName: "John Smith",
     contactPhone: "0412 345 678",
     contactEmail: "john@example.com",
-    content: "Hi, I need a quote for bathroom plumbing — leak under the sink.",
+    content: "Hi, I need a quote for bathroom plumbing - leak under the sink.",
   },
   {
     id: "tutorial-js-2",
@@ -83,12 +82,6 @@ interface InboxViewProps {
   workspaceId?: string
   /** Optional deep link so other CRM pages can open a specific contact thread. */
   initialContactId?: string | null
-}
-
-const typeLabel: Record<string, string> = {
-  call: "Call",
-  email: "Email",
-  note: "Text / Note",
 }
 
 type DetailTab = "conversations" | "activity"
@@ -123,8 +116,8 @@ function getInboxListPreviewRow(latest: ActivityView | undefined): { text: strin
       icon: <MessageSquare className="h-3 w-3 shrink-0 text-muted-foreground/60" aria-hidden />,
     }
   }
-  const raw = [latest.title, latest.content].filter(Boolean).join(" — ").trim() || "Activity"
-  const truncated = raw.length > 52 ? `${raw.slice(0, 49)}…` : raw
+  const raw = [latest.title, latest.content].filter(Boolean).join(" - ").trim() || "Activity"
+  const truncated = raw.length > 52 ? `${raw.slice(0, 49)}...` : raw
   const isSystem = isSystemEvent(latest)
   return {
     text: truncated,
@@ -328,7 +321,7 @@ export function InboxView({
   const handleSendMessage = async () => {
     if (!messageText.trim() || !selectedContact) return
     if (isTutorialInboxStep && selectedContactKey === FAKE_TUTORIAL_INBOX_CONTACT_ID) {
-      toast.info("This is demo data for the tutorial — select a real contact to send messages.")
+      toast.info("This is demo data for the tutorial - select a real contact to send messages.")
       return
     }
     setSending(true)
@@ -349,7 +342,7 @@ export function InboxView({
           toast.error(result.error || "Failed to send")
         }
       } else {
-        // Ask Tracey — route through chatbot API (requires workspaceId)
+        // Ask Tracey - route through chatbot API (requires workspaceId)
         if (!workspaceId) {
           toast.error("Workspace not loaded. Refresh the page and try again.")
           setSending(false)
@@ -407,7 +400,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
   return (
     <>
       <div className="flex flex-col md:flex-row h-full glass-card rounded-2xl overflow-hidden">
-        {/* ─── LEFT PANEL: Contact List ──────────────────────── */}
+        {/* LEFT PANEL: Contact List */}
         <div className={cn("w-full md:w-80 border-b md:border-b-0 md:border-r border-border/40 flex flex-col bg-muted/10 shrink-0", selectedActivity && selectedId ? "hidden md:flex" : "flex")}>
           <div className="p-3 border-b border-border/40 space-y-2">
             <div className="grid grid-cols-2 gap-2">
@@ -541,7 +534,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
           </div>
         </div>
 
-        {/* ─── RIGHT PANEL: Customer Detail ──────────────────── */}
+        {/* RIGHT PANEL: Customer Detail */}
         <div className={cn("flex-1 flex flex-col bg-background/20 backdrop-blur-sm min-w-0", !selectedActivity || !selectedId ? "hidden md:flex" : "flex")}>
           {selectedContact ? (
             <>
@@ -559,7 +552,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
                       {selectedContact.name}
                     </h2>
                     <p className="app-body-secondary truncate text-xs">
-                      {selectedContact.phone || "No phone"} · {selectedContact.email || "No email"}
+                      {selectedContact.phone || "No phone"} | {selectedContact.email || "No email"}
                     </p>
                   </div>
                 </div>
@@ -649,13 +642,13 @@ If the request is to contact the customer, use the appropriate customer-contact 
                     onClick={() => setDetailTab("conversations")}
                     className={cn("flex-1 px-3 py-1.5 app-body-secondary text-xs font-medium rounded-md transition-colors", detailTab === "conversations" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
                   >
-                    Conversations
+                    Customer messages
                   </button>
                   <button
                     onClick={() => setDetailTab("activity")}
                     className={cn("flex-1 px-3 py-1.5 app-body-secondary text-xs font-medium rounded-md transition-colors", detailTab === "activity" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
                   >
-                    System Activity
+                    CRM activity
                   </button>
                 </div>
               </div>
@@ -708,7 +701,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
                 )}
               </div>
 
-              {/* ─── Bottom: Ask Tracey vs direct SMS (workspace Twilio) ─────── */}
+              {/* Bottom: Ask Tracey vs direct SMS (workspace Twilio) */}
               <div className="border-t border-border/40 p-3 bg-white/5 shrink-0">
                 <p id="inbox-composer-mode-label" className="mb-1.5 app-field-label text-[11px] uppercase tracking-wide text-muted-foreground">
                   Who sends the next message?
@@ -751,13 +744,13 @@ If the request is to contact the customer, use the appropriate customer-contact 
                 <div className="mb-2 rounded-lg border border-border/50 bg-background/40 px-3 py-2" role="region" aria-live="polite">
                   <p className="text-xs font-medium text-foreground">
                     {messageMode === "direct"
-                      ? "Direct SMS: sends now from your workspace Twilio number as a normal outbound text."
-                      : "Ask Tracey: the AI reads your instruction and may reply to the customer or update the CRM."}
+                      ? "Direct SMS: sends immediately from your workspace Twilio number as a manual text."
+                      : "Ask Tracey: give Tracey an instruction and she may reply to the customer, update the CRM, or both."}
                   </p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {messageMode === "direct"
-                      ? "Not AI—only the exact characters you type below are sent."
-                      : "Not a raw SMS—Tracey decides how to act (reply, tools, or both)."}
+                      ? "You control the wording here - only the exact text you type below is sent."
+                      : "This is not a raw SMS draft - Tracey decides how to act based on your instruction."}
                   </p>
                 </div>
 
@@ -790,7 +783,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
                   </Button>
                 </div>
                 {messageMode === "direct" && !selectedContact.phone && (
-                  <p className="app-body-secondary mt-1 text-xs text-red-400">No phone number on file — add one to send direct messages.</p>
+                  <p className="app-body-secondary mt-1 text-xs text-red-400">No phone number on file - add one to send direct messages.</p>
                 )}
                 {messageMode === "direct" && !!selectedContact.phone && (
                   <p className={cn("app-body-secondary mt-1 text-right text-xs", messageText.length > 160 ? "text-red-500 font-medium" : "text-muted-foreground")}>
@@ -798,7 +791,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
                   </p>
                 )}
                 {messageMode === "tracey" && (
-                  <p className="app-body-secondary mt-1 text-xs">Tracey stays in orchestration mode here, so ask in plain language for the CRM change or customer action you want.</p>
+                  <p className="app-body-secondary mt-1 text-xs">Good for requests like &quot;reply and update the job&quot; or &quot;log this and follow up tomorrow.&quot;</p>
                 )}
               </div>
             </>
@@ -839,3 +832,4 @@ If the request is to contact the customer, use the appropriate customer-contact 
     </>
   )
 }
+

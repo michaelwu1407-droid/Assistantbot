@@ -325,10 +325,11 @@ describe("InboxView", () => {
     expect(traceyTab).toHaveAttribute("aria-selected", "false");
     expect(directTab).toHaveAttribute("aria-selected", "true");
 
-    expect(screen.getByText(/Direct SMS: sends now from your workspace Twilio number/i)).toBeInTheDocument();
+    expect(screen.getByText(/Direct SMS: sends immediately from your workspace Twilio number/i)).toBeInTheDocument();
 
     await user.click(traceyTab);
     expect(traceyTab).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByText(/Ask Tracey: the AI reads your instruction/i)).toBeInTheDocument();
+    expect(screen.getByText(/Ask Tracey: give Tracey an instruction/i)).toBeInTheDocument();
   });
 });
+

@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ChevronDown, Filter, Mail, MessageSquare, Phone, Search, X } from "lucide-react"
@@ -140,6 +140,16 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
     search.trim().length > 0 ||
     typeFilter !== "all" ||
     selectedStageIds.size !== allStageIds.size
+
+  useEffect(() => {
+    const visibleIds = new Set(filtered.map((contact) => contact.id))
+    setSelected((prev) => {
+      if (prev.size === 0) return prev
+
+      const next = new Set(Array.from(prev).filter((id) => visibleIds.has(id)))
+      return next.size === prev.size ? prev : next
+    })
+  }, [filtered])
 
   const toggleStage = (stageId: string) => {
     setSelectedStageIds((prev) => {
@@ -380,13 +390,13 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
                       className="cursor-pointer select-none whitespace-nowrap px-4 py-3 text-left text-sm font-medium text-muted-foreground hover:text-foreground"
                       onClick={() => setSortMode("alpha")}
                     >
-                      Name {sortMode === "alpha" && <span className="ml-0.5 text-xs text-primary">↓</span>}
+                      Name {sortMode === "alpha" && <span className="ml-1 text-[10px] font-semibold uppercase tracking-wide text-primary">A-Z</span>}
                     </th>
                     <th
                       className="cursor-pointer select-none whitespace-nowrap px-4 py-3 text-left text-sm font-medium text-muted-foreground hover:text-foreground"
                       onClick={() => setSortMode("last_interacted")}
                     >
-                      Last contact {sortMode === "last_interacted" && <span className="ml-0.5 text-xs text-primary">↓</span>}
+                      Last contact {sortMode === "last_interacted" && <span className="ml-1 text-[10px] font-semibold uppercase tracking-wide text-primary">Latest</span>}
                     </th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Last job</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Job status</th>
@@ -497,8 +507,8 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
             <div className="flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs text-muted-foreground">
                 {hasActiveClientFilters
-                  ? `Matches on this page: ${filtered.length} of ${contacts.length} loaded · ${pagination.total} contacts in workspace · page ${pagination.page}`
-                  : `Showing ${contacts.length} of ${pagination.total} contacts (page ${pagination.page})`}
+                  ? `Showing ${filtered.length} matching contacts on this page (${contacts.length} loaded of ${pagination.total} total, page ${pagination.page})`
+                  : `Showing ${contacts.length} loaded contacts of ${pagination.total} total (page ${pagination.page})`}
               </p>
               <div className="flex items-center gap-2">
                 <Button
@@ -554,3 +564,4 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
     </div>
   )
 }
+

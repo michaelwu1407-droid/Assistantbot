@@ -40,10 +40,10 @@ export function SupportRequestPanel() {
 
       const result = await response.json()
 
-      if (result.success) {
+      if (response.ok && result.success) {
         setSubmissionState({
           type: "success",
-          message: "Support request sent. We'll get back to you within 24 hours.",
+          message: "Support request sent. We will get back to you within 24 hours.",
         })
         setPriority("medium")
         form.reset()
@@ -69,7 +69,7 @@ export function SupportRequestPanel() {
         <CardHeader>
           <CardTitle>Support request</CardTitle>
           <CardDescription>
-            Tell us what is blocking you and we'll help you fix it.
+            Tell us what is blocking you and we will help you fix it.
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -72,6 +72,8 @@ export default function IntegrationsPage() {
     useEffect(() => {
         const success = searchParams.get("success")
         const error = searchParams.get("error")
+        if (!success && !error) return
+
         if (success === "gmail_connected" || success === "outlook_connected" || success === "xero_connected" || success === "google_calendar_connected") {
             toast.success(
                 success === "xero_connected"
@@ -85,7 +87,8 @@ export default function IntegrationsPage() {
         if (error) {
             toast.error(`Connection failed: ${error.replace(/_/g, " ")}`)
         }
-    }, [searchParams])
+        router.replace("/crm/settings/integrations")
+    }, [searchParams, router])
 
     const refreshIntegrationStatus = async () => {
         setLoadingIntegrations(true)

@@ -86,9 +86,10 @@ export default function TeamPage() {
     const handleCreateInvite = async () => {
         setCreating(true)
         setInviteError("")
+        const trimmedEmail = inviteEmail.trim()
 
         // Validate email is provided for "Send Invitation"
-        if (!inviteEmail.trim()) {
+        if (!trimmedEmail) {
             setInviteError("Email is required to send an invitation")
             setCreating(false)
             return
@@ -96,14 +97,14 @@ export default function TeamPage() {
 
         const result = await createInvite({
             role: inviteRole,
-            email: inviteEmail,
+            email: trimmedEmail,
         })
 
         if (result.success && result.token) {
             const link = `${window.location.origin}/invite/join?token=${result.token}`
             setGeneratedLink(link)
-            setInviteSuccessView({ channel: "email", email: inviteEmail.trim() })
-            toast.success(`Invite sent to ${inviteEmail.trim()}!`)
+            setInviteSuccessView({ channel: "email", email: trimmedEmail })
+            toast.success(`Invite sent to ${trimmedEmail}!`)
 
             const newInvites = await getWorkspaceInvites()
             setInvites(newInvites as Invite[])
@@ -117,10 +118,11 @@ export default function TeamPage() {
     const handleGenerateLink = async () => {
         setCreating(true)
         setInviteError("")
+        const trimmedEmail = inviteEmail.trim()
 
         const result = await createInvite({
             role: inviteRole,
-            email: inviteEmail || undefined,
+            email: trimmedEmail || undefined,
         })
 
         if (result.success && result.token) {

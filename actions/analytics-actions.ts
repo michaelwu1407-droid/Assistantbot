@@ -12,19 +12,18 @@ import {
   startOfMonth,
   subDays,
 } from "date-fns"
+import { getUserFacingDealStageLabel } from "@/lib/deal-utils"
 
-const STAGE_LABELS: Record<string, string> = {
-  NEW: "New request",
-  CONTACTED: "Quote sent",
-  NEGOTIATION: "Negotiation",
-  SCHEDULED: "Scheduled",
-  PIPELINE: "Pipeline",
-  INVOICED: "Ready to invoice",
-  PENDING_COMPLETION: "Pending approval",
-  WON: "Completed",
-  LOST: "Lost",
-  DELETED: "Deleted",
-}
+const STAGE_SORT_ORDER = [
+  "New request",
+  "Quote sent",
+  "Scheduled",
+  "Awaiting payment",
+  "Pending approval",
+  "Completed",
+  "Lost",
+  "Deleted",
+] as const
 
 function getDealRevenueValue(deal: {
   invoicedAmount?: number | { toNumber(): number } | null
@@ -208,10 +207,23 @@ export async function getReportsData(workspaceId: string, range: ReportRange = "
 
   const stageCounts: Record<string, number> = {}
   for (const d of dealsInRange) {
-    const label = STAGE_LABELS[d.stage] ?? d.stage
+    const label = getUserFacingDealStageLabel(d.stage)
     stageCounts[label] = (stageCounts[label] ?? 0) + 1
   }
-  const byStage = Object.entries(stageCounts).map(([stage, count]) => ({ stage, count }))
+  const byStage = Object.entries(stageCounts)
+    .map(([stage, count]) => ({ stage, count }))
+    .sort((left, right) => {
+      const leftIndex = STAGE_SORT_ORDER.indexOf(left.stage as (typeof STAGE_SORT_ORDER)[number])
+      const rightIndex = STAGE_SORT_ORDER.indexOf(right.stage as (typeof STAGE_SORT_ORDER)[number])
+      const normalizedLeft = leftIndex === -1 ? Number.MAX_SAFE_INTEGER : leftIndex
+      const normalizedRight = rightIndex === -1 ? Number.MAX_SAFE_INTEGER : rightIndex
+
+      if (normalizedLeft !== normalizedRight) {
+        return normalizedLeft - normalizedRight
+      }
+
+      return left.stage.localeCompare(right.stage)
+    })
 
   const completed = wonDealsInRange.length
   const inProgress = dealsInRange.filter(
