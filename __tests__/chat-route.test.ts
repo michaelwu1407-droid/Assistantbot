@@ -411,6 +411,145 @@ describe("POST /api/chat", () => {
     expect(await response.json()).toEqual({ text: "model response" });
   });
 
+  it("formats ambiguous contact context with useful disambiguation details", async () => {
+    hoisted.preClassify.mockReturnValue({
+      intent: "contact_lookup",
+      confidence: 0.9,
+      contextHints: ["CONTACT QUERY: Use searchContacts or getClientContext to find the person first."],
+      suggestedTools: ["searchContacts", "getClientContext"],
+      requiresCalculator: false,
+    });
+    hoisted.runGetClientContext.mockResolvedValue({
+      client: null,
+      ambiguousMatches: [
+        {
+          id: "contact_1",
+          name: "Alex Harper",
+          phone: "0400000001",
+          email: "alex.one@example.com",
+          company: "Alpha Plumbing",
+        },
+        {
+          id: "contact_2",
+          name: "Alex Harper",
+          phone: "0400000002",
+          email: "alex.two@example.com",
+          company: "Beta Electrical",
+        },
+      ],
+      recentNotes: [],
+      recentMessages: [],
+      recentJobs: [],
+    });
+
+    await POST(
+      new Request("https://app.example.com/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          messages: [{ role: "user", parts: [{ type: "text", text: "Find contact Alex Harper" }] }],
+        }),
+      }),
+    );
+
+    expect(hoisted.streamText).toHaveBeenCalledTimes(1);
+    expect(hoisted.buildCrmChatSystemPrompt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resolvedEntitiesBlock: expect.stringContaining('Ambiguous contacts for "Alex Harper":'),
+      }),
+    );
+    const promptArgs = hoisted.buildCrmChatSystemPrompt.mock.calls.at(-1)?.[0];
+    expect(promptArgs.resolvedEntitiesBlock).toContain("phone 0400000001");
+    expect(promptArgs.resolvedEntitiesBlock).toContain("email alex.two@example.com");
+    expect(promptArgs.resolvedEntitiesBlock).toContain("Ask the user which one they mean instead of guessing");
+    expect(promptArgs.resolvedEntitiesBlock).toContain("option number");
+  });
+
+  it("resolves numbered contact disambiguation replies into the selected contact record", async () => {
+    hoisted.runGetClientContext
+      .mockResolvedValueOnce({
+        client: {
+          id: "contact_2",
+          name: "Alex Harper",
+          email: "alex.two@example.com",
+          phone: "0400000002",
+          company: "Beta Electrical",
+          address: null,
+        },
+        recentNotes: [],
+        recentMessages: [],
+        recentJobs: [],
+        ambiguousMatches: [],
+      })
+      .mockResolvedValueOnce({
+        client: {
+          id: "contact_2",
+          name: "Alex Harper",
+          email: "alex.two@example.com",
+          phone: "0400000002",
+          company: "Beta Electrical",
+          address: "22 Harbour Road",
+        },
+        recentNotes: [{ title: "Latest note", content: "Prefers afternoons.", createdAt: "2026-04-04T00:00:00.000Z" }],
+        recentMessages: [],
+        recentJobs: [],
+        ambiguousMatches: [],
+      });
+
+    const response = await POST(
+      new Request("https://app.example.com/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          messages: [
+            { role: "user", parts: [{ type: "text", text: "Find contact Alex Harper" }] },
+            {
+              role: "assistant",
+              content:
+                "I found multiple contacts that match. Tell me which one you mean:\n1. Alex Harper (company Alpha Plumbing, phone 0400000001, email alex.one@example.com)\n2. Alex Harper (company Beta Electrical, phone 0400000002, email alex.two@example.com)\nReply with the option number, phone number, email, company name, or full contact name and I'll open the right record.",
+            },
+            { role: "user", parts: [{ type: "text", text: "2" }] },
+          ],
+        }),
+      }),
+    );
+
+    expect(hoisted.streamText).not.toHaveBeenCalled();
+    expect(hoisted.runGetClientContext).toHaveBeenNthCalledWith(1, "ws_1", { clientName: "0400000002" });
+    expect(hoisted.runGetClientContext).toHaveBeenNthCalledWith(2, "ws_1", { clientId: "contact_2", clientName: "Alex Harper" });
+    expect(await response.json()).toEqual({
+      text: expect.stringContaining("Beta Electrical"),
+    });
+  });
+
+  it("asks for a valid option number when a numbered disambiguation reply is out of range", async () => {
+    const response = await POST(
+      new Request("https://app.example.com/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          messages: [
+            { role: "user", parts: [{ type: "text", text: "Find contact Alex Harper" }] },
+            {
+              role: "assistant",
+              content:
+                "I found multiple contacts that match. Tell me which one you mean:\n1. Alex Harper (company Alpha Plumbing, phone 0400000001, email alex.one@example.com)\n2. Alex Harper (company Beta Electrical, phone 0400000002, email alex.two@example.com)\nReply with the option number, phone number, email, company name, or full contact name and I'll open the right record.",
+            },
+            { role: "user", parts: [{ type: "text", text: "5" }] },
+          ],
+        }),
+      }),
+    );
+
+    expect(hoisted.streamText).not.toHaveBeenCalled();
+    expect(await response.json()).toEqual({
+      text: "I only listed 2 contact options. Reply with a number from that list and I'll open the right record.",
+    });
+  });
+
   it("injects current workspace date and likely job context for next-step completion questions", async () => {
     hoisted.preClassify.mockReturnValue({
       intent: "crm_action",
@@ -483,6 +622,70 @@ describe("POST /api/chat", () => {
     expect(hoisted.buildCrmChatSystemPrompt).toHaveBeenCalledWith(
       expect.objectContaining({
         resolvedEntitiesBlock: expect.stringContaining("Likely jobs: Blocked Drain"),
+      }),
+    );
+    expect(await response.json()).toEqual({ text: "model response" });
+  });
+
+  it("gives invoice flows a larger adaptive step budget", async () => {
+    hoisted.preClassify.mockReturnValue({
+      intent: "invoice",
+      confidence: 0.93,
+      contextHints: [
+        "INVOICE REQUEST: Use the invoice tools (createDraftInvoice, issueInvoice, etc.).",
+        "QUOTE = DRAFT INVOICE: When the user asks to create a quote or estimate, use createDraftInvoice.",
+      ],
+      suggestedTools: ["createDraftInvoice", "updateInvoiceFields", "updateInvoiceAmount"],
+      requiresCalculator: true,
+    });
+    hoisted.stepCountIs.mockImplementation((count: number) => count);
+
+    const response = await POST(
+      new Request("https://app.example.com/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          messages: [{ role: "user", parts: [{ type: "text", text: "Create a quote for Alex Harper for $350." }] }],
+        }),
+      }),
+    );
+
+    expect(hoisted.stepCountIs).toHaveBeenCalledWith(5);
+    expect(hoisted.streamText).toHaveBeenCalledTimes(1);
+    expect(await response.json()).toEqual({ text: "model response" });
+  });
+
+  it("includes multi-step execution guidance for combined invoice workflows", async () => {
+    hoisted.preClassify.mockReturnValue({
+      intent: "invoice",
+      confidence: 0.93,
+      contextHints: [
+        "INVOICE REQUEST: Use the invoice tools (createDraftInvoice, issueInvoice, etc.).",
+        "QUOTE = DRAFT INVOICE: When the user asks to create a quote or estimate, use createDraftInvoice (not createJobNatural). If a dollar amount is given, update the actual invoice total via updateInvoiceFields (with total: amount) after creation — this correctly updates the invoice document. Also update the deal's tracked amount via updateInvoiceAmount. After creating the draft and setting the amount, move the deal to 'Quote Sent' if it is still in 'New Request'.",
+      ],
+      suggestedTools: ["createDraftInvoice", "updateInvoiceFields", "updateInvoiceAmount", "issueInvoice"],
+      requiresCalculator: true,
+    });
+
+    const response = await POST(
+      new Request("https://app.example.com/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          messages: [{
+            role: "user",
+            parts: [{ type: "text", text: "Create a quote for Alex Harper for $350 and then send it to him." }],
+          }],
+        }),
+      }),
+    );
+
+    expect(hoisted.buildCrmChatSystemPrompt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        intentHintBlock: expect.stringContaining("QUOTE = DRAFT INVOICE"),
+        roleGuardBlock: expect.stringContaining("MULTI-STEP EXECUTION"),
       }),
     );
     expect(await response.json()).toEqual({ text: "model response" });
@@ -617,5 +820,48 @@ describe("POST /api/chat", () => {
         requiresCalculator: false,
       }),
     ).toBe(false);
+  });
+
+  it("keeps direct blocked-job aggregate filters strict on whole-word query matches", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      {
+        id: "deal_1",
+        title: "Office Fitout Quote",
+        company: "",
+        contactName: "ZZZ AUTO livefull_after_fastpath Charlie Dental",
+        stage: "quote_sent",
+        health: { status: "STALE" },
+        scheduledAt: null,
+        actualOutcome: null,
+        metadata: null,
+      },
+      {
+        id: "deal_2",
+        title: "ZZZ AUTO LIVE Blocked Drain",
+        company: "",
+        contactName: "Alex Harper",
+        stage: "scheduled",
+        health: { status: "STALE" },
+        scheduledAt: null,
+        actualOutcome: null,
+        metadata: null,
+      },
+    ]);
+
+    const response = await POST(
+      new Request("https://app.example.com/api/chat", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          workspaceId: "ws_1",
+          messages: [{ role: "user", parts: [{ type: "text", text: "What jobs for ZZZ AUTO LIVE look incomplete or blocked?" }] }],
+        }),
+      }),
+    );
+
+    expect(hoisted.streamText).not.toHaveBeenCalled();
+    expect(await response.json()).toEqual({
+      text: 'Jobs matching "ZZZ AUTO LIVE" that still look incomplete or blocked:\n- ZZZ AUTO LIVE Blocked Drain (Scheduled; Stale)',
+    });
   });
 });

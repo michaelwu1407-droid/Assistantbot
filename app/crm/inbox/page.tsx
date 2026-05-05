@@ -1,10 +1,8 @@
 import { redirect } from "next/navigation"
-import { getOrCreateWorkspace } from "@/actions/workspace-actions"
-import { getAuthUser } from "@/lib/auth"
 import { InboxView } from "@/components/crm/inbox-view"
 import { getActivities } from "@/actions/activity-actions"
 import { getContacts } from "@/actions/contact-actions"
-import { isManagerOrAbove } from "@/lib/rbac"
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access"
 
 export const dynamic = "force-dynamic"
 
@@ -13,15 +11,19 @@ const EXISTING_STAGES = ["SCHEDULED", "PIPELINE", "INVOICED", "WON"] as const
 export default async function InboxPage(props: {
     searchParams?: Promise<Record<string, string | string[] | undefined>>
 }) {
-    const authUser = await getAuthUser()
-    if (!authUser) redirect("/login")
+    let actor: Awaited<ReturnType<typeof requireCurrentWorkspaceAccess>>
+    try {
+        actor = await requireCurrentWorkspaceAccess()
+    } catch {
+        redirect("/login")
+    }
 
     const searchParams = props.searchParams ? await props.searchParams : {}
     const contactParam = searchParams.contact
     const initialContactId = Array.isArray(contactParam) ? contactParam[0] ?? null : contactParam ?? null
 
     // RBAC: Team members cannot access the global inbox
-    if (!(await isManagerOrAbove())) {
+    if (actor.role === "TEAM_MEMBER") {
         redirect("/crm/dashboard")
     }
 
@@ -29,15 +31,14 @@ export default async function InboxPage(props: {
     const contactSegment: Record<string, "lead" | "existing"> = {}
     let workspaceId: string | undefined
     try {
-        const workspace = await getOrCreateWorkspace(authUser.id)
-        workspaceId = workspace.id
+        workspaceId = actor.workspaceId
         const [activities, contacts] = await Promise.all([
             getActivities({
-                workspaceId: workspace.id,
+                workspaceId: actor.workspaceId,
                 typeIn: ["CALL", "EMAIL", "NOTE", "TASK", "MEETING"],
                 limit: 80,
             }),
-            getContacts(workspace.id),
+            getContacts(actor.workspaceId),
         ])
         interactions = activities
         for (const c of contacts) {

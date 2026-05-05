@@ -1,25 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { db, getAuthUserId, revalidatePath } = vi.hoisted(() => ({
+const { db, requireCurrentWorkspaceAccess, revalidatePath } = vi.hoisted(() => ({
   db: {
-    user: {
-      findUnique: vi.fn(),
-    },
     businessKnowledge: {
       create: vi.fn(),
     },
     businessProfile: {
       update: vi.fn(),
+      upsert: vi.fn(),
     },
   },
-  getAuthUserId: vi.fn(),
+  requireCurrentWorkspaceAccess: vi.fn(),
   revalidatePath: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({ db }));
-vi.mock("@/lib/auth", () => ({
-  getAuthUserId,
-}));
+vi.mock("@/lib/workspace-access", () => ({ requireCurrentWorkspaceAccess }));
 vi.mock("next/cache", () => ({
   revalidatePath,
 }));
@@ -29,10 +25,14 @@ import { addKnowledgeRule, updateServiceArea } from "@/actions/knowledge-actions
 describe("knowledge-actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    getAuthUserId.mockResolvedValue("user_1");
-    db.user.findUnique.mockResolvedValue({ workspaceId: "ws_1" });
+    requireCurrentWorkspaceAccess.mockResolvedValue({
+      id: "app_user_1",
+      role: "OWNER",
+      workspaceId: "ws_1",
+    });
     db.businessKnowledge.create.mockResolvedValue({ id: "rule_1" });
     db.businessProfile.update.mockResolvedValue({});
+    db.businessProfile.upsert.mockResolvedValue({});
   });
 
   it("revalidates both the legacy and canonical settings pages after adding knowledge", async () => {
@@ -43,11 +43,19 @@ describe("knowledge-actions", () => {
 
     expect(revalidatePath).toHaveBeenCalledWith("/crm/settings/knowledge");
     expect(revalidatePath).toHaveBeenCalledWith("/crm/settings/my-business");
+    expect(db.businessKnowledge.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ workspaceId: "ws_1" }),
+    });
   });
 
   it("revalidates both settings paths after updating service area", async () => {
     await expect(updateServiceArea(25, ["Parramatta"])).resolves.toEqual({ success: true });
 
+    expect(db.businessProfile.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId: "app_user_1" },
+      }),
+    );
     expect(revalidatePath).toHaveBeenCalledWith("/crm/settings/knowledge");
     expect(revalidatePath).toHaveBeenCalledWith("/crm/settings/my-business");
   });

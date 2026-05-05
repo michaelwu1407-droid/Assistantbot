@@ -11,6 +11,21 @@ type WorkspaceProvisioningStatus =
   | "already_provisioned"
   | "untracked";
 
+type ProvisioningWorkspaceRow = {
+  id: string;
+  name: string;
+  updatedAt: Date;
+  twilioPhoneNumber: string | null;
+  inboundEmail: string | null;
+  ownerId: string | null;
+  settings: unknown;
+  _count: {
+    contacts: number;
+    deals: number;
+    chatMessages: number;
+  };
+};
+
 export type ProvisioningReadinessIssue = {
   workspaceId: string;
   workspaceName: string;
@@ -52,10 +67,26 @@ function readNumber(value: unknown) {
 }
 
 function deriveProvisioningStatus(
-  settings: Record<string, unknown>,
-  twilioPhoneNumber: string | null,
+  row: ProvisioningWorkspaceRow,
+  ownerWorkspaceId: string | null,
 ): WorkspaceProvisioningStatus {
+  const settings = asObject(row.settings);
   const rawStatus = readString(settings.onboardingProvisioningStatus);
+  const noProvisionedChannels = !row.twilioPhoneNumber && !row.inboundEmail;
+  const noWorkspaceData =
+    row._count.contacts === 0 &&
+    row._count.deals === 0 &&
+    row._count.chatMessages === 0;
+  const orphanedOwner = ownerWorkspaceId !== null && ownerWorkspaceId !== row.id;
+  const staleFailedAttempt =
+    rawStatus === "failed" &&
+    orphanedOwner &&
+    noProvisionedChannels &&
+    noWorkspaceData;
+
+  if (staleFailedAttempt) {
+    return "untracked";
+  }
 
   if (
     rawStatus === "not_requested" ||
@@ -69,20 +100,16 @@ function deriveProvisioningStatus(
     return rawStatus;
   }
 
-  if (twilioPhoneNumber) return "provisioned";
+  if (row.twilioPhoneNumber) return "provisioned";
   if (settings.provisionPhoneNumberRequested === true) return "requested";
   return "untracked";
 }
 
-function buildIssue(row: {
-  id: string;
-  name: string;
-  updatedAt: Date;
-  twilioPhoneNumber: string | null;
-  settings: unknown;
-}): ProvisioningReadinessIssue | null {
+function buildIssue(
+  row: ProvisioningWorkspaceRow,
+  provisioningStatus: WorkspaceProvisioningStatus,
+): ProvisioningReadinessIssue | null {
   const settings = asObject(row.settings);
-  const provisioningStatus = deriveProvisioningStatus(settings, row.twilioPhoneNumber);
   if (!["requested", "provisioning", "failed", "blocked_duplicate"].includes(provisioningStatus)) {
     return null;
   }
@@ -109,12 +136,38 @@ export async function getProvisioningReadinessSummary(options?: {
     select: {
       id: true,
       name: true,
+      ownerId: true,
+      inboundEmail: true,
       twilioPhoneNumber: true,
       updatedAt: true,
       settings: true,
+      _count: {
+        select: {
+          contacts: true,
+          deals: true,
+          chatMessages: true,
+        },
+      },
     },
     orderBy: { updatedAt: "desc" },
   });
+
+  const ownerIds = Array.from(
+    new Set(workspaces.map((workspace) => workspace.ownerId).filter((ownerId): ownerId is string => Boolean(ownerId))),
+  );
+
+  const owners =
+    ownerIds.length === 0
+      ? []
+      : await db.user.findMany({
+          where: { id: { in: ownerIds } },
+          select: {
+            id: true,
+            workspaceId: true,
+          },
+        });
+
+  const ownerWorkspaceById = new Map(owners.map((owner) => [owner.id, owner.workspaceId ?? null]));
 
   const counts: ProvisioningReadiness["counts"] = {
     not_requested: 0,
@@ -129,10 +182,10 @@ export async function getProvisioningReadinessSummary(options?: {
 
   const issues = workspaces
     .map((workspace) => {
-      const settings = asObject(workspace.settings);
-      const provisioningStatus = deriveProvisioningStatus(settings, workspace.twilioPhoneNumber);
+      const ownerWorkspaceId = workspace.ownerId ? ownerWorkspaceById.get(workspace.ownerId) ?? null : null;
+      const provisioningStatus = deriveProvisioningStatus(workspace, ownerWorkspaceId);
       counts[provisioningStatus] += 1;
-      return buildIssue(workspace);
+      return buildIssue(workspace, provisioningStatus);
     })
     .filter((issue): issue is ProvisioningReadinessIssue => Boolean(issue))
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));

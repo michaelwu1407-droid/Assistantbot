@@ -383,12 +383,14 @@ vi.mock("@/lib/ai/tools", () => ({
   getAgentToolsForIntent: hoisted.getAgentToolsForIntent,
 }));
 
+const chatActionsPromise = import("@/actions/chat-actions");
+
 import { POST } from "@/app/api/chat/route";
 
 describe("integration: chat agent CRM mutation flow", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
+    vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-04-02T11:00:00.000Z"));
 
     hoisted.store.contacts = [];
@@ -427,7 +429,7 @@ describe("integration: chat agent CRM mutation flow", () => {
     hoisted.getAttentionSignalsForDeal.mockReturnValue([]);
     hoisted.rateLimit.mockResolvedValue({ allowed: true, retryAfterMs: 0 });
     hoisted.preClassify.mockReturnValue({
-      intent: "job_management",
+      intent: "crm_action",
       confidence: 0.95,
       contextHints: [],
       suggestedTools: ["createDeal"],
@@ -467,7 +469,7 @@ describe("integration: chat agent CRM mutation flow", () => {
     hoisted.getAgentToolsForIntent.mockImplementation((workspaceId: string) => ({
       createDeal: {
         execute: async (params: { title: string; company?: string; value?: number }) => {
-          const { runCreateDeal } = await import("@/actions/chat-actions");
+          const { runCreateDeal } = await chatActionsPromise;
           return runCreateDeal(workspaceId, params);
         },
       },
@@ -680,7 +682,7 @@ describe("integration: chat agent CRM mutation flow", () => {
       expect.objectContaining({ agentMode: "EXECUTE" }),
       "user_1",
       expect.objectContaining({
-        intent: "job_management",
+        intent: "crm_action",
         suggestedTools: ["createDeal"],
       }),
     );

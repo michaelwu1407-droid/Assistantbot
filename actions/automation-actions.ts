@@ -46,7 +46,7 @@ export interface TriggerConfig {
 }
 
 export interface ActionConfig {
-  type: "notify" | "email" | "create_task" | "move_stage" | "send_sms";
+  type: "notify" | "email" | "create_task" | "move_stage" | "send_sms" | "outbound_call";
   channel?: string;
   template?: string;
   message?: string;
@@ -64,7 +64,7 @@ const CreateAutomationSchema = z.object({
     stage: z.string().optional(),
   }),
   action: z.object({
-    type: z.enum(["notify", "email", "create_task", "move_stage", "send_sms"]),
+    type: z.enum(["notify", "email", "create_task", "move_stage", "send_sms", "outbound_call"]),
     channel: z.string().optional(),
     template: z.string().optional(),
     message: z.string().optional(),
@@ -435,7 +435,36 @@ export async function evaluateAutomations(
             console.error(`[Automation] Failed to move stage for ${automation.name}:`, error);
           }
         }
-        // 5. Send SMS
+        // 5. Place outbound call (Tracey calls the contact)
+        if (action.type === "outbound_call") {
+          try {
+            const contact = event.contactId
+              ? await db.contact.findUnique({ where: { id: event.contactId }, select: { phone: true, name: true } })
+              : event.dealId
+              ? await db.deal.findUnique({ where: { id: event.dealId }, include: { contact: { select: { phone: true, name: true } } } }).then((d) => d?.contact)
+              : null;
+
+            const phone = contact?.phone;
+            if (!phone) {
+              console.log(`[Automation] Skipped outbound call for ${automation.name}: no phone number on contact`);
+              continue;
+            }
+
+            const { initiateOutboundCall } = await import("@/lib/outbound-call");
+            await initiateOutboundCall({
+              workspaceId,
+              contactPhone: phone,
+              contactName: contact?.name || undefined,
+              dealId: event.dealId,
+              reason: action.message || "New lead follow-up",
+            });
+            console.log(`[Automation] Outbound call placed: ${automation.name} → ${phone}`);
+          } catch (error) {
+            console.error(`[Automation] Failed to place outbound call for ${automation.name}:`, error);
+          }
+        }
+
+        // 6. Send SMS
         if (action.type === "send_sms") {
           try {
             const contact = event.contactId

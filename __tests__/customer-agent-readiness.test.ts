@@ -16,6 +16,14 @@ const {
   getInboundLeadEmailReadiness: vi.fn(),
 }));
 
+const { db } = vi.hoisted(() => ({
+  db: {
+    webhookEvent: {
+      findMany: vi.fn(),
+    },
+  },
+}));
+
 vi.mock("@/lib/twilio-drift", () => ({
   auditTwilioVoiceRouting,
   auditTwilioMessagingRouting,
@@ -38,9 +46,28 @@ vi.mock("@/lib/inbound-lead-email-readiness", () => ({
   getInboundLeadEmailReadiness,
 }));
 
+vi.mock("@/lib/db", () => ({
+  db,
+}));
+
 import { getCustomerAgentReadiness } from "@/lib/customer-agent-readiness";
 
 const originalEnv = { ...process.env };
+
+function createVoiceLatencyHealth() {
+  return {
+    status: "healthy" as const,
+    summary: "latency ready",
+    warnings: [],
+    lookbackMinutes: 60,
+    scopes: [],
+    proof: {
+      status: "healthy" as const,
+      summary: "latency proof ready",
+      surfaces: [],
+    },
+  };
+}
 
 function createVoiceFleetHealth() {
   return {
@@ -95,6 +122,7 @@ describe("getCustomerAgentReadiness", () => {
       ready: true,
       domain: "leads.example.com",
       issues: [],
+      warnings: [],
       dnsMxHosts: ["inbound-smtp.ap-southeast-2.amazonaws.com"],
       dnsReady: true,
       resendReceivingEnabled: true,
@@ -108,6 +136,7 @@ describe("getCustomerAgentReadiness", () => {
       lastInboundEmailSuccessAt: null,
       lastInboundEmailFailureAt: null,
     });
+    db.webhookEvent.findMany.mockResolvedValue([]);
     process.env = {
       ...originalEnv,
       GEMINI_API_KEY: "gemini-key",
@@ -159,13 +188,7 @@ describe("getCustomerAgentReadiness", () => {
         latestHeartbeat: null,
       },
       voiceFleet: createVoiceFleetHealth(),
-      voiceLatency: {
-        status: "healthy",
-        summary: "latency ready",
-        warnings: [],
-        lookbackMinutes: 60,
-        scopes: [],
-      },
+      voiceLatency: createVoiceLatencyHealth(),
       livekitSip: {
         status: "healthy",
         summary: "livekit sip ready",
@@ -202,6 +225,78 @@ describe("getCustomerAgentReadiness", () => {
     expect(getVoiceLatencyHealth).not.toHaveBeenCalled();
   });
 
+  it("degrades whatsapp readiness when recent assistant sends are failing", async () => {
+    db.webhookEvent.findMany.mockResolvedValue([
+      {
+        eventType: "whatsapp.outbound",
+        status: "error",
+        payload: {
+          error: "Twilio could not find a Channel with the specified From address",
+        },
+        createdAt: new Date("2026-04-08T09:09:04.521Z"),
+      },
+    ]);
+
+    const readiness = await getCustomerAgentReadiness({
+      twilioVoiceRouting: {
+        status: "healthy",
+        summary: "voice ready",
+        expectedVoiceGatewayUrl: "https://app.example.com/api/webhooks/twilio-voice-gateway",
+        numbers: [],
+        warnings: [],
+        managedNumberCount: 0,
+        orphanedNumbers: [],
+      },
+      twilioMessagingRouting: {
+        status: "healthy",
+        summary: "messaging ready",
+        expectedSmsWebhookUrl: "https://app.example.com/api/twilio/webhook",
+        numbers: [],
+        warnings: [],
+        managedNumberCount: 0,
+        orphanedNumbers: [],
+      },
+      voiceWorker: {
+        status: "healthy",
+        summary: "worker ready",
+        warnings: [],
+        expectedFingerprint: "va_test",
+        latestHeartbeat: null,
+      },
+      voiceFleet: createVoiceFleetHealth(),
+      voiceLatency: createVoiceLatencyHealth(),
+      livekitSip: {
+        status: "healthy",
+        summary: "livekit sip ready",
+        warnings: [],
+        checkedAt: "2026-03-12T00:00:00.000Z",
+        livekitUrl: "https://livekit.example.com",
+        inboundTrunkCount: 1,
+        outboundTrunkCount: 1,
+        dispatchRuleCount: 1,
+        expectedInboundNumbers: ["+15551234567"],
+        missingInboundNumbers: [],
+        inboundTrunks: [],
+        outboundTrunks: [],
+        demoOutbound: {
+          status: "healthy",
+          summary: "outbound ready",
+          warnings: [],
+          configuredTrunkId: "sip-trunk",
+          resolvedTrunkId: "sip-trunk",
+          configuredTrunkMatched: true,
+          callerNumber: "+15551234567",
+        },
+        dispatchRules: [],
+      },
+    });
+
+    expect(readiness.checks.whatsappAssistant.status).toBe("degraded");
+    expect(readiness.checks.whatsappAssistant.warnings).toContain(
+      "Twilio could not find a Channel with the specified From address",
+    );
+  });
+
   it("treats inbound lead email DNS drift as degraded instead of unhealthy", async () => {
     getInboundLeadEmailReadiness.mockResolvedValue({
       ready: false,
@@ -210,6 +305,7 @@ describe("getCustomerAgentReadiness", () => {
         "Inbound domain inbound.earlymark.ai has no valid MX record (queryMx ENOTFOUND inbound.earlymark.ai).",
         "Resend inbound receiving record for inbound.earlymark.ai is not verified.",
       ],
+      warnings: [],
       dnsMxHosts: [],
       dnsReady: false,
       resendReceivingEnabled: false,
@@ -251,13 +347,7 @@ describe("getCustomerAgentReadiness", () => {
         latestHeartbeat: null,
       },
       voiceFleet: createVoiceFleetHealth(),
-      voiceLatency: {
-        status: "healthy",
-        summary: "latency ready",
-        warnings: [],
-        lookbackMinutes: 60,
-        scopes: [],
-      },
+      voiceLatency: createVoiceLatencyHealth(),
       livekitSip: {
         status: "healthy",
         summary: "livekit sip ready",

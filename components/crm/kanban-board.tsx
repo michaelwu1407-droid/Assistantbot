@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import {
   DndContext,
   DragOverlay,
@@ -353,6 +354,7 @@ export function KanbanBoard({
   const [selectionMode, setSelectionMode] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [pendingMoveToScheduled, setPendingMoveToScheduled] = useState<{ dealId: string; dealTitle: string } | null>(null)
+  const [pendingScheduleDate, setPendingScheduleDate] = useState<{ dealId: string; dealTitle: string } | null>(null)
   const [assignModalUserId, setAssignModalUserId] = useState<string>("")
   const [assignModalSubmitting, setAssignModalSubmitting] = useState(false)
   const hasDragged = useRef(false)
@@ -846,6 +848,7 @@ export function KanbanBoard({
       if (singleOriginalStage) {
         setDeals((prev) => prev.map((d) => (d.id === draggedId ? { ...d, stage: singleOriginalStage } : d)))
       }
+      setPendingScheduleDate({ dealId: draggedId, dealTitle: draggedDeal.title })
       toast.error("Set a scheduled date on the job before moving it here.")
       setTimeout(() => {
         hasDragged.current = false
@@ -1204,9 +1207,16 @@ export function KanbanBoard({
               </Select>
             </div>
           ) : (
-            <p className="text-sm text-slate-500 py-2">
-              Add team members in Settings → Team first, then you can assign them to jobs.
-            </p>
+            <div className="grid gap-3 py-2">
+              <p className="text-sm text-slate-500">
+                Add team members in Settings - Team first, then you can assign them to jobs.
+              </p>
+              <Button asChild variant="outline" className="justify-start">
+                <Link href="/crm/team">
+                  Open Team Settings
+                </Link>
+              </Button>
+            </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setPendingMoveToScheduled(null)} disabled={assignModalSubmitting}>
@@ -1215,6 +1225,31 @@ export function KanbanBoard({
             {teamMembers.length > 0 && (
               <Button onClick={handleAssignAndMoveToScheduled} disabled={assignModalSubmitting || !assignModalUserId}>
                 {assignModalSubmitting ? "Saving…" : "Assign & move to Scheduled"}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!pendingScheduleDate} onOpenChange={(open) => !open && setPendingScheduleDate(null)}>
+        <DialogContent className="rounded-[18px] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Set a scheduled date first</DialogTitle>
+            <DialogDescription>
+              {pendingScheduleDate
+                ? `"${pendingScheduleDate.dealTitle}" needs a scheduled date before it can move to Scheduled.`
+                : "This job needs a scheduled date before it can move to Scheduled."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPendingScheduleDate(null)}>
+              Cancel
+            </Button>
+            {pendingScheduleDate && (
+              <Button asChild>
+                <Link href={`/crm/deals/${pendingScheduleDate.dealId}/edit`}>
+                  Open Job
+                </Link>
               </Button>
             )}
           </DialogFooter>

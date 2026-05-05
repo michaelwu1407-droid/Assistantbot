@@ -33,6 +33,8 @@ vi.mock("@/lib/workspace-access", () => ({
   requireContactInCurrentWorkspace: hoisted.requireContactInCurrentWorkspace,
 }));
 
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+
 import { createContact, deleteContacts, updateContact, updateContactMetadata } from "@/actions/contact-actions";
 
 describe("contact-actions", () => {

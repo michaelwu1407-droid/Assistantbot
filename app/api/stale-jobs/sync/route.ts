@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
         ? (body as { workspaceId: string }).workspaceId
         : undefined
 
-    const result = await scanAndUpdateStaleJobs(workspaceId)
+    const result = await scanAndUpdateStaleJobs(workspaceId, { system: true })
 
     if (!result.success) {
       return NextResponse.json(
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const workspaceId = searchParams.get("workspaceId") || undefined
 
-    const result = await scanAndUpdateStaleJobs(workspaceId)
+    const result = await scanAndUpdateStaleJobs(workspaceId, { system: true })
 
     if (!result.success) {
       return NextResponse.json(

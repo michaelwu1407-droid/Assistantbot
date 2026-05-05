@@ -457,7 +457,12 @@ describe("deal-actions", () => {
       assignedToId: "worker_2",
     });
 
-    expect(result).toEqual({ success: true });
+    expect(result).toEqual({
+      success: true,
+      confirmationSent: true,
+      reassigned: true,
+      scheduledTimeChanged: true,
+    });
     expect(hoisted.db.deal.update).toHaveBeenCalledWith({
       where: { id: "deal_1" },
       data: {

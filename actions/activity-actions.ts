@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
 import { runIdempotent } from "@/lib/idempotency";
+import { revalidatePath } from "next/cache";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -20,6 +21,14 @@ export interface ActivityView {
   contactPhone?: string | null;
   contactEmail?: string | null;
   content?: string | null;
+  channel?: "call" | "email" | "sms" | "system" | "note" | "task" | "meeting";
+  direction?: "inbound" | "outbound" | "system";
+  preview?: string | null;
+  body?: string | null;
+  transcript?: string | null;
+  summary?: string | null;
+  subject?: string | null;
+  durationLabel?: string | null;
 }
 
 type VoiceCallActivityRow = {
@@ -31,12 +40,22 @@ type VoiceCallActivityRow = {
   transcriptText: string | null;
   summary: string | null;
   startedAt: Date;
+  endedAt: Date | null;
   contactId: string | null;
   contact?: {
     name: string | null;
     phone: string | null;
     email: string | null;
   } | null;
+};
+
+type ChatMessageActivityRow = {
+  id: string;
+  role: string;
+  content: string;
+  metadata: unknown;
+  workspaceId: string;
+  createdAt: Date;
 };
 
 // ─── Validation ─────────────────────────────────────────────────────
@@ -85,6 +104,47 @@ function formatVoiceCallTitle(callType: string) {
   }
 }
 
+function formatDurationLabel(startedAt: Date, endedAt?: Date | null) {
+  if (!endedAt) return null;
+  const seconds = Math.max(0, Math.round((endedAt.getTime() - startedAt.getTime()) / 1000));
+  if (seconds <= 0) return null;
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+}
+
+function inferVoiceDirection(callType: string): "inbound" | "outbound" {
+  return (callType || "").toLowerCase().includes("outbound") ? "outbound" : "inbound";
+}
+
+function readMetadataString(metadata: unknown, key: string): string | null {
+  if (!metadata || typeof metadata !== "object") return null;
+  const value = (metadata as Record<string, unknown>)[key];
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+function inferMessageDirection(message: ChatMessageActivityRow): "inbound" | "outbound" | "system" {
+  const explicit = readMetadataString(message.metadata, "direction");
+  if (explicit === "inbound" || explicit === "outbound" || explicit === "system") return explicit;
+  if (message.role === "assistant") return "outbound";
+  if (message.role === "system") return "system";
+  return "inbound";
+}
+
+function inferMessageChannel(message: ChatMessageActivityRow): NonNullable<ActivityView["channel"]> {
+  const channel = readMetadataString(message.metadata, "channel");
+  if (channel === "email" || channel === "sms" || channel === "call" || channel === "system") return channel;
+  return "note";
+}
+
+function formatMessageTitle(channel: NonNullable<ActivityView["channel"]>, direction: ActivityView["direction"]) {
+  const channelLabel = channel === "sms" ? "SMS" : channel === "email" ? "Email" : "Message";
+  if (direction === "outbound") return `Outbound ${channelLabel}`;
+  if (direction === "system") return `${channelLabel} system update`;
+  return `Inbound ${channelLabel}`;
+}
+
 function mapVoiceCallToActivity(call: VoiceCallActivityRow): ActivityView {
   const transcriptSnippet = snippet(call.transcriptText, 220);
   const summary = snippet(call.summary, 140);
@@ -107,6 +167,49 @@ function mapVoiceCallToActivity(call: VoiceCallActivityRow): ActivityView {
     contactName: call.contact?.name || call.callerName || call.businessName || undefined,
     contactPhone: call.contact?.phone || call.callerPhone || undefined,
     contactEmail: call.contact?.email || undefined,
+    channel: "call",
+    direction: inferVoiceDirection(call.callType),
+    preview: summary || transcriptSnippet,
+    body: transcriptSnippet || summary,
+    transcript: call.transcriptText,
+    summary: call.summary,
+    subject: null,
+    durationLabel: formatDurationLabel(call.startedAt, call.endedAt),
+  };
+}
+
+function mapChatMessageToActivity(
+  message: ChatMessageActivityRow,
+  contact?: { id: string; name: string | null; phone: string | null; email: string | null } | null,
+): ActivityView {
+  const channel = inferMessageChannel(message);
+  const direction = inferMessageDirection(message);
+  const contactId = readMetadataString(message.metadata, "contactId") ?? undefined;
+  const dealId = readMetadataString(message.metadata, "dealId") ?? undefined;
+  const subject = readMetadataString(message.metadata, "subject");
+  const preview = snippet(message.content, 180);
+
+  return {
+    id: `chat-message:${message.id}`,
+    type: channel === "email" ? "email" : channel === "sms" ? "sms" : "note",
+    title: formatMessageTitle(channel, direction),
+    description: subject,
+    content: message.content,
+    time: relativeTime(message.createdAt),
+    createdAt: message.createdAt,
+    dealId,
+    contactId,
+    contactName: contact?.name ?? undefined,
+    contactPhone: contact?.phone ?? undefined,
+    contactEmail: contact?.email ?? undefined,
+    channel,
+    direction,
+    preview,
+    body: message.content,
+    transcript: null,
+    summary: subject,
+    subject,
+    durationLabel: null,
   };
 }
 
@@ -171,6 +274,14 @@ async function fetchVoicemailActivities(workspaceId: string, limit: number): Pro
           contactName: contact?.name || undefined,
           contactPhone: contact?.phone || callerPhone || undefined,
           contactEmail: contact?.email || undefined,
+          channel: "call",
+          direction: "inbound",
+          preview: transcription || `${duration} voicemail`,
+          body: transcription,
+          transcript: p.transcriptionText || null,
+          summary: `${duration} voicemail from ${contact?.name || callerPhone || "unknown"}`,
+          subject: null,
+          durationLabel: duration || null,
         } satisfies ActivityView;
       })
     );
@@ -254,6 +365,7 @@ export async function getActivities(options?: {
             transcriptText: true,
             summary: true,
             startedAt: true,
+            endedAt: true,
             contactId: true,
             contact: {
               select: {
@@ -266,13 +378,87 @@ export async function getActivities(options?: {
         })
       : [];
 
+    const chatMessageWhere: Record<string, unknown> | null =
+      options?.contactId
+        ? {
+            ...(options.workspaceId ? { workspaceId: options.workspaceId } : {}),
+            metadata: { path: ["contactId"], equals: options.contactId },
+          }
+        : dealContext?.contactId
+          ? {
+              workspaceId: dealContext.workspaceId,
+              metadata: { path: ["contactId"], equals: dealContext.contactId },
+            }
+          : options?.workspaceId
+            ? { workspaceId: options.workspaceId }
+            : null;
+
+    const chatMessages = chatMessageWhere
+      ? await db.chatMessage.findMany({
+          where: {
+            ...chatMessageWhere,
+            OR: [
+              { metadata: { path: ["channel"], equals: "sms" } },
+              { metadata: { path: ["channel"], equals: "email" } },
+            ],
+          },
+          orderBy: { createdAt: "desc" },
+          take: options?.limit ?? 20,
+          select: {
+            id: true,
+            role: true,
+            content: true,
+            metadata: true,
+            workspaceId: true,
+            createdAt: true,
+          },
+        })
+      : [];
+
+    const chatContactIds = Array.from(
+      new Set(
+        chatMessages
+          .map((message) => readMetadataString(message.metadata, "contactId"))
+          .filter((id): id is string => Boolean(id)),
+      ),
+    );
+    const chatContacts = chatContactIds.length
+      ? await db.contact.findMany({
+          where: { id: { in: chatContactIds } },
+          select: { id: true, name: true, phone: true, email: true },
+        })
+      : [];
+    const chatContactById = new Map(chatContacts.map((contact) => [contact.id, contact]));
+
     const activityRows = activities.map((a) => {
       const contactName = a.contact?.name ?? a.deal?.contact?.name ?? null;
       const contactPhone = a.contact?.phone ?? a.deal?.contact?.phone ?? null;
       const contactEmail = a.contact?.email ?? a.deal?.contact?.email ?? null;
+      const normalizedType = a.type.toLowerCase();
+      const normalizedTitle = (a.title || "").toLowerCase();
+      const inferredChannel: NonNullable<ActivityView["channel"]> =
+        normalizedType === "email"
+          ? "email"
+          : normalizedType === "call"
+            ? "call"
+            : normalizedTitle.includes("sms")
+              ? "sms"
+              : normalizedType === "task"
+                ? "task"
+                : normalizedType === "meeting"
+                  ? "meeting"
+                  : "note";
+      const inferredDirection: NonNullable<ActivityView["direction"]> =
+        normalizedTitle.includes("reply") ||
+        normalizedTitle.includes("outbound") ||
+        normalizedTitle.includes("sent")
+          ? "outbound"
+          : inferredChannel === "note" && !a.content
+            ? "system"
+            : "inbound";
       return {
         id: a.id,
-        type: a.type.toLowerCase(),
+        type: normalizedType,
         title: a.title,
         description: a.description,
         content: a.content,
@@ -283,6 +469,14 @@ export async function getActivities(options?: {
         contactName: contactName ?? undefined,
         contactPhone,
         contactEmail,
+        channel: inferredChannel,
+        direction: inferredDirection,
+        preview: snippet(a.content || a.description || a.title, 180),
+        body: a.content,
+        transcript: null,
+        summary: a.description,
+        subject: inferredChannel === "email" ? a.description || a.title : null,
+        durationLabel: null,
       };
     });
 
@@ -290,7 +484,14 @@ export async function getActivities(options?: {
       ? await fetchVoicemailActivities(options.workspaceId, options.limit ?? 20)
       : [];
 
-    return [...activityRows, ...voiceCalls.map(mapVoiceCallToActivity), ...voicemailRows]
+    const chatMessageRows = chatMessages.map((message) =>
+      mapChatMessageToActivity(
+        message,
+        chatContactById.get(readMetadataString(message.metadata, "contactId") ?? "") ?? null,
+      ),
+    );
+
+    return [...activityRows, ...voiceCalls.map(mapVoiceCallToActivity), ...voicemailRows, ...chatMessageRows]
       .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())
       .slice(0, options?.limit ?? 20);
   } catch (error) {
@@ -340,6 +541,9 @@ export async function logActivity(
   if (!res.result?.activityId) {
     return { success: false, error: "Idempotent activity logging returned no result" };
   }
+
+  if (parsed.data.dealId) revalidatePath(`/crm/deals/${parsed.data.dealId}`);
+  if (parsed.data.contactId) revalidatePath(`/crm/contacts/${parsed.data.contactId}`);
 
   return { success: true, activityId: res.result.activityId };
 }
@@ -454,6 +658,9 @@ export async function appendTicketNote(ticketId: string, noteContent: string) {
       contactId: ticket.contactId ?? undefined,
     },
   });
+
+  revalidatePath(`/crm/deals/${ticket.id}`);
+  if (ticket.contactId) revalidatePath(`/crm/contacts/${ticket.contactId}`);
 
   return `Note added to ticket #${ticket.id}.`;
 }

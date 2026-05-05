@@ -1,6 +1,15 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const e2eDatabaseUrl = "postgresql://postgres:postgres@127.0.0.1:54329/assistantbot_e2e?schema=public";
+const baseURL = process.env.PLAYWRIGHT_TEST_BASE_URL || "http://localhost:3000";
+const vercelBypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+const extraHTTPHeaders =
+  vercelBypassSecret
+    ? {
+        "x-vercel-protection-bypass": vercelBypassSecret,
+        "x-vercel-set-bypass-cookie": "true",
+      }
+    : undefined;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -10,7 +19,8 @@ export default defineConfig({
   reporter: [["list"], ["html", { open: "never" }]],
   globalSetup: "./e2e/global-setup.ts",
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL,
+    extraHTTPHeaders,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
@@ -25,7 +35,7 @@ export default defineConfig({
     command: "npx next dev --port 3000",
     url: "http://localhost:3000",
     timeout: 120 * 1000,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: !process.env.CI || baseURL !== "http://localhost:3000",
     env: {
       E2E_AUTH_ENABLED: "1",
       E2E_SKIP_DEMO_SEEDS: "1",

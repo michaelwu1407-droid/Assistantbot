@@ -157,7 +157,7 @@ function normalizeScheduledAtInput(
     return null;
   }
 
-  const parsed =
+  const parsed: Date | null =
     typeof value === "string" && isLocalDateTimeString(value)
       ? parseDateTimeLocalInTimezone(value, resolveWorkspaceTimezone(workspaceTimezone))
       : value instanceof Date
@@ -166,7 +166,6 @@ function normalizeScheduledAtInput(
   if (!parsed) {
     return null;
   }
-
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
@@ -517,6 +516,12 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
 
   await fireBookingConfirmation(deal.id, null, prismaStage as PrismaStage);
 
+  revalidatePath("/crm/dashboard");
+  revalidatePath("/crm/deals");
+  revalidatePath("/crm/schedule");
+  revalidatePath("/crm/map");
+  revalidatePath(`/crm/deals/${deal.id}`);
+
   return { success: true, dealId: deal.id };
 }
 
@@ -669,6 +674,9 @@ export async function updateDealStage(dealId: string, stage: string) {
         });
         revalidatePath("/crm/dashboard");
         revalidatePath("/crm/deals");
+        revalidatePath("/crm/schedule");
+        revalidatePath("/crm/map");
+        revalidatePath(`/crm/deals/${parsed.data.dealId}`);
         return { success: true };
       }
     }
@@ -763,6 +771,11 @@ export async function updateDealStage(dealId: string, stage: string) {
     } catch {
       // Non-critical — don't block stage change
     }
+    revalidatePath("/crm/dashboard");
+    revalidatePath("/crm/deals");
+    revalidatePath("/crm/schedule");
+    revalidatePath("/crm/map");
+    revalidatePath(`/crm/deals/${parsed.data.dealId}`);
 
     return { success: true };
   } catch (err) {
@@ -922,6 +935,8 @@ export async function approveCompletion(dealId: string): Promise<{ success: bool
 
     revalidatePath("/crm/dashboard");
     revalidatePath("/crm/deals");
+    revalidatePath("/crm/schedule");
+    revalidatePath(`/crm/deals/${dealId}`);
     return { success: true };
   } catch (err) {
     logger.error("approveCompletion failed", { component: "deal-actions", action: "approveCompletion", dealId }, err as Error);
@@ -1002,6 +1017,7 @@ export async function rejectCompletion(dealId: string, reason?: string): Promise
 
     revalidatePath("/crm/dashboard");
     revalidatePath("/crm/deals");
+    revalidatePath(`/crm/deals/${dealId}`);
     return { success: true };
   } catch (err) {
     logger.error("rejectCompletion failed", { component: "deal-actions", action: "rejectCompletion", dealId }, err as Error);
@@ -1054,6 +1070,7 @@ export async function approveDraft(dealId: string): Promise<{ success: boolean; 
 
     revalidatePath("/crm/dashboard");
     revalidatePath("/crm/deals");
+    revalidatePath(`/crm/deals/${dealId}`);
     return { success: true };
   } catch (err) {
     logger.error("approveDraft failed", { component: "deal-actions", action: "approveDraft", dealId }, err as Error);
@@ -1118,6 +1135,7 @@ export async function rejectDraft(dealId: string, reason?: string): Promise<{ su
 
     revalidatePath("/crm/dashboard");
     revalidatePath("/crm/deals");
+    revalidatePath(`/crm/deals/${dealId}`);
     return { success: true };
   } catch (err) {
     logger.error("rejectDraft failed", { component: "deal-actions", action: "rejectDraft", dealId }, err as Error);
@@ -1176,6 +1194,12 @@ export async function updateDealMetadata(
       ...(userId && { userId }),
     },
   });
+
+  revalidatePath("/crm/dashboard");
+  revalidatePath("/crm/deals");
+  revalidatePath("/crm/schedule");
+  revalidatePath("/crm/map");
+  revalidatePath(`/crm/deals/${dealId}`);
 
   return { success: true };
 }
@@ -1381,6 +1405,11 @@ export async function updateDeal(
     }
   }
 
+  revalidatePath("/crm/dashboard");
+  revalidatePath("/crm/schedule");
+  revalidatePath("/crm/map");
+  revalidatePath("/crm/deals");
+  revalidatePath(`/crm/deals/${dealId}`);
   return { success: true };
 }
 
@@ -1541,7 +1570,13 @@ export async function rescheduleDeal(
     scheduledAt: Date | string;
     assignedToId?: string | null;
   }
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{
+  success: boolean;
+  error?: string;
+  confirmationSent?: boolean;
+  reassigned?: boolean;
+  scheduledTimeChanged?: boolean;
+}> {
   const { actor, deal } = await requireDealInCurrentWorkspace(dealId);
   if (!deal) return { success: false, error: "Deal not found" };
 
@@ -1632,7 +1667,8 @@ export async function rescheduleDeal(
     });
   });
 
-  if (scheduledTimeChanged && deal.stage === "SCHEDULED") {
+  const confirmationSent = scheduledTimeChanged && deal.stage === "SCHEDULED";
+  if (confirmationSent) {
     await fireRescheduleConfirmation(dealId);
   }
 
@@ -1641,7 +1677,12 @@ export async function rescheduleDeal(
   revalidatePath("/crm/schedule");
   revalidatePath("/crm/map");
   revalidatePath(`/crm/deals/${dealId}`);
-  return { success: true };
+  return {
+    success: true,
+    confirmationSent,
+    reassigned: nextAssignedToId !== deal.assignedToId,
+    scheduledTimeChanged,
+  };
 }
 
 /**

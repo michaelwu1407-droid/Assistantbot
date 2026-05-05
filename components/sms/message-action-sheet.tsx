@@ -30,6 +30,8 @@ interface Preview {
   channel: "sms" | "email";
   messageBody: string;
   isActive: boolean;
+  canSend?: boolean;
+  unavailableReason?: string | null;
 }
 
 export function MessageActionSheet({
@@ -53,6 +55,10 @@ export function MessageActionSheet({
 
   const handleSend = async () => {
     if (!preview) return;
+    if (preview.canSend === false) {
+      toast.error(preview.unavailableReason || "This message cannot be sent yet.");
+      return;
+    }
     setSending(true);
     try {
       const result = await sendTemplateMessage(jobId, triggerEvent);
@@ -118,6 +124,11 @@ export function MessageActionSheet({
                 This template is currently disabled. The message will still send, but consider enabling it in Settings.
               </p>
             )}
+            {preview.canSend === false && (
+              <p className="text-xs text-red-700 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                {preview.unavailableReason || "This message cannot be sent yet."}
+              </p>
+            )}
           </div>
         ) : (
           <div className="py-8 text-center text-sm text-slate-500">
@@ -135,7 +146,7 @@ export function MessageActionSheet({
           </Button>
           <Button
             onClick={handleSend}
-            disabled={sending || !preview}
+            disabled={sending || !preview || preview.canSend === false}
             className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
           >
             {sending ? (

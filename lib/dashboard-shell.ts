@@ -1,7 +1,7 @@
 import { cache } from "react";
-import { db } from "@/lib/db";
 import { getAuthUserId } from "@/lib/auth";
 import { getOrCreateWorkspace } from "@/actions/workspace-actions";
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
 import type { UserRole } from "@/lib/store";
 
 export const getDashboardShellState = cache(async () => {
@@ -10,19 +10,12 @@ export const getDashboardShellState = cache(async () => {
     return null;
   }
 
-  const [workspace, dbUser] = await Promise.all([
-    getOrCreateWorkspace(userId),
-    db.user
-      .findUnique({
-        where: { id: userId },
-        select: { role: true },
-      })
-      .catch(() => null),
-  ]);
+  const workspace = await getOrCreateWorkspace(userId);
+  const actor = await requireCurrentWorkspaceAccess().catch(() => null);
 
   return {
-    userId,
+    userId: actor?.id ?? userId,
     workspace,
-    userRole: (dbUser?.role as UserRole | undefined) || ("OWNER" as UserRole),
+    userRole: (actor?.role as UserRole | undefined) || ("TEAM_MEMBER" as UserRole),
   };
 });

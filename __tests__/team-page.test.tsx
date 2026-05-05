@@ -85,10 +85,7 @@ describe("TeamPage", () => {
     });
 
     expect(screen.getByText(/pending invites/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /open invite link/i })).toHaveAttribute(
-      "href",
-      "/invite/join?token=token_1",
-    );
+    expect(screen.getByRole("button", { name: /open invite link/i })).toBeInTheDocument();
   });
 
   it("shows link-only success copy when generating an invite link without email", async () => {

@@ -2,8 +2,14 @@ import { NextResponse } from "next/server";
 import { checkDatabaseHealth } from "@/lib/health-check";
 import { getLaunchReadiness } from "@/lib/launch-readiness";
 import { getCurrentAppReleaseInfo } from "@/lib/release-truth";
+import type { RuntimeStatus } from "@/lib/voice-fleet";
 
 export const dynamic = "force-dynamic";
+
+function maxStatus(left: RuntimeStatus, right: RuntimeStatus): RuntimeStatus {
+  const order: RuntimeStatus[] = ["healthy", "degraded", "unhealthy"];
+  return order[Math.max(order.indexOf(left), order.indexOf(right))];
+}
 
 function buildEnvironmentSummary() {
   return {
@@ -40,25 +46,55 @@ export async function GET() {
         : null;
 
     const launchStatus = launchReadiness?.status || "unhealthy";
-    const isUnhealthy = database.status === "unhealthy" || launchStatus === "unhealthy";
     const appRelease = getCurrentAppReleaseInfo();
+    const voiceLatencyProof = launchReadiness?.latency.proof || null;
+    const canaryStatusForCore: RuntimeStatus =
+      launchReadiness?.canary.status === "unhealthy" ? "unhealthy" : "healthy";
+    const voiceStatus = launchReadiness
+      ? [launchReadiness.voiceCritical.status, canaryStatusForCore, launchReadiness.latency.status].reduce<RuntimeStatus>(
+          (current, candidate) => maxStatus(current, candidate),
+          "healthy",
+        )
+      : "unhealthy";
+    const coreStatus = launchReadiness
+      ? [
+          voiceStatus,
+          launchReadiness.communications.status,
+          launchReadiness.provisioning.status,
+          launchReadiness.readiness.overallStatus,
+        ].reduce<RuntimeStatus>((current, candidate) => maxStatus(current, candidate), "healthy")
+      : "unhealthy";
+    const overallStatus = launchReadiness ? launchStatus : "unhealthy";
+    const status = database.status === "healthy" && coreStatus === "healthy" ? "ok" : "degraded";
+    const httpStatus = database.status === "unhealthy" || coreStatus === "unhealthy" ? 503 : 200;
     const summary =
       database.status === "unhealthy"
         ? database.error || "Database health check failed"
         : launchReadinessError
           ? `Launch readiness check failed: ${launchReadinessError}`
-          : launchReadiness?.summary || "Launch readiness data is unavailable.";
+          : !launchReadiness
+            ? "Launch readiness data is unavailable."
+            : overallStatus === "healthy"
+              ? launchReadiness.summary
+              : coreStatus === "healthy"
+                ? `Core voice and launch-critical services are healthy. ${launchReadiness.summary}`
+                : launchReadiness.summary;
 
     const payload = {
-      status: database.status === "healthy" && launchStatus === "healthy" ? "ok" : "degraded",
+      status,
+      coreStatus,
+      voiceStatus,
+      overallStatus,
       summary,
       timestamp: new Date().toISOString(),
       environment: buildEnvironmentSummary(),
       services: {
         database: database.status,
         launchReadiness: launchStatus,
+        launchCore: coreStatus,
         voiceCritical: launchReadiness?.voiceCritical.status || "unhealthy",
         passiveProduction: launchReadiness?.passiveProduction.status || "unhealthy",
+        voiceLatency: launchReadiness?.latency.status || "unhealthy",
         communications: launchReadiness?.communications.status || "unhealthy",
         provisioning: launchReadiness?.provisioning.status || "unhealthy",
         monitoring: launchReadiness?.monitoring.status || "unhealthy",
@@ -76,6 +112,7 @@ export async function GET() {
       voiceWorker: launchReadiness?.voiceCritical.voiceWorker || null,
       voiceFleet: launchReadiness?.voiceCritical.voiceFleet || null,
       voiceLatency: launchReadiness?.latency || null,
+      voiceLatencyProof,
       twilioVoiceRouting: launchReadiness?.voiceCritical.twilioVoiceRouting || null,
       twilioMessagingRouting: launchReadiness
         ? {
@@ -93,7 +130,7 @@ export async function GET() {
       canary: launchReadiness?.canary || null,
     };
 
-    return NextResponse.json(payload, { status: isUnhealthy ? 503 : 200 });
+    return NextResponse.json(payload, { status: httpStatus });
   } catch (error) {
     return NextResponse.json(
       {

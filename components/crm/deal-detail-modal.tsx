@@ -164,6 +164,7 @@ function DealDetailContent({
   const metadata = (deal.metadata || {}) as Record<string, unknown>
   const notes = (metadata.notes as string) || ""
   const contact = deal.contact
+  const hasSmsNumber = Boolean(contact?.phone)
   const workspaceTimezone = resolveWorkspaceTimezone(deal.workspace?.workspaceTimezone)
   const isManager = currentUserRole === "OWNER" || currentUserRole === "MANAGER"
   const isPendingApproval = deal.stage === "PENDING_COMPLETION"
@@ -296,7 +297,11 @@ function DealDetailContent({
     const message = quickMessage.trim()
     if (!message) return
     if (!deal.contactId) {
-      toast.error("No contact to message")
+      toast.error("No contact linked")
+      return
+    }
+    if (!hasSmsNumber) {
+      toast.error("No phone number on file for this customer")
       return
     }
 
@@ -308,7 +313,7 @@ function DealDetailContent({
         throw new Error(res.error || "Failed to send")
       }
       setQuickMessage("")
-      toast.success("Message sent")
+      toast.success("SMS sent")
       router.refresh()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to send")
@@ -551,6 +556,14 @@ function DealDetailContent({
                       <p className="text-xs text-slate-500">Address</p>
                       <p className="font-medium text-slate-900">{deal.address || (metadata.address as string)}</p>
                     </div>
+                  </div>
+                )}
+                {(!(deal.address || (typeof metadata.address === "string" && metadata.address)) && contact.id) && (
+                  <div className="space-y-1.5">
+                    <p className="text-xs text-red-500">No address on file. Add one in CRM before using route or map actions for this job.</p>
+                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs" asChild>
+                      <Link href={`/crm/contacts/${contact.id}/edit`}>Add address in CRM</Link>
+                    </Button>
                   </div>
                 )}
                 {!contact.phone && !contact.email && !contact.company && !deal.address && !(typeof metadata.address === "string" && metadata.address) && (
@@ -817,12 +830,22 @@ function DealDetailContent({
                 <MessageSquare className="w-4 h-4" />
                 Customer & job history
               </span>
-              <Link href={`/crm/inbox?contact=${deal.contactId}`}>
-                <Button size="sm" variant="outline" className="gap-1 text-xs">
+              {deal.contactId ? (
+                <Link href={`/crm/inbox?contact=${deal.contactId}`}>
+                  <Button size="sm" variant="outline" className="gap-1 text-xs">
+                    <MessageSquare className="w-3 h-3" />
+                    Open customer timeline
+                  </Button>
+                </Link>
+              ) : (
+                <Button size="sm" variant="outline" className="gap-1 text-xs" disabled>
                   <MessageSquare className="w-3 h-3" />
-                  Contact them
+                  No contact linked
                 </Button>
-              </Link>
+              )}
+            </div>
+            <div className="border-b border-slate-100 bg-white px-3 py-2 text-xs text-slate-500">
+              Recent activity stays here. Open the customer timeline for the full SMS, email, and call correspondence.
             </div>
             <div className="flex bg-slate-100/50 p-1 border-b border-slate-100 shrink-0" role="tablist" aria-label="Deal detail sections">
               {(["activities", "jobs", "notes"] as const).map((t) => (
@@ -878,9 +901,14 @@ function DealDetailContent({
                   <ActivityFeed contactId={deal.contactId} compact className="flex-1" />
                   {/* Direct message mini-box */}
                   <div className="p-3 border-t bg-slate-50/50 shrink-0">
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <p className="text-xs text-slate-500">
+                        Send a direct SMS from your workspace number. Open customer timeline for the full thread.
+                      </p>
+                    </div>
                     <div className="flex gap-2">
                       <Input
-                        placeholder="Send a quick update..."
+                        placeholder="Send a direct SMS..."
                         className="bg-white h-9 text-xs"
                         value={quickMessage}
                         onChange={(e) => setQuickMessage(e.target.value)}
@@ -890,19 +918,35 @@ function DealDetailContent({
                             await handleSendQuickUpdate()
                           }
                         }}
-                        disabled={sendingQuickMessage}
+                        disabled={sendingQuickMessage || !hasSmsNumber}
                       />
                       <Button
                         size="icon"
                         variant="ghost"
                         className="h-9 w-9 text-primary hover:bg-primary/10"
-                        aria-label="Send quick update"
+                        aria-label="Send direct SMS"
                         onClick={() => void handleSendQuickUpdate()}
-                        disabled={sendingQuickMessage || quickMessage.trim().length === 0}
+                        disabled={sendingQuickMessage || quickMessage.trim().length === 0 || !hasSmsNumber}
                       >
                         <MessageSquare className="h-4 w-4" />
                       </Button>
                     </div>
+                    {!hasSmsNumber && (
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <p className="text-xs text-red-500">No phone number on file. Add one in CRM before sending a direct SMS from here.</p>
+                        {contact?.id ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={handleEditContact}
+                          >
+                            Add phone in CRM
+                          </Button>
+                        ) : null}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

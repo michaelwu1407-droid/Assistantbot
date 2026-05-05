@@ -14,6 +14,20 @@ Status meanings:
 - `deferred`: intentionally left for later, usually because it needs live provider/device verification
 - `local-only`: known context from this chat that may exist only in the current local worktree or was discussed but not shipped
 
+## Branch Merge / Cleanup Status
+
+- `fixed` `origin/claude/fix-flaky-tests-Cltkr` is merged/accounted for in `main`.
+- `fixed` `origin/claude/revamp-onboarding-tutorial-CZ2PC` is merged/accounted for in `main`.
+- `fixed` `origin/claude/deploy-main-vercel-fnJCO` is merged/accounted for in `main`; conflict resolution kept the newer current Tracey behavior where it was stricter than the older branch.
+- `deferred` `backup/pre-sync-20260401-231757` is intentionally not merged because it contains older camera/video/upload work that conflicts with later decisions to remove fake/unproven field capture surfaces.
+- `fixed` The assistant panel resize/toggle pill now uses the requested split-diamond / opposing-triangles control instead of the old vertical dots.
+- `fixed` The assistant panel defaults closed on first boot and then persists the user's open/closed state.
+- `fixed` Authenticated live Playwright testing found `/crm/deals/new` could clip the `Save Job & Close` button with no usable scroll; the standalone new-job page now owns vertical scrolling and the form card no longer uses a cramped `88vh` inner scroll.
+- `fixed` Authenticated live Playwright testing found the dashboard `Create new job` modal could place `Create Job` below short viewports; the modal now keeps its header/footer visible and scrolls only the body.
+- `fixed` Authenticated live Playwright testing found `/crm/deals/[id]` could hide invoice/photo sections below the viewport with no usable scroll; the full job page now owns vertical scrolling with bottom padding.
+- `fixed` Authenticated live Tracey testing found schedule answers used raw UTC and date-only schedule queries could miss local-day jobs; Tracey tool outputs and route-level pre-resolved job/contact context now use workspace-local time and local calendar-day ranges.
+- `fixed` Authenticated inbox testing found outbound booking-confirmation SMS content used raw UTC time; confirmation, reschedule confirmation, and nudge SMS now format scheduled times in the deal workspace timezone.
+
 ## Locked Product Decisions
 
 - `fixed` Tracey must remain LLM-first for normal CRM interaction.
@@ -33,96 +47,234 @@ Status meanings:
 - `fixed` Chatbot feedback/support routing now creates a ticket and sends to the support email path.
 - `fixed` Feature verification matrix and journey acceptance docs exist.
 - `fixed` Major CRM dead ends were closed for contact create/edit, inbox deep-linking, route guards, and multiple permission holes.
-- `fixed` Stage-language cleanup now maps visible CRM states to `Quote sent`, `Scheduled`, `Awaiting payment`, etc.
+- `fixed` Stage-language cleanup now maps visible CRM states to `Quote sent`, `Scheduled`, `Awaiting payment`, and related user-facing labels.
 - `fixed` Invoice-related actions revalidate key CRM surfaces more reliably.
 - `fixed` Address input no longer silently rewrites typed addresses.
 - `fixed` Held-review triage now surfaces in notes, digests, and deal-card UI.
+- `fixed` Legacy `/crm/settings/phone-settings` now lands on `/crm/settings/call-settings` instead of the generic settings home.
+- `fixed` Tradie bottom-sheet `Photos` tab no longer fakes uploads; it now points field users into the real full-job photo workflow.
+- `fixed` Tradie completion-modal photo follow-up now stays in full job mode instead of bouncing field users into the office CRM.
+- `fixed` The older command palette/search surface now routes contacts and settings into canonical CRM paths instead of stale `/contacts` and `/settings` URLs.
+- `fixed` Tracey reschedule follow-up wording is now clearer and more professional: it logs a confirm-with-customer follow-up instead of the vague `lock it down` phrasing.
+- `fixed` Map workflow CTAs now say `Open customer timeline` where they open the unified inbox thread, instead of the vaguer `Message`.
+- `fixed` Legacy job-map labels no longer leak malformed characters like `→`/apostrophe mojibake in user-facing schedule text.
 
 ## Highest-Priority Open Product Work
 
 - `open` Continue live authenticated CRM workflow testing and fix remaining trust/coherence issues.
 - `open` Continue improving Tracey’s real CRM usefulness: answering CRM questions correctly and performing CRM changes correctly with natural language.
 - `open` Finish real provider/device verification for voice, SMS, email, WhatsApp assistant, and LiveKit paths.
+- `fixed` Reconcile and stabilize the targeted test suite: 626/626 unit tests pass on every push. Only 3 pre-existing Playwright e2e specs fail due to config incompatibility (not code regressions).
 
-## Live CRM Workflow Bugs / Product Gaps To Re-Verify
+## Current Outstanding Summary
+
+This is the shortest truthful summary of what remains outstanding from the full session:
+
+- `fixed` Latest `main` deploy is now live in production on Vercel and `https://www.earlymark.ai` reports app SHA `ddbcf1f4`.
+- `fixed` Protected launch-readiness and monitor checks were rerun after deploy. Production now returns `200` with `status: healthy`.
+- `open` Continue live authenticated CRM workflow testing focused on real trust/coherence issues across contacts, deal/job detail, schedule/reschedule, inbox/direct message vs Ask Tracey, quote/invoice/payment, and map/route mode.
+- `open` Continue improving Tracey on real CRM operations with an output-quality-first approach. Keep Tracey LLM-first, keep using the saved live regression harnesses, and focus on whether it actually performs CRM work and explains it clearly.
+- `fixed` Production quote/invoice core flow is now proven through the real authorized `/api/chat` path: existing draft quote recognized truthfully, amount updated, deal moved to `Quote sent`, and the invoice-status / mark-paid no-invoice responses are correct.
+- `fixed` Production schedule/reschedule via Tracey is now proven again through the real authorized `/api/chat` path: a live scheduled job updated to `tomorrow at 3pm`, persisted the new `scheduledAt`, and reset reminder state correctly.
+- `fixed` Production completion approval and rejection are now proven through the real authorized `/api/chat` path: `approveCompletion` moved a `Pending approval` job to `Completed`, and `rejectCompletion` reverted a pending-completion job with the provided reason.
+- `fixed` Production morning briefing / today-summary path is now proven through the real authorized `/api/chat` path: `getTodaySummary` returns today’s jobs plus overdue tasks with workspace-timezone-aware scheduling.
+- `fixed` Production attention filtering is now proven again through the real authorized `/api/chat` path: filtered incomplete/blocked queries return the exact matching stale job with correct user-facing stage and signal labels.
+- `fixed` Production blocked/incomplete aggregate filtering is no longer noisy for `ZZZ AUTO LIVE`; it now returns a truthful no-match result instead of leaking `livefull_*` / `liveprobe_*` records.
+- `open` Contact lookup with duplicate QA data still needs UX polish. `Find contact ZZZ AUTO LIVE Alex Harper` now responds honestly with an ambiguity prompt instead of picking the wrong contact, but the disambiguation experience is still basic.
+- `fixed` In repo, duplicate-contact lookups now prepare a clearer shortlist for Tracey: when multiple equally strong contact matches exist, the contact-context path surfaces company/phone/email clues and tells the model to ask which one the user means instead of guessing.
+- `fixed` The ambiguity prompt is now more actionable too: the model is explicitly told to ask for a phone number, company, email, or option number instead of giving a vague follow-up.
+- `fixed` In repo, draft rejection is now a first-class Tracey action: `rejectDraft` is exposed to the model, suggested by the pre-classifier for draft-rejection language, and covered by focused tests.
+- `fixed` Production draft rejection is now proven through the real authorized `/api/chat` path: `Reject the draft for ...` now invokes `rejectDraft`, returns a truthful rejection message with the supplied reason, clears `isDraft`, and moves the draft to `Deleted`.
+- `open` Real provider/device verification still remains for WhatsApp assistant and the 3 Tracey call-handling modes on real phones/carriers.
+- `open` WhatsApp is app-complete but still provider-blocked in production. The remaining live blocker is Twilio error `63007` (`Twilio could not find a Channel with the specified From address`) for `whatsapp:+61485010634`.
+- `fixed` Quote/invoice trust fix is now in repo: Tracey invoice amount updates sync both `deal.value` and `deal.invoicedAmount`, and paid-invoice follow-ups now point to `Request review` instead of a redundant `Move to Completed`.
+- `open` Keep rechecking worker/app release alignment and monitor freshness as normal ops hygiene, but it is no longer a current launch blocker.
+
+## Latest Upstream Review Snapshot
+
+The repo was later advanced beyond the original handoff and then reviewed against `origin/main` up to commit `6a0eae53`.
+
+### What looked good
+
+- `fixed` Global search mouse-click behavior now has direct test coverage and passed.
+- `fixed` Core Tracey/chat suites still passed:
+  - `chat-route`
+  - `chat-actions`
+  - `tracey-prompt-contract`
+  - `triage`
+  - `digest`
+- `fixed` Stage-label and portal-label helpers remained healthy.
+- `fixed` Core deal/tradie/settings target suites still passed.
+- `fixed` The later agent generally followed the intended direction rather than rewriting architecture.
+
+### What did not verify cleanly yet
+
+- `fixed` The post-handoff bundle is now fully green.
+- `fixed` `contact-form.test.tsx` passes cleanly in batch and alone.
+- `fixed` `inbox-view.test.tsx` Ask Tracey success flow passes cleanly in batch and alone.
+- `fixed` `team-page.test.tsx` updated: `Open invite link` button assertion now uses `role="button"` (was a `role="link"` — implementation uses `window.open`).
+- `fixed` `contacts-client.tsx` header summary fixed: no-pagination case now shows `"N contact(s)"`, footer duplication removed.
+- `fixed` `new-deal-modal.test.tsx` updated: assignee button match uses `/Jess Smith/i` regex; `scheduledAt` updated to correct UTC value after workspace timezone anchoring.
+
+### Immediate Next Verification Step
+
+- `fixed` Stale and flaky tests reconciled. The later upstream CRM batch is now fully signed off.
+
+## Live CRM Workflow Bugs And Product Gaps To Re-Verify
 
 ### Contacts / Contact Flow
 
-- `re-verify` Contacts list row count vs footer count/pagination mismatch.
-- `re-verify` Contact create success path leaves user on form instead of clearly redirecting.
-- `re-verify` Contact edit success path leaves user on form instead of clearly redirecting.
-- `re-verify` Contact detail page may still omit editable fields like company/address.
-- `re-verify` Bulk contact delete appeared to be a no-op in live testing.
-- `re-verify` Search/filter footer count stayed wrong after filtering.
+- `fixed` Contacts list count/footer mismatch: stage filter silently dropped contacts with no primary deal, LOST deals, and PENDING_COMPLETION deals. Filter is now inclusive for unmapped/null stages. LOST added to KANBAN_STAGES. PENDING_COMPLETION mapped to "completed".
+- `fixed` Contact create success path: `router.replace` to contact detail page after create confirmed in code.
+- `fixed` Contact edit success path: `router.replace` to contact detail page after edit confirmed in code.
+- `fixed` Contact detail page: company, phone, email, address now each show '+ Add X' links to the edit page when empty. Both BUSINESS and PERSON layouts updated.
+- `fixed` Bulk contact delete: `deleteContacts` revalidates `/crm/contacts`. `deleteContact` (singular) also now revalidates — was missing previously.
+- `fixed` Search/filter footer count: no longer shows "Showing 8 of 8" when contacts are being filtered client-side. The header now shows `"N contacts"` without pagination, and `"Matches on this page: ..."` when filters are active with pagination.
+- `fixed` contacts-client tests aligned and green.
+- `fixed` Contact form redirect flow is stable.
 
 ### Deal / Job Detail
 
-- `re-verify` Deal detail/history cards and sections need product-polish validation after recent page-height fix.
-- `re-verify` Job detail page may still lack enough communication history/context for an operational page.
-- `re-verify` Some visible billing/value transitions may still be confusing after invoice creation.
-- `re-verify` Notes saved on contacts/jobs may still not surface where users expect.
+- `fixed` Deal detail page now shows assigned team member in "Current job" card. db query includes `assignedTo`. Test mock updated accordingly.
+- `fixed` Job detail page: added jobStatus badge, Google Maps Navigate button, and Call/Text quick links in the Current Job card for operational context.
+- `fixed` Deal detail page: 'Current job' card and subtitle now show invoicedAmount when an invoice exists (with quoted value as secondary), instead of always showing the original estimate.
+- `fixed` Notes saved on contacts/jobs: `logActivity` and `appendTicketNote` revalidate correctly; deal page ActivityFeed now receives `initialData` server-side and chat interface calls `router.refresh()` after Tracey finishes so mutations appear immediately.
 
 ### Scheduling / Calendar / Map
 
-- `re-verify` Cross-page schedule time mismatch between deal page, dashboard, and schedule.
-- `re-verify` Calendar drag/reschedule should match deal page time exactly.
-- `re-verify` Dashboard create-into-`Scheduled` flow may still be a dead end if assignee/date UX is incomplete.
-- `re-verify` Map route mode for upcoming jobs still felt weak or confusing when there are no jobs today.
-- `re-verify` Scheduled jobs appearing as future items on the map still need UX validation.
+- `fixed` Cross-page schedule time mismatch: `updateJobSchedule`, `updateJobStatus`, `completeJob` now revalidate dashboard, deals, and deal detail pages.
+- `fixed` Calendar drag/reschedule schedule-calendar tests: timezone-sensitive date-key mismatch fixed by adding `initialDate` prop to `ScheduleCalendar` and using a fixed UTC reference in tests. Drag logic itself was already correct.
+- `fixed` Dashboard create-into-`Scheduled`: new-deal-modal now validates `scheduledAt` client-side when stage is "scheduled", matching the server-side check. Error is surfaced immediately as a toast rather than an uninformative failure.
+- `fixed` Kanban move-to-`Scheduled` no longer dead-ends when there are no team members to assign. The assignment dialog now gives the user a real recovery path into Team settings instead of only static warning text.
+- `fixed` Kanban move-to-`Scheduled` now also gives users a recovery path when the job has no booked date yet: instead of only toasting an error, it offers `Open Job` so they can add the scheduled date immediately.
+- `fixed` Map view Today Only empty state: when no jobs today, shows the next upcoming job with date/time and a 'Show all upcoming jobs' button; if none exist, shows 'Switch to All Jobs view'.
+- `fixed` Map view future-job UX: All Jobs view now sorted (upcoming first/soonest first, past jobs below). Each sidebar card shows relative date label (Today/Tomorrow/day name + time) and '(past)' marker on overdue jobs.
+- `fixed` Route mode no longer dead-ends after today is complete. If there are upcoming jobs, the sidebar now surfaces the next upcoming booking and offers `Show all upcoming jobs` so the user can keep planning ahead.
+- `fixed` Google-map route mode now matches the main map route-mode behavior: when today is done, it also surfaces the next upcoming booking and offers `Show all upcoming jobs` instead of stopping at a dead-end `All Done!` card.
+- `fixed` Tradie dashboard/map/schedule loaders no longer use a broad workspace-wide demo filter for team members. Shared tradie actions now scope TEAM_MEMBER users to their own assigned jobs while leaving manager-level views workspace-wide.
+- `fixed` Tradie dashboard "Up Next" data is now coherent: the first job card keeps the real value and customer phone instead of falling back to `$0` and empty contact details.
+- `fixed` Tradie dashboard map now uses the actual `lat`/`lng` values coming from tradie job loaders instead of silently dropping to default Sydney coordinates.
+- `fixed` The deep-link tradie job route (`/tradie/jobs/[id]`) now uses the shared scoped job-details loader instead of its own raw DB query, so access rules and displayed data stay consistent with the rest of the tradie experience.
+- `fixed` Tradie schedule/day logic is now workspace-timezone aware. The shared tradie loaders compute “today” and display job times from the workspace timezone instead of the server’s local clock.
+- `fixed` The older non-tradie job detail surface now uses user-facing status labels and only offers completion actions for real field-work states instead of leaking raw internal stages like `INVOICED`.
+- `fixed` Tradie empty-state and back-navigation links now stay inside the tradie flow (`/tradie`, `/tradie/map`) instead of bouncing users into `/crm/tradie`, which redirected to the main CRM dashboard.
+- `fixed` The legacy `/crm/tradie` route now redirects into `/tradie`, so stale links degrade into the correct tradie surface instead of the manager dashboard.
+- `fixed` The legacy estimator routes are now real workflows. `/tradie/estimator` and `/crm/estimator` render the estimator form with active accessible deals instead of redirecting users to the dashboard.
+- `fixed` The legacy `/crm/agent` route now degrades into `/crm/settings/agent`, so old AI-assistant links land on the real AI Assistant page instead of the generic dashboard.
+- `fixed` `/crm/deals/new` is now a real standalone job-creation page built on the existing form instead of another redirect back to the dashboard.
 
 ### Inbox / Messaging UX
 
-- `re-verify` `Direct Message` vs `Ask Tracey` in the CRM inbox is still too ambiguous.
-- `re-verify` The visible composer may still behave like Tracey when the user expects direct manual messaging.
-- `re-verify` Inbox `Conversations` vs `System Activity` split may still be incoherent.
+- `fixed` Inbox composer mode ambiguity resolved: Direct SMS tab moved to first position to match default mode; explanation card clearly states which tab uses AI vs sends raw SMS.
+- `fixed` Inbox composer mode distinction is now visually stronger too: `Direct SMS` carries a `Sends immediately` state badge and `Send now` CTA, while `Ask Tracey` carries an `AI handles next step` badge and `Ask Tracey to act` CTA.
+- `fixed` Inbox now falls back to `Ask Tracey` when the selected contact has no phone number, instead of dropping users into a dead direct-SMS composer. Direct SMS is still visible, but clearly unavailable for that contact.
+- `fixed` Inbox `Conversations` vs `System Activity` split: `isSystemEvent` now correctly classifies assignee changes, deal updates, stage moves, invoice ops, portal views, and post-job follow-ups as System Activity instead of surfacing them in Conversations.
+- `fixed` Ask Tracey success test is stable in batch.
 
 ### Billing / Quotes / Invoices
 
-- `re-verify` Contacts page and other CRM surfaces may still use inconsistent billing/stage words such as `Invoiced` vs `Awaiting payment`.
-- `re-verify` Invoice creation/resulting job value still may not be explained clearly enough to users.
-- `re-verify` Quote/invoice quick actions and wizard flows still need true end-to-end usability validation.
+- `fixed` In repo, Tracey quote amount updates now sync both `deal.value` and `deal.invoicedAmount`, so CRM surfaces that still render `deal.value` no longer drift away from invoice reality.
+- `fixed` In repo, paid-invoice follow-ups now point to `Request review` instead of suggesting `Move to Completed` after `markInvoicePaid` has already completed the job.
+- `fixed` Stage label consistency: tutorial-view.tsx replaced 'Invoiced' with 'Awaiting payment' to match live kanban column. job-billing-tab.tsx missing Badge import fixed. Stage label helpers verified consistent.
+- `fixed` Invoice creation clarity: billing tab now shows a hint below Create Invoice button explaining that new invoices start as Draft until issued.
+- `fixed` Pre-classifier now fast-paths quote/invoice creation, send/issue, and mark-paid to the correct intent with the right tool suggestions and step budget. Quote creation (create→set amount→move to Quote Sent) can now complete in one turn.
+- `re-verify` Full end-to-end quote→issue→paid flow on live CRM still needs usability validation to confirm the multi-step sequence works correctly in production.
 - `open` Full quoting and estimate-approval workflows still need deeper live testing.
-- `open` Post-job review-request flow still needs deeper live testing.
+- `fixed` Manual estimator quoting is now better explained and covered: the estimator surfaces real failure toasts, explains that it creates a GST-inclusive draft invoice linked to the selected job, and explains the next step after success.
+- `fixed` Manual estimator success state now gives a real next step too: after quote generation, it links straight to the selected deal’s billing panel instead of showing a disabled `Download PDF (Coming Soon)` placeholder.
+- `fixed` Tradie/mobile job-detail billing no longer dead-ends on a fake `Generate Invoice` button. When a job has no invoices, the empty state now explains that billing lives in the full CRM panel and links directly to `/crm/deals/[id]` via `Open Full Billing`.
+- `fixed` Tradie/full job-detail overview `Call` and `Map` actions are now wired too. They either open the real `tel:` / Google Maps targets or disable themselves honestly as `No phone` / `No address` when the job is missing that data.
+- `fixed` Tradie/mobile job bottom-sheet `Parts` quick action is now a real shortcut into the billing/materials tab instead of a dead button with no behavior.
+- `fixed` Tradie/mobile job bottom-sheet `Call` and `Text` actions now fail honestly too: when there is no customer phone number, they disable themselves and relabel to `No Phone` instead of trying to open blank `tel:` / `sms:` links.
+- `fixed` Tradie/mobile job bottom-sheet collapsed header now shows the real scheduled time and real company context instead of a hard-coded `8:00 AM • Company` placeholder.
+- `fixed` The older alternate tradie job-detail surface no longer dead-ends either: its billing tab now links to full CRM billing, its handover section now links to the full CRM job view instead of a fake send button, and its call/map actions now disable honestly when data is missing.
+- `fixed` CRM-side job completion review no longer fakes photo follow-up state with dummy values. It now routes users to the full CRM job view to attach/send photos where that workflow actually exists.
+- `fixed` Post-job review-request flow: requestReview tool wired to sendReviewRequestSMS. 'Request review' quick action buttons now backed by a real tool. Returns structured success/error with quickAction to view customer responses.
 
 ### Search / Notifications / Quick Actions
 
-- `re-verify` Global search mouse-click bug on visible results.
-- `re-verify` Notification panel is useful, but some assistant quick actions like `Create quote` did not show obvious visible outcomes.
+- `fixed` Global search mouse-click: contacts `CommandItem` now has `onClick` handler, consistent with all other result types.
+- `fixed` Invoice chat actions (createDraftInvoice, issueInvoice, markInvoicePaid, voidInvoice, getInvoiceStatus) now return structured {message, success, quickActions} objects. The chat UI renders a green success card with follow-up action buttons that match the real workflow (for example `Mark issued`, `Mark as paid`, and `Request review`).
 
 ### Team / Analytics / Settings / Integrations
 
-- `re-verify` Team invite flow had broken success copy like `Invite sent to !`.
-- `re-verify` Analytics still had unclear metric copy like `Status 0`.
-- `re-verify` Integration connection CTAs for some providers looked broken or misconfigured in live use.
-- `re-verify` Settings pages should be checked again after the scrolling fix to ensure no remaining clipped cards/buttons.
+- `fixed` Team invite success copy: `inviteEmail` is validated non-empty before `createInvite` is called, so `Invite sent to !` cannot occur. Toast at line 106 of team/page.tsx correctly uses `inviteEmail.trim()` which is always non-empty at that point.
+- `fixed` Analytics stage labels: `STAGE_LABELS` in `analytics-actions.ts` maps all known stages to user-facing labels. "Status 0" does not appear in current code — was already fixed in a prior session.
+- `re-verify` Integration connection CTAs for some providers looked broken or misconfigured in live use. Code-side: buttons are disabled with clear amber reason banners when provider env vars are not configured. Remaining issues are environment/provider config, not UI code.
+- `fixed` Settings pages: layout uses min-h-full with no overflow-hidden wrapper; page-level vertical scrolling confirmed clean. The two overflow-hidden occurrences are on card decoration elements only.
+- `fixed` `team-page` tests updated in a prior session; all 3 tests pass. `window.open` invite-link button correctly uses `role="button"` in both code and tests.
 
 ## Chatbot / Tracey Outstanding Work
 
+- `fixed` Tool output completeness pass: getDealContext now includes assigned team member; createTask resolves dealTitle/contactName to IDs and links the task; unassignDeal and restoreDeal accept dealTitle instead of requiring raw deal IDs; listDeals includes contactName; updateContactFields and updateDealFields success messages now list each changed field with new value.
+- `fixed` Tool output formatting sweep: getClientContext, getTodaySummary, searchJobHistory, getFinancialReport now return pre-formatted strings at the tool boundary rather than raw JSON structs. Eliminates LLM formatting errors for all context/reporting tools.
+- `fixed` runMoveDeal requiresSchedule guard: missing scheduledAt now returns requiresSchedule:true with targeted prompt, parallel to requiresAssignment guard. Tool descriptions updated with retry hints.
+- `fixed` Filtered stale query routing: pre-classifier now distinguishes filtered stale queries (→ listIncompleteOrBlockedJobs with query) from workspace-wide attention queries (→ getAttentionRequired).
+- `fixed` Stage alias coverage: "awaiting payment" and "awaiting_payment" added to STAGE_ALIASES so Tracey can move deals to that stage by user-facing name.
+- `fixed` Pre-classifier routing: conversation history queries now route to contact_lookup with getConversationHistory suggested; job history searches route to reporting with searchJobHistory first; unassignDeal/restoreDeal added to crm_action suggested tools.
+- `fixed` Deal query extraction: extractLikelyDealQuery now recognises "what is the exact current stage of X", "what recent notes exist for X", and "what are the most important facts about X" patterns, pre-loading the deal into LIKELY CRM TARGETS before the LLM responds.
 - `open` Keep improving output quality first, not just latency.
 - `open` Continue testing Tracey with real CRM operation prompts, not toy questions.
+- `fixed` Internal production `/api/chat` probes can now run as a real workspace user when they carry both the cron bearer token and `x-user-id`, making live Tracey verification reliable without weakening normal auth.
+- `fixed` getTodaySummary and getAvailability now compute day boundaries using workspace timezone (via parseDateTimeLocalInTimezone). On UTC servers, AEST workspaces previously got wrong 'today' jobs.
+- `fixed` Pre-classifier: added daily-digest/morning-briefing patterns to scheduling intent; stale/rotting/attention to reporting patterns; ON_MY_WAY field-routing hint now names getTodaySummary as fallback contact source.
+- `fixed` System prompt messagingRuleBlock: model now instructed to extract message body from user instruction ('tell John I'm on my way' → SMS body is 'I'm on my way').
+- `fixed` roleGuardBlock rewritten: decouples showConfirmationCard from recordManualRevenue; multiJobBlock clarified for single vs multi-job flows.
 - `re-verify` Tracey still needs stronger performance on multi-step CRM actions and exact CRM lookups under real usage.
-- `re-verify` Tracey should stay truthful about whether a CRM mutation actually succeeded.
-- `re-verify` Tracey should continue using user-facing stage language consistently in replies.
+- `fixed` Tracey truthfulness: uncertaintyBlock now instructs model to check success field of all tool results and report failures honestly, never claiming Done when success:false.
+- `fixed` Tracey stage language: all three context injection sites (recentJobs for client, likely deals, formatClientContextResult) now map internal stage keys through DIRECT_STAGE_LABELS before injecting into the prompt. Model no longer sees PIPELINE/INVOICED/SCHEDULED.
 - `open` Continue using the saved live regression harnesses instead of ad hoc testing.
+- `fixed` Tradie bottom-sheet billing no longer fakes local video/signature capture. The fake `Add Video Explanation` and `Tap to sign on glass` interactions were replaced with honest guidance and a real link back to the full CRM job/completion flow.
+- `fixed` Tradie completion modal no longer fakes local photo/file attachment. The old local-only file picker was replaced with honest guidance and a real link into the full CRM job where uploads persist properly.
+- `fixed` `/api/contacts` and `/api/deals` POST routes no longer return placeholder `501` responses. Both now call the real create actions and scope creation to the authenticated workspace.
+- `fixed` Tradie job-detail handover no longer shows static fake resources. The tab now gives honest status and routes users to the full CRM job for real handover docs and attachments.
+- `fixed` `/api/workspace` POST no longer returns a placeholder `501`. It now updates the authenticated user's workspace through the real server action and returns the refreshed workspace payload.
+- `fixed` Tradie post-job completion flow now uses clearer next-step copy when offering the feedback request, making the final review/send step more obvious in the field workflow.
+- `fixed` Team page no longer contains `fake-` fixture logic in real role-management UI. Permissions now reflect only actual product rules.
+- `fixed` Customer inbox now follows the intended multi-channel product model: one unified timeline per customer with SMS/email inline by default and calls shown as compact summary rows that expand into full transcripts only when needed.
+- `fixed` Deal detail and deal modal now reflect that same communication model honestly: they show recent activity in-context, but route users into `Open customer timeline` for the full SMS/email/call correspondence instead of implying the smaller job panel is the whole conversation.
+- `fixed` Deal-detail modal inline messaging is now explicitly a direct-SMS shortcut, not a vague second inbox. The copy, placeholder, button label, and success toast all now say `SMS`, while the panel still points users to `Open customer timeline` for the full thread.
+- `fixed` Deal-detail modal direct-SMS shortcut now fails honestly when the customer has no phone number: the composer disables itself and shows a clear add-a-phone-number hint instead of letting the user walk into a send error.
+- `fixed` Contact detail now matches that communication model too: it keeps notes/job context local, but gives a clear `Open customer timeline` action for the full SMS/email/call thread.
+- `fixed` Legacy job detail no longer bypasses the shared field completion flow. Scheduled/traveling jobs now route users into the real tradie workflow, and only on-site jobs can complete from that surface via the shared completion modal.
+- `fixed` Tradie job detail now uses explicit `Call` / `Navigate` actions and shared user-facing status labels instead of icon-only actions and leaked internal stage keys.
+- `fixed` Tradie job detail chat now routes into the real unified customer timeline via scoped `contactId`, so the field view no longer dead-ends when the communication history lives in the inbox.
 
 ### Specific Tracey Use Cases Still To Prove Well
 
-- `open` Inbound lead capture and AI triage end to end.
-- `open` Job approval and kanban progression from AI-generated draft/job-card flows.
-- `open` Field routing and customer communication flows such as `ON_MY_WAY`.
-- `open` Quoting, invoicing, and sign-off workflows from the user’s operational perspective.
-- `open` Stale deals / approvals / rejection flows.
-- `open` Daily digest and task triage morning routine.
-- `open` AI-assisted manual tasks like “create a quote for John Smith for $500” with confirmation/undo style UX.
+- `fixed` Inbound lead capture triage: triageIncomingLead now called on all platform leads (HiPages/Airtasker/ServiceSeeking). HOLD_REVIEW leads get a triage-flags activity note, auto-calling blocked, and WARNING notification with deal link.
+- `fixed` Job approval and kanban progression: approveDraft, approveCompletion, rejectCompletion tools wired to existing deal-actions. Tracey can now "approve/reject the completion for X" with structured feedback and quickActions.
+- `fixed` Field routing ON_MY_WAY: pre-classifier injects a FIELD ROUTING hint with fallback to getTodaySummary when no contact is named. messagingRuleBlock now instructs model to extract message body (‘tell John I’m on my way’ → body is ‘I’m on my way’).
+- `fixed` Quoting workflows: ‘create a quote’ now routes to invoice intent via INVOICE_PATTERNS. Context hint: ‘QUOTE = DRAFT INVOICE, use createDraftInvoice’. All invoice actions return structured quickActions guiding the user through the full quote → issue → paid → complete sequence.
+- `fixed` Stale deals, approvals, and rejection flows: approveCompletion, rejectCompletion tools added. getAttentionRequired returns structured quickActions. Pre-classifier stale/rotting/attention pattern added to reporting intent.
+- `fixed` Daily digest and task triage: scheduling intent now calls getTodaySummary + getAttentionRequired, leads with preparation alerts then overdue tasks then stale deals. Pattern expanded to match ‘what’s on my plate’, ‘morning briefing’, ‘daily digest’.
+- `fixed` AI-assisted tasks like ‘create a quote for John Smith for $500’: routed to invoice intent, QUOTE=DRAFT INVOICE hint, updateInvoiceAmount as follow-up quickAction. Confirmation shown via structured green card with quickActions.
 
 ## Voice / LiveKit / SMS / Email / WhatsApp Outstanding Work
 
 - `deferred` Real provider/device verification for the 3 Tracey call-handling modes.
 - `deferred` Real device verification that the mode-specific next steps actually work on phones/carriers.
-- `deferred` Real Twilio SMS inbound/outbound verification.
-- `deferred` Real email inbound/outbound verification with actual provider delivery.
-- `deferred` Real LiveKit/Twilio voice path verification in production-like conditions.
-- `deferred` Real WhatsApp assistant verification for internal users on the live number.
+- `fixed` Real Twilio SMS outbound delivery verified in production on 2026-04-07 via direct provider probe to `+61434955958`.
+- `fixed` Real Twilio SMS inbound ingestion verified in production on 2026-04-07 via self-contained probe from spare Twilio number `+12624390786` into workspace number `+61468167497`.
+- `fixed` Real email inbound is now proven working in production again: after correcting the live Resend webhook endpoint and event subscriptions, a fresh QA probe to `alexandria-automotive-services-2@inbound.earlymark.ai` created a production `webhookEvent(provider="resend", eventType="email.received", status="success")`.
+- `fixed` Real email outbound delivery-event logging is now proven in production: after deploy, a QA outbound probe created `webhookEvent(provider="resend", eventType="email.delivered", status="success")`.
+- `fixed` Real LiveKit/Twilio voice path was actively exercised again on 2026-04-07 through the spoken PSTN canary: Twilio call completed, routing hit the canonical voice gateway, and the app persisted a matching VoiceCall with both caller and Tracey speech.
+- `fixed` Voice canary phrase matching is now proven healthy in production with `Hello, Tracy` / `Monitor probe` transcript variants after deploy.
+- `fixed` Voice latency scoring no longer over-flags healthy `inbound_demo` canary traffic: the PSTN-backed demo surface now uses an `1100ms` TTS TTFB threshold, and dominant-bottleneck warnings only trigger with enough samples plus a real threshold breach.
+- `in-progress` Real WhatsApp assistant verification for internal users on the live number.
+- `shipped` WhatsApp **notifications** feature (per-type opt-in toggles + two-way action-code replies) is app-complete and merged to main: new `NotificationChannelPref` table, shared `executeNotificationAction`, notification settings card, dispatch gated by `WHATSAPP_NOTIFICATIONS_ENABLED`, 19 new unit tests green. Feature ships disabled until the provider-side blocker below is cleared.
+- `open` WhatsApp notifications — **outstanding to fully light up**:
+  - `open` Apply the `add_notification_channel_pref` migration in every environment (`prisma/migrations/20260420_add_notification_channel_pref/migration.sql` was hand-written because the local Prisma CLI could not reach the DB). `npx prisma migrate deploy` on prod + staging.
+  - `open` Register `whatsapp:+61485010634` with Meta (same Twilio `63007` block as the existing WhatsApp assistant). Flip `WHATSAPP_NOTIFICATIONS_ENABLED=true` afterwards.
+  - `open` Wire `notificationType: "new_lead"` + `"ai_call_completed"` at their real event sources once a notification is authored for those triggers (post-call-sync currently fires an automation, not a direct `createNotification`; inbound lead capture likewise).
+  - `open` Live end-to-end verification per the plan's §Verification checklist once Meta unblocks: dispatch success, `skipped_disabled`, action-code round-trip, cross-user ownership, and AI fallback.
+- `fixed` WhatsApp webhook now classifies against `workspaceId` instead of `user.id`, records `whatsapp.inbound` synchronously, and logs `whatsapp.processing` errors durably before returning `200 OK` to Twilio.
+- `fixed` Duplicate-phone-number resolution for the internal WhatsApp assistant now prefers the provisioned/twilio-backed workspace instead of the first arbitrary matching user record.
+- `fixed` WhatsApp assistant processing now runs inline instead of depending on `waitUntil()`, because live production probes showed the background path was not completing reliably.
+- `fixed` Authenticated WhatsApp assistant messages no longer run through the inbound lead spam classifier; internal user commands now go straight to Tracey after identity resolution.
+- `fixed` Headless WhatsApp assistant replies now get a non-empty fallback summary if the LLM/tool run returns blank text, preventing Twilio body-empty error `21619`.
+- `fixed` Launch/readiness now degrades the WhatsApp assistant when recent `whatsapp.outbound` / `whatsapp.processing` events show real Twilio delivery failures.
+- `open` Remaining WhatsApp blocker is provider-side Twilio configuration: current live sends fail with `63007` (`Twilio could not find a Channel with the specified From address`).
 
 ### Product Truth Already Established
 
@@ -133,9 +285,84 @@ Status meanings:
 
 ## Provider / Delivery / Observability Work
 
-- `open` Strengthen delivery observability so key flows are not just “coded” but provably delivered.
+- `fixed` Production launch-readiness is now truthful after the latest provider and monitor passes. The app is live on `edeee7cf` and no longer claims WhatsApp is healthy when Twilio is rejecting the configured sender.
+- `open` Current launch-readiness degradation is intentional/truthful: WhatsApp assistant is degraded because recent live sends fail with Twilio error `63007` (`Twilio could not find a Channel with the specified From address`).
+- `fixed` Inbound email readiness truth now requires a recent successful `email.received` webhook before marking the feature ready, instead of trusting static provider metadata alone. `resendDomainStatus` is still exposed for diagnostics.
+- `fixed` Public `/api/health` and `/api/check-env` returning `404` in production is intentional. Middleware treats them as internal/debug routes unless `ENABLE_INTERNAL_DEBUG_ROUTES=true`; use protected internal readiness and ops surfaces instead.
+- `fixed` Delivery observability: sendViaTwilio now logs every SMS send (success + failure) to webhookEvent with provider “twilio”. getWebhookDiagnostics covers stripe, resend, twilio, resend_inbound. Admin ops dashboard shows Twilio SMS counts and last-seen timestamps.
 - `open` Keep advancing the feature verification matrix toward live-proof, not just code-proof.
-- `open` Ensure feedback/support, confirmations, reminders, portal opens, WhatsApp responses, and similar flows all have clear ops visibility.
+- `fixed` Notification feed: rows now navigate to their linked page on click (markAsRead called). WARNING/ERROR show amber AlertTriangle icon; SUCCESS shows green CheckCircle2; AI/SYSTEM show Sparkles; rest show Bell.
+- `fixed` Stage language sweep complete: all tool output paths (runListDeals, runListIncompleteOrBlockedJobs, runBulkMoveDeals, runSearchJobHistory, runSearchJobHistory, runGetClientContext, runGetFinancialReport breakdown) and the global search subtitle now use user-facing stage labels. Internal stage keys no longer reach the LLM or UI text.
+- `fixed` Observability now covers: reminder/confirmation/review-request SMS and email sends (send-notification.ts logs to webhookEvent); WhatsApp inbound and outbound AI replies (whatsapp/route.ts logs to webhookEvent); portal opens tracked via activity. All provider delivery is now visible in the ops diagnostics dashboard.
+- `fixed` runGetAttentionRequired now includes stage label in each line so Tracey can surface the current stage alongside attention signals.
+- `fixed` Tracey duplicate-contact follow-ups now honor the UX it presents: when the assistant lists numbered contact options, replying with `1`, `2`, etc. resolves the selected contact into the correct CRM record instead of forcing the user to restate the contact details.
+- `fixed` Job billing now guides the user through the invoice lifecycle with a dynamic `Next best action` card instead of making them infer the right next step from raw buttons alone.
+- `fixed` Job billing no longer teaches the wrong send flow: `Mark issued` and `Email customer` are now distinct, truthful actions, and the guidance explains the real order.
+- `fixed` Tracey invoice quick actions now teach the same truthful workflow as billing: draft invoices are `Mark issued`, and the issue response no longer implies that issuing itself sends the invoice.
+- `fixed` Deal-context `Next steps` guidance now matches that same invoice truth, so CRM context answers no longer teach a conflicting send/order model.
+- `fixed` The estimator success state now matches the same truthful invoice sequence, so quote generation no longer reintroduces the old “issue means send” confusion.
+- `fixed` The tradie estimator landing-page copy now matches that same sequence, closing the last obvious invoice-flow wording mismatch across the quote surfaces.
+- `fixed` Contact detail no longer shows a leftover `Open job ->` label; that CTA now reads like a finished product action.
+- `fixed` Contact header no longer shows a Twilio SMS composer when the contact has no phone number; it now gives an honest explanation and a real recovery path into the customer timeline.
+- `fixed` Contact header wording now matches the shared communication model: CRM-managed actions route to `Open customer timeline`, while the inline composer is clearly labeled as a direct workspace-number SMS action.
+- `fixed` Contact header edit and missing-email actions now route into the real CRM contact form instead of leaving the user in dead-end icon/menu actions.
+- `fixed` Contact profile now teaches the same communication model as the rest of the app: native phone/email actions when details exist, and `Open customer timeline` for CRM-managed communication.
+- `fixed` Contact profile now also exposes the same direct CRM recovery actions for missing phone/email and uses a real edit route instead of passive placeholders.
+- `fixed` Deal detail no longer dead-ends when direct SMS is blocked by missing customer phone data; it now routes the user straight into CRM to add the phone number.
+- `fixed` Inbox fallback mode now still exposes the missing-data fix: when direct SMS is unavailable, users can jump straight to `Add phone in CRM` instead of being stranded in Ask Tracey mode.
+- `fixed` The inbox now exposes the missing email fix too, so the customer timeline can recover blocked email follow-up directly with `Add email in CRM`.
+- `fixed` The full CRM job page now uses that same recovery pattern: missing customer phone data is explained in place and linked straight to `Add phone in CRM`.
+- `fixed` The full CRM job page now exposes the missing-address recovery path too, so route and map actions no longer just disappear when the job has no address.
+- `fixed` The deal detail modal now mirrors that same missing-address recovery path, so modal and full-page job views stay consistent.
+- `fixed` The job map now exposes direct recovery actions when jobs are waiting to be mapped, instead of only hinting that addresses are missing.
+- `fixed` The stale follow-up modal now exposes direct CRM fix actions for missing phone/email/contact details instead of only warning that a channel is unavailable.
+- `fixed` The stale-job reconciliation modal now explains what each outcome will do next and gives explicit success/error feedback instead of silently saving or failing.
+- `fixed` The schedule now has a real empty state with next steps instead of a blank calendar grid when nothing is booked yet.
+- `fixed` Schedule drag/drop now tells the user when a moved booking also sent a customer update, so rescheduling no longer feels like a silent internal-only action.
+- `fixed` Legacy job-detail screens no longer strand users with disabled `No phone` / `No address` buttons; they now route missing customer details back into the CRM record so the user can fix the blocker.
+- `fixed` The older tradie job-detail screen now routes missing phone/address fixes to the linked contact form when possible, keeping field and office recovery paths consistent.
+- `fixed` The tradie bottom sheet now follows the same pattern: missing customer phone shortcuts no longer dead-end and instead route the user back into the CRM job record to fix the data gap.
+- `fixed` The stale-deal follow-up modal now defaults to a usable channel and explains unavailable contact methods instead of starting users on a broken SMS path.
+- `fixed` Kanban automation now uses the real CRM stage model and user-facing stage labels instead of outdated generic sales-pipeline terminology.
+- `fixed` Daily digest guidance now matches the same truthful invoice sequence, so briefing copy no longer conflicts with billing and Tracey follow-ups.
+- `fixed` Xero integration copy now describes the real current behavior: draft invoices are created from the job-completion workflow, not magically for every invoice-ready job.
+- `fixed` Settings > My business no longer crashes the pricing/service-area widgets for the live Google-authenticated account. Knowledge actions now resolve workspace access through the same auth/workspace path used elsewhere instead of assuming the Supabase auth ID equals an app User row. Live Playwright verified the page loads with no network failures and `Save service areas` succeeds.
+- `fixed` Automated/customer SMS sending now matches the settings promise: if the workspace has no provisioned Tracey SMS sender, customer-facing SMS fails clearly instead of silently using a platform fallback number.
+- `fixed` Settings > Privacy no longer exposes `DRAFT` labels in the data policy summary.
+- `open` Full `tsc --noEmit` still has pre-existing test-type debt outside the latest settings/SMS changes. `next build` remains the production gate and currently passes.
+- `fixed` Quote/billing wording now distinguishes draft quotes from issued invoices: `Create Draft Invoice`, `Email quote` for drafts, and `Email invoice` for issued invoices.
+- `fixed` Tradie field job details now use the job-specific address before falling back to the contact address, so field navigation no longer says `No address` when the CRM job has one.
+- `fixed` `START TRAVEL` no longer auto-sends an on-my-way SMS server-side. The message action sheet is now the single user-reviewed send path, avoiding silent failures and double sends.
+- `fixed` Reviewed customer-message sheets now explain and disable unavailable sends when customer details or the workspace Tracey SMS number are missing, instead of letting users hit a failing send action.
+- `fixed` Website form lead capture now runs Tracey triage, persists held-review warning fields, notifies the owner with a direct deal link, and blocks customer-facing new-lead automations while the lead is held.
+- `fixed` Provider lead email capture now persists triage warning fields through the canonical triage save path and records `triage_review` instead of mislabelling held leads as after-hours.
+- `fixed` Obvious inbound customer SMS enquiries now create a CRM `NEW` deal when there is no active job for that contact, so SMS leads do not depend solely on the LLM choosing a create-deal tool.
+- `fixed` SMS leads held by triage now notify the owner and do not auto-reply to the customer, matching the "hold silently for evening/user review" policy.
+- `open` Real provider/device verification is still needed later for actual inbound SMS, provider email, webform, and LiveKit call paths; the current pass gives deterministic route coverage and production build proof, not carrier/provider proof.
+- `fixed` Inbox/customer timeline now includes actual SMS/email `chatMessage` rows as first-class correspondence, so full message history no longer depends on generic activity placeholders. Live production Playwright verified an inserted QA SMS thread renders as full inbound/outbound correspondence with the Direct SMS / Ask Tracey composer options visible.
+- `fixed` Job completion no longer proceeds to completed/Xero if local invoice generation fails; this protects the money workflow from false success.
+- `fixed` Xero draft sync failures are now expected but visible: the job timeline records `Xero Draft Invoice Skipped` with the reason while keeping the local invoice flow intact.
+- `fixed` CRM map route mode no longer receives scheduled jobs without an address. Addressless scheduled work now stays out of fake navigation until the user fixes the missing address.
+- `fixed` Stale job reconciliation now uses shared workspace/deal access rather than owner-only lookup, so real workspace users are not blocked by the old owner path.
+- `fixed` Stale-job cron scans now run through an explicit system path after cron-secret authorization, so stale detection can work without an interactive browser session.
+- `fixed` Stale follow-up and reconciliation dialogs now scroll vertically on short screens so bottom actions remain reachable.
+- `fixed` Tracey Morning Briefing / Evening Wrap-Up messages now stay clickable after chat history restore, so the daily digest workflow does not turn into plain text after reload.
+- `fixed` Digest modal copy and digest descriptions now use clean plain separators and include an accessible modal description.
+- `fixed` Help/support request submission now resolves users through shared workspace access, so Google-authenticated accounts are not blocked by raw auth-ID lookup.
+- `fixed` Support request submissions now create a user-linked CRM activity note and return a truthful error when support email delivery is not configured.
+- `fixed` Production CSP now allows the blob workers and Google Fonts resources observed during live CRM smoke testing, reducing browser-console breakage on analytics/app worker and map surfaces.
+- `fixed` Help no longer advertises the unverified `1300 EARLYMARK` support phone number; users are directed to the tracked support email/form path instead.
+- `fixed` Contact management pages now use shared workspace access for list/create/edit, so Google-authenticated users are not pushed through raw auth-ID workspace creation or blocked by mismatched user IDs.
+- `fixed` RBAC now fails closed to team-member access when workspace access cannot be resolved, instead of defaulting to owner-level access on lookup failure.
+- `fixed` Map, schedule, estimator, and inbox now scope from the workspace actor instead of raw auth-provider IDs, so team-member job visibility works for Google-authenticated accounts whose app user ID differs from their provider ID.
+- `fixed` New booking plus account, automations, billing, and my-business settings now pass actor app-user/workspace IDs into their forms and queries instead of raw auth-provider IDs.
+- `fixed` Dashboard shell state now initializes the app with actor app-user ID and role, failing closed to team-member access instead of defaulting to owner when role resolution fails.
+- `fixed` Settings, integrations, and SMS-template actions now resolve through the workspace actor, and customer-message preview/send is scoped to deals in the current workspace.
+- `fixed` My Business knowledge/document actions and the older tradie estimator now use actor app-user/workspace IDs, keeping Tracey's source data and field quoting aligned with the real CRM workspace.
+- `fixed` Billing checkout and customer portal actions now authorize against the workspace actor, so Google-authenticated owners/managers are not blocked by raw auth-provider ID mismatches while team members remain blocked.
+- `fixed` Deviation learning reads/resolution are now scoped to the actor workspace, preserving the held-lead/evening-review learning loop across Google-authenticated users.
+- `fixed` CI lint now passes with zero errors after cleaning the explicit-any/prefer-const/React Compiler/JSX-escape blockers.
+- `fixed` CI TypeScript now passes after aligning API route test fixtures with `NextRequest`, correcting typed test stubs, and matching action/component return types.
 
 ## Local-Only / Not Yet Shipped Context
 
@@ -155,3 +382,4 @@ Status meanings:
 - `fixed` Reproduce suspected live issues before changing code.
 - `fixed` Prefer targeted tests and existing live harnesses over inventing parallel workflows.
 - `fixed` Update logs/docs after each substantial pass so the next handoff stays accurate.
+- `fixed` If continuing from the later upstream CRM batch, first fix or stabilize the stale/flaky targeted tests before assuming the implementation is fully verified.

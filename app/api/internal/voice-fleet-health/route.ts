@@ -8,9 +8,11 @@ import { getVoiceFleetHealth, getVoiceSurfaceSaturationHealth } from "@/lib/voic
 import { getTwilioVoiceCallHealth } from "@/lib/twilio-voice-call-health";
 import { getVoiceLatencyHealth } from "@/lib/voice-call-latency-health";
 import { getLivekitSipHealth } from "@/lib/livekit-sip-health";
-import { getVoiceMonitorStaleAfterMs } from "@/lib/voice-monitor-config";
+import { getVoiceMonitorStaleAfterMs, getVoiceSyntheticProbeStaleAfterMs } from "@/lib/voice-monitor-config";
 import { combineVoiceStatuses } from "@/lib/voice-monitoring";
 import { isVoiceAgentSecretAuthorized } from "@/lib/voice-agent-auth";
+import { getDemoCallHealth } from "@/lib/demo-call-health";
+import { getOutboundCallHealth } from "@/lib/outbound-call-health";
 
 export const dynamic = "force-dynamic";
 
@@ -24,11 +26,14 @@ export async function GET(req: NextRequest) {
   }
 
   const staleAfterMs = getVoiceMonitorStaleAfterMs();
+  const syntheticProbeStaleAfterMs = getVoiceSyntheticProbeStaleAfterMs();
   const [
     fleet,
     customerSaturation,
     twilioRouting,
     livekitSip,
+    demoCalls,
+    outboundCalls,
     recentCalls,
     latency,
     passiveProduction,
@@ -41,38 +46,60 @@ export async function GET(req: NextRequest) {
     getVoiceSurfaceSaturationHealth("normal"),
     auditTwilioVoiceRouting({ apply: false }),
     getLivekitSipHealth(),
+    getDemoCallHealth(),
+    getOutboundCallHealth(),
     getTwilioVoiceCallHealth({ lookbackMinutes: 30, limitPerAccount: 30 }),
     getVoiceLatencyHealth({ lookbackMinutes: 60, limitPerSurface: 20 }),
     getPassiveProductionHealth(),
     getMonitorRunHealth("voice-agent-health", staleAfterMs),
     getMonitorRunHealth("voice-monitor-watchdog", staleAfterMs),
     getMonitorRunHealth("passive-communications-health", staleAfterMs),
-    getMonitorRunHealth("voice-synthetic-probe", staleAfterMs),
+    getMonitorRunHealth("voice-synthetic-probe", syntheticProbeStaleAfterMs),
   ]);
   const invariants = await getVoiceBusinessInvariantHealth(twilioRouting);
 
-  const status = combineVoiceStatuses([
+  const voiceStatus = combineVoiceStatuses([
     fleet.status,
     customerSaturation.status,
     twilioRouting.status,
     livekitSip.status,
+    demoCalls.status,
+    outboundCalls.status,
     invariants.status,
     recentCalls.status,
     latency.status,
     passiveProduction.voice.status,
+    probeHealth.status,
+  ]);
+  const communicationsStatus = combineVoiceStatuses([
+    passiveProduction.sms.status,
+    passiveProduction.email.status,
+  ]);
+  const monitoringStatus = combineVoiceStatuses([
     monitorHealth.status,
     watchdogHealth.status,
     passiveMonitorHealth.status,
   ]);
+  const overallStatus = combineVoiceStatuses([
+    voiceStatus,
+    communicationsStatus,
+    monitoringStatus,
+  ]);
 
   return NextResponse.json(
     {
-      status,
+      status: voiceStatus,
+      voiceStatus,
+      communicationsStatus,
+      monitoringStatus,
+      overallStatus,
       checkedAt: new Date().toISOString(),
       fleet,
       customerSaturation,
       twilioRouting,
       livekitSip,
+      demoCalls,
+      outboundCalls,
       invariants,
       recentCalls,
       latency,
@@ -82,6 +109,6 @@ export async function GET(req: NextRequest) {
       passiveMonitorHealth,
       probeHealth,
     },
-    { status: status === "unhealthy" ? 500 : 200 },
+    { status: voiceStatus === "unhealthy" ? 500 : 200 },
   );
 }

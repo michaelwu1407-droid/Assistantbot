@@ -55,7 +55,10 @@ export const useShellStore = create<ShellState>((set, get) => ({
   sidebarMinimized: false,
   assistantPanelExpanded: false,
   _hydrated: false,
-  setAssistantPanelExpanded: (open: boolean) => set({ assistantPanelExpanded: open }),
+  setAssistantPanelExpanded: (open: boolean) => {
+    try { localStorage.setItem('pj_assistant_panel_expanded', open ? 'true' : 'false') } catch { }
+    set({ assistantPanelExpanded: open })
+  },
   setViewMode: (mode: ViewMode) => {
     try { localStorage.setItem('pj_view_mode', mode) } catch { }
     set({ viewMode: mode })
@@ -100,12 +103,14 @@ export const useShellStore = create<ShellState>((set, get) => ({
       const lap = localStorage.getItem('pj_last_advanced_path')
       const tc = localStorage.getItem('pj_tutorial_complete')
       const sm = localStorage.getItem('pj_sidebar_minimized')
+      const ape = localStorage.getItem('pj_assistant_panel_expanded')
       set({
         viewMode: (vm as ViewMode) || 'BASIC',
         lastAdvancedPath: lap || null,
         persona: (p as Persona) || 'TRADIE',
         tutorialComplete: tc === 'true',
         sidebarMinimized: sm === 'true',
+        assistantPanelExpanded: ape === 'true',
         _hydrated: true,
       })
     } catch {

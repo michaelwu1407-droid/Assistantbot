@@ -37,4 +37,11 @@ describe("voice latency defaults", () => {
 
     expect(source.VOICE_LATENCY_TARGET_CALL_TYPES).toBe("demo,inbound_demo,normal");
   });
+
+  it("uses fast fixed replies for low-signal inbound-demo greetings and hearing checks", () => {
+    expect(voiceLatency.resolveInboundDemoFastReplyId("Hello, Tracy.")).toBe("inbound_demo_hello_ack");
+    expect(voiceLatency.resolveInboundDemoFastReplyId("Voice monitor probe")).toBe("inbound_demo_can_hear_you");
+    expect(voiceLatency.resolveInboundDemoFastReplyId("Can you hear me?")).toBe("inbound_demo_can_hear_you");
+    expect(voiceLatency.resolveInboundDemoFastReplyId("Can you help me book a demo?")).toBeNull();
+  });
 });

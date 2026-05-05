@@ -89,8 +89,31 @@ type MessageMode = "tracey" | "direct"
 type DateFilter = "latest" | "oldest" | "custom"
 
 function isSystemEvent(a: { title?: string | null; description?: string | null }): boolean {
-  const sysPatterns = ["moved to", "stage changed", "status updated", "created deal", "safety check", "sent job complete", "sent on my way", "deal created"]
-  return sysPatterns.some(p => (a.title?.toLowerCase().includes(p) || a.description?.toLowerCase().includes(p)))
+  const sysPatterns = [
+    // stage / status
+    "moved to", "stage changed", "status updated",
+    // deal lifecycle
+    "deal created", "created deal", "deal updated", "deal restored", "deal escalated",
+    // assignee / scheduling
+    "assigned team member", "job rescheduled", "reassigned",
+    // approval / completion workflow
+    "completion approved", "completion rejected", "completion request", "draft approved", "draft rejected",
+    // invoicing
+    "invoice issued", "invoice paid", "invoice updated", "invoice voided", "invoice emailed", "draft invoice",
+    // ai / safety
+    "safety check", "ai note", "ai learning",
+    // sent comms (outbound automations)
+    "sent job complete", "sent on my way", "confirmation sms", "booking reminder", "feedback request",
+    // portal
+    "job portal",
+    // notes
+    "contact note",
+    // post-job
+    "post-job follow-up",
+    // voice escalation / callback routing
+    "urgent callback",
+  ]
+  return sysPatterns.some(p => a.title?.toLowerCase().includes(p))
 }
 
 /** Most recent activity first (for list row + preview). */
@@ -173,6 +196,7 @@ export function InboxView({
     direct: "",
     tracey: "",
   })
+  const [expandedActivityIds, setExpandedActivityIds] = useState<Record<string, boolean>>({})
   const [sending, setSending] = useState(false)
   const messageText = messageDrafts[messageMode]
 
@@ -255,6 +279,14 @@ export function InboxView({
   const selectedActivity = interactions.find(a => a.id === selectedId)
   const selectedContactKey = selectedActivity?.contactId || selectedActivity?.id || ""
   const selectedContact = contactMap.get(selectedContactKey)
+  const selectedContactHasPhone = Boolean(selectedContact?.phone)
+
+  useEffect(() => {
+    if (!selectedContact) return
+    if (messageMode === "direct" && !selectedContactHasPhone) {
+      setMessageMode("tracey")
+    }
+  }, [selectedContact, selectedContactHasPhone, messageMode])
 
   // Filter interactions for the RHS based on detail tab
   const detailInteractions = selectedContact
@@ -312,10 +344,49 @@ export function InboxView({
     }
   }
 
-  // User/sent messages (reply, outbound) show on the right
+  function getTimelineMeta(item: ActivityView) {
+    const system = isSystemEvent(item) || item.channel === "system" || item.direction === "system"
+    const channel =
+      item.channel ||
+      (system ? "system" : item.title?.toLowerCase().includes("sms") ? "sms" : item.type)
+    const direction =
+      system
+        ? "system"
+        : item.direction ||
+          (/^(reply|outbound|sent|sms sent|outbound call|email sent)/i.test(item.title ?? "") ||
+          (item.title ?? "").toLowerCase().includes("reply") ||
+          (item.title ?? "").toLowerCase().includes("outbound")
+            ? "outbound"
+            : "inbound")
+
+    const body = item.body ?? item.content ?? null
+    const preview = item.preview ?? body ?? item.description ?? item.title
+    const summary = item.summary ?? item.description ?? null
+    const subject = item.subject ?? (channel === "email" ? item.description || item.title : null)
+    const transcript = item.transcript ?? null
+
+    return {
+      system,
+      channel,
+      direction,
+      body,
+      preview,
+      summary,
+      subject,
+      transcript,
+      durationLabel: item.durationLabel ?? null,
+    }
+  }
+
+  function shouldExpandByDefault(item: ActivityView) {
+    const meta = getTimelineMeta(item)
+    if (meta.channel === "call") return false
+    if (meta.channel === "email") return (meta.body?.length ?? 0) <= 320
+    return true
+  }
+
   function isOutbound(item: ActivityView) {
-    const title = (item.title ?? "").toLowerCase()
-    return /^(reply|outbound|sent|sms sent|outbound call|email sent)/i.test(title) || title.includes("reply") || title.includes("outbound")
+    return getTimelineMeta(item).direction === "outbound"
   }
 
   const handleSendMessage = async () => {
@@ -661,16 +732,20 @@ If the request is to contact the customer, use the appropriate customer-contact 
                   </div>
                 ) : (
                   detailInteractions.map((item) => {
-                    const outbound = isOutbound(item)
-                    const effectiveType = isSystemEvent(item) ? "system"
-                      : (item.title?.toLowerCase().includes("sms") ? "sms" : item.type)
-                    const { icon, containerClass, label } = channelIconAndStyle(effectiveType)
+                    const meta = getTimelineMeta(item)
+                    const outbound = meta.direction === "outbound"
+                    const expanded = expandedActivityIds[item.id] ?? shouldExpandByDefault(item)
+                    const { icon, containerClass, label } = channelIconAndStyle(meta.channel)
+                    const timelineSummary =
+                      meta.channel === "call"
+                        ? meta.summary || meta.preview || "Call details available"
+                        : meta.preview || "Activity"
                     return (
                       <div
                         key={item.id}
                         className={cn(
                           "flex gap-3 items-start",
-                          outbound && "flex-row-reverse justify-end"
+                          outbound && !meta.system && "flex-row-reverse justify-end"
                         )}
                       >
                         <div
@@ -679,21 +754,98 @@ If the request is to contact the customer, use the appropriate customer-contact 
                         >
                           {icon}
                         </div>
-                        <div className={cn("flex-1 min-w-0 max-w-[85%]", outbound && "flex flex-col items-end")}>
-                          <div className="flex items-baseline gap-2">
-                            <span className="app-body-primary text-xs font-medium">{item.title}</span>
-                            <span className="app-body-secondary text-xs">{item.time}</span>
-                          </div>
-                          {item.content && (
-                            <p
-                              className={cn(
-                                "text-sm mt-0.5 whitespace-pre-wrap",
-                                outbound ? "text-foreground bg-primary/10 rounded-lg rounded-br-sm px-2.5 py-1.5" : "text-muted-foreground"
+                        <div className={cn("flex-1 min-w-0 max-w-[88%]", outbound && !meta.system && "flex flex-col items-end")}>
+                          <div
+                            className={cn(
+                              "rounded-2xl border px-3 py-2.5 shadow-sm",
+                              meta.system
+                                ? "border-border/40 bg-muted/20"
+                                : outbound
+                                  ? "border-primary/20 bg-primary/10"
+                                  : "border-border/50 bg-background/80",
+                            )}
+                          >
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="app-body-primary text-xs font-semibold">{item.title}</span>
+                              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                {label}
+                              </span>
+                              {!meta.system && (
+                                <span className="rounded-full border border-border/50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                                  {meta.direction === "outbound" ? "Outbound" : "Inbound"}
+                                </span>
                               )}
-                            >
-                              {item.content}
-                            </p>
-                          )}
+                              {meta.durationLabel && (
+                                <span className="text-[10px] font-medium text-muted-foreground">{meta.durationLabel}</span>
+                              )}
+                              <span className="ml-auto app-body-secondary text-xs">{item.time}</span>
+                            </div>
+
+                            {meta.channel === "email" && meta.subject && meta.subject !== item.title && (
+                              <p className="mt-2 text-xs font-medium text-foreground/80">
+                                Subject: {meta.subject}
+                              </p>
+                            )}
+
+                            {meta.channel === "call" ? (
+                              <div className="mt-2 space-y-2">
+                                <p className="text-sm leading-relaxed text-foreground">{timelineSummary}</p>
+                                {meta.transcript ? (
+                                  <div className="space-y-2">
+                                    <button
+                                      type="button"
+                                      className="text-xs font-medium text-primary underline underline-offset-4"
+                                      aria-expanded={expanded}
+                                      onClick={() =>
+                                        setExpandedActivityIds((current) => ({
+                                          ...current,
+                                          [item.id]: !expanded,
+                                        }))
+                                      }
+                                    >
+                                      {expanded ? "Hide full transcript" : "Show full transcript"}
+                                    </button>
+                                    {expanded && (
+                                      <div className="rounded-xl bg-muted/40 p-3">
+                                        <p className="text-sm whitespace-pre-wrap leading-relaxed text-muted-foreground">
+                                          {meta.transcript}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : meta.body ? (
+                                  <p className="text-sm whitespace-pre-wrap leading-relaxed text-muted-foreground">
+                                    {meta.body}
+                                  </p>
+                                ) : null}
+                              </div>
+                            ) : meta.body ? (
+                              <div className="mt-2 space-y-2">
+                                <p className="text-sm whitespace-pre-wrap leading-relaxed text-foreground">
+                                  {expanded || meta.body.length <= 320
+                                    ? meta.body
+                                    : `${meta.body.slice(0, 317)}...`}
+                                </p>
+                                {meta.body.length > 320 && (
+                                  <button
+                                    type="button"
+                                    className="text-xs font-medium text-primary underline underline-offset-4"
+                                    aria-expanded={expanded}
+                                    onClick={() =>
+                                      setExpandedActivityIds((current) => ({
+                                        ...current,
+                                        [item.id]: !expanded,
+                                      }))
+                                    }
+                                  >
+                                    {expanded ? "Show less" : "Show full message"}
+                                  </button>
+                                )}
+                              </div>
+                            ) : meta.summary ? (
+                              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{meta.summary}</p>
+                            ) : null}
+                          </div>
                         </div>
                       </div>
                     )
@@ -714,6 +866,22 @@ If the request is to contact the customer, use the appropriate customer-contact 
                   <button
                     type="button"
                     role="tab"
+                    aria-selected={messageMode === "direct"}
+                    id="inbox-tab-direct-sms"
+                    aria-disabled={!selectedContactHasPhone}
+                    onClick={() => setMessageMode("direct")}
+                    className={cn("flex-1 px-3 py-1.5 app-body-secondary text-xs font-medium rounded-md transition-colors flex items-center justify-center gap-1.5",
+                      messageMode === "direct" ? "bg-background text-foreground shadow-sm ring-1 ring-border" : "text-muted-foreground hover:text-foreground",
+                      !selectedContactHasPhone && "opacity-60"
+                    )}
+                  >
+                    <MessageSquare className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    Direct SMS
+                    <span className="sr-only">. You send; not the AI.</span>
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
                     aria-selected={messageMode === "tracey"}
                     id="inbox-tab-tracey"
                     onClick={() => setMessageMode("tracey")}
@@ -725,23 +893,30 @@ If the request is to contact the customer, use the appropriate customer-contact 
                     Ask Tracey
                     <span className="sr-only">. AI assistant uses your workspace number.</span>
                   </button>
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={messageMode === "direct"}
-                    id="inbox-tab-direct-sms"
-                    onClick={() => setMessageMode("direct")}
-                    className={cn("flex-1 px-3 py-1.5 app-body-secondary text-xs font-medium rounded-md transition-colors flex items-center justify-center gap-1.5",
-                      messageMode === "direct" ? "bg-background text-foreground shadow-sm ring-1 ring-border" : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    <MessageSquare className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                    Direct SMS
-                    <span className="sr-only">. You send; not the AI.</span>
-                  </button>
                 </div>
 
-                <div className="mb-2 rounded-lg border border-border/50 bg-background/40 px-3 py-2" role="region" aria-live="polite">
+                <div
+                  className={cn(
+                    "mb-2 rounded-lg border px-3 py-2 transition-colors",
+                    messageMode === "direct"
+                      ? "border-teal-200 bg-teal-50/70"
+                      : "border-blue-200 bg-blue-50/70",
+                  )}
+                  role="region"
+                  aria-live="polite"
+                >
+                  <div className="mb-1 flex items-center gap-2">
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide",
+                        messageMode === "direct"
+                          ? "bg-teal-100 text-teal-700"
+                          : "bg-blue-100 text-blue-700",
+                      )}
+                    >
+                      {messageMode === "direct" ? "Sends immediately" : "AI handles next step"}
+                    </span>
+                  </div>
                   <p className="text-xs font-medium text-foreground">
                     {messageMode === "direct"
                       ? "Direct SMS: sends immediately from your workspace Twilio number as a manual text."
@@ -752,6 +927,26 @@ If the request is to contact the customer, use the appropriate customer-contact 
                       ? "You control the wording here - only the exact text you type below is sent."
                       : "This is not a raw SMS draft - Tracey decides how to act based on your instruction."}
                   </p>
+                  {!selectedContactHasPhone && (
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      <p className="text-xs text-amber-700">
+                        This contact has no phone number, so direct SMS is unavailable. Ask Tracey can still update the CRM or draft the next step.
+                      </p>
+                      <Button asChild size="sm" variant="outline" className="h-7 text-xs">
+                        <Link href={`/crm/contacts/${selectedContact.id}/edit`}>Add phone in CRM</Link>
+                      </Button>
+                    </div>
+                  )}
+                  {!selectedContact.email && (
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      <p className="text-xs text-amber-700">
+                        No email address is on file yet, so email follow-up is unavailable from this customer timeline.
+                      </p>
+                      <Button asChild size="sm" variant="outline" className="h-7 text-xs">
+                        <Link href={`/crm/contacts/${selectedContact.id}/edit`}>Add email in CRM</Link>
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Message input */}
@@ -779,7 +974,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
                     onClick={handleSendMessage}
                   >
                     <Send className="h-4 w-4" />
-                    <span className="ml-1 text-xs">{messageMode === "direct" ? "Send SMS" : "Ask Tracey"}</span>
+                    <span className="ml-1 text-xs">{messageMode === "direct" ? "Send now" : "Ask Tracey to act"}</span>
                   </Button>
                 </div>
                 {messageMode === "direct" && !selectedContact.phone && (

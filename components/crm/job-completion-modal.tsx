@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -7,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { CheckCircle, Star, DollarSign, Camera } from "lucide-react"
+import { CheckCircle, Star, DollarSign, Camera, ExternalLink } from "lucide-react"
 import { toast } from "sonner"
 import { sendReviewRequestSMS } from "@/actions/messaging-actions"
 import { requestPaymentForDeal } from "@/actions/followup-actions"
@@ -35,7 +36,6 @@ interface JobCompletionReview {
   nextSteps: string
   requestPayment: boolean
   requestReview: boolean
-  photos: string[]
   issues: string[]
 }
 
@@ -47,7 +47,6 @@ export function JobCompletionModal({ open, onOpenChange, deal, onComplete }: Job
     nextSteps: "",
     requestPayment: true,
     requestReview: true,
-    photos: [],
     issues: []
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -120,7 +119,6 @@ export function JobCompletionModal({ open, onOpenChange, deal, onComplete }: Job
         nextSteps: "",
         requestPayment: true,
         requestReview: true,
-        photos: [],
         issues: []
       })
     } catch {
@@ -320,17 +318,21 @@ export function JobCompletionModal({ open, onOpenChange, deal, onComplete }: Job
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="send-photos"
-                    checked={reviewData.photos.length > 0}
-                    onChange={(e) => setReviewData(prev => ({ ...prev, photos: e.target.checked ? ["photo1", "photo2"] : [] }))}
-                    className="rounded"
-                  />
-                  <Label htmlFor="send-photos" className="flex items-center gap-2">
-                    <Camera className="h-4 w-4" />
-                    Send Photos to Client
-                  </Label>
+                  <div className="rounded border border-slate-200 bg-slate-50 px-3 py-3 w-full">
+                    <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                      <Camera className="h-4 w-4" />
+                      Include job photos in customer follow-up
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Attach and send photos from the full CRM job view so customer history, files, and messaging stay together.
+                    </p>
+                    <Button asChild variant="outline" size="sm" className="mt-3">
+                      <Link href={`/crm/deals/${deal.id}`}>
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Open Full CRM Job
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>

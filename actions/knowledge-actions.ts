@@ -1,12 +1,12 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { getAuthUserId } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { generateObject } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -22,14 +22,13 @@ export interface KnowledgeRule {
 // ─── Helpers ────────────────────────────────────────────────────────
 
 async function getWorkspaceId(): Promise<string> {
-  const userId = await getAuthUserId();
-  if (!userId) throw new Error("Not authenticated");
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    select: { workspaceId: true },
-  });
-  if (!user) throw new Error("User not found");
-  return user.workspaceId;
+  const actor = await requireCurrentWorkspaceAccess();
+  return actor.workspaceId;
+}
+
+async function getBusinessProfileUserId(): Promise<string> {
+  const actor = await requireCurrentWorkspaceAccess();
+  return actor.id;
 }
 
 // ─── Queries ────────────────────────────────────────────────────────
@@ -168,13 +167,20 @@ export async function updateServiceArea(
   serviceSuburbs: string[]
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const userId = await getAuthUserId();
-    if (!userId) throw new Error("Not authenticated");
-    await db.businessProfile.update({
+    const userId = await getBusinessProfileUserId();
+    const cleanedSuburbs = serviceSuburbs.map((s) => s.trim()).filter(Boolean);
+    await db.businessProfile.upsert({
       where: { userId },
-      data: {
+      update: {
         serviceRadius,
-        serviceSuburbs: serviceSuburbs.filter((s) => s.trim()),
+        serviceSuburbs: cleanedSuburbs,
+      },
+      create: {
+        userId,
+        tradeType: "General",
+        baseSuburb: "",
+        serviceRadius,
+        serviceSuburbs: cleanedSuburbs,
       },
     });
     revalidatePath("/crm/settings/knowledge");
@@ -192,8 +198,7 @@ export async function getServiceArea(): Promise<{
   baseSuburb: string;
 } | null> {
   try {
-    const userId = await getAuthUserId();
-    if (!userId) return null;
+    const userId = await getBusinessProfileUserId();
     const profile = await db.businessProfile.findUnique({
       where: { userId },
       select: { serviceRadius: true, serviceSuburbs: true, baseSuburb: true },

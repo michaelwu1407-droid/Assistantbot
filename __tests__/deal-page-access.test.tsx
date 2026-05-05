@@ -15,6 +15,18 @@ const { notFound, requireDealInCurrentWorkspace, db } = vi.hoisted(() => ({
     workspace: {
       findUnique: vi.fn(),
     },
+    activity: {
+      findMany: vi.fn(),
+    },
+    voiceCall: {
+      findMany: vi.fn(),
+    },
+    chatMessage: {
+      findMany: vi.fn(),
+    },
+    contact: {
+      findMany: vi.fn(),
+    },
   },
 }));
 
@@ -101,6 +113,7 @@ describe("deal page access", () => {
       metadata: {},
       contactId: "contact_1",
       assignedToId: "user_1",
+      assignedTo: { id: "user_1", name: "Jess Smith", email: "jess@example.com" },
       contact: {
         id: "contact_1",
         name: "Acme Plumbing",
@@ -113,21 +126,96 @@ describe("deal page access", () => {
     });
     db.deal.findMany.mockResolvedValue([]);
     db.workspace.findUnique.mockResolvedValue({ workspaceTimezone: "Australia/Sydney" });
+    db.activity.findMany.mockResolvedValue([]);
+    db.voiceCall.findMany.mockResolvedValue([]);
+    db.chatMessage.findMany.mockResolvedValue([]);
+    db.contact.findMany.mockResolvedValue([]);
   });
 
   it("renders the deal detail page when access is allowed", async () => {
     render(await DealDetailPage({ params: Promise.resolve({ id: "deal_1" }) }));
 
     expect(screen.getAllByText("Blocked Drain").length).toBeGreaterThan(0);
-    expect(screen.getByRole("link", { name: /contact them/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /open customer timeline/i })).toHaveAttribute(
       "href",
       "/crm/inbox?contact=contact_1",
     );
+    expect(screen.getByText(/full SMS, email, and call correspondence/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /edit contact/i })).toHaveAttribute(
       "href",
       "/crm/contacts/contact_1/edit",
     );
     expect(screen.getByText("Activity feed")).toBeInTheDocument();
+  });
+
+  it("shows a CRM recovery path when the customer has no phone number", async () => {
+    db.deal.findFirst.mockResolvedValueOnce({
+      id: "deal_1",
+      title: "Blocked Drain",
+      value: 420,
+      stage: "SCHEDULED",
+      createdAt: new Date("2026-04-01T10:00:00.000Z"),
+      scheduledAt: new Date("2026-04-02T10:00:00.000Z"),
+      address: "1 King St",
+      metadata: {},
+      contactId: "contact_1",
+      assignedToId: "user_1",
+      assignedTo: { id: "user_1", name: "Jess Smith", email: "jess@example.com" },
+      contact: {
+        id: "contact_1",
+        name: "Acme Plumbing",
+        company: "Acme Plumbing",
+        phone: null,
+        email: "office@acme.com",
+      },
+      jobPhotos: [],
+      syncIssues: [],
+    });
+
+    render(await DealDetailPage({ params: Promise.resolve({ id: "deal_1" }) }));
+
+    expect(
+      screen.getByText(/No phone number on file\. Add one in CRM before calling or texting from this job\./i),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /add phone in crm/i })).toHaveAttribute(
+      "href",
+      "/crm/contacts/contact_1/edit",
+    );
+  });
+
+  it("shows a CRM recovery path when the job has no address", async () => {
+    db.deal.findFirst.mockResolvedValueOnce({
+      id: "deal_1",
+      title: "Blocked Drain",
+      value: 420,
+      stage: "SCHEDULED",
+      createdAt: new Date("2026-04-01T10:00:00.000Z"),
+      scheduledAt: new Date("2026-04-02T10:00:00.000Z"),
+      address: null,
+      metadata: {},
+      contactId: "contact_1",
+      assignedToId: "user_1",
+      assignedTo: { id: "user_1", name: "Jess Smith", email: "jess@example.com" },
+      contact: {
+        id: "contact_1",
+        name: "Acme Plumbing",
+        company: "Acme Plumbing",
+        phone: "0400000001",
+        email: "office@acme.com",
+      },
+      jobPhotos: [],
+      syncIssues: [],
+    });
+
+    render(await DealDetailPage({ params: Promise.resolve({ id: "deal_1" }) }));
+
+    expect(
+      screen.getByText(/No address on file\. Add one in CRM before using route or map actions for this job\./i),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /add address in crm/i })).toHaveAttribute(
+      "href",
+      "/crm/contacts/contact_1/edit",
+    );
   });
 
   it("returns not found when the scoped deal lookup denies access", async () => {

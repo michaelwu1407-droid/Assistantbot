@@ -10,12 +10,13 @@ import { createNotification } from "./notification-actions";
 import { MonitoringService } from "@/lib/monitoring";
 import { maybeCreatePricingSuggestionFromConfirmedJob } from "@/lib/pricing-learning";
 import { createTask } from "./task-actions";
-import { requireDealInCurrentWorkspace } from "@/lib/workspace-access";
+import { requireCurrentWorkspaceAccess, requireDealInCurrentWorkspace } from "@/lib/workspace-access";
 import { syncGoogleCalendarEventForDeal } from "@/lib/workspace-calendar";
 import { recordWorkspaceAuditEvent } from "@/lib/workspace-audit";
 import { allocateWorkspaceInvoiceNumber } from "@/lib/invoice-number";
 import { logger } from "@/lib/logging";
 import { Prisma } from "@prisma/client";
+import { formatTimeInTimezone, getZonedDateParts, parseDateTimeLocalInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone";
 
 const GST_RATE = new Prisma.Decimal("0.10");
 
@@ -102,20 +103,44 @@ export interface QuoteResult {
   error?: string;
 }
 
+async function getTradieAccessWhere(workspaceId: string) {
+  const actor = await requireCurrentWorkspaceAccess();
+
+  if (actor.workspaceId !== workspaceId) {
+    throw new Error("Workspace access mismatch");
+  }
+
+  return actor.role === "TEAM_MEMBER"
+    ? {
+        workspaceId,
+        assignedToId: actor.id,
+      }
+    : {
+        workspaceId,
+    };
+}
+
+async function getWorkspaceTimezoneForTradie(workspaceId: string) {
+  const workspace = await db.workspace.findUnique({
+    where: { id: workspaceId },
+    select: { workspaceTimezone: true },
+  });
+
+  return resolveWorkspaceTimezone(workspace?.workspaceTimezone);
+}
+
 // ─── Server Actions ─────────────────────────────────────────
 
 /**
- * Fetch active jobs for the Tradie view.
- * "Jobs" are typically Deals in 'WON' (Scheduled) or 'INVOICED' (Completed/Billing) state,
- * or any active state depending on workflow. 
- * For this demo, we'll fetch all deals that aren't LOST or ARCHIVED.
+ * Fetch active jobs for the tradie surfaces.
+ * Team members only see their own assigned jobs; managers keep the full workspace view.
  */
 export async function getTradieJobs(workspaceId: string) {
+  const accessWhere = await getTradieAccessWhere(workspaceId);
   const deals = await db.deal.findMany({
     where: {
-      workspaceId,
-      stage: { in: ["WON", "INVOICED", "NEGOTIATION", "CONTACTED", "NEW"] }, // Broad filter for demo
-      // In a real app, we'd filter by assigned user or specific "Job" status field
+      ...accessWhere,
+      stage: { in: ["WON", "INVOICED", "NEGOTIATION", "CONTACTED", "NEW"] },
     },
     include: {
       contact: true,
@@ -146,15 +171,19 @@ export async function getTradieJobs(workspaceId: string) {
  * Filters jobs scheduled for the current day.
  */
 export async function getTodaySchedule(workspaceId: string) {
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-
-  const endOfDay = new Date();
-  endOfDay.setHours(23, 59, 59, 999);
+  const [accessWhere, workspaceTimezone] = await Promise.all([
+    getTradieAccessWhere(workspaceId),
+    getWorkspaceTimezoneForTradie(workspaceId),
+  ]);
+  const now = new Date();
+  const todayParts = getZonedDateParts(now, workspaceTimezone);
+  const dayKey = `${String(todayParts.year).padStart(4, "0")}-${String(todayParts.month).padStart(2, "0")}-${String(todayParts.day).padStart(2, "0")}`;
+  const startOfDay = parseDateTimeLocalInTimezone(`${dayKey}T00:00`, workspaceTimezone) ?? now;
+  const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1);
 
   const jobs = await db.deal.findMany({
     where: {
-      workspaceId,
+      ...accessWhere,
       OR: [
         // Jobs for today
         {
@@ -187,7 +216,7 @@ export async function getTodaySchedule(workspaceId: string) {
     status: job.jobStatus || "SCHEDULED",
     value: Number(job.value),
     scheduledAt: job.scheduledAt || new Date(),
-    time: job.scheduledAt ? job.scheduledAt.toLocaleTimeString("en-AU", { hour: 'numeric', minute: '2-digit' }) : "All Day",
+    time: job.scheduledAt ? formatTimeInTimezone(job.scheduledAt, workspaceTimezone) : "All Day",
     description: (job.metadata as any)?.description || "No description",
     safetyCheckCompleted: job.safetyCheckCompleted,
     contactPhone: job.contact.phone || undefined,
@@ -202,6 +231,7 @@ export async function getTodaySchedule(workspaceId: string) {
  */
 export async function getTradieJobById(jobId: string) {
   const { deal } = await requireDealInCurrentWorkspace(jobId);
+  const workspaceTimezone = await getWorkspaceTimezoneForTradie(deal.workspaceId);
   const job = await db.deal.findFirst({
     where: { id: deal.id, workspaceId: deal.workspaceId },
     include: { contact: true }
@@ -218,7 +248,7 @@ export async function getTradieJobById(jobId: string) {
     status: job.jobStatus || "SCHEDULED",
     value: Number(job.value),
     scheduledAt: job.scheduledAt || new Date(),
-    time: job.scheduledAt ? job.scheduledAt.toLocaleTimeString("en-AU", { hour: 'numeric', minute: '2-digit' }) : "All Day",
+    time: job.scheduledAt ? formatTimeInTimezone(job.scheduledAt, workspaceTimezone) : "All Day",
     description: (job.metadata as any)?.description || "No description",
     safetyCheckCompleted: job.safetyCheckCompleted,
     contactPhone: job.contact.phone || undefined,
@@ -232,10 +262,11 @@ export async function getTradieJobById(jobId: string) {
  * Finds the first job scheduled in the future.
  */
 export async function getNextJob(workspaceId: string) {
+  const accessWhere = await getTradieAccessWhere(workspaceId);
   // 1. Check for any currently active job (TRAVELING or ON_SITE)
   const activeJob = await db.deal.findFirst({
     where: {
-      workspaceId,
+      ...accessWhere,
       jobStatus: { in: ["TRAVELING", "ON_SITE"] }
     },
     include: { contact: true },
@@ -250,6 +281,8 @@ export async function getNextJob(workspaceId: string) {
       time: activeJob.scheduledAt,
       address: activeJob.address || activeJob.contact.address,
       status: activeJob.jobStatus,
+      value: activeJob.value ? Number(activeJob.value) : 0,
+      contactPhone: activeJob.contact.phone || undefined,
       safetyCheckCompleted: activeJob.safetyCheckCompleted,
       description: (activeJob.metadata as any)?.description
     };
@@ -259,7 +292,7 @@ export async function getNextJob(workspaceId: string) {
   const now = new Date();
   const nextJob = await db.deal.findFirst({
     where: {
-      workspaceId,
+      ...accessWhere,
       scheduledAt: { gt: now },
       jobStatus: { notIn: ["COMPLETED", "CANCELLED", "TRAVELING", "ON_SITE"] } // Exclude statuses we checked above
     },
@@ -276,6 +309,8 @@ export async function getNextJob(workspaceId: string) {
     time: nextJob.scheduledAt,
     address: nextJob.address || nextJob.contact.address,
     status: nextJob.jobStatus,
+    value: nextJob.value ? Number(nextJob.value) : 0,
+    contactPhone: nextJob.contact.phone || undefined,
     safetyCheckCompleted: nextJob.safetyCheckCompleted,
     description: (nextJob.metadata as any)?.description
   };
@@ -304,14 +339,15 @@ export async function getJobDetails(jobId: string) {
 
   if (!deal) return null;
 
-  return {
-    id: deal.id,
-    title: deal.title,
-    client: {
+    return {
+      id: deal.id,
+      contactId: deal.contactId,
+      title: deal.title,
+      client: {
       name: deal.contact.name,
       phone: deal.contact.phone,
       email: deal.contact.email,
-      address: deal.contact.address,
+      address: deal.address || deal.contact.address,
     },
     status: deal.jobStatus || deal.stage,
     value: deal.value ? Number(deal.value) : 0,
@@ -392,7 +428,6 @@ export async function updateJobStatus(jobId: string, status: 'SCHEDULED' | 'TRAV
   // 2. Trigger Side Effects
   if (status === 'TRAVELING') {
     MonitoringService.trackEvent("workflow_start_travel", { jobId });
-    await sendOnMyWaySMS(jobId);
   }
 
   if (status === 'COMPLETED') {
@@ -431,6 +466,9 @@ export async function updateJobStatus(jobId: string, status: 'SCHEDULED' | 'TRAV
 
   revalidatePath('/crm/tradie');
   revalidatePath(`/crm/jobs/${jobId}`);
+  revalidatePath('/crm/dashboard');
+  revalidatePath('/crm/deals');
+  revalidatePath(`/crm/deals/${jobId}`);
   return { success: true, status };
 }
 
@@ -493,6 +531,10 @@ export async function updateJobSchedule(jobId: string, scheduledAt: Date) {
     await syncGoogleCalendarEventForDeal(jobId).catch(() => {});
 
     revalidatePath('/crm/tradie/schedule');
+    revalidatePath('/crm/dashboard');
+    revalidatePath('/crm/schedule');
+    revalidatePath('/crm/deals');
+    revalidatePath(`/crm/deals/${jobId}`);
     return { success: true, scheduledAt: deal.scheduledAt };
   } catch (error) {
     logger.error("Failed to update schedule", { component: "tradie-actions", action: "updateJobSchedule", jobId }, error as Error);
@@ -567,6 +609,8 @@ export async function createQuoteVariation(jobId: string, items: Array<{ desc: s
       contactId: deal.contactId
     }
   });
+
+  revalidateInvoiceSurfaces(jobId, deal.contactId);
 
   return {
     success: true,
@@ -1181,6 +1225,9 @@ export async function completeJob(dealId: string, signatureDataUrl: string) {
     }
 
     revalidatePath(`/crm/tradie/jobs/${dealId}`);
+    revalidatePath('/crm/dashboard');
+    revalidatePath('/crm/deals');
+    revalidatePath(`/crm/deals/${dealId}`);
     return { success: true };
   } catch (error) {
     logger.error("Error completing job", { component: "tradie-actions", action: "completeJob", dealId }, error as Error);

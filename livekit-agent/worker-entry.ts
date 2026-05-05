@@ -1,7 +1,8 @@
 import { WorkerOptions, cli, type JobRequest } from "@livekit/agents";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { startVoiceWorkerBackgroundTasks } from "./agent";
-import { resolveWorkerHttpHost, resolveWorkerHttpPort } from "./runtime-config";
+import { isEarlymarkInboundRoomName } from "./room-routing";
+import { getVoiceWorkerHealthPath, getVoiceWorkerHealthStaleMs, resolveWorkerHttpHost, resolveWorkerHttpPort } from "./runtime-config";
 import { getActiveCallCount, getMaxConcurrentCalls, isWorkerAcceptingCalls } from "./runtime-state";
 
 type VoiceSurface = "demo" | "inbound_demo" | "normal";
@@ -58,7 +59,7 @@ function inferSurface(job: JobRequest): VoiceSurface {
   if (explicitCallType === "demo" || roomName.startsWith("demo-")) {
     return "demo";
   }
-  if (explicitCallType === "inbound_demo" || roomName.startsWith("earlymark-inbound-")) {
+  if (explicitCallType === "inbound_demo" || isEarlymarkInboundRoomName(roomName)) {
     return "inbound_demo";
   }
 
@@ -78,17 +79,80 @@ function inferSurface(job: JobRequest): VoiceSurface {
   return "normal";
 }
 
-function buildRequestFunc(surfaces: VoiceSurface[]) {
+type WorkerAvailability = {
+  acceptingNewCalls: boolean;
+  activeCalls: number;
+  maxConcurrentCalls: number;
+  source: "health_snapshot" | "in_memory";
+};
+
+function readWorkerAvailabilitySnapshot(): WorkerAvailability | null {
+  try {
+    const raw = readFileSync(getVoiceWorkerHealthPath(), "utf8");
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const lastHeartbeatSuccessAt =
+      typeof parsed.lastHeartbeatSuccessAt === "string"
+        ? Date.parse(parsed.lastHeartbeatSuccessAt)
+        : typeof parsed.updatedAt === "string"
+          ? Date.parse(parsed.updatedAt)
+          : Number.NaN;
+
+    if (!Number.isFinite(lastHeartbeatSuccessAt)) {
+      return null;
+    }
+
+    if (Date.now() - lastHeartbeatSuccessAt > getVoiceWorkerHealthStaleMs()) {
+      return null;
+    }
+
+    const maxConcurrentCalls =
+      Number.isInteger(parsed.maxConcurrentCalls) && Number(parsed.maxConcurrentCalls) > 0
+        ? Number(parsed.maxConcurrentCalls)
+        : getMaxConcurrentCalls();
+    const activeCalls =
+      Number.isInteger(parsed.activeCalls) && Number(parsed.activeCalls) >= 0
+        ? Number(parsed.activeCalls)
+        : getActiveCallCount();
+    const acceptingNewCalls =
+      typeof parsed.acceptingNewCalls === "boolean"
+        ? parsed.acceptingNewCalls
+        : parsed.bootReady === true && activeCalls < maxConcurrentCalls;
+
+    return {
+      acceptingNewCalls,
+      activeCalls,
+      maxConcurrentCalls,
+      source: "health_snapshot",
+    };
+  } catch {
+    return null;
+  }
+}
+
+function getWorkerAvailability(): WorkerAvailability {
+  return (
+    readWorkerAvailabilitySnapshot() || {
+      acceptingNewCalls: isWorkerAcceptingCalls(),
+      activeCalls: getActiveCallCount(),
+      maxConcurrentCalls: getMaxConcurrentCalls(),
+      source: "in_memory",
+    }
+  );
+}
+
+export function buildRequestFunc(surfaces: VoiceSurface[]) {
   return async (job: JobRequest) => {
     const inferredSurface = inferSurface(job);
     if (surfaces.includes(inferredSurface)) {
-      if (!isWorkerAcceptingCalls()) {
+      const availability = getWorkerAvailability();
+      if (!availability.acceptingNewCalls) {
         console.warn("[voice-worker] Rejecting job because worker is not accepting new calls.", {
           roomName: job.room?.name || "",
           inferredSurface,
           workerRole: process.env.VOICE_WORKER_ROLE || "",
-          activeCalls: getActiveCallCount(),
-          maxConcurrentCalls: getMaxConcurrentCalls(),
+          activeCalls: availability.activeCalls,
+          maxConcurrentCalls: availability.maxConcurrentCalls,
+          availabilitySource: availability.source,
         });
         await job.reject();
         return;
@@ -109,7 +173,6 @@ export function runVoiceWorker(params: {
 }) {
   process.env.VOICE_WORKER_ROLE = process.env.VOICE_WORKER_ROLE || params.workerRole;
   process.env.VOICE_WORKER_SURFACES = process.env.VOICE_WORKER_SURFACES || params.surfaces.join(",");
-  startVoiceWorkerBackgroundTasks(`[${params.workerRole}]`);
 
   cli.runApp(
     new WorkerOptions({

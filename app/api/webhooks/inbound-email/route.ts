@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { db } from "@/lib/db";
 import { processIncomingEmailWithGemini } from "@/lib/ai/email-agent";
+import { saveTriageRecommendation, triageIncomingLead } from "@/lib/ai/triage";
 import * as Sentry from "@sentry/nextjs";
+import { isTrackableResendEvent, processResendStatusEvent } from "@/lib/resend-status-events";
 
 // ─── Resend Webhook Signature Verification ───────────────────────────
 // Resend signs webhook payloads using a shared secret (configured in
@@ -212,11 +214,21 @@ export async function POST(req: NextRequest) {
 
     const payload = JSON.parse(rawBody);
 
-    // Resend wraps inbound emails in a `data` envelope for webhook events.
-    // The relevant event type is "email.received".
+    // Resend wraps webhook events in a `data` envelope.
+    // This route intentionally accepts both inbound email and delivery-tracking events
+    // so production can run from a single signed Resend webhook endpoint.
     const eventType = payload.type;
+    if (eventType && isTrackableResendEvent(eventType)) {
+      const statusResult = await processResendStatusEvent(payload);
+      return NextResponse.json({
+        success: true,
+        event: eventType,
+        status: statusResult.handled ? statusResult.statusLabel : eventType,
+        contactId: statusResult.handled ? statusResult.contactId : null,
+      });
+    }
+
     if (eventType && eventType !== "email.received") {
-      // Acknowledge non-email events (e.g., email.sent, email.bounced)
       return NextResponse.json({ ok: true, skipped: eventType });
     }
 
@@ -389,37 +401,55 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      // Run triage to check service area and negative scope rules
+      const triage = await triageIncomingLead(workspace!.id, {
+        title: deal.title,
+        description: textBody.substring(0, 500),
+      }).catch(() => null);
+
+      if (triage) {
+        await saveTriageRecommendation(deal.id, triage).catch(() => {});
+      }
+
       const urgentLead = isUrgentLead(subject, textBody);
       const withinCallWindow = isWithinAllowedCallWindow(workspace!.settings);
-      const blockAutoCall = urgentLead || !withinCallWindow;
+      const blockAutoCall = urgentLead || !withinCallWindow || (triage?.recommendation === "HOLD_REVIEW");
       const blockReason = urgentLead
         ? "urgent"
         : !withinCallWindow
           ? "after_hours"
-          : null;
+          : triage?.recommendation === "HOLD_REVIEW"
+            ? "triage_review"
+            : null;
 
       // Auto-call via LiveKit: outbound calls are handled by the livekit-agent Python microservice via SIP trunk.
       // When autoCallLeads is enabled, the microservice picks up and dials the lead.
       const callTriggered = false;
 
       if (workspace!.ownerId && blockAutoCall) {
+        const triageTitle = triage?.recommendation === "HOLD_REVIEW" && triage.flags.length > 0
+          ? "Lead flagged for review"
+          : urgentLead ? "Urgent lead requires manual follow-up" : "After-hours lead requires manual follow-up";
+        const triageDetail = triage?.flags.length ? ` Flags: ${triage.flags.join("; ")}.` : "";
         await db.notification.create({
           data: {
             userId: workspace!.ownerId,
-            title: urgentLead ? "Urgent lead requires manual follow-up" : "After-hours lead requires manual follow-up",
-            message: `${leadName} from ${platform}. Review details and contact the lead directly.`,
-            type: "INFO",
-            link: `/crm/inbox?contact=${contact.id}`,
+            title: triageTitle,
+            message: `${leadName} from ${platform}. Review details and contact the lead directly.${triageDetail}`,
+            type: triage?.recommendation === "HOLD_REVIEW" ? "WARNING" : "INFO",
+            link: `/crm/deals/${deal.id}`,
           },
         }).catch(() => {});
 
         await db.activity.create({
           data: {
             type: "NOTE",
-            title: "Manual follow-up required",
-            content: urgentLead
-              ? "Urgent lead detected. Auto-calling is disabled for urgent leads; follow up manually."
-              : "Lead received outside allowed calling hours. Auto-calling skipped; follow up manually.",
+              title: "Manual follow-up required",
+              content: urgentLead
+                ? "Urgent lead detected. Auto-calling is disabled for urgent leads; follow up manually."
+                : blockReason === "after_hours"
+                  ? "Lead received outside allowed calling hours. Auto-calling skipped; follow up manually."
+                  : "Tracey held this lead for review. No auto-call or customer response was sent; review the warning flags before accepting the job.",
             contactId: contact.id,
             dealId: deal.id,
           },
@@ -440,6 +470,8 @@ export async function POST(req: NextRequest) {
             callTriggered,
             autoCallBlocked: blockAutoCall,
             autoCallBlockReason: blockReason,
+            triageRecommendation: triage?.recommendation ?? null,
+            triageFlags: triage?.flags ?? [],
           },
         },
       }).catch(() => {});
@@ -455,6 +487,8 @@ export async function POST(req: NextRequest) {
         callTriggered,
         autoCallBlocked: blockAutoCall,
         autoCallBlockReason: blockReason,
+        triageRecommendation: triage?.recommendation ?? null,
+        triageFlags: triage?.flags ?? [],
       });
     }
 

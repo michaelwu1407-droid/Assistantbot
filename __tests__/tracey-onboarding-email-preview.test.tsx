@@ -30,10 +30,25 @@ vi.mock("framer-motion", () => ({
   motion: {
     div: ({
       children,
+      animate: _animate,
+      drag: _drag,
+      dragConstraints: _dragConstraints,
+      dragElastic: _dragElastic,
+      exit: _exit,
+      initial: _initial,
+      transition: _transition,
+      whileHover: _whileHover,
+      whileTap: _whileTap,
       ...props
     }: React.HTMLAttributes<HTMLDivElement> & Record<string, unknown>) => <div {...props}>{children}</div>,
     button: ({
       children,
+      animate: _animate,
+      exit: _exit,
+      initial: _initial,
+      transition: _transition,
+      whileHover: _whileHover,
+      whileTap: _whileTap,
       ...props
     }: React.ButtonHTMLAttributes<HTMLButtonElement> & Record<string, unknown>) => (
       <button {...props}>{children}</button>
@@ -97,6 +112,31 @@ import { TraceyOnboarding } from "@/components/onboarding/tracey-onboarding";
 
 describe("Tracey onboarding lead email preview", () => {
   const fetchMock = vi.fn();
+
+  async function advanceToActivationChecklist(user: ReturnType<typeof userEvent.setup>) {
+    await user.clear(screen.getByPlaceholderText("John Smith"));
+    await user.type(screen.getByPlaceholderText("John Smith"), "Michael Wu");
+    await user.type(screen.getByPlaceholderText("04XX XXX XXX"), "0434955958");
+    await user.clear(screen.getByPlaceholderText("you@business.com.au"));
+    await user.type(screen.getByPlaceholderText("you@business.com.au"), "michael@example.com");
+    await user.type(screen.getByPlaceholderText("https://yoursite.com.au"), "https://alexandria.example.com");
+
+    await user.click(screen.getByRole("button", { name: /^Next/i }));
+    await user.click(screen.getByRole("button", { name: /^Next/i }));
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("Alexandria Automotive Services")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("123 Trade St, Alexandria NSW 2015")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: /^Next/i }));
+    await user.click(screen.getByRole("button", { name: /^Next/i }));
+    await user.click(screen.getByRole("button", { name: /^Next/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Your activation checklist")).toBeInTheDocument();
+    }, { timeout: 5000 });
+  }
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -201,6 +241,79 @@ describe("Tracey onboarding lead email preview", () => {
       expect(
         screen.getByText("alexandria-automotive-services-verified@inbound.earlymark.ai"),
       ).toBeInTheDocument();
+    });
+  }, 25000);
+
+  it("lets users finish onboarding cleanly when phone provisioning is not enabled in billing", async () => {
+    getProvisioningIntentForOnboarding.mockResolvedValueOnce({
+      success: true,
+      provisionPhoneNumberRequested: false,
+      provisioningStatus: "not_requested",
+    });
+    saveTraceyOnboarding.mockResolvedValueOnce({
+      success: true,
+      leadsEmail: "alexandria-automotive-services-verified@inbound.earlymark.ai",
+    });
+
+    const user = userEvent.setup();
+    render(<TraceyOnboarding />);
+
+    await advanceToActivationChecklist(user);
+
+    expect(
+      screen.getByText("You can add a dedicated number later from billing or settings."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Activate Tracey/i })).toBeEnabled();
+
+    await user.click(screen.getByRole("button", { name: /Activate Tracey/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("You're all set!")).toBeInTheDocument();
+      expect(
+        screen.getByText(/You can provision a dedicated number later from billing or settings\./i),
+      ).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText("Tracey's Phone Number")).not.toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+  }, 25000);
+
+  it("tells users to fix number setup before activation when provisioning fails", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          success: false,
+          provisioningStatus: "failed",
+          error: "Twilio provisioning timed out.",
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
+    );
+
+    const user = userEvent.setup();
+    render(<TraceyOnboarding />);
+
+    await advanceToActivationChecklist(user);
+
+    await waitFor(() => {
+      expect(screen.getByText("Twilio provisioning timed out.")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Retry number setup/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Fix number setup to continue/i })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: /Fix number setup to continue/i }));
+
+    expect(toastError).toHaveBeenCalledWith(
+      expect.stringContaining('Use "Retry number setup" below or contact support.'),
+    );
+
+    await user.click(screen.getByRole("button", { name: /Retry number setup/i }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(2);
     });
   }, 25000);
 });

@@ -38,6 +38,17 @@ describe("middleware", () => {
     expect(updateSession).not.toHaveBeenCalled();
   });
 
+  it("does not rewrite the public health route in production", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("ENABLE_INTERNAL_DEBUG_ROUTES", "false");
+
+    const response = await middleware(new NextRequest("https://app.example.com/api/health"));
+
+    expect(response.headers.get("x-middleware-rewrite")).toBeNull();
+    expect(response.status).toBe(200);
+    expect(updateSession).not.toHaveBeenCalled();
+  });
+
   it("refreshes the session for protected page routes", async () => {
     const response = NextResponse.next();
     updateSession.mockResolvedValue(response);
@@ -74,6 +85,16 @@ describe("middleware", () => {
     const response = await middleware(new NextRequest("https://app.example.com/dashboard"));
 
     expect(response.headers.get("Content-Security-Policy")).toContain("https://project.supabase.co");
+  });
+
+  it("allows production analytics workers and Google Maps font styles in the CSP header", async () => {
+    const response = await middleware(new NextRequest("https://app.example.com/crm/map"));
+    const csp = response.headers.get("Content-Security-Policy");
+
+    expect(csp).toContain("script-src 'self' 'unsafe-eval' 'unsafe-inline' blob:");
+    expect(csp).toContain("worker-src 'self' blob:");
+    expect(csp).toContain("style-src 'self' 'unsafe-inline' https://fonts.googleapis.com");
+    expect(csp).toContain("font-src 'self' data: https://fonts.gstatic.com");
   });
 
   it("fixes the forwarded host for the local proxy case", async () => {

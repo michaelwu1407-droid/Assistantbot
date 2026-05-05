@@ -371,7 +371,7 @@ export default function IntegrationsPage() {
                             Xero Accounting
                         </CardTitle>
                         <CardDescription>
-                            Create draft invoices in Xero automatically when jobs are ready to invoice.
+                            Create draft invoices in Xero from the job-completion workflow so they are ready for review.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -383,8 +383,8 @@ export default function IntegrationsPage() {
                                 <h4 className="font-medium">Invoice Sync</h4>
                                 <p className="text-sm text-slate-500">
                                     {xeroStatus === "connected"
-                                        ? "Connected. Draft invoices will be created automatically when jobs move to the invoicing stage."
-                                        : "Connect Xero to create draft invoices automatically."}
+                                        ? "Connected. The job-completion flow can create Xero draft invoices for review."
+                                        : "Connect Xero to create draft invoices from the completion workflow."}
                                 </p>
                             </div>
                         </div>
@@ -397,7 +397,7 @@ export default function IntegrationsPage() {
                             </div>
                         ) : (
                             <div className="text-xs text-slate-500">
-                                Draft invoices will be created in Xero for you to review.
+                                Xero draft invoices can be created from completed jobs for review.
                             </div>
                         )}
 

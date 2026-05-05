@@ -11,6 +11,7 @@ import { Footer } from "@/components/layout/footer"
 import { Navbar } from "@/components/layout/navbar"
 import { Button } from "@/components/ui/button"
 import { HeroDashboardReel } from "@/components/home/hero-dashboard-reel"
+import { PlatformDiagram } from "@/components/home/platform-diagram"
 
 // ─── Animation ────────────────────────────────────────────────────────────────
 
@@ -494,11 +495,11 @@ export default function FeaturesPage() {
             <motion.p {...fadeUp(0)} className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">
               Product
             </motion.p>
-            <motion.h1 {...fadeUp(0.04)} className="text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.07] text-midnight text-balance">
-              From first call to final invoice —<br />Tracey&apos;s got it.
+            <motion.h1 {...fadeUp(0.04)} className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.07] text-midnight text-balance">
+              An AI assistant.<br />A CRM that runs itself.
             </motion.h1>
             <motion.p {...fadeUp(0.08)} className="text-lg leading-8 text-slate-600 max-w-xl text-balance">
-              One AI assistant that handles every call, runs your CRM, schedules your jobs, and chases follow-ups — so you don&apos;t have to.
+              One platform with two halves: an AI voice assistant that picks up every call and text, and a full CRM that fills itself in as she works.
             </motion.p>
             <motion.div {...fadeUp(0.12)} className="flex flex-col sm:flex-row gap-3">
               <Link href="/auth">
@@ -513,14 +514,30 @@ export default function FeaturesPage() {
           </div>
 
           {/* Full-width dashboard reel */}
-          <motion.div {...fadeUp(0.16)} className="relative z-10 mx-auto mt-14 max-w-6xl px-4">
+          <motion.div {...fadeUp(0.16)} className="relative z-10 mx-auto mt-8 md:mt-14 max-w-6xl px-4">
             <div className="absolute inset-x-[8%] top-8 -z-10 h-32 rounded-full bg-emerald-300/20 blur-3xl" />
             <HeroDashboardReel />
           </motion.div>
         </section>
 
+        {/* ── 1.5 Platform diagram ── */}
+        <section className="py-10 md:py-20 px-6 bg-white border-y border-slate-200/70">
+          <div className="mx-auto max-w-7xl">
+            <motion.div {...fadeUp()} className="mx-auto mb-12 max-w-3xl text-center">
+              <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-emerald-600 mb-3">The platform</p>
+              <h2 className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-midnight">One comprehensive platform.</h2>
+              <p className="mt-4 text-lg text-slate-600">
+                An AI assistant and a CRM that runs itself, so you don&apos;t have to.
+              </p>
+            </motion.div>
+            <motion.div {...fadeUp(0.08)}>
+              <PlatformDiagram />
+            </motion.div>
+          </div>
+        </section>
+
         {/* ── 2. Core jobs ── */}
-        <section className="py-20 px-6 bg-white border-y border-slate-200/70">
+        <section className="py-10 md:py-20 px-6 bg-[#F8FAFC] border-y border-slate-200/70">
           <div className="mx-auto max-w-5xl">
             <motion.p {...fadeUp()} className="text-center text-[11px] font-semibold uppercase tracking-[0.28em] text-primary mb-10">
               What Tracey does for you
@@ -548,43 +565,69 @@ export default function FeaturesPage() {
           </div>
         </section>
 
-        {/* ── 3. Feature deep dives ── */}
-        {FEATURES.map((feat, i) => {
-          const isEven = i % 2 === 0
-          const Mockup = FEATURE_MOCKUPS[i]
-          const bg = isEven ? "bg-white" : "bg-[#F8FAFC]"
-          return (
-            <section key={feat.eyebrow} className={`py-20 px-6 ${bg} border-b border-slate-200/60`}>
-              <div className="mx-auto max-w-6xl grid md:grid-cols-2 gap-10 lg:gap-16 items-center">
-
-                {/* Text col */}
-                <motion.div {...fadeUp()} className={!isEven ? "md:order-2" : ""}>
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">
-                    {feat.eyebrow}
-                  </span>
-                  <h2 className="mt-3 text-3xl md:text-4xl font-extrabold tracking-[-0.03em] text-midnight leading-tight">
-                    {feat.title}
-                  </h2>
-                  <p className="mt-4 text-base leading-7 text-slate-600">{feat.body}</p>
-                  <ul className="mt-6 space-y-3">
-                    {feat.bullets.map(b => (
-                      <li key={b} className="flex items-start gap-3 text-sm leading-6 text-slate-700">
-                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                        <span>{b}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </motion.div>
-
-                {/* Mockup col */}
-                <motion.div {...fadeUp(0.08)} className={`h-[360px] rounded overflow-hidden shadow-[0_8px_48px_rgba(15,23,42,0.12)] ${!isEven ? "md:order-1" : ""}`}>
-                  {Mockup && <Mockup />}
-                </motion.div>
-
+        {/* ── 3. Feature deep dives — split by AI vs CRM ── */}
+        {([
+          {
+            key: "ai",
+            kicker: "Half one",
+            heading: "The AI Voice Assistant",
+            blurb: "Tracey answers every call and text 24/7, qualifies the lead against your rules, and writes everything she does into the CRM.",
+            indices: [0, 3, 5],
+          },
+          {
+            key: "crm",
+            kicker: "Half two",
+            heading: "The CRM that runs itself",
+            blurb: "A full-featured CRM that auto-fills as Tracey works — pipeline, scheduling, invoicing and analytics, all driven by chat or WhatsApp.",
+            indices: [1, 2, 4],
+          },
+        ] as const).map((group, groupIdx) => (
+          <div key={group.key}>
+            <section className={`px-6 pt-20 pb-6 ${groupIdx === 0 ? "bg-white" : "bg-[#F8FAFC]"} border-b border-slate-200/60`}>
+              <div className="mx-auto max-w-6xl text-center">
+                <motion.p {...fadeUp()} className="text-[11px] font-bold uppercase tracking-[0.28em] text-emerald-600">
+                  {group.kicker}
+                </motion.p>
+                <motion.h2 {...fadeUp(0.04)} className="mt-3 text-3xl md:text-5xl font-extrabold tracking-[-0.03em] text-midnight">
+                  {group.heading}
+                </motion.h2>
+                <motion.p {...fadeUp(0.08)} className="mx-auto mt-3 max-w-2xl text-base leading-7 text-slate-600">
+                  {group.blurb}
+                </motion.p>
               </div>
             </section>
-          )
-        })}
+            {group.indices.map((i, localIdx) => {
+              const feat = FEATURES[i]
+              const Mockup = FEATURE_MOCKUPS[i]
+              const isEven = localIdx % 2 === 0
+              const bg = groupIdx === 0
+                ? (isEven ? "bg-white" : "bg-[#F8FAFC]")
+                : (isEven ? "bg-[#F8FAFC]" : "bg-white")
+              return (
+                <section key={feat.eyebrow} className={`py-16 px-6 ${bg} border-b border-slate-200/60`}>
+                  <div className="mx-auto max-w-6xl grid md:grid-cols-2 gap-10 lg:gap-16 items-center">
+                    <motion.div {...fadeUp()} className={!isEven ? "md:order-2" : ""}>
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">{feat.eyebrow}</span>
+                      <h3 className="mt-3 text-3xl md:text-4xl font-extrabold tracking-[-0.03em] text-midnight leading-tight">{feat.title}</h3>
+                      <p className="mt-4 text-base leading-7 text-slate-600">{feat.body}</p>
+                      <ul className="mt-6 space-y-3">
+                        {feat.bullets.map(b => (
+                          <li key={b} className="flex items-start gap-3 text-sm leading-6 text-slate-700">
+                            <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                            <span>{b}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </motion.div>
+                    <motion.div {...fadeUp(0.08)} className={`h-[260px] sm:h-[320px] md:h-[360px] rounded overflow-hidden shadow-[0_8px_48px_rgba(15,23,42,0.12)] ${!isEven ? "md:order-1" : ""}`}>
+                      {Mockup && <Mockup />}
+                    </motion.div>
+                  </div>
+                </section>
+              )
+            })}
+          </div>
+        ))}
 
         {/* ── 4. How it works ── */}
         <section className="py-20 px-6 bg-white border-b border-slate-200/60">

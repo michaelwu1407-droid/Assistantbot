@@ -78,6 +78,14 @@ export function GoogleMapView({ jobs, todayIds, onFallbackToLeaflet }: GoogleMap
   }, [jobs, todayIds])
 
   const activeTargetJob = useMemo(() => jobsToday.find((job) => job.status !== "COMPLETED") || null, [jobsToday])
+  const nextUpcomingJob = useMemo(() => {
+    const nextUpcoming = [...jobsUpcoming].sort((a, b) => {
+      const ta = a.scheduledAt ? new Date(a.scheduledAt).getTime() : Number.MAX_SAFE_INTEGER
+      const tb = b.scheduledAt ? new Date(b.scheduledAt).getTime() : Number.MAX_SAFE_INTEGER
+      return ta - tb
+    })
+    return nextUpcoming[0] ?? null
+  }, [jobsUpcoming])
   const effectiveActiveJobId = isRouteMode && activeTargetJob ? activeTargetJob.id : activeJobId
 
   useEffect(() => {
@@ -383,7 +391,7 @@ export function GoogleMapView({ jobs, todayIds, onFallbackToLeaflet }: GoogleMap
                               className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-indigo-600 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-indigo-700"
                             >
                               <MessageSquare className="h-3.5 w-3.5" />
-                              Message
+                              Open customer timeline
                             </button>
                             <button
                               type="button"
@@ -463,6 +471,38 @@ export function GoogleMapView({ jobs, todayIds, onFallbackToLeaflet }: GoogleMap
                       </div>
                       <h4 className="text-base font-bold text-slate-900">All Done!</h4>
                       <p className="mt-1 text-sm text-slate-500">You&apos;ve completed all scheduled jobs for today.</p>
+                      {nextUpcomingJob ? (
+                        <div className="mt-4 w-full rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Next upcoming job</p>
+                          <p className="mt-2 text-sm font-semibold text-slate-900">{nextUpcomingJob.clientName}</p>
+                          <p className="text-sm text-slate-600">{nextUpcomingJob.title}</p>
+                          <p className="mt-1 text-xs text-slate-500">{nextUpcomingJob.address}</p>
+                          <p className="mt-2 text-xs font-medium text-slate-600">
+                            {nextUpcomingJob.scheduledAt
+                              ? new Date(nextUpcomingJob.scheduledAt).toLocaleDateString("en-AU", {
+                                  weekday: "short",
+                                  month: "short",
+                                  day: "numeric",
+                                  hour: "numeric",
+                                  minute: "2-digit",
+                                })
+                              : "No time set"}
+                          </p>
+                          <div className="mt-3 flex flex-col gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsRouteMode(false)
+                                selectJob(nextUpcomingJob)
+                              }}
+                              className="flex w-full items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 py-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100"
+                            >
+                              <CalendarClock className="h-4 w-4" />
+                              Show all upcoming jobs
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
                   )}
 
@@ -572,7 +612,7 @@ export function GoogleMapView({ jobs, todayIds, onFallbackToLeaflet }: GoogleMap
                           className="flex flex-1 items-center justify-center gap-1 rounded-md bg-indigo-600 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-indigo-700"
                         >
                           <MessageSquare className="h-3 w-3" />
-                          Message
+                          Open customer timeline
                         </button>
                         {isRouteMode && isStarted && (
                           <button

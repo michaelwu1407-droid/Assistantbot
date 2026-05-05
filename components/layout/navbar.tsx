@@ -4,8 +4,22 @@ import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { ChevronDown, Menu, X } from "lucide-react"
+import {
+    ChevronDown, Menu, X, ArrowRight,
+    Zap, Wrench, Trees, Sparkles, Bug, Key, Paintbrush, Thermometer,
+} from "lucide-react"
 import { TRADE_SERVICES } from "@/lib/trade-services"
+
+const TRADE_ICONS: Record<string, typeof Zap> = {
+    electricians: Zap,
+    plumbers: Wrench,
+    landscapers: Trees,
+    cleaners: Sparkles,
+    "pest-control": Bug,
+    locksmiths: Key,
+    painters: Paintbrush,
+    hvac: Thermometer,
+}
 
 export function Navbar() {
     const [isOpen, setIsOpen] = useState(false)
@@ -62,29 +76,40 @@ export function Navbar() {
                     <div
                         className={`absolute left-1/2 top-full z-50 pt-3 transition-all duration-200 ${isSolutionsOpen ? "pointer-events-auto visible translate-y-0 opacity-100" : "pointer-events-none invisible -translate-y-1 opacity-0"}`}
                     >
-                        <div className="w-[480px] -translate-x-1/2 rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl backdrop-blur-xl">
-                            <div className="flex gap-4">
-                                <Link
-                                    href="/solutions"
-                                    className="self-start rounded-xl border border-emerald-100 bg-emerald-50/80 px-4 py-3 text-[14px] font-bold text-midnight underline decoration-2 underline-offset-4 transition-colors hover:bg-emerald-50"
-                                    onClick={() => setIsSolutionsOpen(false)}
-                                >
-                                    Trade services
-                                </Link>
-
-                                <div className="grid flex-1 grid-cols-2 gap-x-1 gap-y-0.5">
-                                    {TRADE_SERVICES.map((service) => (
+                        <div className="w-[640px] -translate-x-1/2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)]">
+                            <div className="px-5 pt-5 pb-2">
+                                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-600">Trade services</p>
+                                <p className="mt-1 text-sm text-slate-500">Earlymark workflows tuned for your trade.</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-1 p-3">
+                                {TRADE_SERVICES.map((service) => {
+                                    const Icon = TRADE_ICONS[service.slug] ?? Sparkles
+                                    return (
                                         <Link
                                             key={service.slug}
                                             href={`/solutions/${service.slug}`}
-                                            className="rounded-lg px-3 py-2 text-[13px] font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-midnight"
+                                            className="group flex items-start gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-emerald-50/60"
                                             onClick={() => setIsSolutionsOpen(false)}
                                         >
-                                            {service.navLabel}
+                                            <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100">
+                                                <Icon className="h-4 w-4" />
+                                            </span>
+                                            <span className="flex flex-col gap-0.5">
+                                                <span className="text-[14px] font-semibold text-midnight">{service.navLabel}</span>
+                                                <span className="text-[12px] leading-snug text-slate-500 line-clamp-2">{service.summaryTeaser}</span>
+                                            </span>
                                         </Link>
-                                    ))}
-                                </div>
+                                    )
+                                })}
                             </div>
+                            <Link
+                                href="/solutions"
+                                onClick={() => setIsSolutionsOpen(false)}
+                                className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-5 py-3 text-[13px] font-semibold text-midnight transition-colors hover:bg-emerald-50/60"
+                            >
+                                <span>View all trade services</span>
+                                <ArrowRight className="h-4 w-4 text-emerald-600" />
+                            </Link>
                         </div>
                     </div>
                 </div>
@@ -118,26 +143,33 @@ export function Navbar() {
                     <Link href="/" className="text-[15px] font-medium text-slate-body" onClick={() => setIsOpen(false)}>Home</Link>
                     <Link href="/features" className="text-[15px] font-medium text-slate-body" onClick={() => setIsOpen(false)}>Product</Link>
                     <div className="flex flex-col gap-2">
-                        <span className="text-[15px] font-medium text-slate-body">Solutions</span>
+                        <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-600">Solutions</p>
+                        <div className="grid grid-cols-2 gap-2">
+                            {TRADE_SERVICES.map((service) => {
+                                const Icon = TRADE_ICONS[service.slug] ?? Sparkles
+                                return (
+                                    <Link
+                                        key={service.slug}
+                                        href={`/solutions/${service.slug}`}
+                                        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5"
+                                        onClick={() => setIsOpen(false)}
+                                    >
+                                        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                                            <Icon className="h-3.5 w-3.5" />
+                                        </span>
+                                        <span className="text-sm font-semibold text-midnight">{service.navLabel}</span>
+                                    </Link>
+                                )
+                            })}
+                        </div>
                         <Link
                             href="/solutions"
-                            className="rounded-xl border border-emerald-100 bg-emerald-50/80 px-3 py-3 text-[15px] font-bold text-midnight underline decoration-2 underline-offset-4"
+                            className="mt-1 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50/60 px-3 py-2.5 text-sm font-semibold text-midnight"
                             onClick={() => setIsOpen(false)}
                         >
-                            Trade services
+                            <span>View all trade services</span>
+                            <ArrowRight className="h-4 w-4 text-emerald-600" />
                         </Link>
-                        <div className="grid grid-cols-2 gap-2">
-                            {TRADE_SERVICES.map((service) => (
-                                <Link
-                                    key={service.slug}
-                                    href={`/solutions/${service.slug}`}
-                                    className="rounded-xl bg-slate-50 px-3 py-2 text-sm font-medium text-slate-body"
-                                    onClick={() => setIsOpen(false)}
-                                >
-                                    {service.navLabel}
-                                </Link>
-                            ))}
-                        </div>
                     </div>
                     <Link href="/pricing" className="text-[15px] font-medium text-slate-body" onClick={() => setIsOpen(false)}>Pricing</Link>
                     <hr className="border-slate-100" />

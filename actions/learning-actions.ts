@@ -1,9 +1,9 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { getAuthUserId } from "@/lib/auth";
 import { createNotification } from "./notification-actions";
 import { revalidatePath } from "next/cache";
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -108,16 +108,10 @@ export async function checkForDeviation(
 
 export async function getUnresolvedDeviations(): Promise<DeviationEventData[]> {
   try {
-    const userId = await getAuthUserId();
-    if (!userId) return [];
-    const user = await db.user.findUnique({
-      where: { id: userId },
-      select: { workspaceId: true },
-    });
-    if (!user) return [];
+    const actor = await requireCurrentWorkspaceAccess();
 
     const events = await db.deviationEvent.findMany({
-      where: { workspaceId: user.workspaceId, resolved: false },
+      where: { workspaceId: actor.workspaceId, resolved: false },
       orderBy: { createdAt: "desc" },
       take: 20,
     });
@@ -159,13 +153,10 @@ export async function resolveDeviation(
   action: "REMOVE_RULE" | "KEEP_RULE"
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const userId = await getAuthUserId();
-    if (!userId) {
-      return { success: false, error: "User not authenticated" };
-    }
+    const actor = await requireCurrentWorkspaceAccess();
 
-    const deviation = await db.deviationEvent.findUnique({
-      where: { id: deviationId },
+    const deviation = await db.deviationEvent.findFirst({
+      where: { id: deviationId, workspaceId: actor.workspaceId },
     });
     if (!deviation) return { success: false, error: "Deviation not found" };
 

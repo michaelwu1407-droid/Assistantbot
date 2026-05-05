@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const hoisted = vi.hoisted(() => ({
   stripeCheckoutCreate: vi.fn(),
   stripePortalCreate: vi.fn(),
-  getAuthUserId: vi.fn(),
+  requireCurrentWorkspaceAccess: vi.fn(),
   db: {
     workspace: {
       findUnique: vi.fn(),
@@ -32,8 +32,8 @@ vi.mock("@/lib/stripe", () => ({
     },
   },
 }));
-vi.mock("@/lib/auth", () => ({
-  getAuthUserId: hoisted.getAuthUserId,
+vi.mock("@/lib/workspace-access", () => ({
+  requireCurrentWorkspaceAccess: hoisted.requireCurrentWorkspaceAccess,
 }));
 vi.mock("@/lib/db", () => ({ db: hoisted.db }));
 vi.mock("@/lib/billing-plan", () => ({
@@ -56,7 +56,11 @@ import { createCheckoutSession, createCustomerPortalSession } from "@/actions/bi
 describe("billing-actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    hoisted.getAuthUserId.mockResolvedValue("user_1");
+    hoisted.requireCurrentWorkspaceAccess.mockResolvedValue({
+      id: "app_user_1",
+      role: "OWNER",
+      workspaceId: "ws_1",
+    });
     hoisted.getStripePriceIdForInterval.mockReturnValue("price_monthly");
     hoisted.headers.mockResolvedValue({
       get: vi.fn((name: string) => {
@@ -109,7 +113,7 @@ describe("billing-actions", () => {
         line_items: [{ price: "price_monthly", quantity: 1 }],
         metadata: expect.objectContaining({
           workspace_id: "ws_1",
-          referred_user_id: "user_1",
+          referred_user_id: "app_user_1",
           referral_code: "ref-123",
           billing_interval: "monthly",
         }),
@@ -139,16 +143,29 @@ describe("billing-actions", () => {
     });
   });
 
-  it("rejects portal access when the workspace is not owned by the caller", async () => {
+  it("rejects portal access when the workspace is not the actor workspace", async () => {
+    hoisted.requireCurrentWorkspaceAccess.mockResolvedValue({
+      id: "app_user_1",
+      role: "OWNER",
+      workspaceId: "ws_other",
+    });
     hoisted.db.workspace.findUnique.mockResolvedValue({
       id: "ws_1",
-      ownerId: "user_2",
       stripeCustomerId: "cus_123",
     });
 
-    await expect(createCustomerPortalSession("ws_1")).rejects.toThrow(
-      "Unauthorized or Customer not found",
-    );
+    await expect(createCustomerPortalSession("ws_1")).rejects.toThrow("Unauthorized");
     expect(hoisted.stripePortalCreate).not.toHaveBeenCalled();
+  });
+
+  it("rejects checkout for team members even inside the workspace", async () => {
+    hoisted.requireCurrentWorkspaceAccess.mockResolvedValue({
+      id: "app_user_2",
+      role: "TEAM_MEMBER",
+      workspaceId: "ws_1",
+    });
+
+    await expect(createCheckoutSession("ws_1", "monthly", false)).rejects.toThrow("Unauthorized");
+    expect(hoisted.stripeCheckoutCreate).not.toHaveBeenCalled();
   });
 });

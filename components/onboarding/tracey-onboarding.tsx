@@ -1911,6 +1911,10 @@ export function TraceyOnboarding() {
                               <Loader2 className={`h-4 w-4 ${provisioningStatus === "provisioning" ? "animate-spin" : ""}`} />
                               {provisioningStatus === "blocked_duplicate"
                                   ? "Provisioning blocked"
+                                  : provisioningStatus === "failed"
+                                    ? "Fix number setup to continue"
+                                    : provisioningStatus === "provisioning"
+                                      ? "Setting up your number..."
                                   : provisioningStatus === "requested"
                                     ? "Waiting for payment confirmation"
                                     : "Waiting for your number"}

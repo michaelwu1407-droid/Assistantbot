@@ -31,11 +31,11 @@ export default async function TradiePage() {
         address: nextJob.address || "",
         clientName: nextJob.client,
         status: nextJob.status || "SCHEDULED",
-        value: 0, // getNextJob doesn't return value currently
+        value: nextJob.value ?? 0,
         scheduledAt: nextJob.time ? new Date(nextJob.time) : new Date(),
         description: nextJob.description || "",
         safetyCheckCompleted: nextJob.safetyCheckCompleted,
-        contactPhone: "", // Not returned by getNextJob yet
+        contactPhone: nextJob.contactPhone || "",
     } as any : jobs[0] ? {
         id: jobs[0].id,
         title: jobs[0].title,

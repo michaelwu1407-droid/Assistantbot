@@ -80,8 +80,13 @@ export function categoriseWork(desc: string): string {
 }
 
 /** Resolve schedule shorthand to a human-readable date string.
- *  e.g. "12pm ymrw" → "12:00 PM, Sat 15 Feb 2026" */
-export function resolveSchedule(raw: string): { display: string; iso: string } {
+ *  e.g. "12pm ymrw" → "12:00 PM, Sat 15 Feb 2026"
+ *
+ *  When `timezone` is provided (a valid IANA timezone string such as
+ *  "Australia/Sydney"), the resulting `iso` string is anchored to that
+ *  timezone so that "10am" means 10am local time, not 10am UTC.
+ *  Without `timezone` the function behaves as before (server-local time). */
+export function resolveSchedule(raw: string, timezone?: string | null): { display: string; iso: string } {
   const parts = raw.trim().split(/\s+/);
   let timePart = "";
   let dayPart = "";
@@ -131,6 +136,44 @@ export function resolveSchedule(raw: string): { display: string; iso: string } {
   const display = timeDisplay
     ? `${timeDisplay}, ${dayOfWeek} ${day} ${month} ${year}`
     : `${dayOfWeek} ${day} ${month} ${year}`;
+
+  // When a workspace timezone is provided, re-anchor the constructed local datetime
+  // to that timezone so we store the correct UTC instant. Without this, a Vercel
+  // server (UTC) would treat "10am Monday" as 10:00 UTC, showing as 8-9pm in Sydney.
+  if (timezone) {
+    try {
+      // Build a datetime-local string from the local date components that represent
+      // the *intended* local wall-clock time (year/month/day/hour/minute in the
+      // server's local TZ, which is what targetDate holds).
+      const localStr = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, "0")}-${String(targetDate.getDate()).padStart(2, "0")}T${String(targetDate.getHours()).padStart(2, "0")}:${String(targetDate.getMinutes()).padStart(2, "0")}`;
+      // parseDateTimeLocalInTimezone is available in lib/timezone — import it lazily
+      // to avoid circular dep (chat-utils has no tz imports). We inline the same
+      // algorithm here to keep chat-utils free of Node-only deps.
+      const match = localStr.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+      if (match) {
+        const [, yr, mo, dy, hh, mm] = match;
+        const utcGuess = Date.UTC(Number(yr), Number(mo) - 1, Number(dy), Number(hh), Number(mm), 0, 0);
+        const getOffset = (ts: number) => {
+          const d = new Date(ts);
+          const p = new Intl.DateTimeFormat("en-AU", {
+            timeZone: timezone,
+            hourCycle: "h23",
+            year: "numeric", month: "2-digit", day: "2-digit",
+            hour: "2-digit", minute: "2-digit", second: "2-digit",
+          }).formatToParts(d);
+          const lk = Object.fromEntries(p.filter(x => x.type !== "literal").map(x => [x.type, x.value]));
+          return Date.UTC(Number(lk.year), Number(lk.month) - 1, Number(lk.day), Number(lk.hour), Number(lk.minute), Number(lk.second)) - ts;
+        };
+        const offset = getOffset(utcGuess);
+        let resolved = utcGuess - offset;
+        const adjusted = getOffset(resolved);
+        if (adjusted !== offset) resolved = utcGuess - adjusted;
+        return { display, iso: new Date(resolved).toISOString() };
+      }
+    } catch {
+      // If timezone computation fails, fall through to return the original ISO
+    }
+  }
 
   return { display, iso: targetDate.toISOString() };
 }

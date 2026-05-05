@@ -1,6 +1,6 @@
 import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const { mapFitBounds, mapFlyTo } = vi.hoisted(() => ({
@@ -49,7 +49,7 @@ describe("MapView", () => {
         permissions: {
           query: vi.fn().mockResolvedValue({ state: "denied" }),
         },
-      } as Navigator,
+      } as unknown as Navigator,
     );
     vi.stubGlobal("open", vi.fn());
   });
@@ -63,7 +63,7 @@ describe("MapView", () => {
     expect(screen.getByRole("button", { name: /enable route mode/i })).toBeInTheDocument();
   });
 
-  it("lets the user select a job and exposes route and messaging actions", async () => {
+  it("lets the user select a job and exposes route and customer-timeline actions", async () => {
     const user = userEvent.setup();
     const scheduledAt = new Date();
     scheduledAt.setHours(10, 0, 0, 0);
@@ -89,12 +89,63 @@ describe("MapView", () => {
     await user.click(screen.getByRole("button", { name: /select job blocked drain for acme plumbing/i }));
 
     expect(screen.getByRole("button", { name: /view job/i })).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: /message/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: /open customer timeline/i }).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: /open in google maps/i })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /enable route mode/i }));
 
     expect(screen.getByRole("button", { name: /navigate to job/i })).toBeInTheDocument();
     expect(screen.getByText("Active Target")).toBeInTheDocument();
+  });
+
+  it("keeps route mode useful by surfacing the next upcoming job after today is complete", async () => {
+    const user = userEvent.setup();
+    const today = new Date();
+    today.setHours(9, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    tomorrow.setHours(11, 30, 0, 0);
+
+    render(
+      <MapView
+        jobs={[
+          {
+            id: "deal_today_done",
+            title: "Finished Hot Water",
+            clientName: "Done Today Pty",
+            address: "1 Done St, Sydney",
+            status: "COMPLETED",
+            value: 200,
+            scheduledAt: today,
+            lat: -33.86,
+            lng: 151.2,
+          },
+          {
+            id: "deal_upcoming",
+            title: "Blocked Drain",
+            clientName: "Next Up Plumbing",
+            address: "2 Future Rd, Sydney",
+            status: "SCHEDULED",
+            value: 320,
+            scheduledAt: tomorrow,
+            lat: -33.87,
+            lng: 151.21,
+          },
+        ]}
+        todayIds={new Set(["deal_today_done"])}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /enable route mode/i }));
+
+    await waitFor(() => expect(screen.getByText("All Done!")).toBeInTheDocument());
+    expect(screen.getByText(/Next upcoming job/i)).toBeInTheDocument();
+    expect(screen.getByText("Next Up Plumbing")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /show all upcoming jobs/i }));
+
+    expect(screen.queryByRole("button", { name: /exit route mode/i })).not.toBeInTheDocument();
+    expect(screen.queryByText("All Done!")).not.toBeInTheDocument();
+    expect(screen.getByText(/upcoming job/i)).toBeInTheDocument();
   });
 });

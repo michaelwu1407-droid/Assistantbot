@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { getTwilioVoiceCallHealth, type VoiceCallScopeHealth } from "@/lib/twilio-voice-call-health";
+import { isReplyableSmsAddress } from "@/lib/sms-address";
 import type { RuntimeStatus } from "@/lib/voice-fleet";
 
 const RECENT_SIGNAL_LOOKBACK_DAYS = 7;
@@ -16,7 +17,7 @@ type StatusSummary = {
   warnings: string[];
 };
 
-export type PassiveSignalClassification = "healthy" | "unknown" | "failure" | "not_configured";
+export type PassiveSignalClassification = "healthy" | "recovered" | "unknown" | "failure" | "not_configured";
 
 export type PassiveChannelHealth = StatusSummary & {
   classification: PassiveSignalClassification;
@@ -99,6 +100,24 @@ function extractWorkspaceId(payload: unknown): string | null {
   return typeof workspaceId === "string" && workspaceId.trim() ? workspaceId.trim() : null;
 }
 
+function extractSmsPayloadAddress(payload: unknown, key: "from" | "to"): string | null {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null;
+
+  const value = (payload as Record<string, unknown>)[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function shouldIgnoreSmsFailureEvent(event: {
+  eventType: string;
+  payload: unknown;
+}) {
+  if (event.eventType !== "sms.reply") {
+    return false;
+  }
+
+  return !isReplyableSmsAddress(extractSmsPayloadAddress(event.payload, "to"));
+}
+
 function buildHealthyChannel(
   summary: string,
   lastSuccessAt: Date | null,
@@ -157,6 +176,27 @@ function buildFailureChannel(
   };
 }
 
+function buildRecoveredChannel(
+  summary: string,
+  lastSuccessAt: Date | null,
+  lastFailureAt: Date | null,
+  warnings: string[] = [],
+  recentSuccessCount = 1,
+  recentFailureCount = 1,
+): PassiveChannelHealth {
+  return {
+    status: "degraded",
+    classification: "recovered",
+    summary,
+    warnings,
+    configured: true,
+    lastSuccessAt: toIso(lastSuccessAt),
+    lastFailureAt: toIso(lastFailureAt),
+    recentSuccessCount,
+    recentFailureCount,
+  };
+}
+
 function buildNotConfiguredChannel(summary: string): PassiveChannelHealth {
   return {
     status: "healthy",
@@ -182,6 +222,7 @@ function buildWorkspaceOverallStatus(params: {
     ...params.email.warnings,
   ].filter(Boolean)));
   const criticalClassifications = [params.voice.classification, params.sms.classification, params.email.classification];
+  const recoveredClassifications = [params.voice.classification, params.sms.classification, params.email.classification];
   const unknownClassifications = [params.voice.classification, params.email.classification];
 
   if (criticalClassifications.includes("failure")) {
@@ -189,6 +230,15 @@ function buildWorkspaceOverallStatus(params: {
       overallStatus: "unhealthy",
       overallClassification: "failure",
       summary: warnings[0] || "This workspace has real recent communications failures.",
+      warnings,
+    };
+  }
+
+  if (recoveredClassifications.includes("recovered")) {
+    return {
+      overallStatus: "degraded",
+      overallClassification: "recovered",
+      summary: warnings[0] || "This workspace had recent communications failures, but later traffic succeeded.",
       warnings,
     };
   }
@@ -358,7 +408,8 @@ export async function getPassiveProductionHealth(): Promise<PassiveProductionHea
   }
 
   const recentInboundSmsSuccessCountByWorkspace = new Map<string, number>();
-  const lastInboundSmsSuccessAtByWorkspace = new Map<string, Date>();
+  const recentSmsSuccessCountByWorkspace = new Map<string, number>();
+  const lastSmsSuccessAtByWorkspace = new Map<string, Date>();
   const recentSmsFailureCountByWorkspace = new Map<string, number>();
   const lastSmsFailureAtByWorkspace = new Map<string, Date>();
   let recentInboundSmsSuccessCount = 0;
@@ -372,6 +423,16 @@ export async function getPassiveProductionHealth(): Promise<PassiveProductionHea
     const workspaceId = extractWorkspaceId(event.payload);
 
     if (event.status === "success") {
+      if (workspaceId) {
+        recentSmsSuccessCountByWorkspace.set(
+          workspaceId,
+          (recentSmsSuccessCountByWorkspace.get(workspaceId) || 0) + 1,
+        );
+        if (!lastSmsSuccessAtByWorkspace.has(workspaceId)) {
+          lastSmsSuccessAtByWorkspace.set(workspaceId, event.createdAt);
+        }
+      }
+
       if (event.eventType === "sms.received") {
         recentInboundSmsSuccessCount += 1;
         if (workspaceId) {
@@ -379,13 +440,14 @@ export async function getPassiveProductionHealth(): Promise<PassiveProductionHea
             workspaceId,
             (recentInboundSmsSuccessCountByWorkspace.get(workspaceId) || 0) + 1,
           );
-          if (!lastInboundSmsSuccessAtByWorkspace.has(workspaceId)) {
-            lastInboundSmsSuccessAtByWorkspace.set(workspaceId, event.createdAt);
-          }
         }
       } else if (event.eventType === "sms.reply") {
         recentReplySmsSuccessCount += 1;
       }
+      continue;
+    }
+
+    if (shouldIgnoreSmsFailureEvent(event)) {
       continue;
     }
 
@@ -423,18 +485,19 @@ export async function getPassiveProductionHealth(): Promise<PassiveProductionHea
 
   const workspaceRows = workspaces.map<PassiveWorkspaceProductionHealth>((workspace) => {
     const lastVoiceSuccessAt = lastVoiceSuccessAtByWorkspace.get(workspace.id) || null;
-    const lastInboundSmsSuccessAt = lastInboundSmsSuccessAtByWorkspace.get(workspace.id) || null;
+    const lastSmsSuccessAt = lastSmsSuccessAtByWorkspace.get(workspace.id) || null;
     const lastSmsFailureAt = lastSmsFailureAtByWorkspace.get(workspace.id) || null;
     const lastInboundEmailSuccessAt = lastInboundEmailSuccessAtByWorkspace.get(workspace.id) || null;
     const lastInboundEmailFailureAt = lastInboundEmailFailureAtByWorkspace.get(workspace.id) || null;
     const isActiveWorkspace =
       isRecent(lastVoiceSuccessAt, activeWorkspaceLookbackMs) ||
-      isRecent(lastInboundSmsSuccessAt, activeWorkspaceLookbackMs) ||
+      isRecent(lastSmsSuccessAt, activeWorkspaceLookbackMs) ||
       isRecent(lastInboundEmailSuccessAt, activeWorkspaceLookbackMs);
     const voiceConfigured = Boolean(workspace.voiceEnabled && workspace.twilioPhoneNumber);
     const smsConfigured = Boolean(workspace.twilioPhoneNumber);
     const emailConfigured = Boolean(workspace.inboundEmail || workspace.inboundEmailAlias);
     const twilioScope = twilioScopeById.get(workspace.id) || null;
+    const recentSmsSuccessCount = recentSmsSuccessCountByWorkspace.get(workspace.id) || 0;
 
     const voice =
       !voiceConfigured
@@ -465,23 +528,32 @@ export async function getPassiveProductionHealth(): Promise<PassiveProductionHea
       !smsConfigured
         ? buildNotConfiguredChannel("SMS is not configured for this workspace.")
         : (recentSmsFailureCountByWorkspace.get(workspace.id) || 0) > 0
-          ? buildFailureChannel(
-              "Recent real SMS processing failures were observed for this workspace.",
-              lastInboundSmsSuccessAt,
-              lastSmsFailureAt,
-              ["Recent real SMS processing failures were observed for this workspace."],
-              recentInboundSmsSuccessCountByWorkspace.get(workspace.id) || 0,
-              recentSmsFailureCountByWorkspace.get(workspace.id) || 0,
-            )
-          : isRecent(lastInboundSmsSuccessAt, recentSignalLookbackMs)
+          ? lastSmsSuccessAt && lastSmsFailureAt && lastSmsSuccessAt > lastSmsFailureAt
+            ? buildRecoveredChannel(
+                "Recent SMS processing failures were observed, but later SMS traffic succeeded for this workspace.",
+                lastSmsSuccessAt,
+                lastSmsFailureAt,
+                ["Recent SMS processing failures were observed, but later SMS traffic succeeded for this workspace."],
+                recentSmsSuccessCount,
+                recentSmsFailureCountByWorkspace.get(workspace.id) || 0,
+              )
+            : buildFailureChannel(
+                "Recent real SMS processing failures were observed for this workspace.",
+                lastSmsSuccessAt,
+                lastSmsFailureAt,
+                ["Recent real SMS processing failures were observed for this workspace."],
+                recentSmsSuccessCount,
+                recentSmsFailureCountByWorkspace.get(workspace.id) || 0,
+              )
+          : isRecent(lastSmsSuccessAt, recentSignalLookbackMs)
             ? buildHealthyChannel(
-                "Recent inbound SMS messages were received and processed successfully.",
-                lastInboundSmsSuccessAt,
-                recentInboundSmsSuccessCountByWorkspace.get(workspace.id) || 0,
+                "Recent SMS traffic was processed successfully.",
+                lastSmsSuccessAt,
+                recentSmsSuccessCount,
               )
             : buildUnknownChannel(
-                "No recent successful inbound SMS messages were observed for this workspace.",
-                lastInboundSmsSuccessAt,
+                "No recent successful SMS traffic was observed for this workspace.",
+                lastSmsSuccessAt,
               );
 
     const email =
@@ -528,6 +600,7 @@ export async function getPassiveProductionHealth(): Promise<PassiveProductionHea
   const activeVoiceFailureRows = activeWorkspaceRows.filter((row) => row.voice.classification === "failure");
   const unknownVoiceRows = workspaceRows.filter((row) => row.voice.classification === "unknown");
   const activeSmsFailureRows = activeWorkspaceRows.filter((row) => row.sms.classification === "failure");
+  const recoveredSmsRows = activeWorkspaceRows.filter((row) => row.sms.classification === "recovered");
   const unknownSmsRows = workspaceRows.filter((row) => row.sms.classification === "unknown");
   const activeEmailFailureRows = activeWorkspaceRows.filter((row) => row.email.classification === "failure");
   const unknownEmailRows = workspaceRows.filter((row) => row.email.classification === "unknown");
@@ -582,11 +655,16 @@ export async function getPassiveProductionHealth(): Promise<PassiveProductionHea
       activeSmsFailureRows.length > 0
         ? `${activeSmsFailureRows.length} active customer workspace(s) have real recent SMS failure signals.`
         : "",
+      recoveredSmsRows.length > 0
+        ? `${recoveredSmsRows.length} active customer workspace(s) had recent SMS failures but later SMS traffic succeeded.`
+        : "",
     ].filter(Boolean)),
   );
   const smsStatus: RuntimeStatus =
-    recentInboundSmsFailureCount > 0 || recentReplySmsFailureCount > 0 || activeSmsFailureRows.length > 0
+    recentUnscopedInboundSmsFailureCount > 0 || recentUnscopedReplySmsFailureCount > 0 || activeSmsFailureRows.length > 0
       ? "unhealthy"
+      : recoveredSmsRows.length > 0
+        ? "degraded"
       : "healthy";
 
   const emailWarnings = Array.from(

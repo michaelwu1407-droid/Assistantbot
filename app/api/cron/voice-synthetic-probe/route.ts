@@ -1,67 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getExpectedVoiceGatewayUrl, getKnownEarlymarkInboundNumbers } from "@/lib/earlymark-inbound-config";
-import { getEarlymarkInboundSipUri } from "@/lib/livekit-sip-config";
 import { recordMonitorRun } from "@/lib/ops-monitor-runs";
 import { getUnauthorizedJsonResponse, isOpsAuthorized } from "@/lib/ops-auth";
-import { normalizePhone } from "@/lib/phone-utils";
 import { dispatchVoiceIncidentNotifications } from "@/lib/voice-incident-alert";
-import { reconcileVoiceIncidents } from "@/lib/voice-incidents";
-import { runVoiceSpokenPstnCanary } from "@/lib/voice-spoken-canary";
+import { runVoiceSyntheticProbe } from "@/lib/voice-synthetic-probe";
 
 export const dynamic = "force-dynamic";
-
-type ProbeTargetSource = "ops_header_target" | "VOICE_MONITOR_PROBE_TARGET_NUMBER" | "known_inbound_env" | null;
-type ProbeCallerSource =
-  | "ops_header_caller"
-  | "VOICE_MONITOR_PROBE_CALLER_NUMBER"
-  | "VOICE_ALERT_SMS_TO"
-  | "default_probe_caller";
-type ProbeResult = "pass" | "fallback" | "orphaned" | "disabled" | "mismatch" | "unknown";
-
-function getGatewayProbeAuthKey() {
-  return (
-    process.env.VOICE_MONITOR_PROBE_GATEWAY_KEY ||
-    process.env.CRON_SECRET ||
-    process.env.TELEMETRY_ADMIN_KEY ||
-    ""
-  ).trim();
-}
-
-function extractProbeResult(twiml: string, expectedSipTarget: string): ProbeResult {
-  if (twiml.includes("VOICE MONITOR PROBE PASS")) return "pass";
-  if (twiml.includes("VOICE MONITOR PROBE ORPHANED")) return "orphaned";
-  if (twiml.includes("VOICE MONITOR PROBE DISABLED")) return "disabled";
-  if (twiml.includes("VOICE MONITOR PROBE FALLBACK")) return "fallback";
-  if (expectedSipTarget && twiml.includes(`<Sip>${expectedSipTarget}</Sip>`)) return "pass";
-  if (twiml.includes("<Dial>") && twiml.includes("<Sip>")) return "mismatch";
-  return "unknown";
-}
-
-function getProbeNumberOverride(req: NextRequest, headerName: string) {
-  return normalizePhone(req.headers.get(headerName) || "");
-}
-
-function resolveProbeTargetNumber(req: NextRequest): { targetNumber: string; source: ProbeTargetSource } {
-  const overrideTarget = getProbeNumberOverride(req, "x-voice-probe-target");
-  if (overrideTarget) {
-    return { targetNumber: overrideTarget, source: "ops_header_target" };
-  }
-
-  const explicitTarget = (process.env.VOICE_MONITOR_PROBE_TARGET_NUMBER || "").trim();
-  if (explicitTarget) {
-    return {
-      targetNumber: normalizePhone(explicitTarget),
-      source: "VOICE_MONITOR_PROBE_TARGET_NUMBER",
-    };
-  }
-
-  const configuredInboundNumber = getKnownEarlymarkInboundNumbers()[0] || "";
-  if (configuredInboundNumber) {
-    return { targetNumber: configuredInboundNumber, source: "known_inbound_env" };
-  }
-
-  return { targetNumber: "", source: null };
-}
 
 export async function GET(req: NextRequest) {
   if (!isOpsAuthorized(req)) {
@@ -69,164 +12,46 @@ export async function GET(req: NextRequest) {
   }
 
   const checkedAt = new Date();
-  const probeCaller =
-    getProbeNumberOverride(req, "x-voice-probe-caller") ||
-    normalizePhone(
-      process.env.VOICE_MONITOR_PROBE_CALLER_NUMBER ||
-        process.env.VOICE_ALERT_SMS_TO ||
-        "+61434955958",
-    );
-  const probeCallerSource: ProbeCallerSource = req.headers.get("x-voice-probe-caller")
-    ? "ops_header_caller"
-    : process.env.VOICE_MONITOR_PROBE_CALLER_NUMBER
-      ? "VOICE_MONITOR_PROBE_CALLER_NUMBER"
-      : process.env.VOICE_ALERT_SMS_TO
-        ? "VOICE_ALERT_SMS_TO"
-        : "default_probe_caller";
-  const { targetNumber, source: targetNumberSource } = resolveProbeTargetNumber(req);
-  const gatewayUrl = getExpectedVoiceGatewayUrl();
-  const gatewayProbeAuthKey = getGatewayProbeAuthKey();
-  const expectedSipTarget = getEarlymarkInboundSipUri(targetNumber);
 
   try {
-    if (!probeCaller || !targetNumber || !gatewayUrl || !gatewayProbeAuthKey) {
-      const summary = "Synthetic voice probe is not fully configured, so the scheduled probe was skipped.";
-      await recordMonitorRun({
-        monitorKey: "voice-synthetic-probe",
-        status: "degraded",
-        summary,
-        details: {
-          checkedAt: checkedAt.toISOString(),
-          skipped: true,
-          probeCallerConfigured: Boolean(probeCaller),
-          probeCallerSource,
-          targetNumberConfigured: Boolean(targetNumber),
-          targetNumberSource,
-          gatewayUrlConfigured: Boolean(gatewayUrl),
-          gatewayProbeAuthConfigured: Boolean(gatewayProbeAuthKey),
-        },
-        checkedAt,
-        succeeded: true,
-      });
-
-      return NextResponse.json(
-        {
-          status: "degraded",
-          skipped: true,
-          checkedAt: checkedAt.toISOString(),
-          summary,
-          probeCallerConfigured: Boolean(probeCaller),
-          probeCallerSource,
-          targetNumberConfigured: Boolean(targetNumber),
-          targetNumberSource,
-          gatewayUrlConfigured: Boolean(gatewayUrl),
-          gatewayProbeAuthConfigured: Boolean(gatewayProbeAuthKey),
-        },
-        { status: 200 },
-      );
-    }
-
-    const formBody = new URLSearchParams({
-      From: probeCaller,
-      To: targetNumber,
-    });
-    const response = await fetch(gatewayUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "x-voice-probe-key": gatewayProbeAuthKey,
-      },
-      body: formBody.toString(),
-      cache: "no-store",
-    });
-
-    const twiml = await response.text();
-    const probeResult = extractProbeResult(twiml, expectedSipTarget);
-    const spokenCanary = await runVoiceSpokenPstnCanary({
-      probeCaller,
-      targetNumber,
+    const result = await runVoiceSyntheticProbe({
       checkedAt,
-    });
-    const status =
-      probeResult !== "pass"
-        ? "unhealthy"
-        : spokenCanary.status;
-    const summary =
-      probeResult !== "pass"
-        ? `Synthetic Earlymark inbound probe returned ${probeResult}`
-        : spokenCanary.summary;
-
-    const observations =
-      status === "healthy"
-        ? []
-        : [
-            {
-              incidentKey: "voice:probe:earlymark-inbound",
-              surface: "monitor" as const,
-              severity: "critical" as const,
-              summary,
-              details: {
-                probeResult,
-                targetNumber,
-                gatewayUrl,
-                expectedSipTarget,
-                gatewayProbe: {
-                  result: probeResult,
-                  responseStatus: response.status,
-                  twiml,
-                },
-                spokenCanary,
-              },
-            },
-          ];
-    const incidents = await reconcileVoiceIncidents(observations, {
-      resolveKeys: ["voice:probe:earlymark-inbound"],
+      probeCallerOverride: req.headers.get("x-voice-probe-caller"),
+      probeTargetOverride: req.headers.get("x-voice-probe-target"),
     });
 
     await recordMonitorRun({
       monitorKey: "voice-synthetic-probe",
-      status,
-      summary,
-      details: {
-        checkedAt: checkedAt.toISOString(),
-        probeResult,
-        probeCaller,
-        probeCallerSource,
-        targetNumber,
-        targetNumberSource,
-        gatewayUrl,
-        expectedSipTarget,
-        gatewayProbe: {
-          result: probeResult,
-          responseStatus: response.status,
-          twiml,
-        },
-        spokenCanary,
-      },
+      status: result.status,
+      summary: result.summary,
+      details: result.details,
       checkedAt,
       succeeded: true,
     });
 
     return NextResponse.json(
       {
-        status,
-        checkedAt: checkedAt.toISOString(),
-        summary,
-        probeResult,
-        probeCaller,
-        probeCallerSource,
-        targetNumber,
-        targetNumberSource,
-        expectedSipTarget,
-        responseStatus: response.status,
-        gatewayProbe: {
-          result: probeResult,
-          responseStatus: response.status,
-        },
-        spokenCanary,
-        incidents,
+        status: result.status,
+        checkedAt: result.checkedAt,
+        summary: result.summary,
+        skipped: result.skipped,
+        probeResult: result.probeResult,
+        probeCaller: result.probeCaller,
+        probeCallerSource: result.probeCallerSource,
+        targetNumber: result.targetNumber,
+        targetNumberSource: result.targetNumberSource,
+        expectedSipTarget: result.expectedSipTarget,
+        responseStatus: result.responseStatus,
+        gatewayProbe: result.gatewayProbe
+          ? {
+              result: result.gatewayProbe.result,
+              responseStatus: result.gatewayProbe.responseStatus,
+            }
+          : null,
+        spokenCanary: result.spokenCanary,
+        incidents: result.incidents,
       },
-      { status: status === "unhealthy" ? 500 : 200 },
+      { status: result.status === "unhealthy" ? 500 : 200 },
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown synthetic probe failure";

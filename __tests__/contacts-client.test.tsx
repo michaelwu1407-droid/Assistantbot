@@ -168,6 +168,24 @@ describe("ContactsClient", () => {
     ).toBeInTheDocument();
   });
 
+  it("surfaces the current job context and quick follow-up actions in one row", () => {
+    const { container } = render(<ContactsClient contacts={contacts} />);
+
+    const table = container.querySelector("table");
+    expect(table).not.toBeNull();
+
+    const leadRow = screen.getByRole("link", { name: "Acme Plumbing" }).closest("tr");
+    expect(leadRow).not.toBeNull();
+
+    const row = within(leadRow as HTMLTableRowElement);
+    expect(row.getByText("Blocked Drain")).toBeInTheDocument();
+    expect(row.getByText("Quote sent")).toBeInTheDocument();
+    expect(row.getByText("$420 owed")).toBeInTheDocument();
+    expect(row.getByTitle("Call")).toHaveAttribute("href", "tel:0400000001");
+    expect(row.getByTitle("Text")).toHaveAttribute("href", "sms:0400000001");
+    expect(row.getByTitle("Email")).toHaveAttribute("href", "mailto:office@acme.com");
+  });
+
   it("surfaces backend delete failures instead of pretending success", async () => {
     const user = userEvent.setup();
     deleteContacts.mockResolvedValue({ success: false, error: "Delete blocked" });

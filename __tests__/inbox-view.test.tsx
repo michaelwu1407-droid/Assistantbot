@@ -1,6 +1,6 @@
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const { sendSMS, toastSuccess, toastError, toastInfo } = vi.hoisted(() => ({
@@ -127,7 +127,7 @@ describe("InboxView", () => {
 
     const input = screen.getByPlaceholderText(/Send an SMS to Alice Example yourself/i);
     await user.type(input, "On my way");
-    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+    await user.click(screen.getByRole("button", { name: /Send now/i }));
 
     await waitFor(() => expect(sendSMS).toHaveBeenCalledWith("contact_a", "On my way"));
     expect(toastSuccess).toHaveBeenCalledWith("SMS sent");
@@ -162,7 +162,7 @@ describe("InboxView", () => {
 
     const input = screen.getByPlaceholderText(/Send an SMS to Alice Example yourself/i);
     await user.type(input, "On my way");
-    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+    await user.click(screen.getByRole("button", { name: /Send now/i }));
 
     await waitFor(() => expect(toastError).toHaveBeenCalledWith("Twilio offline"));
   });
@@ -203,7 +203,7 @@ describe("InboxView", () => {
     await user.click(screen.getByRole("tab", { name: /Ask Tracey/i }));
     const input = screen.getByPlaceholderText(/Ask Tracey to reply or update the CRM for Alice Example/i);
     await user.type(input, "Please let them know we'll be there at 3.");
-    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+    await user.click(screen.getByRole("button", { name: /Ask Tracey to act/i }));
 
     await waitFor(() =>
       expect(fetch).toHaveBeenCalledWith(
@@ -248,7 +248,7 @@ describe("InboxView", () => {
     await user.click(screen.getByRole("tab", { name: /Ask Tracey/i }));
     const input = screen.getByPlaceholderText(/Ask Tracey to reply or update the CRM for Alice Example/i);
     await user.type(input, "Please let them know we'll be there at 3.");
-    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+    await user.click(screen.getByRole("button", { name: /Ask Tracey to act/i }));
 
     await waitFor(() =>
       expect(toastError).toHaveBeenCalledWith("Could not reach Tracey. Check your connection and try again."),
@@ -283,7 +283,7 @@ describe("InboxView", () => {
 
     const directInput = screen.getByPlaceholderText(/Send an SMS to Alice Example yourself/i);
     await user.type(directInput, "Direct note");
-    expect(screen.getByRole("button", { name: /Send SMS/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Send now/i })).toBeInTheDocument();
 
     await user.click(screen.getByRole("tab", { name: /Ask Tracey/i }));
     const traceyInput = screen.getByPlaceholderText(/Ask Tracey to reply or update the CRM for Alice Example/i);
@@ -325,11 +325,179 @@ describe("InboxView", () => {
     expect(traceyTab).toHaveAttribute("aria-selected", "false");
     expect(directTab).toHaveAttribute("aria-selected", "true");
 
+<<<<<<< HEAD
     expect(screen.getByText(/Direct SMS: sends immediately from your workspace Twilio number/i)).toBeInTheDocument();
 
     await user.click(traceyTab);
     expect(traceyTab).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText(/Ask Tracey: give Tracey an instruction/i)).toBeInTheDocument();
+=======
+    expect(screen.getByText(/Direct SMS: sends now from your workspace Twilio number/i)).toBeInTheDocument();
+    expect(screen.getByText(/Sends immediately/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Send now/i })).toBeInTheDocument();
+
+    await user.click(traceyTab);
+    expect(traceyTab).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText(/Ask Tracey: the AI reads your instruction/i)).toBeInTheDocument();
+    expect(screen.getByText(/AI handles next step/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Ask Tracey to act/i })).toBeInTheDocument();
+  }, 10000);
+
+  it("falls back to Ask Tracey when the selected contact has no phone number", async () => {
+    render(
+      <InboxView
+        workspaceId="ws_1"
+        initialInteractions={[
+          {
+            id: "activity_1",
+            type: "NOTE",
+            title: "Inbound",
+            description: null,
+            time: "Just now",
+            createdAt: new Date("2026-04-03T10:00:00.000Z"),
+            contactId: "contact_a",
+            contactName: "Alice Example",
+            contactPhone: null,
+            contactEmail: "alice@example.com",
+            content: "Can you update my booking?",
+          },
+        ]}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Alice Example" })).toBeInTheDocument());
+
+    expect(screen.getByRole("tab", { name: /Ask Tracey/i })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: /Direct SMS/i })).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByText(/This contact has no phone number, so direct SMS is unavailable/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Add phone in CRM/i })).toHaveAttribute("href", "/crm/contacts/contact_a/edit");
+    expect(screen.getByRole("button", { name: /Ask Tracey to act/i })).toBeInTheDocument();
+  }, 10000);
+
+  it("shows an email recovery path when the selected contact has no email address", async () => {
+    render(
+      <InboxView
+        workspaceId="ws_1"
+        initialInteractions={[
+          {
+            id: "activity_1",
+            type: "NOTE",
+            title: "Inbound",
+            description: null,
+            time: "Just now",
+            createdAt: new Date("2026-04-03T10:00:00.000Z"),
+            contactId: "contact_a",
+            contactName: "Alice Example",
+            contactPhone: "0400000001",
+            contactEmail: null,
+            content: "Can you update my booking?",
+          },
+        ]}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Alice Example" })).toBeInTheDocument());
+
+    expect(screen.getByText(/No email address is on file yet/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Add email in CRM/i })).toHaveAttribute("href", "/crm/contacts/contact_a/edit");
+  }, 10000);
+
+  it("keeps calls compact by default and expands to show the full transcript on demand", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <InboxView
+        workspaceId="ws_1"
+        initialInteractions={[
+          {
+            id: "call_1",
+            type: "call",
+            channel: "call",
+            direction: "inbound",
+            title: "Customer call",
+            description: "Caller asked about moving tomorrow's booking.",
+            summary: "Caller asked about moving tomorrow's booking.",
+            transcript: "Caller: Hi, can we move tomorrow's booking to Friday morning?\nTracey: I can help with that.",
+            content: "Caller: Hi, can we move tomorrow's booking to Friday morning?",
+            preview: "Caller asked about moving tomorrow's booking.",
+            time: "Just now",
+            createdAt: new Date("2026-04-03T10:00:00.000Z"),
+            contactId: "contact_a",
+            contactName: "Alice Example",
+            contactPhone: "0400000001",
+            contactEmail: "alice@example.com",
+          },
+        ]}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Alice Example" })).toBeInTheDocument());
+
+    expect(screen.getByText(/Caller asked about moving tomorrow's booking/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Tracey: I can help with that\./i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Show full transcript/i }));
+
+    expect(screen.getByText(/Tracey: I can help with that\./i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Hide full transcript/i })).toBeInTheDocument();
+  });
+
+  it("keeps urgent callback routing in system activity while leaving the customer conversation in conversations", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <InboxView
+        workspaceId="ws_1"
+        initialInteractions={[
+          {
+            id: "call_1",
+            type: "call",
+            channel: "call",
+            direction: "inbound",
+            title: "Voice call handled by Tracey",
+            description: "Caller asked for an urgent callback about a burst pipe.",
+            summary: "Caller asked for an urgent callback about a burst pipe.",
+            transcript: "Caller: We have a burst pipe.\nTracey: I’m escalating this now.",
+            content: "Caller: We have a burst pipe.",
+            preview: "Caller asked for an urgent callback about a burst pipe.",
+            time: "Just now",
+            createdAt: new Date("2026-04-03T10:00:00.000Z"),
+            contactId: "contact_a",
+            contactName: "Alice Example",
+            contactPhone: "0400000001",
+            contactEmail: "alice@example.com",
+          },
+          {
+            id: "activity_urgent",
+            type: "note",
+            channel: "system",
+            direction: "system",
+            title: "Urgent callback requested",
+            description: "Reason: Pipe burst\nCaller: 0400000001",
+            content: "Reason: Pipe burst\nCaller: 0400000001",
+            preview: "Reason: Pipe burst",
+            time: "Just now",
+            createdAt: new Date("2026-04-03T10:01:00.000Z"),
+            contactId: "contact_a",
+            contactName: "Alice Example",
+            contactPhone: "0400000001",
+            contactEmail: "alice@example.com",
+          },
+        ]}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Alice Example" })).toBeInTheDocument());
+
+    expect(screen.getByText(/Caller asked for an urgent callback about a burst pipe/i)).toBeInTheDocument();
+    expect(screen.queryByText("Urgent callback requested")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /System Activity/i }));
+
+    expect(screen.getByText("Urgent callback requested")).toBeInTheDocument();
+    expect(screen.getByText(/Caller: 0400000001/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Show full transcript/i)).not.toBeInTheDocument();
+>>>>>>> 88b40b7618875a86c145c73f43781d77b3a33b8e
   });
 });
 

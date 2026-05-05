@@ -11,12 +11,12 @@ import { cn } from '@/lib/utils';
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getChatHistory, saveAssistantMessage, confirmJobDraft, runUndoLastAction, getDailyDigest } from '@/actions/chat-actions';
 import { getTeamMembers } from '@/actions/invite-actions';
 import { toast } from 'sonner';
 import { useSpeechRecognition } from '@/hooks/use-speech-recognition';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { CRM_SELECTION_EVENT, CrmSelectionItem } from '@/lib/crm-selection';
 
 interface ChatInterfaceProps {
@@ -178,7 +178,7 @@ function JobDraftCard({
       <div className="bg-emerald-100/60 dark:bg-emerald-900/40 px-4 py-2 border-b border-emerald-200 dark:border-emerald-800 flex justify-between items-center">
         <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          New job — review & confirm
+          New job - review & confirm
         </span>
         <span className="text-[10px] bg-emerald-100 dark:bg-emerald-800 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-700">{category}</span>
       </div>
@@ -187,7 +187,7 @@ function JobDraftCard({
           <div className="rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40 px-3 py-2 space-y-1">
             {warnings.map((w, i) => (
               <p key={i} className="text-xs text-amber-800 dark:text-amber-200 font-medium flex items-center gap-1.5">
-                <span className="text-amber-500">⚠</span> {w}
+                <span className="text-amber-500">!</span> {w}
               </p>
             ))}
           </div>
@@ -317,13 +317,31 @@ function ChatWithHistory({
   /** Track send time to measure client-perceived TTFT */
   const sendTimestampRef = useRef<number>(0);
   const pathname = usePathname();
+  const router = useRouter();
 
   const getContextualQuickActions = () => {
+    const dealMatch = pathname?.match(/\/deals\/([^/?#]+)/);
+    const dealId = dealMatch?.[1];
+    if (dealId) {
+      return [
+        { icon: Calendar, label: "Schedule job", prompt: `Schedule a job for deal ID ${dealId}` },
+        { icon: FileText, label: "Create quote", prompt: `Create a draft invoice for deal ID ${dealId}` },
+        { icon: Sparkles, label: "Move deal", prompt: `Move deal ID ${dealId} to the next stage` },
+      ];
+    }
     if (pathname?.includes('/deals')) {
       return [
-        { icon: Calendar, label: "Schedule job", prompt: "Schedule a job for this deal" },
-        { icon: FileText, label: "Create quote", prompt: "Create a quote for this deal" },
-        { icon: Sparkles, label: "Move deal", prompt: "Can you move this deal to the next stage?" },
+        { icon: Calendar, label: "Schedule job", prompt: "Schedule a job for the current deal" },
+        { icon: FileText, label: "Create quote", prompt: "Create a draft invoice for the current deal" },
+        { icon: Sparkles, label: "Move deal", prompt: "Move the current deal to the next stage" },
+      ];
+    }
+    const contactMatch = pathname?.match(/\/contacts\/([^/?#]+)/);
+    const contactId = contactMatch?.[1];
+    if (contactId) {
+      return [
+        { icon: Phone, label: "Call prep", prompt: `Help me prepare for a follow-up call with contact ID ${contactId}` },
+        { icon: Sparkles, label: "Draft email", prompt: `Draft an email to contact ID ${contactId}` },
       ];
     }
     if (pathname?.includes('/contacts')) {
@@ -332,7 +350,7 @@ function ChatWithHistory({
         { icon: Sparkles, label: "Draft email", prompt: "Draft an email to this contact" },
       ];
     }
-return QUICK_ACTIONS;
+    return QUICK_ACTIONS;
   };
 
   const { isListening, transcript, toggleListening } = useSpeechRecognition();
@@ -367,6 +385,9 @@ return QUICK_ACTIONS;
       if (!content.trim() && typeof (message as { content?: string }).content === 'string')
         content = (message as { content?: string }).content ?? "";
       if (content.trim() && workspaceId) saveAssistantMessage(workspaceId, content).catch(() => { });
+      // Refresh server component data so ActivityFeed and other server-fetched UI
+      // reflects any CRM mutations Tracey performed during this response.
+      router.refresh();
     },
     onError: async (err) => {
       console.error("Chat error:", err);
@@ -517,6 +538,43 @@ return QUICK_ACTIONS;
                         const partType = typeof p.type === "string" ? p.type : undefined;
                         const partText = partType === "text" && typeof p.text === "string" ? p.text : (typeof p.text === "string" ? p.text : undefined);
                         if (partText && typeof partText === "string") {
+                          const trimmedPartText = partText.trim();
+                          if (!isUser && trimmedPartText.includes("Morning Briefing")) {
+                            rendered.push(
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => openDigestModal("morning")}
+                                className="w-full text-left text-[10px] md:text-xs leading-relaxed font-medium rounded-2xl border border-emerald-200 bg-emerald-50/70 dark:bg-emerald-950/40 dark:border-emerald-700 px-3 py-2 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition-colors"
+                              >
+                                {trimmedPartText}
+                                {digestLoading === "morning" && (
+                                  <span className="ml-2 text-[10px] text-emerald-700 dark:text-emerald-300">
+                                    Loading...
+                                  </span>
+                                )}
+                              </button>
+                            );
+                            return;
+                          }
+                          if (!isUser && trimmedPartText.includes("Evening Wrap-Up")) {
+                            rendered.push(
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => openDigestModal("evening")}
+                                className="w-full text-left text-[10px] md:text-xs leading-relaxed font-medium rounded-2xl border border-slate-300 bg-slate-50/80 dark:bg-slate-900/70 dark:border-slate-700 px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                              >
+                                {trimmedPartText}
+                                {digestLoading === "evening" && (
+                                  <span className="ml-2 text-[10px] text-slate-600 dark:text-slate-300">
+                                    Loading...
+                                  </span>
+                                )}
+                              </button>
+                            );
+                            return;
+                          }
                           rendered.push(
                             <p key={idx} className="text-[10px] md:text-xs leading-relaxed whitespace-pre-line font-medium">
                               {partText}
@@ -683,7 +741,7 @@ return QUICK_ACTIONS;
                       }
                       if (content.trim()) {
                         const trimmed = content.trim();
-                        if (!isUser && trimmed.startsWith("☀️ Morning Briefing")) {
+                        if (!isUser && trimmed.includes("Morning Briefing")) {
                           return (
                             <button
                               type="button"
@@ -693,13 +751,13 @@ return QUICK_ACTIONS;
                               {trimmed}
                               {digestLoading === "morning" && (
                                 <span className="ml-2 text-[10px] text-emerald-700 dark:text-emerald-300">
-                                  Loading…
+                                  Loading...
                                 </span>
                               )}
                             </button>
                           );
                         }
-                        if (!isUser && trimmed.startsWith("🌙 Evening Wrap-Up")) {
+                        if (!isUser && trimmed.includes("Evening Wrap-Up")) {
                           return (
                             <button
                               type="button"
@@ -709,7 +767,7 @@ return QUICK_ACTIONS;
                               {trimmed}
                               {digestLoading === "evening" && (
                                 <span className="ml-2 text-[10px] text-slate-600 dark:text-slate-300">
-                                  Loading…
+                                  Loading...
                                 </span>
                               )}
                             </button>
@@ -838,8 +896,11 @@ return QUICK_ACTIONS;
           <DialogContent className="sm:max-w-2xl lg:max-w-3xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                {digestModal.kind === "morning" ? "Morning Briefing" : "Evening Wrap-Up"} — {digestModal.digest.date}
+                {digestModal.kind === "morning" ? "Morning Briefing" : "Evening Wrap-Up"} - {digestModal.digest.date}
               </DialogTitle>
+              <DialogDescription>
+                Review the jobs, leads, and follow-ups Tracey thinks need attention next.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 text-xs md:text-sm">
               <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/60 px-4 py-3">
@@ -847,7 +908,7 @@ return QUICK_ACTIONS;
                   Summary
                 </p>
                 <p className="mt-1 text-slate-600 dark:text-slate-300">
-                  Pipeline value: ${digestModal.digest.totalPipelineValue.toLocaleString("en-AU")} · Top actions: {digestModal.digest.topActions.slice(0, 3).join(", ")}
+                  Pipeline value: ${digestModal.digest.totalPipelineValue.toLocaleString("en-AU")} - Top actions: {digestModal.digest.topActions.slice(0, 3).join(", ")}
                 </p>
               </div>
               {digestModal.kind === "evening" && (
@@ -927,12 +988,12 @@ return QUICK_ACTIONS;
                       </>
                     ) : digestModal.agentMode === "DRAFT" ? (
                       <>
-                        <li>I&apos;ve prepared draft follow-ups for stale jobs – ask me to &quot;show today&apos;s drafts&quot; to review them.</li>
+                        <li>I&apos;ve prepared draft follow-ups for stale jobs - ask me to &quot;show today&apos;s drafts&quot; to review them.</li>
                         <li>Review and approve any draft quotes or messages before you head out.</li>
                       </>
                     ) : (
                       <>
-                        <li>Call or text the top 1–2 jobs in the list to keep the pipeline moving.</li>
+                        <li>Call or text the top 1-2 jobs in the list to keep the pipeline moving.</li>
                         <li>Glance over today&apos;s runs and confirm any jobs you&apos;re unsure about.</li>
                       </>
                     )
@@ -944,12 +1005,12 @@ return QUICK_ACTIONS;
                   ) : digestModal.agentMode === "DRAFT" ? (
                     <>
                       <li>Review and approve the follow-up drafts I&apos;ve queued from today&apos;s jobs.</li>
-                      <li>Approve any invoice drafts so I can send reminders tomorrow.</li>
+                      <li>Review any draft invoices, mark the ready ones as issued, and email them before tomorrow&apos;s reminder run.</li>
                     </>
                   ) : (
                     <>
                       <li>Before you log off, send invoices for completed jobs and add brief notes to today&apos;s calls.</li>
-                      <li>Pick 1–2 follow-ups from the list to tackle first thing tomorrow.</li>
+                      <li>Pick 1-2 follow-ups from the list to tackle first thing tomorrow.</li>
                     </>
                   )}
                 </ul>

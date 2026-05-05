@@ -1,15 +1,20 @@
 import { Separator } from "@/components/ui/separator"
 import { AutomationList } from "./automation-list"
-import { getOrCreateWorkspace } from "@/actions/workspace-actions"
-import { getAuthUserId } from "@/lib/auth"
 import { getAutomations } from "@/actions/automation-actions"
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access"
+import { redirect } from "next/navigation"
 
 export const dynamic = "force-dynamic"
 
 export default async function AutomationsPage() {
-    const userId = (await getAuthUserId()) as string;
-    const workspace = await getOrCreateWorkspace(userId)
-    const automations = await getAutomations(workspace.id)
+    let actor: Awaited<ReturnType<typeof requireCurrentWorkspaceAccess>>
+    try {
+        actor = await requireCurrentWorkspaceAccess()
+    } catch {
+        redirect("/auth")
+    }
+
+    const automations = await getAutomations(actor.workspaceId)
 
     return (
         <div className="space-y-6">
@@ -20,7 +25,7 @@ export default async function AutomationsPage() {
                 </p>
             </div>
             <Separator />
-            <AutomationList initialAutomations={automations} workspaceId={workspace.id} />
+            <AutomationList initialAutomations={automations} workspaceId={actor.workspaceId} />
         </div>
     )
 }

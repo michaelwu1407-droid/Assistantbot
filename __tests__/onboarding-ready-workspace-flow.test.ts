@@ -86,6 +86,8 @@ vi.mock("@/lib/timezone", () => ({ inferTimezoneFromAddress }));
 vi.mock("@/lib/comms", () => ({ initializeTradieComms }));
 vi.mock("@/lib/ai/context", () => ({ addMem0Memory }));
 
+const workspaceActionsPromise = import("@/actions/workspace-actions");
+
 describe("integration: onboarding to ready workspace", () => {
   let workspace: WorkspaceRecord;
   let user: UserRecord;
@@ -94,7 +96,7 @@ describe("integration: onboarding to ready workspace", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
+    vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-04-02T10:00:00.000Z"));
 
     workspace = {
@@ -196,7 +198,7 @@ describe("integration: onboarding to ready workspace", () => {
   });
 
   it("completes onboarding, provisions a phone number, and routes the user to the dashboard", async () => {
-    const { completeOnboarding, checkUserRoute } = await import("@/actions/workspace-actions");
+    const { completeOnboarding, checkUserRoute } = await workspaceActionsPromise;
 
     const result = await completeOnboarding({
       ownerName: "Michael Wu",

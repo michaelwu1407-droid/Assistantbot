@@ -1,8 +1,7 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { getAuthUser, getAuthUserId } from "@/lib/auth"
-import { getOrCreateWorkspace } from "@/actions/workspace-actions"
+import { getAuthUser } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 import { AgentMode } from "@prisma/client"
 import type { Prisma } from "@prisma/client"
@@ -13,12 +12,11 @@ import { normalizeAppAgentMode, normalizeAgentMode } from "@/lib/agent-mode"
 import { buildLeadCaptureEmail, resolveInboundLeadDomain, toLeadCaptureAlias } from "@/lib/lead-capture-email"
 import { getInboundLeadEmailReadiness } from "@/lib/inbound-lead-email-readiness"
 import { DEFAULT_WORKSPACE_TIMEZONE, inferTimezoneFromAddress, isValidIanaTimezone } from "@/lib/timezone"
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access"
 
 async function getWorkspaceId(): Promise<string> {
-    const userId = await getAuthUserId()
-    if (!userId) throw new Error("Not authenticated")
-    const workspace = await getOrCreateWorkspace(userId)
-    return workspace.id
+    const actor = await requireCurrentWorkspaceAccess()
+    return actor.workspaceId
 }
 
 export async function getWorkspaceSettings() {

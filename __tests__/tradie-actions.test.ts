@@ -4,9 +4,13 @@ import { Prisma } from "@prisma/client";
 const hoisted = vi.hoisted(() => ({
   db: {
     deal: {
+      findMany: vi.fn(),
       findFirst: vi.fn(),
       findUnique: vi.fn(),
       update: vi.fn(),
+    },
+    workspace: {
+      findUnique: vi.fn(),
     },
     invoice: {
       create: vi.fn(),
@@ -27,6 +31,7 @@ const hoisted = vi.hoisted(() => ({
   logError: vi.fn(),
   maybeCreatePricingSuggestionFromConfirmedJob: vi.fn(),
   createTask: vi.fn(),
+  requireCurrentWorkspaceAccess: vi.fn(),
   requireDealInCurrentWorkspace: vi.fn(),
   syncGoogleCalendarEventForDeal: vi.fn(),
   recordWorkspaceAuditEvent: vi.fn(),
@@ -57,6 +62,7 @@ vi.mock("@/actions/task-actions", () => ({
   createTask: hoisted.createTask,
 }));
 vi.mock("@/lib/workspace-access", () => ({
+  requireCurrentWorkspaceAccess: hoisted.requireCurrentWorkspaceAccess,
   requireDealInCurrentWorkspace: hoisted.requireDealInCurrentWorkspace,
 }));
 vi.mock("@/lib/workspace-calendar", () => ({
@@ -74,7 +80,7 @@ vi.mock("@/lib/logging", () => ({
   },
 }));
 
-import { generateQuote, markInvoicePaid, sendOnMyWaySMS } from "@/actions/tradie-actions";
+import { generateQuote, getJobDetails, getNextJob, getTodaySchedule, getTradieJobs, markInvoicePaid, sendOnMyWaySMS, updateJobStatus } from "@/actions/tradie-actions";
 
 describe("tradie-actions", () => {
   beforeEach(() => {
@@ -83,13 +89,158 @@ describe("tradie-actions", () => {
       actor: { id: "user_1", workspaceId: "ws_1" },
       deal: { id: "deal_1", workspaceId: "ws_1" },
     });
+    hoisted.requireCurrentWorkspaceAccess.mockResolvedValue({
+      id: "user_1",
+      workspaceId: "ws_1",
+      role: "TEAM_MEMBER",
+    });
     hoisted.allocateWorkspaceInvoiceNumber.mockResolvedValue("INV-100");
+    hoisted.db.workspace.findUnique.mockResolvedValue({
+      workspaceTimezone: "Australia/Sydney",
+    });
     hoisted.db.deal.findFirst.mockResolvedValue({
       id: "deal_1",
       workspaceId: "ws_1",
       contactId: "contact_1",
       metadata: { source: "chat" },
     });
+  });
+
+  it("scopes tradie jobs to the assigned team member", async () => {
+    hoisted.db.deal.findMany.mockResolvedValue([]);
+
+    await getTradieJobs("ws_1");
+
+    expect(hoisted.requireCurrentWorkspaceAccess).toHaveBeenCalled();
+    expect(hoisted.db.deal.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          workspaceId: "ws_1",
+          assignedToId: "user_1",
+        }),
+      }),
+    );
+  });
+
+  it("scopes today's schedule to the assigned team member", async () => {
+    hoisted.db.deal.findMany.mockResolvedValue([]);
+
+    await getTodaySchedule("ws_1");
+
+    expect(hoisted.db.deal.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          workspaceId: "ws_1",
+          assignedToId: "user_1",
+        }),
+      }),
+    );
+  });
+
+  it("formats today's schedule times in the workspace timezone", async () => {
+    hoisted.db.deal.findMany.mockResolvedValue([
+      {
+        id: "deal_1",
+        title: "Blocked drain",
+        jobStatus: "SCHEDULED",
+        value: new Prisma.Decimal("120.00"),
+        scheduledAt: new Date("2026-04-14T23:30:00.000Z"),
+        metadata: {},
+        safetyCheckCompleted: false,
+        latitude: null,
+        longitude: null,
+        address: "12 King St",
+        contact: {
+          name: "Alex",
+          phone: "0400000000",
+          address: "12 King St",
+        },
+      },
+    ]);
+
+    const result = await getTodaySchedule("ws_1");
+
+    expect(hoisted.db.workspace.findUnique).toHaveBeenCalledWith({
+      where: { id: "ws_1" },
+      select: { workspaceTimezone: true },
+    });
+    expect(result[0]?.time).toBe("9:30 AM");
+  });
+
+  it("scopes the next job query to the assigned team member", async () => {
+    hoisted.db.deal.findFirst.mockResolvedValue(null);
+
+    await getNextJob("ws_1");
+
+    expect(hoisted.db.deal.findFirst).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        where: expect.objectContaining({
+          workspaceId: "ws_1",
+          assignedToId: "user_1",
+          jobStatus: { in: ["TRAVELING", "ON_SITE"] },
+        }),
+      }),
+    );
+    expect(hoisted.db.deal.findFirst).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: expect.objectContaining({
+          workspaceId: "ws_1",
+          assignedToId: "user_1",
+        }),
+      }),
+    );
+  });
+
+  it("returns the next job with real value and contact phone details", async () => {
+    hoisted.db.deal.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        id: "deal_2",
+        title: "Hot water service",
+        scheduledAt: new Date("2026-04-08T01:00:00.000Z"),
+        address: "44 George St",
+        jobStatus: "SCHEDULED",
+        safetyCheckCompleted: true,
+        value: new Prisma.Decimal("275.00"),
+        metadata: { description: "Annual service" },
+        contact: {
+          name: "Jordan",
+          phone: "0400111222",
+          address: "44 George St",
+        },
+      });
+
+    const result = await getNextJob("ws_1");
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: "deal_2",
+        value: 275,
+        contactPhone: "0400111222",
+      }),
+    );
+  });
+
+  it("lets managers keep the full workspace tradie view", async () => {
+    hoisted.requireCurrentWorkspaceAccess.mockResolvedValue({
+      id: "owner_1",
+      workspaceId: "ws_1",
+      role: "OWNER",
+    });
+    hoisted.db.deal.findMany.mockResolvedValue([]);
+
+    await getTradieJobs("ws_1");
+
+    expect(hoisted.db.deal.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          workspaceId: "ws_1",
+        }),
+      }),
+    );
+    expect(hoisted.db.deal.findMany.mock.calls[0]?.[0]?.where).not.toHaveProperty("assignedToId");
   });
 
   it("generates a GST-inclusive quote, updates the deal, and creates a draft invoice", async () => {
@@ -132,6 +283,37 @@ describe("tradie-actions", () => {
         contactId: "contact_1",
       }),
     });
+  });
+
+  it("uses the deal address before the contact address for field job details", async () => {
+    hoisted.requireDealInCurrentWorkspace.mockResolvedValue({
+      actor: { id: "user_1", workspaceId: "ws_1" },
+      deal: { id: "deal_1", workspaceId: "ws_1" },
+    });
+    hoisted.db.deal.findFirst.mockResolvedValue({
+      id: "deal_1",
+      contactId: "contact_1",
+      title: "Blocked drain",
+      jobStatus: "SCHEDULED",
+      stage: "SCHEDULED",
+      value: new Prisma.Decimal("120.00"),
+      metadata: { description: "Kitchen drain" },
+      safetyCheckCompleted: false,
+      address: "123 Job Street, Sydney NSW",
+      contact: {
+        name: "Alex",
+        phone: "0400000000",
+        email: "alex@example.com",
+        address: null,
+      },
+      activities: [],
+      invoices: [],
+      jobPhotos: [],
+    });
+
+    const result = await getJobDetails("deal_1");
+
+    expect(result?.client.address).toBe("123 Job Street, Sydney NSW");
   });
 
   it("marks invoices paid, moves the deal to WON, and records audit metadata", async () => {
@@ -224,5 +406,13 @@ describe("tradie-actions", () => {
       include: { contact: true },
     });
     expect(hoisted.sendSMS).toHaveBeenCalledWith("contact_1", "Hi Taylor, I'm on my way to Blocked drain. See you soon!");
+  });
+
+  it("does not auto-send an on-my-way SMS when only changing status to traveling", async () => {
+    const result = await updateJobStatus("deal_1", "TRAVELING");
+
+    expect(result).toEqual({ success: true, status: "TRAVELING" });
+    expect(hoisted.sendSMS).not.toHaveBeenCalled();
+    expect(hoisted.trackEvent).toHaveBeenCalledWith("workflow_start_travel", { jobId: "deal_1" });
   });
 });

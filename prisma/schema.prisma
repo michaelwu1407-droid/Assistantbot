@@ -179,6 +179,22 @@ model User {
 
   // Referral System
   referrals Referral[]
+
+  channelPrefs NotificationChannelPref[]
+}
+
+model NotificationChannelPref {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notificationType String
+  channel          String
+  enabled          Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([userId, notificationType, channel])
+  @@index([userId, channel, enabled])
 }
 
 model PushSubscription {
@@ -1027,4 +1043,28 @@ model SyncIssue {
   @@index([dealId])
   @@index([contactId])
   @@map("sync_issues")
+}
+
+model DemoLead {
+  id              String   @id @default(cuid())
+  firstName       String
+  lastName        String?
+  phone           String
+  email           String?
+  businessName    String?
+  source          String   @default("homepage_form") // homepage_form, api
+  callStatus      String   @default("PENDING")        // PENDING, INITIATED, FAILED
+  callError       String?
+  roomName        String?
+  resolvedTrunkId String?
+  callerNumber    String?
+  warnings        Json?
+  ipAddress       String?
+  userAgent       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([phone, createdAt])
+  @@index([callStatus, createdAt])
+  @@index([createdAt])
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
     Plus, FileText, CreditCard, Loader2, RefreshCw, Send, Ban,
@@ -14,7 +15,7 @@ import {
 } from "@/actions/tradie-actions"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
-import { Badge } from "@/components/ui/badge"
+import { formatInvoiceStatusLabel } from "@/lib/job-portal-status-labels"
 
 const STATUS_STYLE: Record<string, string> = {
     DRAFT: "text-slate-600 border-slate-200 bg-slate-50",
@@ -106,6 +107,7 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
     const [priceError, setPriceError] = useState<string | null>(null)
     const [editingId, setEditingId] = useState<string | null>(null)
     const [syncCache, setSyncCache] = useState<Record<string, { synced: boolean; provider: string | null }>>({})
+    const latestInvoice = invoices[0] ?? null
 
     const fetchInvoices = useCallback(async () => {
         setLoading(true)
@@ -140,7 +142,7 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                 toast.error(result.error ?? "Failed to create invoice")
                 return
             }
-            toast.success("Invoice created")
+            toast.success("Draft invoice created")
             setVariationDesc("")
             setVariationPrice("")
             await fetchInvoices()
@@ -230,8 +232,11 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                     {priceError && <p className="text-xs text-red-500">{priceError}</p>}
                     <Button onClick={handleCreateInvoice} disabled={creating || !variationDesc.trim()} className="w-full bg-slate-900 hover:bg-slate-800">
                         {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-                        Create Invoice
+                        Create Draft Invoice
                     </Button>
+                    <p className="text-xs text-slate-400 text-center">
+                        Creates a draft quote. Use <strong>Email quote</strong> to send an estimate, or <strong>Mark issued</strong> when it is ready to become an invoice.
+                    </p>
                 </CardContent>
             </Card>
 
@@ -243,6 +248,50 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                         <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
                     </Button>
                 </div>
+
+                <Card className="border-slate-200 bg-slate-50 shadow-none">
+                    <CardContent className="flex flex-col gap-1.5 p-3">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                            Next best action
+                        </div>
+                        {!latestInvoice ? (
+                            <>
+                                <p className="text-sm font-medium text-slate-900">Create the first draft invoice for this job.</p>
+                                <p className="text-xs text-slate-500">
+                                    Add the job total or variation above, then create the draft so it appears in the workflow below.
+                                </p>
+                            </>
+                        ) : latestInvoice.status === "DRAFT" ? (
+                            <>
+                                <p className="text-sm font-medium text-slate-900">Send the quote, or mark it as issued when it becomes the invoice.</p>
+                                <p className="text-xs text-slate-500">
+                                    You can still edit the line items first. Use <strong>Email quote</strong> for the estimate, or <strong>Mark issued</strong> once the final invoice is ready.
+                                </p>
+                            </>
+                        ) : latestInvoice.status === "ISSUED" ? (
+                            <>
+                                <p className="text-sm font-medium text-slate-900">Email the invoice if needed, then mark it as paid once payment lands.</p>
+                                <p className="text-xs text-slate-500">
+                                    This invoice is already marked as issued. Use <strong>Email invoice</strong> to send or resend it, then <strong>Mark Paid</strong> once payment lands.
+                                </p>
+                            </>
+                        ) : latestInvoice.status === "PAID" ? (
+                            <>
+                                <p className="text-sm font-medium text-slate-900">Payment is recorded.</p>
+                                <p className="text-xs text-slate-500">
+                                    This job is financially complete. If needed, you can still reverse the invoice status from the card below.
+                                </p>
+                            </>
+                        ) : (
+                            <>
+                                <p className="text-sm font-medium text-slate-900">This invoice is no longer active.</p>
+                                <p className="text-xs text-slate-500">
+                                    Void invoices stay in the record for history, but they should not be sent or marked paid.
+                                </p>
+                            </>
+                        )}
+                    </CardContent>
+                </Card>
 
                 {loading && invoices.length === 0 ? (
                     <div className="text-center py-4 text-slate-400 text-xs">Loading invoices...</div>
@@ -277,15 +326,15 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                                             )}
                                         </div>
                                         <p className="text-xs text-slate-500">
-                                            {new Date(inv.createdAt).toLocaleDateString()}
-                                            {inv.issuedAt && ` · Issued ${new Date(inv.issuedAt).toLocaleDateString()}`}
-                                            {inv.paidAt && ` · Paid ${new Date(inv.paidAt).toLocaleDateString()}`}
+                                            {new Date(inv.createdAt).toLocaleDateString("en-AU")}
+                                            {inv.issuedAt && ` · Issued ${new Date(inv.issuedAt).toLocaleDateString("en-AU")}`}
+                                            {inv.paidAt && ` · Paid ${new Date(inv.paidAt).toLocaleDateString("en-AU")}`}
                                         </p>
                                     </div>
                                     <div className="text-right shrink-0">
                                         <span className="block font-bold text-slate-900">${Number(inv.total).toLocaleString()}</span>
                                         <Badge variant="outline" className={`shadow-none ${STATUS_STYLE[inv.status] ?? ""}`}>
-                                            {inv.status}
+                                            {formatInvoiceStatusLabel(inv.status)}
                                         </Badge>
                                     </div>
                                 </div>
@@ -324,7 +373,7 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                                             <>
                                                 <Button size="sm" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs h-8" disabled={busy} onClick={() => handleIssue(inv.id)}>
                                                     {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3 mr-1" />}
-                                                    Issue
+                                                    Mark issued
                                                 </Button>
                                                 <Button size="sm" variant="outline" className="text-xs h-8" disabled={busy} onClick={() => setEditingId(inv.id)}>
                                                     <Pencil className="w-3 h-3 mr-1" /> Edit
@@ -349,11 +398,11 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                                             </Button>
                                         )}
 
-                                        {/* Email — available on DRAFT, ISSUED */}
+                                        {/* Email — draft sends a quote, issued sends an invoice. */}
                                         {(inv.status === "DRAFT" || inv.status === "ISSUED") && (
                                             <Button size="sm" variant="outline" className="text-xs h-8" disabled={busy} onClick={() => handleEmail(inv.id)}>
                                                 {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Mail className="w-3 h-3 mr-1" />}
-                                                Email
+                                                {inv.status === "DRAFT" ? "Email quote" : "Email invoice"}
                                             </Button>
                                         )}
 

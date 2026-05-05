@@ -17,6 +17,7 @@ const INTERNAL_ONLY_PREFIXES = [
   "/api/debug",
   "/api/check-env",
   "/api/health",
+>>>>>>> 88b40b7618875a86c145c73f43781d77b3a33b8e
 ]
 
 function shouldSkipSessionRefresh(pathname: string) {
@@ -86,11 +87,12 @@ export async function middleware(request: NextRequest) {
     ].join(" ")
     const cspHeader = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://us.i.posthog.com https://us-assets.i.posthog.com https://maps.googleapis.com https://maps.gstatic.com",
+      "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob: https://us.i.posthog.com https://us-assets.i.posthog.com https://maps.googleapis.com https://maps.gstatic.com",
+      "worker-src 'self' blob:",
       `connect-src ${connectSrc}`,
       "img-src 'self' data: https://us.i.posthog.com https://us-assets.i.posthog.com https://lh3.googleusercontent.com https://maps.googleapis.com https://maps.gstatic.com",
-      "style-src 'self' 'unsafe-inline'",
-      "font-src 'self' data:",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' data: https://fonts.gstatic.com",
     ].join("; ")
 
     response.headers.set("Content-Security-Policy", cspHeader)

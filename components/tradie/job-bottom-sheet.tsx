@@ -1,16 +1,15 @@
 "use client"
 
+import Link from "next/link"
 import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Phone, MessageSquare, Wrench, Camera, Navigation, Plus, Video, PenTool, Search } from "lucide-react"
+import { AnimatePresence, motion } from "framer-motion"
+import { ExternalLink, MessageSquare, Navigation, Phone, Plus, Search, Wrench } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
-// Removed unneeded DealView import
 import { JobStatusBar } from "./job-status-bar"
 import { MaterialPicker } from "./material-picker"
 
-// Extend DealView for missing props in this component usage
 interface TradieJob {
     id: string
     title: string
@@ -22,7 +21,7 @@ interface TradieJob {
     description: string
     company?: string
     health?: { status: string }
-    contactPhone?: string // Optional, might not be available
+    contactPhone?: string
 }
 
 interface JobBottomSheetProps {
@@ -34,11 +33,9 @@ interface JobBottomSheetProps {
 }
 
 export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyCheckCompleted }: JobBottomSheetProps) {
-    const [activeTab, setActiveTab] = useState<'DETAILS' | 'PHOTOS' | 'BILLING'>('DETAILS')
+    const [activeTab, setActiveTab] = useState<"DETAILS" | "PHOTOS" | "BILLING">("DETAILS")
     const [variationDesc, setVariationDesc] = useState("")
     const [variationPrice, setVariationPrice] = useState("")
-    const [isRecording, setIsRecording] = useState(false)
-    const [hasSignature, setHasSignature] = useState(false)
 
     const handleAddVariation = async () => {
         if (!variationDesc || !variationPrice) return
@@ -47,25 +44,15 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
         setVariationPrice("")
     }
 
-    const toggleRecording = () => {
-        if (isRecording) {
-            setIsRecording(false)
-            // Logic for saving would happen here
-        } else {
-            setIsRecording(true)
-            setTimeout(() => setIsRecording(false), 3000)
-        }
-    }
-
-    // Colors
-    const neonGreen = "text-[#ccff00]"
-    const neonBorder = "border-[#ccff00]"
-    const neonBg = "bg-[#ccff00]"
+    const scheduledTimeLabel = job.scheduledAt
+        ? new Date(job.scheduledAt).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true })
+        : "No time set"
+    const secondaryHeaderLabel = job.company ? `${scheduledTimeLabel} • ${job.company}` : scheduledTimeLabel
 
     return (
         <>
             <motion.div
-                className="absolute bottom-0 left-0 right-0 bg-slate-950 border-t border-slate-800 rounded-t-[32px] shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-30 flex flex-col"
+                className="absolute bottom-0 left-0 right-0 z-30 flex flex-col rounded-t-[32px] border-t border-slate-800 bg-slate-950 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]"
                 style={{ touchAction: "none" }}
                 initial={{ height: "15%" }}
                 animate={{ height: isOpen ? "92%" : "15%" }}
@@ -82,134 +69,198 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
                 }}
                 onClick={() => !isOpen && setIsOpen(true)}
             >
-                <div className="w-12 h-1.5 bg-slate-700 rounded-full mx-auto mt-3 mb-4 shrink-0" />
+                <div className="mx-auto mb-4 mt-3 h-1.5 w-12 shrink-0 rounded-full bg-slate-700" />
 
-                <div className="px-6 flex-1 flex flex-col overflow-hidden">
-                    {/* Collapsed Header */}
-                    <div className="flex justify-between items-center mb-6 shrink-0 cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
+                <div className="flex flex-1 flex-col overflow-hidden px-6">
+                    <div className="mb-6 flex shrink-0 cursor-pointer items-center justify-between" onClick={() => setIsOpen(!isOpen)}>
                         <div>
-                            <h3 className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Current Job</h3>
-                            <h2 className="text-xl font-black text-white leading-tight">{job.title}</h2>
-                            <p className="text-slate-400 text-sm mt-1 flex items-center gap-2">
-                                <span className={cn("w-2 h-2 rounded-full", job.health?.status === 'ROTTING' ? 'bg-red-500' : 'bg-[#ccff00]')}></span>
-                                8:00 AM • {job.company || "Company"}
+                            <h3 className="mb-1 text-xs font-bold uppercase tracking-widest text-slate-400">Current Job</h3>
+                            <h2 className="text-xl font-black leading-tight text-white">{job.title}</h2>
+                            <p className="mt-1 flex items-center gap-2 text-sm text-slate-400">
+                                <span className={cn("h-2 w-2 rounded-full", job.health?.status === "ROTTING" ? "bg-red-500" : "bg-[#ccff00]")} />
+                                {secondaryHeaderLabel}
                             </p>
                         </div>
-                        <div className="w-12 h-12 rounded-full bg-[#ccff00]/10 flex items-center justify-center text-[#ccff00] font-black border border-[#ccff00]/20">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#ccff00]/20 bg-[#ccff00]/10 font-black text-[#ccff00]">
                             1
                         </div>
                     </div>
 
-                    {/* Expanded Content */}
                     <AnimatePresence>
                         {isOpen && (
                             <motion.div
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
-                                className="flex-1 flex flex-col overflow-hidden"
+                                className="flex flex-1 flex-col overflow-hidden"
                             >
-                                {/* Quick Actions Row */}
-                                <div className="grid grid-cols-4 gap-3 mb-6 shrink-0">
-                                    <Button variant="outline" className="h-20 flex flex-col gap-2 bg-slate-900 border-slate-800 hover:bg-slate-800 hover:text-[#ccff00] hover:border-[#ccff00]/50 transition-all text-slate-400"
-                                        onClick={(e) => { e.stopPropagation(); window.open(`https://maps.google.com/?q=${job.address}`, '_blank'); }}
+                                <div className="mb-6 grid shrink-0 grid-cols-4 gap-3">
+                                    <Button
+                                        variant="outline"
+                                        className="h-20 flex flex-col gap-2 border-slate-800 bg-slate-900 text-slate-400 transition-all hover:border-[#ccff00]/50 hover:bg-slate-800 hover:text-[#ccff00]"
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            window.open(`https://maps.google.com/?q=${job.address}`, "_blank")
+                                        }}
                                     >
-                                        <Navigation className="w-6 h-6" />
+                                        <Navigation className="h-6 w-6" />
                                         <span className="text-[10px] font-bold uppercase tracking-wider">Nav</span>
                                     </Button>
-                                    <Button variant="outline" className="h-20 flex flex-col gap-2 bg-slate-900 border-slate-800 hover:bg-slate-800 hover:text-blue-400 hover:border-blue-500/50 transition-all text-slate-400"
-                                        onClick={(e) => { e.stopPropagation(); window.open(`tel:${job.contactPhone || ''}`); }}
+                                    {job.contactPhone ? (
+                                        <Button
+                                            variant="outline"
+                                            className="h-20 flex flex-col gap-2 border-slate-800 bg-slate-900 text-slate-400 transition-all hover:border-blue-500/50 hover:bg-slate-800 hover:text-blue-400"
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                window.open(`tel:${job.contactPhone}`)
+                                            }}
+                                        >
+                                            <Phone className="h-6 w-6" />
+                                            <span className="text-[10px] font-bold uppercase tracking-wider">Call</span>
+                                        </Button>
+                                    ) : (
+                                        <Button asChild variant="outline" className="h-20 flex flex-col gap-2 border-slate-800 bg-slate-900 text-slate-400 transition-all hover:border-blue-500/50 hover:bg-slate-800 hover:text-blue-400">
+                                            <Link href={`/crm/deals/${job.id}`} onClick={(e) => e.stopPropagation()}>
+                                                <Phone className="h-6 w-6" />
+                                                <span className="text-[10px] font-bold uppercase tracking-wider">Add Phone</span>
+                                            </Link>
+                                        </Button>
+                                    )}
+                                    {job.contactPhone ? (
+                                        <Button
+                                            variant="outline"
+                                            className="h-20 flex flex-col gap-2 border-slate-800 bg-slate-900 text-slate-400 transition-all hover:border-purple-500/50 hover:bg-slate-800 hover:text-purple-400"
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                window.open(`sms:${job.contactPhone}`)
+                                            }}
+                                        >
+                                            <MessageSquare className="h-6 w-6" />
+                                            <span className="text-[10px] font-bold uppercase tracking-wider">Text</span>
+                                        </Button>
+                                    ) : (
+                                        <Button asChild variant="outline" className="h-20 flex flex-col gap-2 border-slate-800 bg-slate-900 text-slate-400 transition-all hover:border-purple-500/50 hover:bg-slate-800 hover:text-purple-400">
+                                            <Link href={`/crm/deals/${job.id}`} onClick={(e) => e.stopPropagation()}>
+                                                <MessageSquare className="h-6 w-6" />
+                                                <span className="text-[10px] font-bold uppercase tracking-wider">Open CRM</span>
+                                            </Link>
+                                        </Button>
+                                    )}
+                                    <Button
+                                        variant="outline"
+                                        className="h-20 flex flex-col gap-2 border-slate-800 bg-slate-900 text-slate-400 transition-all hover:border-orange-500/50 hover:bg-slate-800 hover:text-orange-400"
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            setIsOpen(true)
+                                            setActiveTab("BILLING")
+                                        }}
                                     >
-                                        <Phone className="w-6 h-6" />
-                                        <span className="text-[10px] font-bold uppercase tracking-wider">Call</span>
-                                    </Button>
-                                    <Button variant="outline" className="h-20 flex flex-col gap-2 bg-slate-900 border-slate-800 hover:bg-slate-800 hover:text-purple-400 hover:border-purple-500/50 transition-all text-slate-400"
-                                        onClick={(e) => { e.stopPropagation(); window.open(`sms:${job.contactPhone || ''}`); }}
-                                    >
-                                        <MessageSquare className="w-6 h-6" />
-                                        <span className="text-[10px] font-bold uppercase tracking-wider">Text</span>
-                                    </Button>
-                                    <Button variant="outline" className="h-20 flex flex-col gap-2 bg-slate-900 border-slate-800 hover:bg-slate-800 hover:text-orange-400 hover:border-orange-500/50 transition-all text-slate-400">
-                                        <Wrench className="w-6 h-6" />
+                                        <Wrench className="h-6 w-6" />
                                         <span className="text-[10px] font-bold uppercase tracking-wider">Parts</span>
                                     </Button>
                                 </div>
 
-                                {/* Tabs */}
-                                <div className="flex border-b border-slate-800 mb-4 shrink-0">
+                                <div className="mb-4 flex shrink-0 border-b border-slate-800">
                                     <button
-                                        onClick={(e) => { e.stopPropagation(); setActiveTab('DETAILS'); }}
-                                        className={cn("flex-1 pb-3 text-sm font-bold uppercase tracking-wider transition-colors", activeTab === 'DETAILS' ? "text-[#ccff00] border-b-2 border-[#ccff00]" : "text-slate-500")}
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            setActiveTab("DETAILS")
+                                        }}
+                                        className={cn(
+                                            "flex-1 pb-3 text-sm font-bold uppercase tracking-wider transition-colors",
+                                            activeTab === "DETAILS" ? "border-b-2 border-[#ccff00] text-[#ccff00]" : "text-slate-500",
+                                        )}
                                     >
                                         Details
                                     </button>
                                     <button
-                                        onClick={(e) => { e.stopPropagation(); setActiveTab('PHOTOS'); }}
-                                        className={cn("flex-1 pb-3 text-sm font-bold uppercase tracking-wider transition-colors", activeTab === 'PHOTOS' ? "text-[#ccff00] border-b-2 border-[#ccff00]" : "text-slate-500")}
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            setActiveTab("PHOTOS")
+                                        }}
+                                        className={cn(
+                                            "flex-1 pb-3 text-sm font-bold uppercase tracking-wider transition-colors",
+                                            activeTab === "PHOTOS" ? "border-b-2 border-[#ccff00] text-[#ccff00]" : "text-slate-500",
+                                        )}
                                     >
                                         Photos
                                     </button>
                                     <button
-                                        onClick={(e) => { e.stopPropagation(); setActiveTab('BILLING'); }}
-                                        className={cn("flex-1 pb-3 text-sm font-bold uppercase tracking-wider transition-colors", activeTab === 'BILLING' ? "text-[#ccff00] border-b-2 border-[#ccff00]" : "text-slate-500")}
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            setActiveTab("BILLING")
+                                        }}
+                                        className={cn(
+                                            "flex-1 pb-3 text-sm font-bold uppercase tracking-wider transition-colors",
+                                            activeTab === "BILLING" ? "border-b-2 border-[#ccff00] text-[#ccff00]" : "text-slate-500",
+                                        )}
                                     >
                                         Billing
                                     </button>
                                 </div>
 
-                                {/* Tab Content */}
-                                <div className="flex-1 overflow-y-auto pb-32 no-scrollbar">
-                                    {activeTab === 'DETAILS' && (
+                                <div className="no-scrollbar flex-1 overflow-y-auto pb-32">
+                                    {activeTab === "DETAILS" && (
                                         <div className="space-y-6">
-                                            <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800">
-                                                <h4 className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-3">Job Description</h4>
-                                                <p className="text-slate-300 text-sm leading-relaxed">
+                                            <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+                                                <h4 className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-500">Job Description</h4>
+                                                <p className="text-sm leading-relaxed text-slate-300">
                                                     {job.description || "No description provided."}
                                                 </p>
                                             </div>
 
-                                            <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800">
-                                                <h4 className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-3">Site Contact</h4>
-                                                <div className="flex justify-between items-center">
-                                                    <span className="text-white font-medium">{job.clientName}</span>
-                                                    <span className="text-slate-400 text-sm">{job.contactPhone || ""}</span>
+                                            <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+                                                <h4 className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-500">Site Contact</h4>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="font-medium text-white">{job.clientName}</span>
+                                                    <span className="text-sm text-slate-400">{job.contactPhone || ""}</span>
                                                 </div>
-                                                <div className="mt-2 text-slate-400 text-sm border-t border-slate-800 pt-2">
+                                                <div className="mt-2 border-t border-slate-800 pt-2 text-sm text-slate-400">
                                                     {job.address}
                                                 </div>
                                             </div>
                                         </div>
                                     )}
 
-                                    {activeTab === 'PHOTOS' && (
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="aspect-square bg-slate-900 rounded-xl border-2 border-dashed border-slate-800 flex flex-col items-center justify-center text-slate-500 hover:text-[#ccff00] hover:border-[#ccff00]/50 transition-colors cursor-pointer">
-                                                <Camera className="w-8 h-8 mb-2" />
-                                                <span className="text-xs font-bold uppercase">Add Photo</span>
+                                    {activeTab === "PHOTOS" && (
+                                        <div className="space-y-4">
+                                            <div className="space-y-3 rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+                                                <div>
+                                                    <h4 className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">Site Photos</h4>
+                                                    <p className="text-sm leading-relaxed text-slate-300">
+                                                        Capture photos from the full job mode so they save against the right job and stay available for billing, handover, and office review.
+                                                    </p>
+                                                </div>
+                                                <Link
+                                                    href={`/tradie/jobs/${job.id}`}
+                                                    className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-100 transition-colors hover:bg-slate-800 hover:text-white"
+                                                >
+                                                    Open Full Job Mode
+                                                    <ExternalLink className="h-4 w-4" />
+                                                </Link>
                                             </div>
-                                            {/* Photos would map here */}
                                         </div>
                                     )}
 
-                                    {activeTab === 'BILLING' && (
+                                    {activeTab === "BILLING" && (
                                         <div className="space-y-6">
-                                            <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800">
-                                                <div className="flex justify-between items-center mb-4">
-                                                    <h4 className="text-slate-500 text-xs font-bold uppercase tracking-widest">Current Total</h4>
+                                            <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+                                                <div className="mb-4 flex items-center justify-between">
+                                                    <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500">Current Total</h4>
                                                     <span className="text-xl font-bold text-[#ccff00]">${job.value.toLocaleString()}</span>
                                                 </div>
                                                 <div className="space-y-3">
                                                     <div className="flex gap-2">
                                                         <Input
                                                             placeholder="Item (e.g. 100mm PVC)"
-                                                            className="bg-slate-950 border-slate-800 text-white focus:border-[#ccff00]/50"
+                                                            className="border-slate-800 bg-slate-950 text-white focus:border-[#ccff00]/50"
                                                             value={variationDesc}
                                                             onChange={(e) => setVariationDesc(e.target.value)}
                                                         />
                                                         <Input
                                                             placeholder="$"
                                                             type="number"
-                                                            className="w-24 bg-slate-950 border-slate-800 text-white focus:border-[#ccff00]/50"
+                                                            className="w-24 border-slate-800 bg-slate-950 text-white focus:border-[#ccff00]/50"
                                                             value={variationPrice}
                                                             onChange={(e) => setVariationPrice(e.target.value)}
                                                         />
@@ -221,48 +272,32 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
                                                             setVariationPrice(String(material.price))
                                                         }}
                                                         trigger={
-                                                            <Button variant="outline" size="sm" className="w-full mb-2 gap-2 bg-slate-900 border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-[#ccff00]">
+                                                            <Button variant="outline" size="sm" className="mb-2 w-full gap-2 border-slate-800 bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-[#ccff00]">
                                                                 <Search className="h-4 w-4" /> Search Material Database
                                                             </Button>
                                                         }
                                                     />
 
-                                                    <Button className="w-full bg-slate-800 hover:bg-slate-700 text-white border border-slate-700" onClick={handleAddVariation}>
-                                                        <Plus className="w-4 h-4 mr-2" /> Add Variation
+                                                    <Button className="w-full border border-slate-700 bg-slate-800 text-white hover:bg-slate-700" onClick={handleAddVariation}>
+                                                        <Plus className="mr-2 h-4 w-4" /> Add Variation
                                                     </Button>
                                                 </div>
                                             </div>
 
-                                            <Button
-                                                variant="outline"
-                                                className={cn(
-                                                    "w-full h-12 border-slate-700 text-slate-300 transition-all hover:bg-slate-800 hover:text-white",
-                                                    isRecording && "bg-red-900/20 text-red-400 border-red-900 animate-pulse"
-                                                )}
-                                                onClick={toggleRecording}
-                                            >
-                                                <Video className="w-4 h-4 mr-2" />
-                                                {isRecording ? "Recording... (Tap to stop)" : "Add Video Explanation"}
-                                            </Button>
-
-                                            <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800">
-                                                <h4 className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-3 flex items-center gap-2">
-                                                    <PenTool className="w-3 h-3" />
-                                                    Client Signature
-                                                </h4>
-                                                <div
-                                                    className={cn(
-                                                        "h-24 bg-slate-950 border-2 border-dashed rounded-lg flex items-center justify-center cursor-pointer transition-colors",
-                                                        hasSignature ? "border-[#ccff00]/50" : "border-slate-800 hover:border-slate-600"
-                                                    )}
-                                                    onClick={() => setHasSignature(true)}
-                                                >
-                                                    {hasSignature ? (
-                                                        <span className="font-serif italic text-2xl text-[#ccff00] -rotate-2">Signed</span>
-                                                    ) : (
-                                                        <span className="text-slate-600 text-sm font-medium">Tap to sign on glass</span>
-                                                    )}
+                                            <div className="space-y-3 rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+                                                <div>
+                                                    <h4 className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">Completion Capture</h4>
+                                                    <p className="text-sm leading-relaxed text-slate-300">
+                                                        Video explanations and customer signatures are captured from the full completion flow so they save against the job properly.
+                                                    </p>
                                                 </div>
+                                                <Link
+                                                    href={`/crm/deals/${job.id}`}
+                                                    className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-100 transition-colors hover:bg-slate-800 hover:text-white"
+                                                >
+                                                    Open Full CRM Job
+                                                    <ExternalLink className="h-4 w-4" />
+                                                </Link>
                                             </div>
                                         </div>
                                     )}
@@ -273,27 +308,21 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
                 </div>
             </motion.div>
 
-            {/* StatusBar Integration - Only visible when expanded */}
             <AnimatePresence>
                 {isOpen && (
-                    <motion.div
-                        initial={{ y: 100 }}
-                        animate={{ y: 0 }}
-                        exit={{ y: 100 }}
-                        className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none"
-                    >
+                    <motion.div initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }} className="pointer-events-none fixed bottom-0 left-0 right-0 z-50">
                         <div className="pointer-events-auto">
                             <JobStatusBar
                                 dealId={job.id}
-                currentStatus={
-                    job.status === "SCHEDULED" ||
-                    job.status === "TRAVELING" ||
-                    job.status === "ON_SITE" ||
-                    job.status === "COMPLETED" ||
-                    job.status === "CANCELLED"
-                        ? job.status
-                        : "SCHEDULED"
-                }
+                                currentStatus={
+                                    job.status === "SCHEDULED" ||
+                                    job.status === "TRAVELING" ||
+                                    job.status === "ON_SITE" ||
+                                    job.status === "COMPLETED" ||
+                                    job.status === "CANCELLED"
+                                        ? job.status
+                                        : "SCHEDULED"
+                                }
                                 contactName={job.clientName || "Client"}
                                 safetyCheckCompleted={safetyCheckCompleted}
                             />

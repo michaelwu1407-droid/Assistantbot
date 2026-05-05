@@ -3,8 +3,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { z } from "zod"
+import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
-import { getAuthUserId } from "@/lib/auth"
+import { requireCurrentWorkspaceAccess, requireDealInCurrentWorkspace } from "@/lib/workspace-access"
 import { MonitoringService } from "@/lib/monitoring"
 import { logActivity } from "./activity-actions"
 import { maybeCreatePricingSuggestionFromConfirmedJob } from "@/lib/pricing-learning"
@@ -31,18 +32,11 @@ export async function reconcileStaleJob(input: z.infer<typeof ReconcileStaleJobS
   const { dealId, actualOutcome, outcomeNotes } = parsed.data
 
   try {
-    const userId = await getAuthUserId()
-    if (!userId) {
-      return { success: false, error: "Unauthorized" }
-    }
-
-    // First, verify the deal exists and belongs to the user's workspace
+    const { actor } = await requireDealInCurrentWorkspace(dealId)
     const deal = await db.deal.findFirst({
       where: {
         id: dealId,
-        workspace: {
-          ownerId: userId,
-        },
+        workspaceId: actor.workspaceId,
       },
       include: {
         contact: true,
@@ -117,8 +111,12 @@ export async function reconcileStaleJob(input: z.infer<typeof ReconcileStaleJobS
       hasNotes: !!outcomeNotes,
     })
 
-    return { 
-      success: true, 
+    revalidatePath("/crm/dashboard");
+    revalidatePath("/crm/deals");
+    revalidatePath(`/crm/deals/${dealId}`);
+
+    return {
+      success: true,
       data: {
         dealId: updatedDeal.id,
         actualOutcome: updatedDeal.actualOutcome,
@@ -128,8 +126,8 @@ export async function reconcileStaleJob(input: z.infer<typeof ReconcileStaleJobS
 
   } catch (error) {
     console.error("Error reconciling stale job:", error)
-    MonitoringService.logError(error as Error, { 
-      action: "reconcileStaleJob", 
+    MonitoringService.logError(error as Error, {
+      action: "reconcileStaleJob",
       dealId,
       actualOutcome 
     })
@@ -142,13 +140,11 @@ export async function reconcileStaleJob(input: z.infer<typeof ReconcileStaleJobS
  * Scan for overdue jobs and mark them as stale
  * This should be called periodically or on page load
  */
-export async function scanAndUpdateStaleJobs(workspaceId?: string) {
+export async function scanAndUpdateStaleJobs(
+  workspaceId?: string,
+  options: { system?: boolean } = {}
+) {
   try {
-    const userId = await getAuthUserId()
-    if (!userId) {
-      return { success: false, error: "Unauthorized" }
-    }
-
     const where: any = {
       stage: "SCHEDULED",
       scheduledAt: {
@@ -158,14 +154,20 @@ export async function scanAndUpdateStaleJobs(workspaceId?: string) {
       isStale: false, // Not already marked as stale
     }
 
-    // If workspaceId is provided, filter by it
-    if (workspaceId) {
-      where.workspaceId = workspaceId
-    } else {
-      // Otherwise, only scan the user's workspace
-      where.workspace = {
-        ownerId: userId,
+    if (options.system) {
+      if (workspaceId) {
+        where.workspaceId = workspaceId
       }
+    } else {
+      const actor = await requireCurrentWorkspaceAccess()
+
+      if (workspaceId && workspaceId !== actor.workspaceId) {
+        return { success: false, error: "Forbidden workspace access" }
+      }
+
+      where.workspaceId = workspaceId
+        ? workspaceId
+        : actor.workspaceId
     }
 
     // Find all overdue jobs

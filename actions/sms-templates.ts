@@ -3,12 +3,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { db } from "@/lib/db";
-import { getAuthUserId } from "@/lib/auth";
 import { buildPublicFeedbackUrl } from "@/lib/public-feedback";
 import { revalidatePath } from "next/cache";
 import type { TriggerEvent } from "@prisma/client";
 import { sendNotification } from "@/lib/messaging/send-notification";
 import { getNotificationChannel, NotificationScenario } from "@/lib/messaging/channel-router";
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
 
 // ─── Default Templates ──────────────────────────────────────────────
 
@@ -48,16 +48,16 @@ function replaceReviewPlaceholders(content: string, feedbackUrl: string) {
 // ─── Get all templates for current user ─────────────────────────────
 
 export async function getUserSmsTemplates() {
-  const userId = await getAuthUserId();
-  if (!userId) return [];
+  const actor = await requireCurrentWorkspaceAccess().catch(() => null);
+  if (!actor) return [];
   const user = await db.user.findUnique({
-    where: { id: userId },
+    where: { id: actor.id },
     include: { workspace: { select: { name: true } } }
   });
   const companyName = (user as any)?.workspace?.name || "your business";
 
   const templates = await db.smsTemplate.findMany({
-    where: { userId },
+    where: { userId: actor.id },
   });
 
   // Fill in defaults for any missing triggers
@@ -81,18 +81,17 @@ export async function upsertSmsTemplate(
   isActive: boolean
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const userId = await getAuthUserId();
-    if (!userId) throw new Error("Not authenticated");
+    const actor = await requireCurrentWorkspaceAccess();
     const user = await db.user.findUnique({
-      where: { id: userId },
+      where: { id: actor.id },
       include: { workspace: { select: { name: true } } }
     });
     const companyName = (user as any)?.workspace?.name || "your business";
     const styledContent = ensureTraceyStyle(content.replace(/\[Company\]/g, companyName), companyName);
 
     await db.smsTemplate.upsert({
-      where: { userId_triggerEvent: { userId, triggerEvent } },
-      create: { userId, triggerEvent, content: styledContent, isActive },
+      where: { userId_triggerEvent: { userId: actor.id, triggerEvent } },
+      create: { userId: actor.id, triggerEvent, content: styledContent, isActive },
       update: { content: styledContent, isActive },
     });
 
@@ -119,19 +118,19 @@ export async function getMessagePreview(
   dealId: string,
   triggerEvent: TriggerEvent
 ) {
-  const userId = await getAuthUserId();
-  if (!userId) return null;
+  const actor = await requireCurrentWorkspaceAccess().catch(() => null);
+  if (!actor) return null;
 
   const [deal, template] = await Promise.all([
-    db.deal.findUnique({
-      where: { id: dealId },
+    db.deal.findFirst({
+      where: { id: dealId, workspaceId: actor.workspaceId },
       include: {
         contact: true,
-        workspace: { select: { settings: true } },
+        workspace: { select: { settings: true, twilioPhoneNumber: true, twilioSubaccountId: true } },
       },
     }),
     db.smsTemplate.findFirst({
-      where: { userId, triggerEvent },
+      where: { userId: actor.id, triggerEvent },
     }),
   ]);
 
@@ -150,6 +149,14 @@ export async function getMessagePreview(
   // Determine channel using the same routing logic as actual sends
   const routedChannel = getNotificationChannel(contact, TRIGGER_TO_SCENARIO[triggerEvent]);
   const channel: "sms" | "email" = routedChannel === "portal-only" ? "sms" : routedChannel;
+  const unavailableReason =
+    channel === "sms" && !contact.phone
+      ? "Add a customer phone number before sending this SMS."
+      : channel === "sms" && (!deal.workspace.twilioPhoneNumber || !deal.workspace.twilioSubaccountId)
+        ? "Your Tracey SMS number is not provisioned yet. Finish phone setup in Settings before sending customer SMS."
+        : channel === "email" && !contact.email
+          ? "Add a customer email before sending this email."
+          : null;
 
   return {
     contactName: contact.name,
@@ -158,6 +165,8 @@ export async function getMessagePreview(
     channel,
     messageBody,
     isActive: template?.isActive ?? true,
+    canSend: !unavailableReason,
+    unavailableReason,
   };
 }
 
@@ -168,11 +177,10 @@ export async function sendTemplateMessage(
   triggerEvent: TriggerEvent,
 ): Promise<{ success: boolean; error?: string; channel?: string }> {
   try {
-    const userId = await getAuthUserId();
-    if (!userId) return { success: false, error: "Not authenticated" };
+    const actor = await requireCurrentWorkspaceAccess();
 
-    const deal = await db.deal.findUnique({
-      where: { id: dealId },
+    const deal = await db.deal.findFirst({
+      where: { id: dealId, workspaceId: actor.workspaceId },
       include: {
         contact: { select: { id: true, name: true, phone: true, email: true } },
         workspace: {
@@ -190,7 +198,7 @@ export async function sendTemplateMessage(
 
     // Find user's template or fall back to default
     const template = await db.smsTemplate.findFirst({
-      where: { userId, triggerEvent },
+      where: { userId: actor.id, triggerEvent },
     });
 
     const feedbackUrl = buildPublicFeedbackUrl({

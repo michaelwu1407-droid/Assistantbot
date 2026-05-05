@@ -5,7 +5,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "npx prisma@5.21.1 generate && next build",
+    "build": "prisma generate && next build",
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "eslint",
@@ -99,7 +99,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
-    "@prisma/client": "^5.22.0",
+    "@prisma/client": "^5.21.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
@@ -116,7 +116,7 @@
     "eslint-config-next": "16.1.6",
     "husky": "^9.1.7",
     "jsdom": "^28.1.0",
-    "prisma": "^5.22.0",
+    "prisma": "^5.21.1",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.0.18"

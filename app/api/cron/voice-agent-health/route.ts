@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { recordMonitorRun } from "@/lib/ops-monitor-runs";
 import { getUnauthorizedJsonResponse, isOpsAuthorized } from "@/lib/ops-auth";
 import { dispatchVoiceIncidentNotifications } from "@/lib/voice-incident-alert";
-import { getVoiceAgentHealthMonitorSummary, runVoiceAgentHealthMonitor } from "@/lib/voice-agent-health-monitor";
+import {
+  buildVoiceAgentHealthMonitorDetails,
+  getVoiceAgentHealthMonitorSummary,
+  runVoiceAgentHealthMonitor,
+} from "@/lib/voice-agent-health-monitor";
 
 export const dynamic = "force-dynamic";
 
@@ -20,15 +24,7 @@ export async function GET(req: NextRequest) {
       monitorKey: "voice-agent-health",
       status: result.status,
       summary: getVoiceAgentHealthMonitorSummary(result.status),
-      details: {
-        checkedAt: result.checkedAt,
-        fleetStatus: result.fleet.status,
-        customerSaturationStatus: result.customerSaturation.status,
-        twilioRoutingStatus: result.twilioRouting.status,
-        invariantStatus: result.invariants.status,
-        recentCallsStatus: result.recentCalls.status,
-        latencyStatus: result.latency.status,
-      },
+      details: buildVoiceAgentHealthMonitorDetails(result),
       checkedAt,
       succeeded: true,
     });

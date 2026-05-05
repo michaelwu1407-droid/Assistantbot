@@ -1,6 +1,5 @@
 import { Separator } from "@/components/ui/separator"
-import { getAuthUserId } from "@/lib/auth"
-import { getOrCreateWorkspace, getWorkspaceWithSettings } from "@/actions/workspace-actions"
+import { getWorkspaceWithSettings } from "@/actions/workspace-actions"
 import { getBusinessContact } from "@/actions/settings-actions"
 import { MyBusinessDetails } from "@/components/settings/my-business-details"
 import { WorkingHoursForm } from "@/components/settings/working-hours-form"
@@ -11,21 +10,40 @@ import { AttachmentLibrarySection } from "@/components/settings/attachment-libra
 import { GoogleReviewUrlSection } from "@/components/settings/google-review-url-section"
 import { db } from "@/lib/db"
 import { getWorkspaceSettings } from "@/actions/settings-actions"
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access"
+import { redirect } from "next/navigation"
 
 export const dynamic = "force-dynamic"
 
 export default async function MyBusinessSettingsPage() {
-  const userId = (await getAuthUserId()) as string;
-  const workspace = await getOrCreateWorkspace(userId)
-  const workspaceWithSettings = await getWorkspaceWithSettings(workspace.id)
+  let actor: Awaited<ReturnType<typeof requireCurrentWorkspaceAccess>>
+  try {
+    actor = await requireCurrentWorkspaceAccess()
+  } catch {
+    redirect("/auth")
+  }
+
+  const workspace = await db.workspace.findUnique({
+    where: { id: actor.workspaceId },
+    select: {
+      id: true,
+      name: true,
+      location: true,
+    },
+  })
+  if (!workspace) {
+    redirect("/crm/settings")
+  }
+
+  const workspaceWithSettings = await getWorkspaceWithSettings(actor.workspaceId)
   const businessContact = await getBusinessContact()
   const profile = await db.businessProfile.findUnique({
-    where: { userId },
+    where: { userId: actor.id },
     select: { tradeType: true },
   })
 
   const documents = await db.businessDocument.findMany({
-    where: { workspaceId: workspace.id },
+    where: { workspaceId: actor.workspaceId },
     orderBy: { createdAt: 'desc' }
   })
 
@@ -45,7 +63,7 @@ export default async function MyBusinessSettingsPage() {
       <section>
         <h4 className="app-section-title mb-3">Business details</h4>
         <MyBusinessDetails
-          workspaceId={workspace.id}
+          workspaceId={actor.workspaceId}
           initialData={{
             name: workspace.name,
             specialty: profile?.tradeType ?? "Plumber",

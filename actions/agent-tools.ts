@@ -1,8 +1,54 @@
 "use server";
 
+import { searchContacts } from "@/actions/contact-actions";
 import { db } from "@/lib/db";
 import { findHoursForDate, type WeeklyHours } from "@/lib/working-hours";
 import { listWorkspaceCalendarEventsForRange } from "@/lib/workspace-calendar";
+import { formatDateTimeInTimezone, getZonedDateParts, parseDateTimeLocalInTimezone, getHourInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone";
+
+const AGENT_STAGE_LABELS: Record<string, string> = {
+  NEW: "New request", CONTACTED: "Quote sent", NEGOTIATION: "Scheduled",
+  PIPELINE: "Quote sent", SCHEDULED: "Scheduled", INVOICED: "Awaiting payment",
+  PENDING_COMPLETION: "Pending approval", WON: "Completed", LOST: "Lost",
+  new_request: "New request", quote_sent: "Quote sent", scheduled: "Scheduled",
+  ready_to_invoice: "Awaiting payment", pending_approval: "Pending approval",
+  completed: "Completed", lost: "Lost",
+};
+
+function normalizeSearchPhrase(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function getLooseContactSearchQueries(rawTarget: string): string[] {
+  const normalized = normalizeSearchPhrase(rawTarget);
+  const queries = new Set<string>();
+  if (normalized) queries.add(normalized);
+
+  const tokens = normalized.split(" ").filter(Boolean);
+  if (tokens.length >= 2) queries.add(tokens.slice(-2).join(" "));
+  if (tokens.length >= 3) queries.add(tokens.slice(-3).join(" "));
+
+  return Array.from(queries);
+}
+
+function scoreContactNameMatch(contactName: string, query: string) {
+  const normalizedContact = normalizeSearchPhrase(contactName);
+  const normalizedQuery = normalizeSearchPhrase(query);
+  if (!normalizedContact || !normalizedQuery) return 0;
+  if (normalizedContact === normalizedQuery) return 100;
+  if (normalizedContact.startsWith(`${normalizedQuery} `)) return 90;
+  if (normalizedContact.includes(` ${normalizedQuery} `)) return 80;
+
+  const contactTokens = normalizedContact.split(" ").filter(Boolean);
+  const queryTokens = normalizedQuery.split(" ").filter(Boolean);
+  if (queryTokens.every((token) => contactTokens.includes(token))) return 70;
+  if (normalizedContact.includes(normalizedQuery)) return 60;
+  return 0;
+}
 
 /**
  * Tool: get_schedule
@@ -11,7 +57,7 @@ import { listWorkspaceCalendarEventsForRange } from "@/lib/workspace-calendar";
  */
 export async function runGetSchedule(
   workspaceId: string,
-  params: { startDate: string; endDate: string }
+  params: { startDate: string; endDate: string; workspaceTimezone?: string | null }
 ): Promise<{
   jobs: {
     id: string;
@@ -19,13 +65,34 @@ export async function runGetSchedule(
     clientName: string;
     address: string | null;
     scheduledAt: string;
+    scheduledAtLocal: string;
     jobStatus: string | null;
     value: number;
   }[];
   count: number;
+  timezone: string;
 }> {
-  const start = new Date(params.startDate);
-  const end = new Date(params.endDate);
+  const timezone = resolveWorkspaceTimezone(params.workspaceTimezone);
+  const startDate = params.startDate.trim();
+  const endDate = params.endDate.trim();
+  const dateOnly = /^\d{4}-\d{2}-\d{2}$/;
+  const localDateTime = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/;
+  const parseStart = (value: string) => {
+    if (dateOnly.test(value)) return parseDateTimeLocalInTimezone(`${value}T00:00`, timezone);
+    if (localDateTime.test(value)) return parseDateTimeLocalInTimezone(value.slice(0, 16), timezone);
+    return new Date(value);
+  };
+  const parseEnd = (value: string) => {
+    if (dateOnly.test(value)) return parseDateTimeLocalInTimezone(`${value}T23:59`, timezone);
+    if (localDateTime.test(value)) return parseDateTimeLocalInTimezone(value.slice(0, 16), timezone);
+    return new Date(value);
+  };
+
+  const start = parseStart(startDate) ?? new Date(startDate);
+  let end = parseEnd(endDate) ?? new Date(endDate);
+  if (end.getTime() <= start.getTime() && dateOnly.test(startDate)) {
+    end = parseDateTimeLocalInTimezone(`${startDate}T23:59`, timezone) ?? end;
+  }
 
   const jobs = await db.deal.findMany({
     where: {
@@ -46,10 +113,12 @@ export async function runGetSchedule(
       clientName: j.contact?.name || "Unknown",
       address: j.address,
       scheduledAt: j.scheduledAt?.toISOString() || "",
+      scheduledAtLocal: j.scheduledAt ? formatDateTimeInTimezone(j.scheduledAt, timezone) : "",
       jobStatus: j.jobStatus,
       value: j.value ? Number(j.value) : 0,
     })),
     count: jobs.length,
+    timezone,
   };
 }
 
@@ -98,7 +167,7 @@ export async function runSearchJobHistory(
       clientName: j.contact?.name || "Unknown",
       address: j.address,
       scheduledAt: j.scheduledAt?.toISOString() || null,
-      stage: j.stage,
+      stage: AGENT_STAGE_LABELS[j.stage] ?? AGENT_STAGE_LABELS[String(j.stage).toUpperCase()] ?? j.stage,
       jobStatus: j.jobStatus,
       value: j.value ? Number(j.value) : 0,
       createdAt: j.createdAt.toISOString(),
@@ -152,7 +221,7 @@ export async function runGetFinancialReport(
       ? Number(aggregate._sum.invoicedAmount)
       : 0,
     breakdown: byStage.map((s) => ({
-      stage: s.stage,
+      stage: AGENT_STAGE_LABELS[s.stage] ?? AGENT_STAGE_LABELS[String(s.stage).toUpperCase()] ?? s.stage,
       count: s._count,
       value: s._sum.value ? Number(s._sum.value) : 0,
     })),
@@ -165,7 +234,7 @@ export async function runGetFinancialReport(
  */
 export async function runGetClientContext(
   workspaceId: string,
-  params: { clientName: string }
+  params: { clientName: string; clientId?: string }
 ): Promise<{
   client: {
     id: string;
@@ -187,15 +256,112 @@ export async function runGetClientContext(
     scheduledAt: string | null;
     value: number;
   }[];
+  ambiguousMatches?: {
+    id: string;
+    name: string;
+    phone: string | null;
+    email: string | null;
+    company: string | null;
+  }[];
 }> {
-  // Fuzzy match: find best matching contact
-  const contacts = await db.contact.findMany({
-    where: {
-      workspaceId,
-      name: { contains: params.clientName, mode: "insensitive" },
-    },
-    take: 1,
-  });
+  if (params.clientId) {
+    const contact = await db.contact.findFirst({
+      where: {
+        id: params.clientId,
+        workspaceId,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        company: true,
+        address: true,
+      },
+    });
+
+    if (!contact) {
+      return {
+        client: null,
+        recentNotes: [],
+        recentMessages: [],
+        recentJobs: [],
+        ambiguousMatches: [],
+      };
+    }
+
+    const notes = await db.activity.findMany({
+      where: { contactId: contact.id, type: "NOTE" },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: { title: true, content: true, createdAt: true },
+    });
+
+    const messages = await db.chatMessage.findMany({
+      where: {
+        workspaceId,
+        metadata: { path: ["contactId"], equals: contact.id },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: { role: true, content: true, createdAt: true },
+    });
+
+    const jobs = await db.deal.findMany({
+      where: { contactId: contact.id },
+      orderBy: { createdAt: "desc" },
+      take: 3,
+      select: {
+        title: true,
+        stage: true,
+        scheduledAt: true,
+        value: true,
+      },
+    });
+
+    return {
+      client: {
+        id: contact.id,
+        name: contact.name,
+        email: contact.email,
+        phone: contact.phone,
+        company: contact.company,
+        address: contact.address,
+      },
+      recentNotes: notes.map((n) => ({
+        title: n.title,
+        content: n.content,
+        createdAt: n.createdAt.toISOString(),
+      })),
+      recentMessages: messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+        createdAt: m.createdAt.toISOString(),
+      })),
+      recentJobs: jobs.map((j) => ({
+        title: j.title,
+        stage: AGENT_STAGE_LABELS[j.stage] ?? AGENT_STAGE_LABELS[String(j.stage).toUpperCase()] ?? j.stage,
+        scheduledAt: j.scheduledAt?.toISOString() || null,
+        value: j.value ? Number(j.value) : 0,
+      })),
+    };
+  }
+
+  const contactMap = new Map<string, Awaited<ReturnType<typeof searchContacts>>[number]>();
+  for (const query of getLooseContactSearchQueries(params.clientName)) {
+    const matches = await searchContacts(workspaceId, query);
+    for (const match of matches) {
+      contactMap.set(match.id, match);
+    }
+  }
+
+  const contacts = Array.from(contactMap.values())
+    .map((contact) => ({
+      contact,
+      score: scoreContactNameMatch(contact.name, params.clientName),
+    }))
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score);
 
   if (!contacts.length) {
     return {
@@ -203,10 +369,29 @@ export async function runGetClientContext(
       recentNotes: [],
       recentMessages: [],
       recentJobs: [],
+      ambiguousMatches: [],
     };
   }
 
-  const contact = contacts[0];
+  const bestScore = contacts[0]?.score ?? 0;
+  const ambiguousContacts = contacts.filter((entry) => entry.score === bestScore && entry.score >= 70);
+  if (ambiguousContacts.length > 1) {
+    return {
+      client: null,
+      recentNotes: [],
+      recentMessages: [],
+      recentJobs: [],
+      ambiguousMatches: ambiguousContacts.slice(0, 4).map(({ contact }) => ({
+        id: contact.id,
+        name: contact.name,
+        phone: contact.phone,
+        email: contact.email,
+        company: contact.company,
+      })),
+    };
+  }
+
+  const contact = contacts[0].contact;
 
   // Fetch last 5 notes (activities of type NOTE)
   const notes = await db.activity.findMany({
@@ -261,7 +446,7 @@ export async function runGetClientContext(
     })),
     recentJobs: jobs.map((j) => ({
       title: j.title,
-      stage: j.stage,
+      stage: AGENT_STAGE_LABELS[j.stage] ?? AGENT_STAGE_LABELS[String(j.stage).toUpperCase()] ?? j.stage,
       scheduledAt: j.scheduledAt?.toISOString() || null,
       value: j.value ? Number(j.value) : 0,
     })),
@@ -273,17 +458,20 @@ export async function runGetClientContext(
  * Quick snapshot of today's scheduled jobs, overdue tasks, and unread messages.
  */
 export async function runGetTodaySummary(
-  workspaceId: string
+  workspaceId: string,
+  workspaceTimezone?: string,
 ): Promise<{
   todayJobs: { title: string; clientName: string; scheduledAt: string; address: string | null; phone: string | null; assignedTo: string | null; preparations: string[] }[];
   overdueTasks: { title: string; dueAt: string }[];
   recentMessages: number;
   preparationAlerts: string[];
 }> {
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  const todayEnd = new Date();
-  todayEnd.setHours(23, 59, 59, 999);
+  const tz = resolveWorkspaceTimezone(workspaceTimezone);
+  const now = new Date();
+  const parts = getZonedDateParts(now, tz);
+  const todayDateStr = `${String(parts.year).padStart(4, "0")}-${String(parts.month).padStart(2, "0")}-${String(parts.day).padStart(2, "0")}`;
+  const todayStart = parseDateTimeLocalInTimezone(`${todayDateStr}T00:00`, tz) ?? (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
+  const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000 - 1);
 
   const todayJobs = await db.deal.findMany({
     where: {
@@ -389,11 +577,14 @@ export async function runGetAvailability(
   scheduledJobs: { title: string; startTime: string; clientName: string }[];
   availableSlots: string[];
 }> {
+  const tz = resolveWorkspaceTimezone(params.workspaceTimezone);
   const targetDate = new Date(params.date);
-  const dayStart = new Date(targetDate);
-  dayStart.setHours(0, 0, 0, 0);
-  const dayEnd = new Date(targetDate);
-  dayEnd.setHours(23, 59, 59, 999);
+  // Compute day boundaries in the workspace timezone so that "today" means the
+  // correct calendar day for the workspace, not the UTC server's local midnight.
+  const targetParts = getZonedDateParts(targetDate, tz);
+  const targetDateStr = `${String(targetParts.year).padStart(4, "0")}-${String(targetParts.month).padStart(2, "0")}-${String(targetParts.day).padStart(2, "0")}`;
+  const dayStart = parseDateTimeLocalInTimezone(`${targetDateStr}T00:00`, tz) ?? (() => { const d = new Date(targetDate); d.setHours(0, 0, 0, 0); return d; })();
+  const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000 - 1);
 
   const jobs = await db.deal.findMany({
     where: {
@@ -424,11 +615,11 @@ export async function runGetAvailability(
   const [startH, startM] = whStart.split(":").map(Number);
   const [endH] = whEnd.split(":").map(Number);
 
-  // Generate 1-hour slots
+  // Compute booked hours in workspace timezone so slot generation is timezone-aware.
   const bookedHours = new Set(
     [
-      ...jobs.map((j) => j.scheduledAt ? new Date(j.scheduledAt).getHours() : -1),
-      ...calendarEvents.map((event) => new Date(event.start).getHours()),
+      ...jobs.map((j) => j.scheduledAt ? getHourInTimezone(j.scheduledAt, tz) : -1),
+      ...calendarEvents.map((event) => getHourInTimezone(new Date(event.start), tz)),
     ].filter((h) => h >= 0)
   );
 

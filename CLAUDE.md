@@ -1,0 +1,1 @@
+Do tasks one at a time. Never write a file longer than 150 lines in a single pass. Do not run git diff.

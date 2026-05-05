@@ -1,11 +1,16 @@
 # Voice Operating Brief
 
-Updated: 2026-03-21 AEDT
+Updated: 2026-04-29 AEST
 
 ## Production topology
 
 - Live voice stack: Twilio PSTN/SIP -> `app/api/webhooks/twilio-voice-gateway` -> LiveKit SIP -> OCI voice workers.
-- Core LiveKit infrastructure is Dockerized on OCI under `/opt/livekit`.
+- Public website demo callbacks now have an emergency recovery path: if the web app cannot reach the LiveKit control API, it may originate the callback with Twilio and bridge the caller into the existing Earlymark SIP ingress instead of failing the lead immediately.
+- Production customer outbound calls now use a worker-owned control path: the web app enqueues the request in the app database, and the OCI `tracey-customer-agent` worker claims and executes it against local LiveKit control at `http://127.0.0.1:7880`.
+- Production LiveKit server + SIP currently run as Docker containers on OCI, but their bind-mounted config lives under `/home/ubuntu/livekit/live.earlymark.ai`.
+- The OCI host's Snap Docker setup does not reliably mount `/opt/livekit`; treat `/opt/livekit` as legacy drift, not the canonical runtime root for core LiveKit containers.
+- TLS for `https://live.earlymark.ai` is currently terminated by the host Caddy service (`/etc/caddy.yaml`), not by a `livekit-caddy-1` container.
+- Redis for LiveKit is currently provided by the host service on `127.0.0.1:6379`, not by a `livekit-redis-1` container.
 - Voice workers are Dockerized on OCI under `/opt/earlymark-worker` and orchestrated by `ops/docker/worker-compose.yml`.
 - Shared worker env is persisted at `/opt/earlymark-worker-shared/.env.local`.
 - `/opt/earlymark-agent` is no longer a supported worker runtime or env fallback. Treat it only as a legacy artifact until it is explicitly removed from the host.
@@ -13,6 +18,9 @@ Updated: 2026-03-21 AEDT
   - `earlymark-sales-agent`
   - `earlymark-customer-agent`
 - Canonical deploy workflow: `.github/workflows/deploy-livekit.yml`
+- Canonical current core runtime:
+  - Docker: `livekit-livekit-1`, `livekit-sip`
+  - Host services: `caddy`, `redis-server`
 
 ## Twilio provisioning topology
 
@@ -56,6 +64,7 @@ Updated: 2026-03-21 AEDT
 - Answer Earlymark questions first, then sell from the homepage sales brief.
 - Offer a spoken product demo when the caller wants one.
 - Capture caller details early because this path starts without trusted lead context.
+- Canonical inbound room naming accepted by the worker/runtime health path is either `earlymark-inbound-*` or `inbound_*`.
 
 ### `normal`
 
@@ -99,6 +108,7 @@ Updated: 2026-03-21 AEDT
 - Low-risk latency acceleration is enabled through:
   - cached opener bank
   - speculative response heads on `demo` and `inbound_demo`
+- When speculative heads or cached fixed greetings keep perceived first-turn and total turn-start latency within budget, launch readiness should not degrade solely because raw downstream Cartesia `ttsTtfb` remains slightly above the backend threshold.
 
 ## Monitoring expectations
 
@@ -106,6 +116,7 @@ Updated: 2026-03-21 AEDT
   - fleet
   - Twilio routing
   - LiveKit SIP health
+  - queued outbound-call health
   - recent-call health
   - latency health
   - passive production health
@@ -117,8 +128,12 @@ Updated: 2026-03-21 AEDT
   - voice from persisted `VoiceCall` activity plus recent Twilio failures
   - inbound email from real `WebhookEvent(provider="resend", eventType="email.received")` success/failure data
 - Low/no traffic customer workspaces are surfaced as per-workspace `unknown`, but they do not drag top-level launch status down unless there is a real failure signal.
-- The synthetic probe is no longer the routine production health source. It is reserved for deploy verification and manual incident recovery.
+- The synthetic probe is still a higher-cost active check than passive traffic health, but it now runs on a scheduled cadence for real outage detection in addition to deploy verification and manual recovery.
+- Temporary cost-control default: the spoken PSTN canary refresh cadence is now 3 hours with a 4-hour stale window. Revisit this once commercial traffic grows or once we split cheap gateway probing from the paid PSTN spoken canary path.
+- On the current Vercel Hobby plan, recurring monitor freshness must come from GitHub Actions schedules for `voice-monitor-watchdog` and `customer-agent-reconcile`. Do not rely on Vercel cron for 5-minute or 15-minute cadence unless the project is upgraded to a plan that supports those schedules.
 - The spoken PSTN canary is only considered healthy when Twilio completes the probe call and the app persists a matching `VoiceCall` with both caller and Tracey speech.
+- The default monitor stale window is now 20 minutes to tolerate normal GitHub Actions scheduler drift without masking genuine outages for hours.
+- The watchdog should refresh stale `voice-agent-health` and stale `passive-communications-health` state inline instead of waiting for their dedicated workflows to run again.
 - Worker shutdown must wait for `VoiceCall` persistence to finish after disconnect. Do not fire-and-forget the `/api/internal/voice-calls` write or the deploy-only spoken canary will produce false negatives even when Tracey answered correctly.
 - Launch-critical release truth now has a dedicated internal route at `/api/internal/launch-readiness`, which aggregates:
   - live web release SHA
@@ -133,7 +148,15 @@ Updated: 2026-03-21 AEDT
 - Worker deploy verification is host-scoped for the actual rollout gate: heartbeat convergence, drift checks, and launch-readiness checks must all key off the targeted host plus healthy Twilio routing and LiveKit SIP, and must not reject the deploy solely because the global fleet remains single-host degraded while the second host has not been provisioned yet.
 - Worker deploy verification must preserve the rollout SHA and host ID passed in by the deploy command even after sourcing the live worker env from disk. Do not let `/opt/earlymark-worker/.env.local` silently override the SHA being verified.
 - Docker worker install/rollback must explicitly remove the fixed-name worker containers plus any stale compose-generated duplicates before `docker compose up`, otherwise a new release can fail with container-name conflicts even though the running workers are healthy.
+- App-side heartbeat freshness must use the server receipt timestamp, not the worker-reported wall clock. OCI/Docker host clock skew should never be able to make a healthy worker look stale in fleet truth, launch-readiness, or deploy verification.
+- LiveKit SIP health and outbound demo-trunk resolution must compare phone numbers in normalized E.164 form. Formatting differences like `0485...`, `61...`, spaces, or punctuation must not create false-unhealthy voice gates.
 - Public `/api/health` must mirror launch-readiness truth plus database reachability. Do not reintroduce a separate fragmented public health aggregation for voice, Twilio, readiness, and release state.
+- Inbound lead-email readiness should represent setup truth, not recent traffic volume. Real email activity belongs in passive communications health; a Resend API `429` or zero recent inbound messages should not by itself mark launch readiness degraded when DNS plus provider configuration are already verified.
+- Deploy verification must not hard-gate on the web runtime reaching the LiveKit control API at `live.earlymark.ai`. Canonical worker-side control lives on the OCI box at `http://localhost:7880`, so deploy truth should come from worker heartbeat convergence, Twilio routing health, and the spoken PSTN canary.
+- Production outbound customer calls, scheduled callbacks, and automation-triggered callbacks must not depend on the Vercel runtime reaching LiveKit control directly. If the web app needs to originate a `normal` outbound call, it should enqueue the request and let the healthy OCI customer worker execute it locally against `http://127.0.0.1:7880`.
+- Worker heartbeats and health snapshots must start from the long-lived LiveKit agent process during `prewarm`, not only from the wrapper/bootstrap process. A single boot heartbeat followed by silence usually means the background loop is attached to the wrong process.
+- Docker worker request gating must use the child agent health snapshot, not only the parent process in-memory counters. The `worker-entry.ts` parent process does not share `bootReady` / `activeCalls` state with the child LiveKit agent, so trusting in-memory state there can make healthy workers reject every inbound job.
+- Public `/api/health` is a real production signal, not an internal debug route. Do not hide it behind production middleware rewrites.
 
 ## Active known risks
 

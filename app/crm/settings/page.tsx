@@ -2,16 +2,26 @@ import { ProfileForm } from "@/components/dashboard/profile-form"
 import { ReferralSettings } from "@/components/settings/referral-settings"
 import { CallForwardingCard } from "@/components/settings/call-forwarding-card"
 import { AccountSecurityCard } from "@/components/settings/account-security-card"
-import { getAuthUserId } from "@/lib/auth"
 import { getUserProfile } from "@/actions/user-actions"
-import { getOrCreateWorkspace } from "@/actions/workspace-actions"
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access"
+import { db } from "@/lib/db"
+import { redirect } from "next/navigation"
 
 export const dynamic = "force-dynamic"
 
 export default async function AccountSettingsPage() {
-  const userId = (await getAuthUserId()) as string;
-  const profile = await getUserProfile(userId)
-  const workspace = await getOrCreateWorkspace(userId)
+  let actor: Awaited<ReturnType<typeof requireCurrentWorkspaceAccess>>
+  try {
+    actor = await requireCurrentWorkspaceAccess()
+  } catch {
+    redirect("/auth")
+  }
+
+  const profile = await getUserProfile(actor.id)
+  const workspace = await db.workspace.findUnique({
+    where: { id: actor.workspaceId },
+    select: { name: true },
+  })
   const businessName = workspace?.name ?? ""
 
   return (
@@ -23,7 +33,7 @@ export default async function AccountSettingsPage() {
         </p>
       </div>
       <ProfileForm
-        userId={userId}
+        userId={actor.id}
         initialData={profile ? {
           username: profile.username,
           email: profile.email,
@@ -31,8 +41,8 @@ export default async function AccountSettingsPage() {
         } : undefined}
       />
       <CallForwardingCard />
-      <AccountSecurityCard userId={userId} businessName={businessName} />
-      <ReferralSettings userId={userId} />
+      <AccountSecurityCard userId={actor.id} businessName={businessName} />
+      <ReferralSettings userId={actor.id} />
     </div>
   )
 }

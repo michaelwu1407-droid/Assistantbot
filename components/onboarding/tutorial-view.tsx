@@ -30,7 +30,7 @@ function getMockData(industry: string | null) {
                     ]
                 },
                 {
-                    title: "Invoiced", color: "bg-purple-500", deals: [
+                    title: "Awaiting payment", color: "bg-purple-500", deals: [
                         { title: "Plumbing Fix", company: "Davis Estate", value: 4500, status: "rotting", days: 16, initials: "DE" },
                     ]
                 },
@@ -44,7 +44,7 @@ function getMockData(industry: string | null) {
                     subtitle: "This is your pipeline in Advanced Mode. Every column is a stage of your workflow.",
                     chatMessages: [
                         { role: "user" as const, text: "Show me my jobs" },
-                        { role: "assistant" as const, text: "You have 5 jobs worth $56,200 total.\n\n  New Lead: 1\n  Quoted: 1\n  In Progress: 2\n  Invoiced: 1" },
+                        { role: "assistant" as const, text: "You have 5 jobs worth $56,200 total.\n\n  New Lead: 1\n  Quoted: 1\n  In Progress: 2\n  Awaiting payment: 1" },
                     ],
                 },
                 {
@@ -71,7 +71,7 @@ function getMockData(industry: string | null) {
                     subtitle: "Generate quotes and invoices with a single command. No forms needed.",
                     chatMessages: [
                         { role: "user" as const, text: "Invoice Deck Build for 8500" },
-                        { role: "assistant" as const, text: "Invoice INV-001 generated for $8,500. Deal moved to Invoiced." },
+                        { role: "assistant" as const, text: "Invoice INV-001 generated for $8,500. Deal moved to Awaiting payment." },
                     ],
                 },
             ]

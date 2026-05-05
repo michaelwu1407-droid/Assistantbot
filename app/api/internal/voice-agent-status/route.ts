@@ -36,7 +36,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: parsed.error.issues[0]?.message || "Invalid payload" }, { status: 400 });
     }
 
-    const heartbeatAt = parsed.data.heartbeatAt ? new Date(parsed.data.heartbeatAt) : new Date();
+    const receivedHeartbeatAt = new Date();
+    const reportedHeartbeatAt = parsed.data.heartbeatAt ? new Date(parsed.data.heartbeatAt) : null;
+    const normalizedReportedHeartbeatAt =
+      reportedHeartbeatAt && Number.isFinite(reportedHeartbeatAt.getTime())
+        ? reportedHeartbeatAt.toISOString()
+        : null;
+    const reportedClockSkewMs = normalizedReportedHeartbeatAt
+      ? receivedHeartbeatAt.getTime() - new Date(normalizedReportedHeartbeatAt).getTime()
+      : null;
 
     await db.voiceWorkerHeartbeat.create({
       data: {
@@ -51,8 +59,11 @@ export async function POST(req: NextRequest) {
           ...(parsed.data.summary || {}),
           pid: parsed.data.pid ?? null,
           startedAt: parsed.data.startedAt ?? null,
+          reportedHeartbeatAt: normalizedReportedHeartbeatAt,
+          receivedHeartbeatAt: receivedHeartbeatAt.toISOString(),
+          reportedClockSkewMs,
         } as Prisma.InputJsonValue,
-        heartbeatAt,
+        heartbeatAt: receivedHeartbeatAt,
       },
     });
 
@@ -63,7 +74,9 @@ export async function POST(req: NextRequest) {
         status: "success",
         payload: {
           ...parsed.data,
-          heartbeatAt: heartbeatAt.toISOString(),
+          heartbeatAt: receivedHeartbeatAt.toISOString(),
+          reportedHeartbeatAt: normalizedReportedHeartbeatAt,
+          reportedClockSkewMs,
         } as unknown as Prisma.InputJsonValue,
       },
     });

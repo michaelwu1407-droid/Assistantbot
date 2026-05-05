@@ -40,6 +40,7 @@ import {
 } from './runtime-config';
 import { buildVoiceAgentRuntimeFingerprint } from './runtime-fingerprint';
 import voiceLatency from './voice-latency';
+import { isEarlymarkInboundRoomName } from './room-routing';
 import type {
   GuardDecision,
   OpenerBankEntry,
@@ -66,6 +67,12 @@ import {
   buildInboundDemoPrompt,
   buildNormalPrompt,
 } from "./voice-prompts";
+import { startWorkerBackgroundLoops } from "./background-tasks";
+import {
+  executeQueuedOutboundCall,
+  type VoiceWorkerQueuedOutboundCallRequest,
+} from "./outbound-call-control";
+import { getWorkerLivekitSipHealth } from "./livekit-sip-runtime";
 
 loadEnv({ path: '.env.local' });
 assertRequiredVoiceAgentEnv();
@@ -87,6 +94,7 @@ const DEPLOY_GIT_SHA = process.env.DEPLOY_GIT_SHA || "unknown";
 const AGENT_STARTED_AT = new Date().toISOString();
 const VOICE_AGENT_HEARTBEAT_MS = 60 * 1000;
 const VOICE_GROUNDING_CACHE_TTL_MS = 5 * 60 * 1000;
+const VOICE_OUTBOUND_CALL_QUEUE_POLL_MS = 2_000;
 console.log(`[agent-version] ${JSON.stringify({ gitSha: DEPLOY_GIT_SHA, startedAt: AGENT_STARTED_AT })}`);
 
 const NORMAL_WRAP_UP_MS = 8 * 60 * 1000;
@@ -279,6 +287,14 @@ let groundingRefreshPromise: Promise<void> | null = null;
 const groundingCache = new Map<string, GroundingCacheEntry>();
 let sharedOpenerAudioCache: Map<OpenerId, Promise<AudioFrame>> | null = null;
 let sharedSpeculativeHeadAudioCache: Map<SpeculativeHeadId, Promise<AudioFrame>> | null = null;
+const FIXED_LINE_BANK = {
+  demo_default_greeting: "Hi there.",
+  inbound_demo_greeting: "Hi, this is Tracey from Earlymark AI. How can I help?",
+  inbound_demo_hello_ack: "Hi there.",
+  inbound_demo_can_hear_you: "Yep, I can hear you.",
+} as const;
+type FixedLineId = keyof typeof FIXED_LINE_BANK;
+let sharedFixedLineAudioCache: Map<FixedLineId, Promise<AudioFrame>> | null = null;
 const workerHealthState = {
   lastHeartbeatAttemptAt: null as string | null,
   lastHeartbeatSuccessAt: null as string | null,
@@ -386,6 +402,37 @@ function getSharedSpeculativeHeadAudioCache(tts: cartesia.TTS, logPrefix: string
   return sharedSpeculativeHeadAudioCache;
 }
 
+function buildFixedLineAudioCache(tts: cartesia.TTS, logPrefix: string): Map<FixedLineId, Promise<AudioFrame>> {
+  const cache = new Map<FixedLineId, Promise<AudioFrame>>();
+
+  for (const [id, text] of Object.entries(FIXED_LINE_BANK) as Array<[FixedLineId, string]>) {
+    cache.set(
+      id,
+      tts
+        .synthesize(text)
+        .collect()
+        .catch((error) => {
+          console.warn(`${logPrefix} [VOICE_LATENCY] Failed to pre-synthesize fixed line "${id}"`, error);
+          throw error;
+        })
+    );
+  }
+
+  void Promise.allSettled(cache.values()).then((results) => {
+    const warmed = results.filter((result) => result.status === "fulfilled").length;
+    console.log(`${logPrefix} [VOICE_LATENCY] Warmed ${warmed}/${cache.size} cached fixed speech clips`);
+  });
+
+  return cache;
+}
+
+function getSharedFixedLineAudioCache(tts: cartesia.TTS, logPrefix: string) {
+  if (!sharedFixedLineAudioCache) {
+    sharedFixedLineAudioCache = buildFixedLineAudioCache(tts, logPrefix);
+  }
+  return sharedFixedLineAudioCache;
+}
+
 async function getCachedOpenerAudioFrame(
   cache: Map<string, Promise<AudioFrame>>,
   openerId: string,
@@ -423,6 +470,7 @@ class MultilingualTTS extends agentsTts.TTS {
   readonly label = 'multilingual-cartesia';
   #defaultTts: cartesia.TTS;
   #ttsByLang = new Map<string, cartesia.TTS>();
+  #langWarmups = new Map<string, Promise<void>>();
   #currentReplyLanguage: string;
   #opts: { model: string; voice: string; chunkTimeout: number };
 
@@ -436,6 +484,9 @@ class MultilingualTTS extends agentsTts.TTS {
 
   setReplyLanguage(detected: string | null | undefined): void {
     this.#currentReplyLanguage = normalizeReplyLanguage(detected);
+    if (this.#currentReplyLanguage !== 'en-AU' && this.#currentReplyLanguage !== 'en') {
+      this.#prewarmLanguageTts(this.#currentReplyLanguage);
+    }
   }
 
   getCurrentReplyLanguage(): string {
@@ -459,8 +510,7 @@ class MultilingualTTS extends agentsTts.TTS {
     });
   }
 
-  #getTts(): cartesia.TTS {
-    const lang = this.#currentReplyLanguage;
+  #getOrCreateTts(lang: string): cartesia.TTS {
     if (lang === 'en-AU' || lang === 'en') return this.#defaultTts;
     if (!this.#ttsByLang.has(lang)) {
       const tts = new cartesia.TTS({
@@ -473,6 +523,19 @@ class MultilingualTTS extends agentsTts.TTS {
       this.#ttsByLang.set(lang, tts);
     }
     return this.#ttsByLang.get(lang)!;
+  }
+
+  #prewarmLanguageTts(lang: string): void {
+    if (this.#langWarmups.has(lang)) return;
+    const tts = this.#getOrCreateTts(lang);
+    const warmup = warmCartesiaTts(tts, "Hi there.", `[voice-latency:${lang}]`).finally(() => {
+      this.#langWarmups.delete(lang);
+    });
+    this.#langWarmups.set(lang, warmup);
+  }
+
+  #getTts(): cartesia.TTS {
+    return this.#getOrCreateTts(this.#currentReplyLanguage);
   }
 
   synthesize(text: string, connOptions?: unknown, abortSignal?: AbortSignal): agentsTts.ChunkedStream {
@@ -587,6 +650,38 @@ function getKnownEarlymarkNumbers(): string[] {
     .map((value) => normalizePhone(value))
     .filter(Boolean) as string[];
   return Array.from(new Set(values));
+}
+
+function getConfiguredSyntheticProbeCaller() {
+  return normalizePhone(process.env.VOICE_MONITOR_PROBE_CALLER_NUMBER || process.env.VOICE_ALERT_SMS_TO || "");
+}
+
+function getConfiguredSyntheticProbeTargets() {
+  const explicitTarget = normalizePhone(process.env.VOICE_MONITOR_PROBE_TARGET_NUMBER || "");
+  const values = explicitTarget ? [explicitTarget, ...getKnownEarlymarkNumbers()] : getKnownEarlymarkNumbers();
+  return Array.from(new Set(values.filter(Boolean)));
+}
+
+function isSyntheticProbeCall(args: {
+  callType: CallType;
+  roomName: string;
+  callerPhone?: string | null;
+  calledPhone?: string | null;
+}) {
+  if (args.callType !== "inbound_demo") return false;
+
+  const configuredCaller = getConfiguredSyntheticProbeCaller();
+  const configuredTargets = getConfiguredSyntheticProbeTargets();
+  if (
+    configuredCaller &&
+    configuredTargets.length > 0 &&
+    phoneMatches(args.callerPhone, configuredCaller) &&
+    configuredTargets.some((target) => phoneMatches(args.calledPhone, target))
+  ) {
+    return true;
+  }
+
+  return /(^|[_-])probe([_-]|$)/i.test(args.roomName);
 }
 
 function normalizeWorkerSurface(value: string): CallType | null {
@@ -844,10 +939,19 @@ function createCartesiaTts(language = resolveConfiguredTtsLanguage()) {
   });
 }
 
+async function warmCartesiaTts(tts: cartesia.TTS, text: string, logPrefix: string) {
+  try {
+    await tts.synthesize(text).collect();
+  } catch (error) {
+    console.warn(`${logPrefix} Failed to warm Cartesia TTS:`, error);
+  }
+}
+
 async function prewarmVoiceProcess(logPrefix = "[agent-prewarm]") {
   try {
     const warmTts = createCartesiaTts();
-    await warmTts.synthesize("Hi there.").collect();
+    await warmCartesiaTts(warmTts, "Hi there.", `${logPrefix} [VOICE_LATENCY]`);
+    await Promise.allSettled(getSharedFixedLineAudioCache(warmTts, logPrefix).values());
     await Promise.allSettled(getSharedOpenerAudioCache(warmTts, logPrefix).values());
     await Promise.allSettled(getSharedSpeculativeHeadAudioCache(warmTts, logPrefix).values());
   } catch (error) {
@@ -1087,7 +1191,7 @@ function getCachedVoiceGrounding(calledPhone?: string | null) {
 
 function resolveCallType(initialCallType: CallType, calledPhone: string, roomName: string): CallType {
   if (initialCallType !== "normal") return initialCallType;
-  if (roomName.startsWith("earlymark-inbound-")) {
+  if (isEarlymarkInboundRoomName(roomName)) {
     return "inbound_demo";
   }
   if (getKnownEarlymarkNumbers().some((number) => phoneMatches(number, calledPhone))) {
@@ -1174,6 +1278,16 @@ function getGreeting(callType: CallType, caller: CallerContext): string {
   return `Hi, you've reached ${businessName}. I'm Tracey, an AI assistant for ${businessName}. How can I help today?`;
 }
 
+function resolveGreetingClipId(callType: CallType, caller: CallerContext): FixedLineId | null {
+  if (callType === "demo" && !caller.firstName) {
+    return "demo_default_greeting";
+  }
+  if (callType === "inbound_demo") {
+    return "inbound_demo_greeting";
+  }
+  return null;
+}
+
 function getGoodbyeLine(callType: CallType): string {
   if (callType === "demo" || callType === "inbound_demo") {
     return "Thanks for your time. Head to earlymark.ai to find out more. Bye for now.";
@@ -1188,6 +1302,22 @@ function extractTextFromConversationItem(item: unknown): string | null {
       : "";
   const text = typeof textContent === "string" ? textContent.trim() : "";
   return text || null;
+}
+
+function appendTranscriptTurn(
+  transcriptTurns: TranscriptTurn[],
+  turn: TranscriptTurn,
+) {
+  const lastTurn = transcriptTurns[transcriptTurns.length - 1];
+  if (
+    lastTurn &&
+    lastTurn.role === turn.role &&
+    lastTurn.text === turn.text &&
+    lastTurn.createdAt === turn.createdAt
+  ) {
+    return;
+  }
+  transcriptTurns.push(turn);
 }
 
 async function persistVoiceCall(payload: {
@@ -1235,7 +1365,7 @@ function getVoiceAgentRuntimeFingerprint() {
   return buildVoiceAgentRuntimeFingerprint(process.env);
 }
 
-function buildVoiceAgentRuntimeSummary() {
+async function buildVoiceAgentRuntimeSummary() {
   return {
     hostId: getConfiguredHostId(),
     workerRole: getConfiguredWorkerRole(),
@@ -1273,11 +1403,37 @@ function buildVoiceAgentRuntimeSummary() {
     targetCallTypes: process.env.VOICE_LATENCY_TARGET_CALL_TYPES || DEFAULT_VOICE_LATENCY_TARGET_CALL_TYPES,
     knownInboundNumbers: getKnownEarlymarkNumbers(),
     groundingCacheEntries: groundingCache.size,
+    livekitSip: await getWorkerLivekitSipHealth().catch((error) => ({
+      status: "unhealthy",
+      summary: "Worker-side LiveKit SIP health check crashed while preparing the worker heartbeat.",
+      warnings: [error instanceof Error ? error.message : String(error)],
+      checkedAt: new Date().toISOString(),
+      livekitUrl: null,
+      inboundTrunkCount: 0,
+      outboundTrunkCount: 0,
+      dispatchRuleCount: 0,
+      expectedInboundNumbers: getKnownEarlymarkNumbers(),
+      missingInboundNumbers: getKnownEarlymarkNumbers(),
+      inboundTrunks: [],
+      outboundTrunks: [],
+      demoOutbound: {
+        status: "unhealthy",
+        summary: "Worker-side LiveKit outbound SIP health check crashed while preparing the worker heartbeat.",
+        warnings: [error instanceof Error ? error.message : String(error)],
+        configuredTrunkId: (process.env.LIVEKIT_SIP_TRUNK_ID || "").trim() || null,
+        resolvedTrunkId: null,
+        configuredTrunkMatched: false,
+        callerNumber: null,
+      },
+      dispatchRules: [],
+      source: "worker_control" as const,
+    })),
   };
 }
 
 async function writeWorkerHealthSnapshot() {
   const healthPath = getVoiceWorkerHealthPath();
+  const summary = await buildVoiceAgentRuntimeSummary();
   const snapshot = {
     updatedAt: new Date().toISOString(),
     deployGitSha: DEPLOY_GIT_SHA,
@@ -1292,7 +1448,7 @@ async function writeWorkerHealthSnapshot() {
     lastHeartbeatAttemptAt: workerHealthState.lastHeartbeatAttemptAt,
     lastHeartbeatSuccessAt: workerHealthState.lastHeartbeatSuccessAt,
     lastHeartbeatError: workerHealthState.lastHeartbeatError,
-    summary: buildVoiceAgentRuntimeSummary(),
+    summary,
   };
 
   await mkdir(dirname(healthPath), { recursive: true });
@@ -1315,6 +1471,7 @@ async function postVoiceAgentStatus() {
 
   const route = `${appUrl.replace(/\/$/, "")}/api/internal/voice-agent-status`;
   try {
+    const summary = await buildVoiceAgentRuntimeSummary();
     const response = await fetch(route, {
       method: "POST",
       headers: {
@@ -1332,7 +1489,7 @@ async function postVoiceAgentStatus() {
         pid: process.pid,
         startedAt: AGENT_STARTED_AT,
         heartbeatAt: new Date().toISOString(),
-        summary: buildVoiceAgentRuntimeSummary(),
+        summary,
       }),
     });
 
@@ -1350,6 +1507,105 @@ async function postVoiceAgentStatus() {
       console.warn("[agent] Failed to write worker health snapshot after heartbeat failure:", snapshotError);
     });
     throw error;
+  }
+}
+
+function shouldProcessQueuedOutboundCalls() {
+  return getConfiguredWorkerSurfaces().includes("normal");
+}
+
+async function sendQueuedOutboundCallCompletion(params: {
+  idempotencyKey: string;
+  success: boolean;
+  result?: Awaited<ReturnType<typeof executeQueuedOutboundCall>>;
+  error?: string;
+}) {
+  const appUrl = getAppBaseUrl();
+  const secret = getVoiceAgentWebhookSecret();
+  if (!appUrl || !secret) {
+    throw new Error("Missing APP URL or worker webhook secret for outbound queue completion.");
+  }
+
+  const response = await fetch(`${appUrl.replace(/\/$/, "")}/api/internal/voice-outbound-queue`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-voice-agent-secret": secret,
+    },
+    body: JSON.stringify({
+      action: "complete",
+      idempotencyKey: params.idempotencyKey,
+      success: params.success,
+      result: params.result,
+      error: params.error,
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`Outbound queue completion failed: ${response.status} ${body}`);
+  }
+}
+
+async function processQueuedOutboundCalls() {
+  if (!shouldProcessQueuedOutboundCalls()) {
+    return;
+  }
+
+  const appUrl = getAppBaseUrl();
+  const secret = getVoiceAgentWebhookSecret();
+  if (!appUrl || !secret) {
+    return;
+  }
+
+  for (let processed = 0; processed < 3; processed += 1) {
+    const response = await fetch(`${appUrl.replace(/\/$/, "")}/api/internal/voice-outbound-queue`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-voice-agent-secret": secret,
+      },
+      body: JSON.stringify({
+        action: "claim",
+        workerRole: getConfiguredWorkerRole(),
+        hostId: getConfiguredHostId(),
+      }),
+    });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      throw new Error(`Outbound queue claim failed: ${response.status} ${body}`);
+    }
+
+    const claimPayload = await response.json() as {
+      claimed?: boolean;
+      idempotencyKey?: string;
+      request?: VoiceWorkerQueuedOutboundCallRequest;
+    };
+
+    if (!claimPayload.claimed || !claimPayload.idempotencyKey || !claimPayload.request) {
+      return;
+    }
+
+    try {
+      const result = await executeQueuedOutboundCall(claimPayload.request);
+      await sendQueuedOutboundCallCompletion({
+        idempotencyKey: claimPayload.idempotencyKey,
+        success: true,
+        result,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await sendQueuedOutboundCallCompletion({
+        idempotencyKey: claimPayload.idempotencyKey,
+        success: false,
+        error: message,
+      });
+      console.error("[agent] Queued outbound call failed:", {
+        idempotencyKey: claimPayload.idempotencyKey,
+        error: message,
+      });
+    }
   }
 }
 
@@ -1557,6 +1813,7 @@ function buildSchedulingTools(grounding: WorkspaceVoiceGrounding): livekitLlm.To
 
 export default defineAgent({
   prewarm: async () => {
+    startVoiceWorkerBackgroundTasks("[agent-prewarm]");
     await prewarmVoiceProcess();
   },
   entry: async (ctx) => {
@@ -1629,6 +1886,7 @@ export default defineAgent({
     });
 
     const defaultTts = createCartesiaTts();
+    void warmCartesiaTts(defaultTts, "Yep.", "[voice-latency:session]");
     const ttsOpts = {
       model: resolveConfiguredTtsModel(),
       voice: resolveConfiguredTtsVoiceId(),
@@ -1648,19 +1906,22 @@ export default defineAgent({
     let callerEmail = "";
     let callerPhone = "";
     let calledPhone = "";
+    let roomMetadata: Record<string, unknown> | null = null;
+    let participantAttributes: Record<string, string> = {};
 
     try {
       const roomMeta = ctx.room.metadata;
       if (roomMeta) {
-        const meta = JSON.parse(roomMeta) as Record<string, string>;
+        const meta = JSON.parse(roomMeta) as Record<string, unknown>;
+        roomMetadata = meta;
         if (meta.callType === "demo") callType = "demo";
         if (meta.callType === "inbound_demo") callType = "inbound_demo";
-        callerFirstName = meta.firstName || "";
-        callerLastName = meta.lastName || "";
-        callerBusiness = meta.businessName || "";
-        callerEmail = meta.email || "";
-        callerPhone = meta.phone || "";
-        calledPhone = meta.calledPhone || "";
+        callerFirstName = typeof meta.firstName === "string" ? meta.firstName : "";
+        callerLastName = typeof meta.lastName === "string" ? meta.lastName : "";
+        callerBusiness = typeof meta.businessName === "string" ? meta.businessName : "";
+        callerEmail = typeof meta.email === "string" ? meta.email : "";
+        callerPhone = typeof meta.phone === "string" ? meta.phone : "";
+        calledPhone = typeof meta.calledPhone === "string" ? meta.calledPhone : "";
       }
     } catch {
       // Ignore invalid room metadata.
@@ -1668,6 +1929,7 @@ export default defineAgent({
 
     try {
       const attrs = (participant.attributes || {}) as Record<string, string>;
+      participantAttributes = attrs;
       if (attrs.callType === "demo") callType = "demo";
       if (attrs.callType === "inbound_demo") callType = "inbound_demo";
       callerFirstName = callerFirstName || attrs.firstName || "";
@@ -1769,6 +2031,7 @@ export default defineAgent({
     const speculativeHeadAudioCache: Map<SpeculativeHeadId, Promise<AudioFrame>> = voiceLatencyConfig.speculativeHeadsEnabled
       ? getSharedSpeculativeHeadAudioCache(defaultTts, logPrefix)
       : new Map<SpeculativeHeadId, Promise<AudioFrame>>();
+    const fixedLineAudioCache = getSharedFixedLineAudioCache(defaultTts, logPrefix);
 
     console.log(`${logPrefix} Call started ${JSON.stringify({
       callId,
@@ -2163,7 +2426,7 @@ export default defineAgent({
       if (!role || !text) return;
 
       transcriptItemIds.add(itemId);
-      transcriptTurns.push({
+      appendTranscriptTurn(transcriptTurns, {
         role,
         text,
         createdAt: ev.createdAt,
@@ -2263,6 +2526,45 @@ export default defineAgent({
       let speculativeHeadEntry: SpeculativeHeadBankEntry | null = null;
 
       (tts as MultilingualTTS).setReplyLanguage(ev.language);
+
+      if (callType === "inbound_demo") {
+        const fastReplyId = voiceLatency.resolveInboundDemoFastReplyId(transcript);
+        if (fastReplyId) {
+          const fastReplyFrame = await getCachedOpenerAudioFrame(fixedLineAudioCache, fastReplyId, 50);
+
+          appendTranscriptTurn(transcriptTurns, {
+            role: "user",
+            text: transcript,
+            createdAt: ev.createdAt,
+          });
+          pendingUserTurns.push({
+            transcript,
+            createdAt: ev.createdAt,
+            language: ev.language,
+          });
+          session.clearUserTurn();
+          pendingLatencyTurn = null;
+
+          await session.say(FIXED_LINE_BANK[fastReplyId], {
+            ...(fastReplyFrame ? { audio: audioFrameToReadableStream(fastReplyFrame) } : {}),
+            allowInterruptions: true,
+            addToChatCtx: true,
+          });
+
+          console.log(
+            `[voice-fast-reply] ${JSON.stringify({
+              callId,
+              room: ctx.room.name,
+              participant: participant.identity,
+              transcript,
+              fastReplyId,
+            })}`,
+          );
+
+          resetActiveVoiceTurn();
+          return;
+        }
+      }
 
       if (
         isEarlymarkCall &&
@@ -2454,7 +2756,13 @@ export default defineAgent({
       resetActiveVoiceTurn();
     });
 
+    const greetingClipId = resolveGreetingClipId(callType, caller);
+    const greetingFrame = greetingClipId
+      ? await getCachedOpenerAudioFrame(fixedLineAudioCache, greetingClipId, 50)
+      : null;
+
     await session.say(greeting, {
+      ...(greetingFrame ? { audio: audioFrameToReadableStream(greetingFrame) } : {}),
       allowInterruptions: false,
       addToChatCtx: callType !== "demo",
     });
@@ -2578,6 +2886,18 @@ export default defineAgent({
         .sort((a, b) => a.createdAt - b.createdAt)
         .map((turn) => `${turn.role === "assistant" ? "Tracey" : "Caller"}: ${turn.text}`)
         .join("\n");
+      const sipAttributes = Object.fromEntries(
+        Object.entries(participantAttributes).filter(
+          ([key, value]) => typeof value === "string" && (key.startsWith("sip.") || /call/i.test(key)),
+        ),
+      );
+
+      const syntheticProbeCall = isSyntheticProbeCall({
+        callType,
+        roomName,
+        callerPhone,
+        calledPhone,
+      });
 
       voiceCallPersistencePromise = persistVoiceCall({
         callId,
@@ -2614,6 +2934,24 @@ export default defineAgent({
           urgentEscalation,
           responsePolicyOutcomes,
           groundingCacheHit: Boolean(normalVoiceGrounding),
+          monitoring: syntheticProbeCall ? { syntheticProbeCall: true } : {},
+          roomMetadata,
+          sipAttributes,
+          providerCallIds: {
+            twilioCallSid:
+              (typeof roomMetadata?.twilioCallSid === "string" && roomMetadata.twilioCallSid) ||
+              (typeof roomMetadata?.callSid === "string" && roomMetadata.callSid) ||
+              participantAttributes["twilio.callSid"] ||
+              participantAttributes.callSid ||
+              null,
+            sipCallId:
+              participantAttributes["sip.callID"] ||
+              participantAttributes["sip.callId"] ||
+              participantAttributes["sip.call_id"] ||
+              participantAttributes["sip.callSid"] ||
+              participantAttributes["sip.call_sid"] ||
+              null,
+          },
           voiceLatency: {
             enabled: voiceLatencyConfig.enabled,
             openerBankEnabled: voiceLatencyConfig.openerBankEnabled,
@@ -2640,29 +2978,17 @@ export function startVoiceWorkerBackgroundTasks(logPrefix = "[agent]") {
   if (workerBackgroundTasksStarted) return;
   workerBackgroundTasksStarted = true;
 
-  setWorkerBootReady(true);
-  void writeWorkerHealthSnapshot().catch((error) => {
-    console.warn(`${logPrefix} Failed to write initial worker health snapshot:`, error);
+  startWorkerBackgroundLoops({
+    logPrefix,
+    setWorkerBootReady,
+    writeWorkerHealthSnapshot,
+    refreshVoiceGroundingIndex,
+    postVoiceAgentStatus,
+    processQueuedOutboundCalls: shouldProcessQueuedOutboundCalls() ? processQueuedOutboundCalls : undefined,
+    voiceGroundingCacheTtlMs: VOICE_GROUNDING_CACHE_TTL_MS,
+    voiceAgentHeartbeatMs: VOICE_AGENT_HEARTBEAT_MS,
+    queuedOutboundCallPollMs: VOICE_OUTBOUND_CALL_QUEUE_POLL_MS,
   });
-  void refreshVoiceGroundingIndex(true).catch((error) => {
-    console.warn(`${logPrefix} Initial voice grounding cache warm failed:`, error);
-  });
-  const groundingRefreshTimer = setInterval(() => {
-    void refreshVoiceGroundingIndex(true).catch((error) => {
-      console.warn(`${logPrefix} Voice grounding cache refresh failed:`, error);
-    });
-  }, VOICE_GROUNDING_CACHE_TTL_MS);
-  groundingRefreshTimer.unref?.();
-
-  void postVoiceAgentStatus().catch((error) => {
-    console.error(`${logPrefix} Failed to post worker-status heartbeat:`, error);
-  });
-  const heartbeatTimer = setInterval(() => {
-    void postVoiceAgentStatus().catch((error) => {
-      console.error(`${logPrefix} Failed to post worker-status heartbeat:`, error);
-    });
-  }, VOICE_AGENT_HEARTBEAT_MS);
-  heartbeatTimer.unref?.();
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

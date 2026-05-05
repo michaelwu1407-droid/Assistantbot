@@ -2,8 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const {
   db,
-  getAuthUserId,
-  getOrCreateWorkspace,
+  requireCurrentWorkspaceAccess,
   revalidatePath,
   invalidateAgentContextCache,
 } = vi.hoisted(() => ({
@@ -14,18 +13,16 @@ const {
       findFirst: vi.fn(),
     },
   },
-  getAuthUserId: vi.fn(),
-  getOrCreateWorkspace: vi.fn(),
+  requireCurrentWorkspaceAccess: vi.fn(),
   revalidatePath: vi.fn(),
   invalidateAgentContextCache: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({ db }));
 vi.mock("@/lib/auth", () => ({
-  getAuthUserId,
   getAuthUser: vi.fn(),
 }));
-vi.mock("@/actions/workspace-actions", () => ({ getOrCreateWorkspace }));
+vi.mock("@/lib/workspace-access", () => ({ requireCurrentWorkspaceAccess }));
 vi.mock("next/cache", () => ({ revalidatePath }));
 vi.mock("@/lib/twilio", () => ({
   getSubaccountClient: vi.fn(),
@@ -71,8 +68,11 @@ import {
 describe("settings-actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    getAuthUserId.mockResolvedValue("user_123");
-    getOrCreateWorkspace.mockResolvedValue({ id: "ws_123" });
+    requireCurrentWorkspaceAccess.mockResolvedValue({
+      id: "app_user_123",
+      role: "OWNER",
+      workspaceId: "ws_123",
+    });
     db.workspace.update.mockResolvedValue({});
   });
 

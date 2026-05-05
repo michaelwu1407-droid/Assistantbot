@@ -16,6 +16,9 @@ const hoisted = vi.hoisted(() => ({
       findUnique: vi.fn(),
       update: vi.fn(),
     },
+    webhookEvent: {
+      create: vi.fn().mockResolvedValue({}),
+    },
   },
   buildPublicFeedbackUrl: vi.fn(),
 }));
@@ -84,6 +87,28 @@ describe("messaging-actions", () => {
     });
   });
 
+  it("does not fall back to the platform SMS number when a workspace has not been provisioned", async () => {
+    vi.stubEnv("TWILIO_ACCOUNT_SID", "ACplatform");
+    vi.stubEnv("TWILIO_PHONE_NUMBER", "+61999999999");
+    hoisted.db.workspace.findUnique.mockResolvedValue({
+      twilioSubaccountId: null,
+      twilioPhoneNumber: null,
+    });
+    hoisted.db.contact.findUnique.mockResolvedValue({
+      id: "contact_1",
+      name: "Alex",
+      phone: "0400000000",
+      workspaceId: "ws_1",
+    });
+
+    const result = await sendSMS("contact_1", "Your booking is confirmed.", "deal_1");
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("SMS not configured yet");
+    expect(fetch).not.toHaveBeenCalled();
+    expect(hoisted.db.activity.create).not.toHaveBeenCalled();
+  });
+
   it("sends confirmation SMS, stores pending confirmation metadata, and logs the follow-up note", async () => {
     hoisted.db.deal.findUnique.mockResolvedValue({
       id: "deal_1",
@@ -98,6 +123,9 @@ describe("messaging-actions", () => {
         name: "Alex",
         phone: "0400000000",
       },
+      workspace: {
+        workspaceTimezone: "Australia/Sydney",
+      },
     });
     hoisted.db.contact.findUnique.mockResolvedValue({
       id: "contact_1",
@@ -109,6 +137,8 @@ describe("messaging-actions", () => {
     const result = await sendConfirmationSMS("deal_1");
 
     expect(result.success).toBe(true);
+    const request = vi.mocked(fetch).mock.calls[0]?.[1];
+    expect(String(request?.body)).toContain("Thu%2C+2+Apr%2C+8%3A00+pm");
     expect(hoisted.db.deal.update).toHaveBeenCalledWith({
       where: { id: "deal_1" },
       data: {
@@ -142,6 +172,9 @@ describe("messaging-actions", () => {
         name: "Alex",
         phone: "0400000000",
       },
+      workspace: {
+        workspaceTimezone: "Australia/Sydney",
+      },
     });
     hoisted.db.contact.findUnique.mockResolvedValue({
       id: "contact_1",
@@ -153,6 +186,8 @@ describe("messaging-actions", () => {
     const result = await sendRescheduleConfirmationSMS("deal_1");
 
     expect(result.success).toBe(true);
+    const request = vi.mocked(fetch).mock.calls[0]?.[1];
+    expect(String(request?.body)).toContain("Fri%2C+3+Apr%2C+10%3A30+pm");
     expect(hoisted.db.deal.update).toHaveBeenCalledWith({
       where: { id: "deal_1" },
       data: {

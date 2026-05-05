@@ -1,16 +1,24 @@
 "use client"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Badge } from "@/components/ui/badge"
-import { AlertTriangle, Clock, MessageSquare, Phone, Mail } from "lucide-react"
+import { useEffect, useState } from "react"
+import { AlertTriangle, Clock, Mail, MessageSquare, Phone } from "lucide-react"
 import { toast } from "sonner"
 import { sendFollowUpMessage, scheduleFollowUp } from "@/actions/followup-actions"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 import { getUserFacingDealStageLabel } from "@/lib/deal-utils"
+import Link from "next/link"
 
 interface StaleDealFollowUpModalProps {
   open: boolean
@@ -18,6 +26,7 @@ interface StaleDealFollowUpModalProps {
   deal: {
     id: string
     title: string
+    contactId?: string
     contactName: string
     contactEmail?: string
     contactPhone?: string
@@ -28,7 +37,12 @@ interface StaleDealFollowUpModalProps {
   onFollowUpSent?: () => void
 }
 
-export function StaleDealFollowUpModal({ open, onOpenChange, deal, onFollowUpSent }: StaleDealFollowUpModalProps) {
+export function StaleDealFollowUpModal({
+  open,
+  onOpenChange,
+  deal,
+  onFollowUpSent,
+}: StaleDealFollowUpModalProps) {
   const [selectedTemplate, setSelectedTemplate] = useState("")
   const [customMessage, setCustomMessage] = useState("")
   const [selectedChannel, setSelectedChannel] = useState("sms")
@@ -38,45 +52,57 @@ export function StaleDealFollowUpModal({ open, onOpenChange, deal, onFollowUpSen
   const daysSinceLastActivity = Math.floor((Date.now() - deal.lastActivity.getTime()) / (1000 * 60 * 60 * 24))
   const isStale = daysSinceLastActivity >= 7
   const isRotting = daysSinceLastActivity >= 14
+  const hasPhone = Boolean(deal.contactPhone)
+  const hasEmail = Boolean(deal.contactEmail)
 
   const templates = [
     {
       id: "gentle-nudge",
       name: "Gentle Nudge",
-      message: `Hi ${deal.contactName}, just following up on ${deal.title}. I wanted to check if you're still interested in moving forward. Let me know if you have any questions!`
+      message: `Hi ${deal.contactName}, just following up on ${deal.title}. I wanted to check if you're still interested in moving forward. Let me know if you have any questions!`,
     },
     {
       id: "value-focused",
       name: "Value Focused",
-      message: `Hi ${deal.contactName}, I noticed we haven't connected about ${deal.title} recently. I'd love to help you move forward when the timing is right. Happy to answer any questions.`
+      message: `Hi ${deal.contactName}, I noticed we haven't connected about ${deal.title} recently. I'd love to help you move forward when the timing is right. Happy to answer any questions.`,
     },
     {
       id: "urgent-follow-up",
       name: "Urgent Follow-up",
-      message: `Hi ${deal.contactName}, following up on ${deal.title} — it's been a while since we spoke. Are you still interested? Happy to jump on a quick call.`
+      message: `Hi ${deal.contactName}, following up on ${deal.title} - it's been a while since we spoke. Are you still interested? Happy to jump on a quick call.`,
     },
     {
       id: "new-info",
       name: "New Information",
-      message: `Hi ${deal.contactName}, I have some updates regarding ${deal.title} that might interest you. Would you be available for a quick call this week?`
-    }
+      message: `Hi ${deal.contactName}, I have some updates regarding ${deal.title} that might interest you. Would you be available for a quick call this week?`,
+    },
   ]
 
-  const handleTemplateSelect = (templateId: string) => {
-    const template = templates.find(t => t.id === templateId)
-    if (template) {
-      setSelectedTemplate(templateId)
-      setCustomMessage(template.message)
+  useEffect(() => {
+    if (selectedChannel === "sms" && !hasPhone) {
+      setSelectedChannel(hasEmail ? "email" : "phone")
+      return
     }
+
+    if (selectedChannel === "email" && !hasEmail) {
+      setSelectedChannel(hasPhone ? "sms" : "phone")
+    }
+  }, [hasEmail, hasPhone, selectedChannel])
+
+  const handleTemplateSelect = (templateId: string) => {
+    const template = templates.find((item) => item.id === templateId)
+    if (!template) return
+
+    setSelectedTemplate(templateId)
+    setCustomMessage(template.message)
   }
 
   const handleSend = async () => {
     if (selectedChannel === "phone") {
-      // Log as a scheduled call — no message to send
       if (scheduleDate) {
         const result = await scheduleFollowUp(deal.id, new Date(scheduleDate), customMessage || "Phone call follow-up", "phone")
         if (result.success) {
-          toast.success("Phone follow-up scheduled — you'll be reminded on the day")
+          toast.success("Phone follow-up scheduled - you'll be reminded on the day")
           onOpenChange(false)
           onFollowUpSent?.()
         } else {
@@ -95,11 +121,12 @@ export function StaleDealFollowUpModal({ open, onOpenChange, deal, onFollowUpSen
 
     const channel = selectedChannel as "sms" | "email"
 
-    if (channel === "sms" && !deal.contactPhone) {
+    if (channel === "sms" && !hasPhone) {
       toast.error(`${deal.contactName} has no phone number on file. Use Email or add a phone number first.`)
       return
     }
-    if (channel === "email" && !deal.contactEmail) {
+
+    if (channel === "email" && !hasEmail) {
       toast.error(`${deal.contactName} has no email on file. Use SMS or add an email first.`)
       return
     }
@@ -113,7 +140,7 @@ export function StaleDealFollowUpModal({ open, onOpenChange, deal, onFollowUpSen
         onFollowUpSent?.()
         setSelectedTemplate("")
         setCustomMessage("")
-        setSelectedChannel("sms")
+        setSelectedChannel(hasPhone ? "sms" : hasEmail ? "email" : "phone")
       } else {
         toast.error(result.error || "Failed to send follow-up")
       }
@@ -138,7 +165,7 @@ export function StaleDealFollowUpModal({ open, onOpenChange, deal, onFollowUpSen
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-h-[calc(100vh-2rem)] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-amber-600" />
@@ -150,40 +177,48 @@ export function StaleDealFollowUpModal({ open, onOpenChange, deal, onFollowUpSen
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Deal Summary */}
-          <div className="bg-gray-50 rounded-lg p-4">
+          <div className="rounded-lg bg-gray-50 p-4">
             <div className="flex items-start justify-between">
               <div>
                 <h4 className="font-medium text-gray-900">{deal.title}</h4>
                 <p className="text-sm text-gray-600">{deal.contactName}</p>
-                <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
                   <span>Value: ${deal.value.toLocaleString()}</span>
-                  <span>•</span>
+                  <span>-</span>
                   <span>Stage: {getUserFacingDealStageLabel(deal.stage)}</span>
                 </div>
               </div>
               <Badge className={getStalenessColor()}>
-                <Clock className="h-3 w-3 mr-1" />
+                <Clock className="mr-1 h-3 w-3" />
                 {getStalenessText()}
               </Badge>
             </div>
-            <div className="text-sm text-gray-600 mt-2">
-              Last activity: {deal.lastActivity.toLocaleDateString()} ({daysSinceLastActivity} days ago)
+            <div className="mt-2 text-sm text-gray-600">
+              Last activity: {deal.lastActivity.toLocaleDateString("en-AU")} ({daysSinceLastActivity} days ago)
             </div>
           </div>
 
-          {/* Contact Information */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Contact</Label>
-              <div className="text-sm space-y-1">
+              <div className="space-y-1 text-sm">
                 <div className="flex items-center gap-2 text-gray-600">
                   <Mail className="h-4 w-4 text-gray-400" />
-                  {deal.contactEmail || <span className="text-gray-400 italic">No email</span>}
+                  {deal.contactEmail || <span className="italic text-gray-400">No email</span>}
+                  {!deal.contactEmail && deal.contactId ? (
+                    <Button asChild size="sm" variant="outline" className="ml-auto h-7 text-xs">
+                      <Link href={`/crm/contacts/${deal.contactId}/edit`}>Add email in CRM</Link>
+                    </Button>
+                  ) : null}
                 </div>
                 <div className="flex items-center gap-2 text-gray-600">
                   <Phone className="h-4 w-4 text-gray-400" />
-                  {deal.contactPhone || <span className="text-gray-400 italic">No phone</span>}
+                  {deal.contactPhone || <span className="italic text-gray-400">No phone</span>}
+                  {!deal.contactPhone && deal.contactId ? (
+                    <Button asChild size="sm" variant="outline" className="ml-auto h-7 text-xs">
+                      <Link href={`/crm/contacts/${deal.contactId}/edit`}>Add phone in CRM</Link>
+                    </Button>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -194,19 +229,52 @@ export function StaleDealFollowUpModal({ open, onOpenChange, deal, onFollowUpSen
                   <SelectValue placeholder="Select channel" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="sms" disabled={!deal.contactPhone}>
-                    SMS {!deal.contactPhone && "(no phone)"}
+                  <SelectItem value="sms" disabled={!hasPhone}>
+                    SMS {!hasPhone && "(no phone)"}
                   </SelectItem>
-                  <SelectItem value="email" disabled={!deal.contactEmail}>
-                    Email {!deal.contactEmail && "(no email)"}
+                  <SelectItem value="email" disabled={!hasEmail}>
+                    Email {!hasEmail && "(no email)"}
                   </SelectItem>
                   <SelectItem value="phone">Phone Call (schedule reminder)</SelectItem>
                 </SelectContent>
               </Select>
+              {!hasPhone && !hasEmail ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-xs text-amber-600">
+                    No phone or email is on file, so this follow-up can only be scheduled as a call reminder until contact details are added.
+                  </p>
+                  {deal.contactId ? (
+                    <Button asChild size="sm" variant="outline" className="h-7 text-xs">
+                      <Link href={`/crm/contacts/${deal.contactId}/edit`}>Add contact details in CRM</Link>
+                    </Button>
+                  ) : null}
+                </div>
+              ) : selectedChannel === "sms" && !hasPhone ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-xs text-amber-600">
+                    No phone number is on file. Switch to email or schedule a call reminder.
+                  </p>
+                  {deal.contactId ? (
+                    <Button asChild size="sm" variant="outline" className="h-7 text-xs">
+                      <Link href={`/crm/contacts/${deal.contactId}/edit`}>Add phone in CRM</Link>
+                    </Button>
+                  ) : null}
+                </div>
+              ) : selectedChannel === "email" && !hasEmail ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-xs text-amber-600">
+                    No email is on file. Switch to SMS or schedule a call reminder.
+                  </p>
+                  {deal.contactId ? (
+                    <Button asChild size="sm" variant="outline" className="h-7 text-xs">
+                      <Link href={`/crm/contacts/${deal.contactId}/edit`}>Add email in CRM</Link>
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           </div>
 
-          {/* Phone call: show date picker for reminder */}
           {selectedChannel === "phone" && (
             <div className="space-y-2">
               <Label htmlFor="call-date">When to call? (sets a reminder for you)</Label>
@@ -230,7 +298,6 @@ export function StaleDealFollowUpModal({ open, onOpenChange, deal, onFollowUpSen
             </div>
           )}
 
-          {/* Message Templates — shown for SMS/email */}
           {selectedChannel !== "phone" && (
             <>
               <div className="space-y-2">
@@ -240,7 +307,7 @@ export function StaleDealFollowUpModal({ open, onOpenChange, deal, onFollowUpSen
                     <SelectValue placeholder="Choose a template or write your own" />
                   </SelectTrigger>
                   <SelectContent>
-                    {templates.map(template => (
+                    {templates.map((template) => (
                       <SelectItem key={template.id} value={template.id}>
                         {template.name}
                       </SelectItem>
@@ -261,7 +328,7 @@ export function StaleDealFollowUpModal({ open, onOpenChange, deal, onFollowUpSen
                 <p className="text-xs text-gray-500">
                   {customMessage.length} characters
                   {selectedChannel === "sms" && customMessage.length > 160 && (
-                    <span className="text-amber-600 ml-2">⚠ May be split into multiple SMS</span>
+                    <span className="ml-2 text-amber-600">Warning: may be split into multiple SMS</span>
                   )}
                 </p>
               </div>
@@ -282,17 +349,17 @@ export function StaleDealFollowUpModal({ open, onOpenChange, deal, onFollowUpSen
             >
               {isSending ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white" />
                   Sending...
                 </>
               ) : selectedChannel === "phone" ? (
                 <>
-                  <Clock className="h-4 w-4 mr-2" />
+                  <Clock className="mr-2 h-4 w-4" />
                   Schedule Call Reminder
                 </>
               ) : (
                 <>
-                  <MessageSquare className="h-4 w-4 mr-2" />
+                  <MessageSquare className="mr-2 h-4 w-4" />
                   Send Follow-up
                 </>
               )}

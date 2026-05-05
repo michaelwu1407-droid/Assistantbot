@@ -28,6 +28,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { evaluateAutomations } from "@/actions/automation-actions";
+import { saveTriageRecommendation, triageIncomingLead } from "@/lib/ai/triage";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -152,24 +153,43 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Trigger new_lead automations (fire-and-forget)
-    evaluateAutomations(workspaceId, {
-      type: "new_lead",
-      contactId: contact.id,
-      dealId: deal.id,
-    }).catch(() => {});
+    const triage = await triageIncomingLead(workspaceId, {
+      title,
+      description: message || undefined,
+      address: address || undefined,
+    }).catch(() => null);
+    const heldForReview = triage?.recommendation === "HOLD_REVIEW";
+
+    if (triage) {
+      await saveTriageRecommendation(deal.id, triage).catch(() => {});
+    }
+
+    // Customer-facing new-lead automations must not fire for held leads.
+    if (!heldForReview) {
+      evaluateAutomations(workspaceId, {
+        type: "new_lead",
+        contactId: contact.id,
+        dealId: deal.id,
+      }).catch(() => {});
+    }
 
     // Optionally notify workspace owner
     try {
       const owner = await db.user.findFirst({ where: { workspaceId, role: "OWNER" }, select: { id: true } });
       if (owner) {
+        const notificationTitle = heldForReview
+          ? `Review ${source} enquiry - ${name}`
+          : `New ${source} enquiry - ${name}`;
+        const notificationMessage = heldForReview
+          ? `Tracey held this lead for review: ${(triage?.flags ?? ["Needs review"]).join("; ")}`
+          : message ? `"${message.substring(0, 100)}${message.length > 100 ? "..." : ""}"` : `${name} submitted an enquiry via your ${source}.`;
         await db.notification.create({
           data: {
             userId: owner.id,
-            title: `New ${source} enquiry — ${name}`,
-            message: message ? `"${message.substring(0, 100)}${message.length > 100 ? "…" : ""}"` : `${name} submitted an enquiry via your ${source}.`,
-            type: "INFO",
-            link: `/crm/pipeline`,
+            title: notificationTitle,
+            message: notificationMessage,
+            type: heldForReview ? "WARNING" : "INFO",
+            link: `/crm/deals/${deal.id}`,
             actionType: "CONFIRM_JOB",
             actionPayload: { dealId: deal.id },
           } as any,
@@ -184,7 +204,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.redirect(redirectUrl, { status: 303, headers: corsHeaders() });
     }
 
-    return NextResponse.json({ success: true, dealId: deal.id, contactId: contact.id }, { headers: corsHeaders() });
+    return NextResponse.json({
+      success: true,
+      dealId: deal.id,
+      contactId: contact.id,
+      heldForReview,
+      triageRecommendation: triage?.recommendation ?? null,
+      triageFlags: triage?.flags ?? [],
+    }, { headers: corsHeaders() });
   } catch (error) {
     console.error("[Webform webhook] Error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: corsHeaders() });

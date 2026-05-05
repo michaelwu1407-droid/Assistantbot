@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
+import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { enrichFromEmail, type EnrichedCompany } from "@/lib/enrichment";
 import { getUserFacingDealStageLabel } from "@/lib/deal-utils";
@@ -436,6 +437,8 @@ export async function updateContact(input: z.infer<typeof UpdateContactSchema>) 
     },
   });
 
+  revalidatePath(`/crm/contacts/${contactId}`);
+  revalidatePath("/crm/contacts");
   return { success: true };
 }
 
@@ -477,6 +480,7 @@ export async function updateContactMetadata(
     });
   }
 
+  revalidatePath(`/crm/contacts/${contactId}`);
   return { success: true as const };
 }
 
@@ -568,6 +572,7 @@ export async function deleteContact(contactId: string) {
     return { success: false, error: "Only managers can delete contacts." };
   }
   await db.contact.delete({ where: { id: contactId } });
+  revalidatePath("/crm/contacts");
   return { success: true };
 }
 
@@ -579,11 +584,19 @@ export async function deleteContacts(contactIds: string[]) {
   if (actor.role === "TEAM_MEMBER") {
     return { success: false, error: "Only managers can delete contacts." };
   }
-  await db.contact.deleteMany({
-    where: {
-      id: { in: contactIds },
-      workspaceId: actor.workspaceId,
-    },
-  });
-  return { success: true };
+  try {
+    await db.contact.deleteMany({
+      where: {
+        id: { in: contactIds },
+        workspaceId: actor.workspaceId,
+      },
+    });
+    revalidatePath("/crm/contacts");
+    return { success: true };
+  } catch (error: unknown) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "P2003") {
+      return { success: false, error: "Cannot delete contacts with existing jobs or activities. Please delete them first." };
+    }
+    return { success: false, error: "Failed to delete contacts." };
+  }
 }

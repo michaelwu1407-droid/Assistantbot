@@ -153,6 +153,8 @@ describe("DealDetailModal", () => {
     expect(screen.getAllByText(/pending approval/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText("Acme Plumbing").length).toBeGreaterThan(0);
     expect(screen.getByText("Activity Feed")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /open customer timeline/i })).toHaveAttribute("href", "/crm/inbox?contact=contact_1");
+    expect(screen.getByText(/full SMS, email, and call correspondence/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole("tab", { name: "notes" }));
 
@@ -211,20 +213,100 @@ describe("DealDetailModal", () => {
     expect(routerPush).toHaveBeenCalledWith("/crm/contacts/contact_1/edit");
   });
 
-  it("sends a quick update when clicking the send button", async () => {
+  it("shows an honest disabled timeline action when no contact is linked", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(() =>
+        Promise.resolve(
+          makeDealResponse({
+            contactId: null,
+            contact: null,
+          }),
+        ),
+      ),
+    );
+
+    render(<DealDetailModal dealId="deal_1" open onOpenChange={vi.fn()} currentUserRole="OWNER" />);
+
+    await screen.findAllByText("Blocked Drain");
+    expect(screen.getByRole("button", { name: /no contact linked/i })).toBeDisabled();
+  });
+
+  it("disables the direct sms shortcut when the customer has no phone number", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(() =>
+        Promise.resolve(
+          makeDealResponse({
+            contact: {
+              id: "contact_1",
+              name: "Acme Plumbing",
+              company: "Acme Plumbing",
+              phone: null,
+              email: "office@acme.com",
+            },
+          }),
+        ),
+      ),
+    );
+
+    render(<DealDetailModal dealId="deal_1" open onOpenChange={vi.fn()} currentUserRole="OWNER" />);
+
+    await screen.findAllByText("Blocked Drain");
+    expect(screen.getByText(/No phone number on file\. Add one in CRM before sending a direct SMS from here/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Send a direct SMS...")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Send direct SMS" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /add phone in crm/i })).toBeInTheDocument();
+  });
+
+  it("shows a CRM recovery path when the job has no address", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(() =>
+        Promise.resolve(
+          makeDealResponse({
+            address: null,
+            metadata: {},
+            contact: {
+              id: "contact_1",
+              name: "Acme Plumbing",
+              company: "Acme Plumbing",
+              phone: "0400000001",
+              email: "office@acme.com",
+            },
+          }),
+        ),
+      ),
+    );
+
+    render(<DealDetailModal dealId="deal_1" open onOpenChange={vi.fn()} currentUserRole="OWNER" />);
+
+    await screen.findAllByText("Blocked Drain");
+    expect(
+      screen.getByText(/No address on file\. Add one in CRM before using route or map actions for this job\./i),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /add address in crm/i })).toHaveAttribute(
+      "href",
+      "/crm/contacts/contact_1/edit",
+    );
+  });
+
+  it("sends a direct sms when clicking the send button", async () => {
     const user = userEvent.setup();
 
     render(<DealDetailModal dealId="deal_1" open onOpenChange={vi.fn()} currentUserRole="OWNER" />);
 
     await screen.findAllByText("Blocked Drain");
 
-    await user.type(screen.getByPlaceholderText("Send a quick update..."), "Running 10 mins late");
-    await user.click(screen.getByRole("button", { name: "Send quick update" }));
+    expect(screen.getByText(/Send a direct SMS from your workspace number/i)).toBeInTheDocument();
+
+    await user.type(screen.getByPlaceholderText("Send a direct SMS..."), "Running 10 mins late");
+    await user.click(screen.getByRole("button", { name: "Send direct SMS" }));
 
     await waitFor(() => {
       expect(sendSMS).toHaveBeenCalledWith("contact_1", "Running 10 mins late", "deal_1");
     });
-    expect(toastSuccess).toHaveBeenCalledWith("Message sent");
+    expect(toastSuccess).toHaveBeenCalledWith("SMS sent");
     expect(routerRefresh).toHaveBeenCalled();
   });
 

@@ -187,6 +187,7 @@ vi.mock("@/lib/kanban-columns", () => ({
 vi.mock("@/lib/auth", () => ({
   getAuthUser: vi.fn().mockResolvedValue({ id: "user_1", name: "Owner", email: "owner@example.com" }),
 }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { createContact } from "@/actions/contact-actions";
 import { createDeal, getDeals } from "@/actions/deal-actions";
@@ -198,7 +199,7 @@ describe("integration: new lead to deal flow", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
+    vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-04-02T10:00:00.000Z"));
 
     contacts = [];

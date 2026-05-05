@@ -41,6 +41,7 @@ const KANBAN_STAGES: { id: string; title: string }[] = [
   { id: "scheduled", title: "Scheduled" },
   { id: "ready_to_invoice", title: "Awaiting payment" },
   { id: "completed", title: "Completed" },
+  { id: "lost", title: "Lost" },
   { id: "deleted", title: "Deleted" },
 ]
 
@@ -57,10 +58,11 @@ function prismaStageToColumnId(prismaStage: string | null): string | null {
     SCHEDULED: "scheduled",
     PIPELINE: "quote_sent",
     INVOICED: "ready_to_invoice",
+    PENDING_COMPLETION: "completed",
     WON: "completed",
     LOST: "lost",
     DELETED: "deleted",
-    ARCHIVED: "archived",
+    ARCHIVED: "deleted",
   }
 
   return map[prismaStage] ?? null
@@ -115,8 +117,12 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
     }
 
     result = result.filter((contact) => {
+      // Contacts with no primary deal are not stage-filtered — always include them
+      if (!contact.primaryDealStageKey) return true
       const columnId = prismaStageToColumnId(contact.primaryDealStageKey)
-      return columnId != null && selectedStageIds.has(columnId)
+      // If the stage doesn't map to a known column, show the contact regardless
+      if (columnId == null) return true
+      return selectedStageIds.has(columnId)
     })
 
     if (typeFilter === "individual") {
@@ -369,9 +375,11 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
             </Button>
           </div>
 
-          <p className="text-xs text-muted-foreground">
-            {filtered.length} contact{filtered.length !== 1 ? "s" : ""}
-          </p>
+          {!pagination && (
+            <p className="text-xs text-muted-foreground">
+              {`${filtered.length} ${filtered.length === 1 ? "contact" : "contacts"}`}
+            </p>
+          )}
 
           <div className="overflow-hidden rounded-[18px] border border-border bg-card">
             <div className="overflow-x-auto">
@@ -398,9 +406,9 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
                     >
                       Last contact {sortMode === "last_interacted" && <span className="ml-1 text-[10px] font-semibold uppercase tracking-wide text-primary">Latest</span>}
                     </th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Last job</th>
+                    <th className="hidden sm:table-cell px-4 py-3 text-left text-sm font-medium text-muted-foreground">Last job</th>
                     <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Job status</th>
-                    <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Balance</th>
+                    <th className="hidden sm:table-cell px-4 py-3 text-left text-sm font-medium text-muted-foreground">Balance</th>
                     <th className="px-4 py-3 text-right text-sm font-medium text-muted-foreground">Actions</th>
                   </tr>
                 </thead>
@@ -454,7 +462,7 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
                         <td className="whitespace-nowrap px-4 py-2.5 text-muted-foreground">
                           {formatLastContact(contact.lastActivityDate)}
                         </td>
-                        <td className="px-4 py-2.5">
+                        <td className="hidden sm:table-cell px-4 py-2.5">
                           <span className="block max-w-[220px] truncate text-sm font-medium text-neutral-900">{contact.primaryDealTitle ?? "-"}</span>
                         </td>
                         <td className="px-4 py-2.5">
@@ -466,7 +474,7 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
                             <span className="text-sm text-muted-foreground">-</span>
                           )}
                         </td>
-                        <td className="px-4 py-2.5 text-muted-foreground">{contact.balanceLabel}</td>
+                        <td className="hidden sm:table-cell px-4 py-2.5 text-muted-foreground">{contact.balanceLabel}</td>
                         <td className="px-4 py-2.5 text-right">
                           <div className="flex items-center justify-end gap-0.5">
                             {contact.phone && (

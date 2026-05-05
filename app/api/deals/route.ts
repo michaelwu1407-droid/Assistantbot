@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDeals } from '@/actions/deal-actions';
+import { createDeal, getDeals } from '@/actions/deal-actions';
 import { requireCurrentWorkspaceAccess } from '@/lib/workspace-access';
 import { logger } from '@/lib/logging';
 
@@ -28,12 +28,24 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireCurrentWorkspaceAccess();
-    await request.json();
+    const actor = await requireCurrentWorkspaceAccess();
+    const body = await request.json();
+    const result = await createDeal({
+      ...body,
+      workspaceId: actor.workspaceId,
+    });
 
-    // This would typically call a createDeal action
-    // For now, return a placeholder response
-    return NextResponse.json({ message: 'Deal creation not implemented yet' }, { status: 501 });
+    if (!result.success) {
+      return NextResponse.json({ error: result.error ?? 'Failed to create deal' }, { status: 400 });
+    }
+
+    return NextResponse.json(
+      {
+        success: true,
+        dealId: result.dealId,
+      },
+      { status: 201 }
+    );
   } catch (error) {
     logger.error('Deal creation API error', { component: 'api/deals', action: 'POST' }, error as Error);
     if (error instanceof Error && error.message === "Unauthorized") {

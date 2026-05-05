@@ -133,7 +133,9 @@ These are the highest-value CRM scenarios for an owner/admin:
   - contact detail and inbox system activity reflect the update
 - Issues:
   - the save flow is weak. After saving, the user stays on the edit page with no strong completion signal or redirect.
-  - the schedule page appears to have a timezone or rendering mismatch. The same job that shows `Apr 6, 2026 10:30 AM` on the job page showed up on `/crm/schedule` as `8:30 PM`.
+  - [FIXED 2026-04-05] the schedule page appears to have a timezone or rendering mismatch. The same job 
+that shows `Apr 6, 2026 10:30 AM` on the job page showed up on `/crm/schedule` as `8:30 PM`.
+    - Note: This was a UTC-anchoring bug in the AI scheduling path. AI-set times were stored as UTC wall-clock times without workspace offset correction. Fixed in `actions/chat-actions.ts` by resolving natural strings against the workspace timezone before persistence. revalidatePath calls were also added to all scheduler-touching actions.
   - the map page says upcoming booked jobs appear on the map, but this journey still needs a clearer way to confirm which job is being shown when it is not scheduled for today.
 
 ### 4. Inbox and follow-up

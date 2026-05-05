@@ -78,7 +78,7 @@ export function TradieDashboardClient({ initialJob, todayJobs = [], userName = "
           <h2 className="text-xl font-bold mb-2">All Caught Up!</h2>
           <p className="text-slate-400 mb-4">No scheduled jobs for today.</p>
           <Button variant="outline" asChild className="mt-4">
-            <Link href="/crm/map" className="gap-2">
+            <Link href="/tradie/map" className="gap-2">
               <Map className="mr-2 h-4 w-4" />
               Return to Map
             </Link>

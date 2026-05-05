@@ -14,7 +14,7 @@ export function UpgradeButton({
     initialProvisionPhoneNumberRequested?: boolean;
 }) {
     const [loading, setLoading] = useState(false);
-    const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
+    const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("yearly");
     const [provisionPhoneNumberRequested, setProvisionPhoneNumberRequested] = useState(initialProvisionPhoneNumberRequested);
 
     const handleUpgrade = async () => {
@@ -27,8 +27,9 @@ export function UpgradeButton({
         }
     };
 
-    const monthlyPrice = "$149";
-    const yearlyPrice = "$1,490";
+    const monthlyPrice = "A$30";
+    const yearlyMonthlyEquiv = "A$24";
+    const yearlyTotal = "A$288";
 
     return (
         <div className="space-y-4">
@@ -58,22 +59,26 @@ export function UpgradeButton({
                 </button>
             </div>
 
-            <div className="flex flex-col items-center justify-center gap-2 py-4">
+            <div className="flex flex-col items-center justify-center gap-1.5 py-4">
                 {billingPeriod === "monthly" ? (
                     <div className="text-3xl font-extrabold text-primary">
                         {monthlyPrice} <span className="text-lg font-semibold text-muted-foreground">/ month</span>
                     </div>
                 ) : (
-                    <div className="text-3xl font-extrabold text-midnight">
-                        {yearlyPrice} <span className="text-lg font-semibold text-muted-foreground">/ year</span>
-                    </div>
+                    <>
+                        <div className="text-3xl font-extrabold text-midnight">
+                            {yearlyMonthlyEquiv} <span className="text-lg font-semibold text-muted-foreground">/ month</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground">billed {yearlyTotal}/year — save 20%</div>
+                    </>
                 )}
+                <div className="text-sm text-slate-500 font-medium mt-0.5">+ 10¢ per call minute or text</div>
             </div>
 
             <p className="text-center text-xs text-muted-foreground">
                 {billingPeriod === "monthly"
                     ? "Billed monthly. Cancel anytime."
-                    : "Billed yearly. Stripe promo codes are supported at checkout."}
+                    : "Billed A$288/year. Cancel anytime. Promo codes accepted at checkout."}
             </p>
 
             <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-4 text-left">

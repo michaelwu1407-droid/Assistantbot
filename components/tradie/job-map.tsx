@@ -27,8 +27,8 @@ export default function JobMap({ deals }: JobMapProps) {
         id: d.id,
         title: d.title,
         address: d.address || "",
-        latitude: d.latitude || -33.8688, // Default fallback
-        longitude: d.longitude || 151.2093,
+        latitude: d.latitude ?? d.lat ?? -33.8688,
+        longitude: d.longitude ?? d.lng ?? 151.2093,
         stage: d.stage || "unknown",
         value: d.value || 0,
         contactName: d.clientName || d.contactName || "Client",

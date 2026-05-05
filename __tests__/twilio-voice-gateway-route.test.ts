@@ -65,7 +65,7 @@ function buildRequest(fields?: Record<string, string>) {
 describe("POST /api/webhooks/twilio-voice-gateway", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.NODE_ENV = "test";
+    vi.stubEnv("NODE_ENV", "test");
     process.env.NEXT_PUBLIC_APP_URL = "https://app.example.com";
     delete process.env.TWILIO_ACCOUNT_SID;
     getKnownEarlymarkInboundNumbers.mockReturnValue([]);

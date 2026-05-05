@@ -1,6 +1,16 @@
 # OCI legacy Redis sidecar cleanup
 
-The OCI host is expected to run the LiveKit core stack via Docker under `/opt/livekit`.
+The OCI host currently runs a mixed LiveKit topology:
+
+- Docker containers:
+  - `livekit-livekit-1`
+  - `livekit-sip`
+- Host services:
+  - `caddy`
+  - `redis-server`
+
+The canonical bind-mount root for the Dockerized core containers is `/home/ubuntu/livekit/live.earlymark.ai`.
+Do **not** assume `/opt/livekit` is a safe Docker bind-mount root on this host; Snap Docker has produced misleading `read-only file system` failures there.
 
 There is known infrastructure drift where a **legacy Redis sidecar container** is still present and crash-looping:
 
@@ -14,11 +24,10 @@ This container is **not** part of the supported runtime for the Earlymark voice 
 
 ## What “good” looks like
 
-- Only the canonical LiveKit stack containers are running for core infra:
+- Only the canonical Dockerized core voice containers are running:
   - `livekit-livekit-1`
-  - `livekit-redis-1`
-  - `livekit-caddy-1`
   - `livekit-sip`
+- Host `caddy` and `redis-server` services remain healthy.
 - Only the canonical worker containers are running for the voice workers:
   - `earlymark-sales-agent`
   - `earlymark-customer-agent`
@@ -48,5 +57,6 @@ Search for and remove the legacy compose definition / systemd unit that owns it.
 
 ## Important caution
 
-Do **not** remove `livekit-redis-1` (the canonical LiveKit Redis) unless you are intentionally tearing down the LiveKit stack.
+Do **not** remove the host `redis-server` service unless you are intentionally redesigning the LiveKit topology.
+Also do **not** recreate `livekit-redis-1` or `livekit-caddy-1` just to match old docs; they are currently legacy drift, not part of the supported live setup.
 

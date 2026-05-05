@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthUserId } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = await getAuthUserId();
-    if (!userId) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
+    const actor = await requireCurrentWorkspaceAccess();
 
     const { subject, message, priority } = await request.json();
 
@@ -19,7 +16,7 @@ export async function POST(request: NextRequest) {
 
     // Get user details for support context
     const user = await db.user.findUnique({
-      where: { id: userId },
+      where: { id: actor.id },
       include: {
         workspace: {
           select: {
@@ -45,6 +42,7 @@ export async function POST(request: NextRequest) {
         type: "NOTE",
         title: `Support Request: ${subject}`,
         content: `Priority: ${priority}\n\n${message}\n\nUser: ${user.email}\nWorkspace: ${user.workspace?.name}\nAI Agent Number: ${user.workspace?.twilioPhoneNumber || "Not configured"}`,
+        userId: user.id,
       },
     });
 
@@ -86,6 +84,13 @@ export async function POST(request: NextRequest) {
       message: "Support request sent successfully"
     });
   } catch (error) {
+    if (
+      error instanceof Error &&
+      (error.message === "Unauthorized" || error.message === "Workspace access not found")
+    ) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
     console.error("Support request failed:", error);
     return NextResponse.json({ 
       success: false, 

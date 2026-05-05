@@ -2,10 +2,11 @@ import { createClient } from "@/lib/supabase/server";
 import { logger } from "@/lib/logging";
 import { cache } from "react";
 import type { User } from "@supabase/supabase-js";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { db } from "@/lib/db";
 
 const E2E_AUTH_COOKIE_NAME = "earlymark_e2e_user_id";
+const INTERNAL_PROBE_USER_HEADER = "x-user-id";
 
 function hasSupabaseAuthEnv() {
   return Boolean(
@@ -74,11 +75,45 @@ async function getE2EAuthUser() {
   }
 }
 
+async function getInternalProbeAuthUser() {
+  const cronSecret = process.env.CRON_SECRET?.trim();
+  if (!cronSecret) {
+    return null;
+  }
+
+  try {
+    const headerStore = await headers();
+    const authHeader = headerStore.get("authorization")?.trim();
+    const internalUserId = headerStore.get(INTERNAL_PROBE_USER_HEADER)?.trim();
+
+    if (!internalUserId || authHeader !== `Bearer ${cronSecret}`) {
+      return null;
+    }
+
+    return db.user.findUnique({
+      where: { id: internalUserId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        bio: true,
+      },
+    });
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Get the current user's ID from Supabase.
  */
 export async function getAuthUserId(): Promise<string | null> {
   try {
+    const internalProbeUser = await getInternalProbeAuthUser();
+    if (internalProbeUser?.id) {
+      return internalProbeUser.id;
+    }
+
     const e2eUser = await getE2EAuthUser();
     if (e2eUser?.id) {
       return e2eUser.id;
@@ -102,6 +137,16 @@ export async function getAuthUserId(): Promise<string | null> {
  */
 export async function getAuthUser(): Promise<{ id: string; name: string; email?: string; bio?: string; image?: string } | null> {
   try {
+    const internalProbeUser = await getInternalProbeAuthUser();
+    if (internalProbeUser) {
+      return {
+        id: internalProbeUser.id,
+        name: internalProbeUser.name || internalProbeUser.email?.split("@")[0] || "User",
+        email: internalProbeUser.email ?? undefined,
+        bio: internalProbeUser.bio ?? undefined,
+      };
+    }
+
     const e2eUser = await getE2EAuthUser();
     if (e2eUser) {
       return {

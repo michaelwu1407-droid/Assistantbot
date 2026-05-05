@@ -1,32 +1,32 @@
 import { redirect } from "next/navigation"
-import { getOrCreateWorkspace } from "@/actions/workspace-actions"
-import { getAuthUser } from "@/lib/auth"
 import { getDeals } from "@/actions/deal-actions"
 import { ScheduleCalendar } from "./schedule-calendar"
-import { getCurrentUserRole } from "@/lib/rbac"
 import { db } from "@/lib/db"
 import { DEFAULT_WORKSPACE_TIMEZONE, resolveWorkspaceTimezone } from "@/lib/timezone"
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access"
 
 export const dynamic = "force-dynamic"
 
 export default async function SchedulePage() {
-    const authUser = await getAuthUser()
-    if (!authUser) redirect("/login")
+    let actor: Awaited<ReturnType<typeof requireCurrentWorkspaceAccess>>
+    try {
+        actor = await requireCurrentWorkspaceAccess()
+    } catch {
+        redirect("/login")
+    }
 
     /* eslint-disable @typescript-eslint/no-explicit-any */
     let deals: any[] = [], teamMembers: any[] = []
     let workspaceTimezone = DEFAULT_WORKSPACE_TIMEZONE
     try {
-        const workspace = await getOrCreateWorkspace(authUser.id)
-        const role = await getCurrentUserRole()
         const [allDeals, members, workspaceConfig] = await Promise.all([
-            getDeals(workspace.id),
+            getDeals(actor.workspaceId),
             db.user.findMany({
-                where: { workspaceId: workspace.id },
+                where: { workspaceId: actor.workspaceId },
                 select: { id: true, name: true, email: true, role: true }
             }),
             db.workspace?.findUnique?.({
-                where: { id: workspace.id },
+                where: { id: actor.workspaceId },
                 select: { workspaceTimezone: true },
             }),
         ])
@@ -35,9 +35,9 @@ export default async function SchedulePage() {
         let filteredDeals = allDeals.filter((d: any) => d.stage !== "deleted")
 
         // RBAC: Team members should only see their own schedule lane and jobs.
-        if (role === "TEAM_MEMBER") {
-            filteredDeals = filteredDeals.filter((d: any) => d.assignedToId === authUser.id)
-            teamMembers = members.filter((m: any) => m.id === authUser.id)
+        if (actor.role === "TEAM_MEMBER") {
+            filteredDeals = filteredDeals.filter((d: any) => d.assignedToId === actor.id)
+            teamMembers = members.filter((m: any) => m.id === actor.id)
         } else {
             teamMembers = members
         }

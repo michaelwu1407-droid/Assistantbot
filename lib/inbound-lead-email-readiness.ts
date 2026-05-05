@@ -35,8 +35,10 @@ export type InboundLeadEmailReadiness = {
   ready: boolean;
   domain: string;
   issues: string[];
+  warnings: string[];
   dnsMxHosts: string[];
   dnsReady: boolean;
+  resendDomainStatus: string | null;
   resendReceivingEnabled: boolean | null;
   resendReceivingRecordStatus: string | null;
   providerVerified: boolean;
@@ -48,6 +50,10 @@ export type InboundLeadEmailReadiness = {
   lastInboundEmailSuccessAt: string | null;
   lastInboundEmailFailureAt: string | null;
 };
+
+function isVerifiedDomainStatus(status: string | null | undefined) {
+  return (status || "").trim().toLowerCase() === "verified";
+}
 
 function toIso(value: Date | null | undefined) {
   return value?.toISOString() || null;
@@ -104,8 +110,10 @@ export async function getInboundLeadEmailReadiness(
 ): Promise<InboundLeadEmailReadiness> {
   const domain = resolveInboundLeadDomain(configuredDomain).toLowerCase();
   const issues: string[] = [];
+  const warnings: string[] = [];
   let dnsMxHosts: string[] = [];
   let dnsReady = false;
+  let resendDomainStatus: string | null = null;
   let resendReceivingEnabled: boolean | null = null;
   let resendReceivingRecordStatus: string | null = null;
   let providerVerified = false;
@@ -172,8 +180,10 @@ export async function getInboundLeadEmailReadiness(
       ready: false,
       domain,
       issues: Array.from(new Set(issues)),
+      warnings: Array.from(new Set(warnings)),
       dnsMxHosts,
       dnsReady,
+      resendDomainStatus,
       resendReceivingEnabled,
       resendReceivingRecordStatus,
       providerVerified,
@@ -194,25 +204,49 @@ export async function getInboundLeadEmailReadiness(
     if (!exactDomain) {
       issues.push(`Configured inbound domain ${domain} is not configured in Resend.`);
     } else {
+      resendDomainStatus = exactDomain.status || null;
       resendReceivingEnabled = exactDomain.capabilities?.receiving === "enabled";
       if (!resendReceivingEnabled) {
         issues.push(`Resend receiving is not enabled for ${domain}.`);
       }
 
-      const detail = await fetchResendDomainDetail(resendKey, exactDomain.id);
-      const receivingRecord =
-        detail.records?.find((record) => (record.record || "").toLowerCase() === "receiving") ||
-        detail.records?.find((record) => isInboundMxHost(record.value || ""));
+      try {
+        const detail = await fetchResendDomainDetail(resendKey, exactDomain.id);
+        const receivingRecord =
+          detail.records?.find((record) => (record.record || "").toLowerCase() === "receiving") ||
+          detail.records?.find((record) => isInboundMxHost(record.value || ""));
 
-      resendReceivingRecordStatus = receivingRecord?.status || null;
-      providerVerified = resendReceivingEnabled === true && (receivingRecord?.status || "").toLowerCase() === "verified";
-      if (!providerVerified) {
-        issues.push(`Resend inbound receiving record for ${domain} is not verified.`);
+        resendReceivingRecordStatus = receivingRecord?.status || null;
+        providerVerified =
+          resendReceivingEnabled === true &&
+          (receivingRecord?.status || "").toLowerCase() === "verified";
+        if (!providerVerified) {
+          issues.push(`Resend inbound receiving record for ${domain} is not verified.`);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unknown Resend verification failure";
+        if (message.includes("HTTP 429") && resendReceivingEnabled && isVerifiedDomainStatus(resendDomainStatus)) {
+          providerVerified = true;
+          resendReceivingRecordStatus = "rate_limited_assumed_verified";
+          warnings.push(
+            `Resend admin verification is rate-limited: ${message}. Using the verified domain summary for ${domain} for now.`,
+          );
+        } else {
+          throw error;
+        }
       }
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown Resend verification failure";
-    issues.push(`Inbound email receiving verification failed: ${message}`);
+    if (message.includes("HTTP 429")) {
+      const recentTrafficSuffix =
+        recentInboundEmailSuccessCount > 0
+          ? " Recent inbound email traffic has still been observed."
+          : "";
+      issues.push(`Resend admin verification is rate-limited: ${message}.${recentTrafficSuffix}`);
+    } else {
+      issues.push(`Resend admin verification failed: ${message}`);
+    }
   }
 
   const receivingConfirmed = recentInboundEmailSuccessCount > 0;
@@ -221,8 +255,10 @@ export async function getInboundLeadEmailReadiness(
     ready: issues.length === 0,
     domain,
     issues: Array.from(new Set(issues)),
+    warnings: Array.from(new Set(warnings)),
     dnsMxHosts,
     dnsReady,
+    resendDomainStatus,
     resendReceivingEnabled,
     resendReceivingRecordStatus,
     providerVerified,

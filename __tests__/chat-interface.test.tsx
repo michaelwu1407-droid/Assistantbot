@@ -3,7 +3,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ChatInterface } from "@/components/chatbot/chat-interface";
-import { getChatHistory } from "@/actions/chat-actions";
+import { getChatHistory, getDailyDigest } from "@/actions/chat-actions";
 
 vi.mock("@ai-sdk/react", async () => {
   const React = await import("react");
@@ -122,5 +122,45 @@ describe("ChatInterface", () => {
 
     expect(screen.getByText("Test message")).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Message" })).toHaveValue("");
+  });
+
+  it("opens the morning briefing modal with clean user-facing separators", async () => {
+    sessionStorage.setItem(`chatMessages:test-workspace`, JSON.stringify([
+      {
+        id: "msg_1",
+        role: "assistant",
+        content: "☀️ Morning Briefing: 2 jobs need attention",
+      },
+    ]));
+    vi.mocked(getDailyDigest).mockResolvedValue({
+      kind: "morning",
+      agentMode: "DRAFT",
+      digest: {
+        greeting: "Morning",
+        date: "11 Apr 2026",
+        totalPipelineValue: 1200,
+        topActions: ["Call stale jobs", "Review invoices"],
+        items: [
+          {
+            type: "stale_deal",
+            priority: 2,
+            title: "Blocked Drain is going stale",
+            description: "$1,200 deal with Alex - no activity in 9 days.",
+            dealId: "deal_1",
+            contactId: "contact_1",
+            value: 1200,
+          },
+        ],
+      },
+    });
+    const user = userEvent.setup();
+    render(<ChatInterface workspaceId="test-workspace" />);
+
+    await user.click(await screen.findByRole("button", { name: /morning briefing/i }));
+
+    expect(await screen.findByRole("heading", { name: "Morning Briefing - 11 Apr 2026" })).toBeInTheDocument();
+    expect(screen.getByText(/Pipeline value: \$1,200 - Top actions:/i)).toBeInTheDocument();
+    expect(screen.getByText(/draft follow-ups for stale jobs - ask me/i)).toBeInTheDocument();
+    expect(screen.queryByText(/â|Â|—|–|·/)).not.toBeInTheDocument();
   });
 });

@@ -32,19 +32,21 @@ If any other doc, comment, or code conflicts with this file, this file wins.
 - **Deploy triage boundary**: If `journalctl -u ssh` shows accepted GitHub publickey sessions for `ubuntu`, stop debugging OCI ingress and host-firewall reachability. The remaining blocker is in the remote non-interactive shell/runtime path after login.
 - **Deploy shell rule**: GitHub Actions deploy commands must not depend on `.bashrc`, `.profile`, prompt setup, or other interactive shell initialization. Bootstrap `PATH`, `node`, `npm`, `sudo`, `docker`, and `docker compose` access explicitly in remote non-interactive shells.
 - **Deployment staging path**: The GitHub Actions worker deploy uploads a tarball to `/tmp/earlymark-agent-deploy-${GITHUB_SHA}.tgz`, installs it into a staged `/opt/earlymark-worker.release-${GITHUB_SHA}` directory, and only then swaps it into `/opt/earlymark-worker`.
-- **Current process model**: Docker is the standardized deployment architecture for both the LiveKit core voice infrastructure under `/opt/livekit` (LiveKit, Redis, Caddy, SIP) and the Earlymark voice workers under `/opt/earlymark-worker` via Docker Compose.
+- **Current process model**: The Earlymark voice workers run under Docker Compose at `/opt/earlymark-worker`. The current production LiveKit core stack is mixed: Dockerized LiveKit server + SIP use bind mounts rooted at `/home/ubuntu/livekit/live.earlymark.ai`, while TLS termination (`caddy`) and Redis currently run as host services. Do not treat `/opt/livekit` as a safe Docker bind-mount root on this host.
 - **Canonical worker env**: The active worker env lives at `/opt/earlymark-worker-shared/.env.local`. Do not treat `/opt/earlymark-agent/.env.local` as a supported fallback anymore.
 - **Legacy split-worker units**: The old `tracey-sales-agent` and `tracey-customer-agent` unit files have been retired from the repo. The deploy workflow still disables and removes any lingering host copies of those units so legacy `/opt/tracey-agent` drift cannot reclaim the worker path.
 - **Automation model**: GitHub Actions deploys `livekit-agent/**` by packaging the worker runtime plus `ops/docker/worker-compose.yml`, copying them to the OCI host, validating and installing the staged worker release first, then swapping it into `/opt/earlymark-worker` and recreating the `earlymark-sales-agent` plus `earlymark-customer-agent` containers via Docker Compose. If heartbeat, drift, launch-readiness, or spoken-canary verification fails, the workflow rolls back to `/opt/earlymark-worker.prev`.
 - **Deploy verification**: The workflow verifies deploy convergence through Docker container health, `/api/internal/voice-fleet-health`, `/api/internal/customer-agent-drift`, `/api/internal/launch-readiness`, and the deploy/recovery spoken probe. When verification fails, inspect Docker container state and logs first.
 - **Heartbeat target**: Worker heartbeats post to `${NEXT_PUBLIC_APP_URL || APP_URL}/api/internal/voice-agent-status`. In production the worker now fails fast if neither `NEXT_PUBLIC_APP_URL` nor `APP_URL` is set, so `ECONNREFUSED 127.0.0.1:3000` should no longer appear as a silent production fallback.
-- **Core containers**: `livekit-livekit-1`, `livekit-redis-1`, `livekit-caddy-1`, and `livekit-sip`.
+- **Core containers/services**: Docker containers `livekit-livekit-1` and `livekit-sip`, plus host services for Caddy and Redis.
 - **Restart policy**: Core containers use `--restart always` so they survive OCI reboots.
 - **Primary SIP log source**: `sudo docker logs -f livekit-sip`
 - **Primary agent log source**: `sudo docker logs --tail 120 earlymark-sales-agent` and `sudo docker logs --tail 120 earlymark-customer-agent`
-- **LiveKit config file**: `/etc/livekit.yaml`
+- **LiveKit config path (container mount source)**: `/home/ubuntu/livekit/live.earlymark.ai/livekit.yaml`
+- **LiveKit SIP config path (container mount source)**: `/home/ubuntu/livekit/live.earlymark.ai/sip.yaml`
 - **LiveKit API key**: `APIAooiVTvuVU3w`
 - **Local LiveKit URL**: `http://localhost:7880` for CLI commands and agent connections on the box.
+- **Host caveat**: The OCI machine currently uses Snap Docker. Dead/created core containers that report `mkdir /opt/livekit: read-only file system` are usually Snap bind-mount failures against `/opt/livekit`, not a genuinely read-only root disk.
 - **RTC ports**: TCP `7881`, UDP `50000-60000`
 - **TURN**: enabled on `turn.earlymark.ai` with TLS `5349` and UDP `3478`
 - **Twilio trunk ID**: `TK9bdf6eb5a95851bb351be8b521287033`

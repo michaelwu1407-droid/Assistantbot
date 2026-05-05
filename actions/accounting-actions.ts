@@ -40,6 +40,18 @@ async function getAccountingToken(workspaceId: string, provider: "XERO" | "MYOB"
   }
 }
 
+async function logXeroDraftSkipped(params: { dealId: string; contactId?: string | null; reason: string }) {
+  await db.activity.create({
+    data: {
+      type: "NOTE",
+      title: "Xero Draft Invoice Skipped",
+      content: params.reason,
+      dealId: params.dealId,
+      contactId: params.contactId ?? undefined,
+    },
+  }).catch(() => {});
+}
+
 // ─── Xero Sync ──────────────────────────────────────────────────────
 
 /**
@@ -257,6 +269,11 @@ export async function createXeroDraftInvoice(
 
   const token = await getAccountingToken(deal.workspace.id, "XERO");
   if (!token) {
+    await logXeroDraftSkipped({
+      dealId,
+      contactId: deal.contactId,
+      reason: "Xero is not connected. Local invoice was created, but no Xero draft was pushed.",
+    });
     return { success: false, error: "Xero not connected. Please connect Xero in Settings." };
   }
 
@@ -309,6 +326,11 @@ export async function createXeroDraftInvoice(
     if (!response.ok) {
       const errBody = await response.text();
       console.error("Xero Draft API Error:", errBody);
+      await logXeroDraftSkipped({
+        dealId,
+        contactId: deal.contactId,
+        reason: `Xero rejected the draft invoice sync (${response.status} ${response.statusText}). Local invoice remains in Earlymark.`,
+      });
       return { success: false, error: `Xero API rejected request: ${response.statusText}` };
     }
 
@@ -329,6 +351,11 @@ export async function createXeroDraftInvoice(
     return { success: true, externalId, provider: "xero" };
   } catch (error) {
     console.error("Xero Draft Sync Exception:", error);
+    await logXeroDraftSkipped({
+      dealId,
+      contactId: deal.contactId,
+      reason: "Xero draft sync failed because Earlymark could not reach Xero. Local invoice remains in Earlymark.",
+    });
     return { success: false, error: "Network error connecting to Xero" };
   }
 }

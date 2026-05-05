@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
 import {
     Dialog,
@@ -15,7 +16,7 @@ import { completeJob, finalizeJobCompletion, generateQuote } from "@/actions/tra
 import { updateDeal } from "@/actions/deal-actions";
 import { createXeroDraftInvoice } from "@/actions/accounting-actions";
 import { toast } from "sonner";
-import { CheckCircle2, Star, Send, Receipt, CreditCard, PenLine, User, Upload, X, Clock, Wrench, Plus, Trash2, FileText } from "lucide-react";
+import { CheckCircle2, Star, Send, Receipt, CreditCard, PenLine, User, Clock, Wrench, Plus, Trash2, FileText, ExternalLink } from "lucide-react";
 import { MessageActionSheet } from "@/components/sms/message-action-sheet";
 import { MaterialPicker } from "@/components/tradie/material-picker";
 import { SignaturePad } from "@/components/tradie/signature-pad";
@@ -37,7 +38,6 @@ interface JobCompletionModalProps {
 
 export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess }: JobCompletionModalProps) {
     const [signature, setSignature] = useState<string | null>(null);
-    const [files, setFiles] = useState<File[]>([]);
     const [isPaid, setIsPaid] = useState(false);
     const [notes, setNotes] = useState("");
     const [loading, setLoading] = useState(false);
@@ -122,7 +122,12 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
             // 3. Generate internal invoice from verified line items
             const lineItems = buildLineItems();
             if (lineItems.length > 0) {
-                await generateQuote(dealId, lineItems);
+                const quoteResult = await generateQuote(dealId, lineItems);
+                if (!quoteResult.success) {
+                    toast.error(quoteResult.error || "Failed to create the local invoice");
+                    setLoading(false);
+                    return;
+                }
             }
 
             // 4. Ensure deal is WON (completed)
@@ -155,7 +160,6 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
         onOpenChange(false);
         setCompleted(false);
         setSignature(null);
-        setFiles([]);
         setMaterials([]);
     };
 
@@ -164,17 +168,9 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
         if (!isOpen) {
             setCompleted(false);
             setSignature(null);
-            setFiles([]);
             setMaterials([]);
         }
     };
-
-    const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const chosen = e.target.files;
-        if (chosen) setFiles((prev) => [...prev, ...Array.from(chosen)]);
-        e.target.value = "";
-    };
-    const removeFile = (index: number) => setFiles((prev) => prev.filter((_, i) => i !== index));
 
     return (
         <>
@@ -330,36 +326,23 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                     />
                                 </div>
 
-                                {/* Upload photos or files */}
-                                <div>
-                                    <label className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-2">
-                                        <Upload className="h-4 w-4" />
-                                        Upload photos or files
-                                    </label>
-                                    <input
-                                        type="file"
-                                        multiple
-                                        accept="image/*,.pdf,.doc,.docx"
-                                        onChange={onFileChange}
-                                        className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
-                                    />
-                                    {files.length > 0 && (
-                                        <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
-                                            {files.map((f, i) => (
-                                                <div key={i} className="flex items-center justify-between text-xs bg-slate-50 rounded-lg px-2 py-1.5">
-                                                    <span className="truncate">{f.name}</span>
-                                                    <button type="button" onClick={() => removeFile(i)} className="p-0.5 rounded hover:bg-slate-200 text-slate-500">
-                                                        <X className="h-3.5 w-3.5" />
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                    {files.length > 0 && (
-                                        <Button type="button" variant="ghost" size="sm" className="mt-2 text-xs" onClick={() => setFiles([])}>
-                                            Clear all
-                                        </Button>
-                                    )}
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+                                    <div>
+                                        <label className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-2">
+                                            <FileText className="h-4 w-4 text-slate-500" />
+                                            Job Photos
+                                        </label>
+                                        <p className="text-sm text-slate-600 leading-relaxed">
+                                            Capture site photos from full job mode so they save against the right job before billing and office follow-up.
+                                        </p>
+                                    </div>
+                                    <Link
+                                        href={`/tradie/jobs/${dealId}`}
+                                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition-colors hover:bg-slate-100"
+                                    >
+                                        Open Full Job Mode
+                                        <ExternalLink className="h-4 w-4" />
+                                    </Link>
                                 </div>
 
                                 {/* Customer Signature */}
@@ -418,7 +401,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                 </div>
                                 <DialogTitle className="text-center">Send Feedback Request?</DialogTitle>
                                 <DialogDescription className="text-center">
-                                    Job complete! Send the client a feedback request via SMS or email?
+                                    Job complete. Review the ready-to-send feedback request before it goes out to the client.
                                 </DialogDescription>
                             </DialogHeader>
 
@@ -428,14 +411,14 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                     className="bg-amber-500 hover:bg-amber-600 text-white w-full gap-2"
                                 >
                                     <Send className="h-4 w-4" />
-                                    Preview & Send Message
+                                    Review feedback request
                                 </Button>
                                 <Button
                                     variant="ghost"
                                     onClick={handleSkipReview}
                                     className="w-full text-slate-500"
                                 >
-                                    Skip for now
+                                    I&apos;ll do this later
                                 </Button>
                             </DialogFooter>
                         </>

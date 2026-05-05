@@ -2,18 +2,18 @@
 
 import Image from "next/image";
 import dynamic from "next/dynamic";
-import { useState, useEffect, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
+import { motion } from "framer-motion";
 import {
-    ArrowRight, ChevronLeft, ChevronRight, ChevronDown,
-    Phone, MessageSquare, Calendar, MapPin, Users,
-    BarChart3, Bot, ToggleRight, ToggleLeft, Mail, CheckCircle2,
+    ArrowRight, ChevronDown,
+    Phone, Calendar, MapPin, Users, UsersRound,
+    BarChart3, CheckCircle2, MessageSquare, Layers, FileText,
+    Inbox, ShieldCheck, Globe, Sparkles, Receipt,
 } from "lucide-react";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
 import { Button } from "@/components/ui/button";
 import { requestDemoCall } from "@/actions/demo-call-action";
-import { EARLYMARK_SALES_PILLARS } from "@/livekit-agent/earlymark-sales-brief";
 
 const HeroDashboardReel = dynamic(
     () => import("@/components/home/hero-dashboard-reel").then((mod) => mod.HeroDashboardReel),
@@ -35,6 +35,24 @@ const PulsingLogo = dynamic(
     },
 );
 
+const AutonomyModeTabs = dynamic(
+    () => import("@/components/home/autonomy-mode-tabs").then((mod) => mod.AutonomyModeTabs),
+    {
+        loading: () => (
+            <div className="mx-auto w-full max-w-4xl h-56 rounded-2xl bg-slate-100 animate-pulse" />
+        ),
+    },
+);
+
+const PlatformDiagram = dynamic(
+    () => import("@/components/home/platform-diagram").then((mod) => mod.PlatformDiagram),
+    {
+        loading: () => (
+            <div className="mx-auto h-72 w-full max-w-5xl animate-pulse rounded-2xl bg-slate-100" />
+        ),
+    },
+);
+
 // ─── Animation helpers ────────────────────────────────────────────────────────
 
 const fadeUp = (delay = 0) => ({
@@ -48,255 +66,58 @@ const EASE_STANDARD: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
 // ─── Static data ──────────────────────────────────────────────────────────────
 
-const OLD_WAY = [
-    { icon: "📞", label: "Customer calls" },
-    { icon: "⏸️", label: "Pause what you're doing, play phone tag, miss out" },
-    { icon: "📖", label: "Waste time explaining services & availability" },
-    { icon: "📅", label: "Manually find time and book the job" },
-    { icon: "🔧", label: "Get on the tools" },
-    { icon: "💸", label: "Chase payment and risk a bad review" },
-];
-
-const TRACEY_WAY = [
-    { icon: "📞", label: "Customer calls" },
-    { icon: "🤖", label: "Tracey picks up 24/7, qualifies the lead, and books the job" },
-    { icon: "🔧", label: "Get on the tools" },
-    { icon: "💰", label: "Tracey sends the invoice, follows up, and asks for a review" },
-];
-
-const HIRE_FEATURES = [
-    {
-        title: EARLYMARK_SALES_PILLARS[0]?.title || "Never miss a job again",
-        desc: EARLYMARK_SALES_PILLARS[0]?.description || "Tracey answers every call 24/7, qualifies the lead, and books the job straight into your calendar — so you never lose work while you're on the tools.",
-        eyebrow: "Lead capture",
-        bullets: ["Answers every call, day or night", "Books jobs and syncs to your calendar", "Logs every lead straight to your CRM"],
-    },
-    {
-        title: EARLYMARK_SALES_PILLARS[1]?.title || "No more admin. Chat with your CRM.",
-        desc: EARLYMARK_SALES_PILLARS[1]?.description || "No more fiddling with complex CRMs — just tell Tracey what you want and she'll run it for you.",
-        eyebrow: "Operations",
-        bullets: ["Chat to update any job in seconds", "Query revenue, pipeline, or schedule", "No forms, no manual data entry"],
-    },
-    {
-        title: EARLYMARK_SALES_PILLARS[2]?.title || "Follow-up that actually happens",
-        desc: EARLYMARK_SALES_PILLARS[2]?.description || "Tracey automatically follows up on unconfirmed quotes, sends booking reminders, and asks for feedback after every completed job.",
-        eyebrow: "Customer experience",
-        bullets: ["Automated quote follow-up sequences", "Booking reminders via SMS", "Post-job feedback requests"],
-    },
-    {
-        title: EARLYMARK_SALES_PILLARS[3]?.title || "Total control",
-        desc: EARLYMARK_SALES_PILLARS[3]?.description || "You decide how much autonomy Tracey has. Set approval rules, customize responses, and maintain full oversight of every customer interaction.",
-        eyebrow: "Oversight",
-        bullets: ["Choose Execution, Draft, or Info-only mode", "Review every conversation", "Adjust Tracey's behaviour anytime"],
-    },
-];
-
 const FEATURE_CARDS = [
+    { icon: Inbox,         title: "Unified inbox",         desc: "Calls, SMS, email & WhatsApp in one timeline" },
+    { icon: Users,         title: "Contacts",              desc: "Every customer record auto-enriched as Tracey works" },
+    { icon: Layers,        title: "Jobs pipeline",         desc: "Drag-and-drop Kanban with team-member filtering" },
+    { icon: Receipt,       title: "Quotes & Xero invoices",desc: "On-site signatures, draft invoices filed to Xero" },
+    { icon: Calendar,      title: "Smart scheduling",      desc: "Calendar sync, travel-aware booking, reminders" },
+    { icon: MapPin,        title: "Job map",               desc: "See today's jobs by location and route" },
+    { icon: ShieldCheck,   title: "Lead qualification",    desc: "Tracey triages leads against your no-go rules" },
+    { icon: Sparkles,      title: "Actionable alerts",     desc: "Approve, confirm or reply right from the notification" },
+    { icon: Globe,         title: "Customer portal",       desc: "Token-secured page where customers track their job" },
+    { icon: UsersRound,    title: "Team management",       desc: "Invites, roles and per-member workload" },
+    { icon: BarChart3,     title: "Revenue analytics",     desc: "Pipeline trends and revenue breakdowns by range" },
+    { icon: MessageSquare, title: "In-app AI chat",        desc: "Ask Tracey anything — or run the CRM by chat" },
+];
+
+const TRACEY_WORKFLOW = [
     {
+        label: "Customer calls",
         icon: Phone,
-        title: "AI Receptionist",
-        desc: "Calls, texts, and emails — Tracey handles conversations across every channel, 24/7.",
+        points: [
+            "Answers every call 24/7 — no voicemail, no missed jobs",
+            "Qualifies the lead and explains your services automatically",
+            "Books into your calendar and logs every detail to your CRM",
+        ],
     },
     {
-        icon: MessageSquare,
-        title: "Automated CRM",
-        desc: "Tell Tracey what you need. She logs jobs, moves deals, and keeps your pipeline moving — no manual entry.",
-    },
-    {
+        label: "While you work",
         icon: Calendar,
-        title: "Smart Scheduling",
-        desc: "Tracey checks your calendar, books jobs into open slots, and clusters nearby jobs on the same day.",
+        points: [
+            "Clusters nearby jobs to cut drive time",
+            "Handles calls, SMS, and emails while you're on the tools",
+            "Moves jobs through your pipeline as work progresses",
+        ],
     },
     {
-        icon: MapPin,
-        title: "Job Map",
-        desc: "See all your scheduled jobs on a live map — know where your crew is and what's coming up.",
-    },
-    {
-        icon: Users,
-        title: "Team Management",
-        desc: "Assign jobs, set permissions, and keep everyone aligned — all through simple chat commands.",
-    },
-    {
-        icon: BarChart3,
-        title: "Revenue Analytics",
-        desc: "Track earnings, job counts, and close rates at a glance. Know exactly how your business is performing.",
+        label: "After the job",
+        icon: CheckCircle2,
+        points: [
+            "Sends the invoice and follows up on payment automatically",
+            "Chases unconfirmed quotes before they go cold",
+            "Asks for a review — and logs the response",
+        ],
     },
 ];
 
-const CHAT_DEMO = [
-    {
-        user: "Move the Henderson job to complete",
-        agent: "✅ Done — Henderson Plumbing is now Completed.",
-    },
-    {
-        user: "Book Sarah Johnson in for a hot water system replacement next Tuesday",
-        agent: "📅 Done — Sarah Johnson booked for Tuesday 10am. Confirmation SMS sent. 🎉",
-    },
-    {
-        user: "What's my revenue this month?",
-        agent: "📊 February: $14,280 across 9 completed jobs — up 22% on January. Great month! 🚀",
-    },
-];
-
-// ─── Chat Demo ────────────────────────────────────────────────────────────────
-
-function ChatDemo() {
-    const [step, setStep] = useState(0);
-    const [phase, setPhase] = useState<"idle" | "user" | "typing" | "agent">("idle");
-
-    useEffect(() => {
-        const t1 = setTimeout(() => setPhase("user"), 400);
-        const t2 = setTimeout(() => setPhase("typing"), 1300);
-        const t3 = setTimeout(() => setPhase("agent"), 2700);
-        const t4 = setTimeout(() => setStep((s) => (s + 1) % CHAT_DEMO.length), 5400);
-        return () => [t1, t2, t3, t4].forEach(clearTimeout);
-    }, [step]);
-
-    const current = CHAT_DEMO[step];
-
-    return (
-        <div className="rounded overflow-hidden shadow-2xl bg-white border border-neutral-200 select-none">
-            {/* Browser chrome */}
-            <div className="flex items-center gap-2 px-5 py-3.5 border-b border-neutral-200 bg-neutral-50">
-                <div className="flex gap-1.5">
-                    <span className="w-3 h-3 rounded-full bg-red-400/60 block" />
-                    <span className="w-3 h-3 rounded-full bg-yellow-400/60 block" />
-                    <span className="w-3 h-3 rounded-full bg-green-400/60 block" />
-                </div>
-                <div className="flex-1 flex justify-center">
-                    <div className="bg-neutral-200/60 rounded px-4 py-1 text-[11px] text-neutral-500 font-medium tracking-wide">
-                        earlymark.ai/crm — Tracey Chat
-                    </div>
-                </div>
-            </div>
-
-            {/* Messages */}
-            <div className="px-6 py-8 min-h-[260px] flex flex-col justify-end gap-4 bg-[#F8FAFC]">
-                <AnimatePresence mode="wait">
-                    {phase !== "idle" && (
-                        <motion.div
-                            key={`user-${step}`}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.3 }}
-                            className="flex justify-end"
-                        >
-                            <div className="bg-primary text-white rounded rounded-tr-sm px-4 py-2.5 text-sm max-w-[80%] shadow leading-relaxed">
-                                {current.user}
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-
-                <AnimatePresence mode="wait">
-                    {phase === "typing" && (
-                        <motion.div
-                            key={`typing-${step}`}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0 }}
-                            className="flex items-end gap-2"
-                        >
-                            <div className="w-7 h-7 rounded-full bg-white border border-neutral-200 flex items-center justify-center shrink-0 shadow-sm">
-                                <Image src="/latest-logo.png" alt="" width={16} height={16} className="w-4 h-4 object-contain" unoptimized />
-                            </div>
-                            <div className="bg-white border border-neutral-200 rounded rounded-bl-sm px-4 py-3 flex gap-1.5 items-center shadow-sm">
-                                {[0, 0.18, 0.36].map((d, i) => (
-                                    <motion.span
-                                        key={i}
-                                        className="w-2 h-2 rounded-full bg-neutral-300 block"
-                                        animate={{ y: [0, -6, 0] }}
-                                        transition={{ repeat: Infinity, duration: 0.65, delay: d }}
-                                    />
-                                ))}
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-
-                <AnimatePresence mode="wait">
-                    {phase === "agent" && (
-                        <motion.div
-                            key={`agent-${step}`}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.35 }}
-                            className="flex items-end gap-2"
-                        >
-                            <div className="w-7 h-7 rounded-full bg-white border border-neutral-200 flex items-center justify-center shrink-0 shadow-sm">
-                                <Image src="/latest-logo.png" alt="" width={16} height={16} className="w-4 h-4 object-contain" unoptimized />
-                            </div>
-                            <div className="bg-white border border-neutral-200 text-neutral-800 rounded rounded-bl-sm px-4 py-2.5 text-sm max-w-[80%] leading-relaxed shadow-sm">
-                                {current.agent}
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
-
-            {/* Step dots */}
-            <div className="flex justify-center gap-2 pb-5 pt-3 bg-white border-t border-neutral-100">
-                {CHAT_DEMO.map((_, i) => (
-                    <button
-                        key={i}
-                        onClick={() => setStep(i)}
-                        className={`h-1.5 rounded-full transition-all duration-300 ${i === step ? "w-5 bg-primary" : "w-1.5 bg-neutral-300"}`}
-                    />
-                ))}
-            </div>
-        </div>
-    );
-}
-
-// ─── Feature Carousel ─────────────────────────────────────────────────────────
-
-// ── Inline product mockups for Hire Tracey section ───────────────────────────
-
-function HireMockup0() {
-    // Lead capture — mini kanban "New request" column
-    const cards = [
-        { title: "Hot water replacement", client: "Mrs Henderson", value: "$1,400", time: "Just now" },
-        { title: "Bathroom renovation", client: "T. Nguyen", value: "$8,200", time: "12m ago" },
-        { title: "Fence repair quote", client: "B. Clarke", value: "$2,400", time: "1h ago" },
-    ];
-    return (
-        <div className="h-full flex flex-col bg-[#F8FAFC] p-4 gap-3">
-            <div className="flex items-center gap-2 mb-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                <span className="text-xs font-bold text-slate-800">New requests</span>
-                <span className="ml-auto text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">{cards.length} new</span>
-            </div>
-            {cards.map((c, i) => (
-                <div key={i} className="bg-white rounded border border-neutral-200 border-l-4 border-l-blue-500 px-4 py-3 shadow-sm">
-                    <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-slate-800 truncate">{c.title}</p>
-                            <p className="text-xs text-slate-500 mt-0.5">{c.client}</p>
-                        </div>
-                        <div className="shrink-0 text-right">
-                            <p className="text-sm font-bold text-blue-600">{c.value}</p>
-                            <p className="text-[10px] text-slate-400 mt-0.5">{c.time}</p>
-                        </div>
-                    </div>
-                    <div className="mt-2 flex items-center gap-1.5">
-                        <Image src="/latest-logo.png" alt="" width={12} height={12} className="w-3 h-3 object-contain" unoptimized />
-                        <span className="text-[10px] text-emerald-600 font-medium">Tracey answered · logged to CRM</span>
-                    </div>
-                </div>
-            ))}
-        </div>
-    );
-}
+// ─── CRM Chat Mockup ──────────────────────────────────────────────────────────
 
 function HireMockup1() {
-    // Operations — chat with CRM
     const messages = [
-        { from: "user", text: "Schedule the Smith job for Friday" },
+        { from: "user",   text: "Schedule the Smith job for Friday" },
         { from: "tracey", text: "Done! Scheduled for Friday 9am. Confirmation SMS sent to Sarah Smith. ✅" },
-        { from: "user", text: "What's my revenue this week?" },
+        { from: "user",   text: "What's my revenue this week?" },
         { from: "tracey", text: "$8,450 across 4 completed jobs. Up 12% vs last week 📈" },
     ];
     return (
@@ -316,204 +137,14 @@ function HireMockup1() {
                                 <Image src="/latest-logo.png" alt="" width={12} height={12} className="w-3 h-3 object-contain" unoptimized />
                             </div>
                         )}
-                        <div className={`rounded px-3 py-2 text-xs leading-relaxed max-w-[80%] ${m.from === "user" ? "bg-primary text-white rounded-tr-sm" : "bg-white border border-neutral-200 text-neutral-800 rounded-bl-sm shadow-sm"}`}>
+                        <div className={`rounded px-3 py-2 text-xs leading-relaxed max-w-[80%] ${
+                            m.from === "user"
+                                ? "bg-primary text-white rounded-tr-sm"
+                                : "bg-white border border-neutral-200 text-neutral-800 rounded-bl-sm shadow-sm"
+                        }`}>
                             {m.text}
                         </div>
                     </div>
-                ))}
-            </div>
-        </div>
-    );
-}
-
-function HireMockup2() {
-    // Customer experience — inbox feed
-    const items = [
-        { icon: Phone, color: "#3B82F6", bg: "#EFF6FF", label: "Tracey answered call", detail: "Kitchen reno · Mrs Wilson · $4,200", badge: "Booked" },
-        { icon: MessageSquare, color: "#00D28B", bg: "#E0FAF2", label: "SMS follow-up sent", detail: "Deck build · J. Morrison — awaiting reply", badge: "Sent" },
-        { icon: Mail, color: "#8B5CF6", bg: "#F5F3FF", label: "Quote emailed", detail: "Hot water · Henderson · $1,400", badge: "Delivered" },
-        { icon: CheckCircle2, color: "#6B7280", bg: "#F3F4F6", label: "Payment reminder sent", detail: "Fence repair · B. Clarke · $2,400", badge: "Chasing" },
-    ];
-    return (
-        <div className="h-full flex flex-col bg-white">
-            <div className="px-4 py-3 border-b border-neutral-200 flex items-center justify-between">
-                <div>
-                    <p className="text-xs font-bold text-neutral-900">Customer Inbox</p>
-                    <p className="text-[10px] text-neutral-500">Tracey-handled interactions</p>
-                </div>
-                <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">Live</span>
-            </div>
-            <div className="flex-1 flex flex-col divide-y divide-neutral-100">
-                {items.map((item, i) => {
-                    const Icon = item.icon;
-                    return (
-                        <div key={i} className="flex items-start gap-3 px-4 py-3">
-                            <div className="w-8 h-8 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: item.bg }}>
-                                <Icon className="w-4 h-4" style={{ color: item.color }} />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-xs font-semibold text-neutral-800">{item.label}</p>
-                                <p className="text-[10px] text-neutral-500 truncate mt-0.5">{item.detail}</p>
-                            </div>
-                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0" style={{ color: item.color, backgroundColor: item.bg }}>
-                                {item.badge}
-                            </span>
-                        </div>
-                    );
-                })}
-            </div>
-        </div>
-    );
-}
-
-function HireMockup3() {
-    // Oversight — settings panel
-    const settings = [
-        { label: "Auto-respond to incoming calls", on: true },
-        { label: "Require approval for quotes", on: true },
-        { label: "Send payment follow-up reminders", on: true },
-        { label: "Auto-close stale jobs after 30 days", on: false },
-    ];
-    return (
-        <div className="h-full flex flex-col bg-[#F8FAFC] p-4 gap-3">
-            <div className="mb-1">
-                <p className="text-xs font-bold text-slate-800">Tracey permissions</p>
-                <p className="text-[10px] text-slate-500 mt-0.5">Control exactly what Tracey can do</p>
-            </div>
-            {settings.map((s, i) => (
-                <div key={i} className="flex items-center justify-between bg-white border border-neutral-200 rounded px-4 py-3 shadow-sm">
-                    <span className="text-xs font-medium text-slate-700 pr-4">{s.label}</span>
-                    <div className={`w-10 h-5 rounded-full flex items-center px-0.5 shrink-0 transition-colors ${s.on ? "bg-emerald-500 justify-end" : "bg-neutral-300 justify-start"}`}>
-                        <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
-                    </div>
-                </div>
-            ))}
-            <div className="mt-1 flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded px-4 py-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span className="text-[11px] text-emerald-700 font-medium">All changes synced to Tracey instantly</span>
-            </div>
-        </div>
-    );
-}
-
-const HIRE_MOCKUPS = [HireMockup0, HireMockup1, HireMockup2, HireMockup3];
-
-function HireFeatureGrid() {
-    return (
-        <div className="mt-4 flex flex-col gap-20">
-            {HIRE_FEATURES.map((feature, i) => {
-                const isEven = i % 2 === 0;
-                const Mockup = HIRE_MOCKUPS[i];
-
-                return (
-                    <motion.div
-                        key={feature.title}
-                        {...fadeUp(i * 0.08)}
-                        className="grid items-center gap-8 md:grid-cols-2"
-                    >
-                        <div className={`flex flex-col gap-4 ${!isEven ? "md:order-2" : "md:order-1"}`}>
-                            <h3 className="text-2xl md:text-3xl font-bold leading-snug text-midnight">{feature.title}</h3>
-                            <p className="text-base leading-relaxed text-slate-body">{feature.desc}</p>
-                            <ul className="flex flex-col gap-2 mt-1">
-                                {feature.bullets.map((b) => (
-                                    <li key={b} className="flex items-center gap-2.5 text-sm text-slate-body">
-                                        <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                                        <span dangerouslySetInnerHTML={{ __html: b }} />
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-
-                        <div className={`relative min-h-[380px] overflow-hidden rounded border border-slate-200 shadow-[0_8px_40px_rgba(15,23,42,0.10)] ${!isEven ? "md:order-1" : "md:order-2"}`}>
-                            {Mockup && <Mockup />}
-                        </div>
-                    </motion.div>
-                );
-            })}
-        </div>
-    );
-}
-
-function FeatureCarousel() {
-    const [idx, setIdx] = useState(0);
-    const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-    const resetTimer = useCallback(() => {
-        if (timerRef.current) clearInterval(timerRef.current);
-        timerRef.current = setInterval(() => {
-            setIdx((i) => (i + 1) % FEATURE_CARDS.length);
-        }, 4000);
-    }, []);
-
-    useEffect(() => {
-        resetTimer();
-        return () => { if (timerRef.current) clearInterval(timerRef.current); };
-    }, [resetTimer]);
-
-    const go = (dir: 1 | -1) => {
-        setIdx((i) => (i + dir + FEATURE_CARDS.length) % FEATURE_CARDS.length);
-        resetTimer();
-    };
-
-    const visible = [
-        FEATURE_CARDS[(idx + FEATURE_CARDS.length - 1) % FEATURE_CARDS.length],
-        FEATURE_CARDS[idx],
-        FEATURE_CARDS[(idx + 1) % FEATURE_CARDS.length],
-    ];
-
-    return (
-        <div className="flex flex-col items-center gap-8">
-            <div className="relative w-full">
-                <button
-                    onClick={() => go(-1)}
-                    className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-5 z-10 w-10 h-10 rounded-full bg-white border border-border shadow-md flex items-center justify-center hover:bg-secondary transition-colors"
-                >
-                    <ChevronLeft className="w-5 h-5 text-midnight" />
-                </button>
-
-                <div className="flex md:grid md:grid-cols-3 gap-4 overflow-x-auto snap-x snap-mandatory hide-scrollbar pb-4 md:pb-0">
-                    {visible.map((feature, i) => {
-                        const Icon = feature.icon;
-                        const isCentre = i === 1;
-                        return (
-                            <motion.div
-                                key={feature.title}
-                                layout
-                                animate={{ opacity: isCentre ? 1 : 0.5, scale: isCentre ? 1 : 0.97 }}
-                                transition={{ duration: 0.4, ease: EASE_STANDARD }}
-                                className={`rounded p-7 flex flex-col gap-4 shrink-0 w-[85vw] md:w-auto snap-center bg-white border ${isCentre ? "border-primary/25 shadow-lg" : "border-border"}`}
-                            >
-                                <div className="w-12 h-12 rounded flex items-center justify-center bg-mint-50">
-                                    <Icon className="w-6 h-6 text-primary" />
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-lg leading-snug text-midnight">
-                                        {feature.title}
-                                    </h3>
-                                    <p className="text-sm mt-2 leading-relaxed text-slate-body">
-                                        {feature.desc}
-                                    </p>
-                                </div>
-                            </motion.div>
-                        );
-                    })}
-                </div>
-
-                <button
-                    onClick={() => go(1)}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-5 z-10 w-10 h-10 rounded-full bg-white border border-border shadow-md flex items-center justify-center hover:bg-secondary transition-colors"
-                >
-                    <ChevronRight className="w-5 h-5 text-midnight" />
-                </button>
-            </div>
-
-            <div className="flex gap-2">
-                {FEATURE_CARDS.map((_, i) => (
-                    <button
-                        key={i}
-                        onClick={() => { setIdx(i); resetTimer(); }}
-                        className={`h-1.5 rounded-full transition-all duration-300 ${i === idx ? "w-6 bg-primary" : "w-1.5 bg-border"}`}
-                    />
                 ))}
             </div>
         </div>
@@ -525,6 +156,26 @@ function FeatureCarousel() {
 const INPUT_CLASS =
     "w-full px-4 py-2.5 rounded border border-border text-sm text-midnight placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white transition";
 
+const DEMO_CALL_TIMEOUT_MS = 30_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+            reject(new Error("timeout"));
+        }, ms);
+        promise.then(
+            (value) => {
+                clearTimeout(timer);
+                resolve(value);
+            },
+            (error) => {
+                clearTimeout(timer);
+                reject(error);
+            },
+        );
+    });
+}
+
 function InterviewForm() {
     const [form, setForm] = useState({ firstName: "", lastName: "", phone: "", email: "", businessName: "" });
     const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -532,14 +183,27 @@ function InterviewForm() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (status === "loading") return;
         setStatus("loading");
-        const result = await requestDemoCall(form);
-        if (result.success) {
-            setStatus("success");
-            setMessage(result.message);
-        } else {
+        setMessage("");
+        try {
+            const result = await withTimeout(requestDemoCall(form), DEMO_CALL_TIMEOUT_MS);
+            if (result.success) {
+                setStatus("success");
+                setMessage(result.message);
+            } else {
+                setStatus("error");
+                setMessage(result.error);
+            }
+        } catch (err) {
             setStatus("error");
-            setMessage(result.error);
+            const isTimeout = err instanceof Error && err.message === "timeout";
+            setMessage(
+                isTimeout
+                    ? "We couldn't reach the voice service in time. Please try again — we still have your details."
+                    : "Something went wrong on our side. Please try again in a moment.",
+            );
+            console.error("[InterviewForm] Demo call request failed", err);
         }
     };
 
@@ -559,47 +223,25 @@ function InterviewForm() {
 
     return (
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-            <div className="grid grid-cols-2 gap-3">
-                <input
-                    required type="text" placeholder="First name"
-                    value={form.firstName}
-                    onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
-                    className={INPUT_CLASS}
-                />
-                <input
-                    required type="text" placeholder="Last name"
-                    value={form.lastName}
-                    onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
-                    className={INPUT_CLASS}
-                />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input required type="text" placeholder="First name"
+                    value={form.firstName} onChange={(e) => setForm((f) => ({ ...f, firstName: e.target.value }))}
+                    className={INPUT_CLASS} />
+                <input required type="text" placeholder="Last name"
+                    value={form.lastName} onChange={(e) => setForm((f) => ({ ...f, lastName: e.target.value }))}
+                    className={INPUT_CLASS} />
             </div>
-            <input
-                required type="tel" placeholder="Phone number"
-                value={form.phone}
-                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                className={INPUT_CLASS}
-            />
-            <input
-                required type="email" placeholder="Email address"
-                value={form.email}
-                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                className={INPUT_CLASS}
-            />
-            <input
-                required type="text" placeholder="Business name"
-                value={form.businessName}
-                onChange={(e) => setForm((f) => ({ ...f, businessName: e.target.value }))}
-                className={INPUT_CLASS}
-            />
-            {status === "error" && (
-                <p className="text-red-500 text-xs">{message}</p>
-            )}
-            <Button
-                type="submit"
-                variant="mint"
-                className="w-full mt-1"
-                disabled={status === "loading"}
-            >
+            <input required type="tel" placeholder="Phone number"
+                value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                className={INPUT_CLASS} />
+            <input required type="email" placeholder="Email address"
+                value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                className={INPUT_CLASS} />
+            <input required type="text" placeholder="Business name"
+                value={form.businessName} onChange={(e) => setForm((f) => ({ ...f, businessName: e.target.value }))}
+                className={INPUT_CLASS} />
+            {status === "error" && <p className="text-red-500 text-xs">{message}</p>}
+            <Button type="submit" variant="mint" className="w-full mt-1" disabled={status === "loading"}>
                 {status === "loading" ? "Calling you now..." : "Interview Tracey for free"}
                 {status !== "loading" && <Phone className="ml-2 h-4 w-4" />}
             </Button>
@@ -610,100 +252,44 @@ function InterviewForm() {
     );
 }
 
-// ─── Process Flow ─────────────────────────────────────────────────────────────
-
-function ProcessFlow({ steps, variant }: { steps: typeof OLD_WAY; variant: "old" | "tracey" }) {
-    const isOld = variant === "old";
-    return (
-        <div className="flex flex-wrap gap-2 items-center">
-            {steps.map((step, i) => (
-                <div key={i} className="flex items-center gap-2">
-                    <div className={`flex items-center gap-2 px-3 py-2 rounded text-xs font-medium leading-snug ${isOld
-                        ? "bg-red-50 text-red-700 border border-red-100"
-                        : "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                        }`}>
-                        <span className="text-sm">{step.icon}</span>
-                        <span>{step.label}</span>
-                    </div>
-                    {i < steps.length - 1 && (
-                        <ArrowRight className={`w-3.5 h-3.5 shrink-0 ${isOld ? "text-red-300" : "text-primary"}`} />
-                    )}
-                </div>
-            ))}
-        </div>
-    );
-}
-
-// ─── Testimonials Section ─────────────────────────────────────────────────────
+// ─── Testimonials ─────────────────────────────────────────────────────────────
 
 const TESTIMONIALS = [
-    {
-        quote: "It picked up while I was on site and the job details were already there when I got back to the ute.",
-        author: "Mark S.",
-        role: "Plumbing Contractor",
-    },
-    {
-        quote: "The follow-ups are the part I notice most. Jobs keep moving without me doing admin at night.",
-        author: "Sarah J.",
-        role: "Electrical Services",
-    },
-    {
-        quote: "Customers get a quick answer instead of voicemail. It makes the business feel more organised straight away.",
-        author: "Dave W.",
-        role: "Landscaping & Design",
-    }
+    { quote: "It picked up while I was on site and the job details were already there when I got back to the ute.", author: "Mark S.", role: "Plumbing Contractor" },
+    { quote: "The follow-ups are the part I notice most. Jobs keep moving without me doing admin at night.", author: "Sarah J.", role: "Electrical Services" },
+    { quote: "Customers get a quick answer instead of voicemail. It makes the business feel more organised straight away.", author: "Dave W.", role: "Landscaping & Design" },
 ];
 
 function TestimonialsCarousel() {
     const slides = [...TESTIMONIALS, ...TESTIMONIALS];
-
+    const Card = ({ t }: { t: typeof TESTIMONIALS[0] }) => (
+        <div className="bg-white rounded p-8 shadow-sm border border-border flex flex-col justify-between">
+            <div>
+                <div className="flex gap-1 mb-4">
+                    {[1,2,3,4,5].map(s => (
+                        <svg key={s} className="w-4 h-4 text-amber-400 fill-current" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                    ))}
+                </div>
+                <p className="text-midnight/80 italic text-[15px] leading-relaxed mb-6">&quot;{t.quote}&quot;</p>
+            </div>
+            <div>
+                <p className="font-bold text-midnight text-sm">{t.author}</p>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">{t.role}</p>
+            </div>
+        </div>
+    );
     return (
         <div className="relative">
-            <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar md:hidden">
-                {TESTIMONIALS.map((t, i) => (
-                    <div key={i} className="shrink-0 w-[84vw] snap-center bg-white rounded p-8 shadow-sm border border-border flex flex-col justify-between">
-                        <div>
-                            <div className="flex gap-1 mb-4">
-                                {[1, 2, 3, 4, 5].map(star => (
-                                    <svg key={star} className="w-4 h-4 text-amber-400 fill-current" viewBox="0 0 20 20">
-                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                    </svg>
-                                ))}
-                            </div>
-                            <p className="text-midnight/80 italic text-[15px] leading-relaxed mb-6">&quot;{t.quote}&quot;</p>
-                        </div>
-                        <div>
-                            <p className="font-bold text-midnight text-sm">{t.author}</p>
-                            <p className="text-xs text-slate-500 font-medium mt-0.5">{t.role}</p>
-                        </div>
-                    </div>
-                ))}
+            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide md:hidden">
+                {TESTIMONIALS.map((t, i) => <div key={i} className="shrink-0 w-[84vw] snap-center"><Card t={t} /></div>)}
             </div>
-
             <div className="relative hidden overflow-hidden md:block">
-                <motion.div
-                    className="flex w-max gap-4"
+                <motion.div className="flex w-max gap-4"
                     animate={{ x: ["0%", "-50%"] }}
-                    transition={{ duration: 26, ease: "linear", repeat: Infinity }}
-                >
-                    {slides.map((t, i) => (
-                        <div key={`${t.author}-${i}`} className="w-[350px] bg-white rounded p-8 shadow-sm border border-border flex flex-col justify-between">
-                            <div>
-                                <div className="flex gap-1 mb-4">
-                                    {[1, 2, 3, 4, 5].map(star => (
-                                        <svg key={star} className="w-4 h-4 text-amber-400 fill-current" viewBox="0 0 20 20">
-                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                        </svg>
-                                    ))}
-                                </div>
-                                <p className="text-midnight/80 italic text-[15px] leading-relaxed mb-6">&quot;{t.quote}&quot;</p>
-                            </div>
-                            <div>
-                                <p className="font-bold text-midnight text-sm">{t.author}</p>
-                                <p className="text-xs text-slate-500 font-medium mt-0.5">{t.role}</p>
-                            </div>
-                        </div>
-                    ))}
+                    transition={{ duration: 26, ease: "linear", repeat: Infinity }}>
+                    {slides.map((t, i) => <div key={`${t.author}-${i}`} className="w-[350px]"><Card t={t} /></div>)}
                 </motion.div>
                 <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-[linear-gradient(90deg,#f8fafc_0%,rgba(248,250,252,0)_100%)]" />
                 <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-[linear-gradient(270deg,#f8fafc_0%,rgba(248,250,252,0)_100%)]" />
@@ -712,99 +298,39 @@ function TestimonialsCarousel() {
     );
 }
 
-const TRACEY_BENEFITS = [
-    {
-        title: "Win more customers",
-        desc: "Tracey answers every call, follows up every lead, and books jobs — so you never miss an opportunity.",
-        icon: Phone,
-    },
-    {
-        title: "Automate customer admin",
-        desc: "No more fiddling with complex CRMs — just tell Tracey what you want and she runs it for you.",
-        icon: MessageSquare,
-    },
-    {
-        title: "Provide a more reliable customer experience",
-        desc: "Provide a professional, consistent experience across every channel — calls, texts, and emails.",
-        icon: CheckCircle2,
-    },
-];
-
-const TRACEY_WORKFLOW = [
-    {
-        label: "Customer calls",
-        icon: Phone,
-        points: [
-            "Tracey picks up 24/7",
-            "Tracey shares the info you've taught it",
-            "Tracey books the job for you",
-        ],
-    },
-    {
-        label: "Get on the tools",
-        icon: Calendar,
-        points: [
-            "Tracey smart schedules nearby jobs together",
-            "Tracey navigates you to the job",
-        ],
-    },
-    {
-        label: "After the job",
-        icon: BarChart3,
-        points: [
-            "Collect payment instantly or Tracey will auto follow up",
-            "Tracey politely asks for a good review",
-        ],
-    },
-];
-
-// ─── FAQ Section ──────────────────────────────────────────────────────────────
+// ─── FAQ ──────────────────────────────────────────────────────────────────────
 
 const FAQ_ITEMS = [
-    { q: "What is Tracey?", a: "Tracey is your AI-powered receptionist, CRM manager, and follow-up specialist built for trade and service businesses. She answers every inbound call 24/7, logs jobs, sends quotes, chases payments, and keeps your pipeline moving — all without you lifting a finger. Think of her as a full-time admin assistant who never sleeps and never misses a message." },
+    { q: "What is Earlymark?", a: "Earlymark is one platform with two halves: an AI voice assistant called Tracey and a CRM that fills itself in. Tracey answers every call and text 24/7, qualifies leads, books jobs and sends quotes — and every conversation she has is logged straight into the CRM as a contact, job, quote or invoice. The CRM gives you the traditional pipeline, scheduling, inbox, invoicing and analytics you'd expect, but you can also run the whole thing by chat or by messaging Tracey on WhatsApp. Built for trade and service businesses who want the admin handled without hiring more staff." },
+    { q: "Who is Tracey?", a: "Tracey is the AI assistant that lives inside Earlymark. She picks up your calls, replies to your texts and WhatsApp messages, qualifies leads against your rules, books jobs into your calendar, sends quotes and invoices, and chases payments. You stay in control: pick draft mode, approval mode, or full auto, and Tracey works within whatever guardrails you set." },
     { q: "How does Tracey answer my calls?", a: "Your business number simply forwards to Tracey when you're unavailable — or always, if you prefer. She answers professionally in your business name, gathers job details, answers common questions about your services and pricing, and logs everything straight into your CRM. She can also provide quotes and book appointments on the spot, based on the rules and availability you've set." },
     { q: "How long does it take to get set up?", a: "Most businesses are live within a day. When you sign up, Tracey interviews you about your business — your services, pricing, availability, and preferences — in a natural conversation. No forms to fill in, no spreadsheets. Once that's done, she's ready to start answering calls and managing your pipeline." },
     { q: "What types of businesses does Earlymark support?", a: "Earlymark is built for any trade or service business — plumbers, electricians, builders, landscapers, cleaners, HVAC technicians, pest controllers, locksmiths, painters, and more. If you're running jobs and need someone to handle the phones and admin, Tracey can help." },
     { q: "Can I control what Tracey does and says?", a: "Absolutely. You're in full control. Set approval rules so Tracey asks before confirming a quote above a certain value. Customise how she introduces herself, what she says about your services, and when she escalates to you. You can review every conversation in your inbox and override anything at any time. Tracey works within the guardrails you set." },
     { q: "Do I need to be tech-savvy to use Earlymark?", a: "Not at all. Earlymark is designed for busy tradies and business owners, not software engineers. You talk to Tracey in plain English — just like texting — and she handles the rest. There's no complex setup, no spreadsheets to fill in, and no training required. If you can send a text message, you can run Earlymark." },
-    { q: "How much does Earlymark cost?", a: "Earlymark Pro is $149/month, or $124/month if billed annually. This covers everything — AI calls, SMS, CRM, scheduling, and your dedicated AU mobile number. Visit our pricing page for a full breakdown." },
+    { q: "How much does Earlymark cost?", a: "Earlymark is A$30/month (or A$24/month billed annually, saving 20%) plus 10¢ per call minute or text — so you only pay for what you use. That covers the full platform: AI calls, SMS, CRM, scheduling, and your dedicated AU mobile number. Visit our pricing page for full details." },
 ];
 
 function FaqSection() {
     const [openIndices, setOpenIndices] = useState<number[]>([]);
-
-    const toggle = (idx: number) => {
-        setOpenIndices((prev) =>
-            prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx]
-        );
-    };
-
+    const toggle = (idx: number) =>
+        setOpenIndices((prev) => prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx]);
     return (
-        <section className="py-20 px-4 bg-white">
+        <section className="py-10 md:py-20 px-4 bg-white">
             <div className="max-w-3xl mx-auto">
-                <h2 className="text-3xl font-bold text-center text-midnight mb-10">
-                    Frequently Asked Questions
-                </h2>
+                <h2 className="text-3xl font-bold text-center text-midnight mb-10">Frequently Asked Questions</h2>
                 <div className="space-y-3">
                     {FAQ_ITEMS.map((item, idx) => {
                         const isOpen = openIndices.includes(idx);
                         return (
                             <div key={idx} className="border border-border rounded overflow-hidden">
-                                <button
-                                    onClick={() => toggle(idx)}
-                                    className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-50 transition-colors"
-                                >
+                                <button onClick={() => toggle(idx)}
+                                    className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-50 transition-colors">
                                     <span className="font-semibold text-midnight text-sm pr-4">{item.q}</span>
-                                    <ChevronDown
-                                        className={`w-5 h-5 text-slate-400 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
-                                    />
+                                    <ChevronDown className={`w-5 h-5 text-slate-400 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
                                 </button>
-                                <div
-                                    className={`transition-all duration-200 overflow-hidden ${isOpen ? "max-h-60" : "max-h-0"}`}
-                                >
-                                    <p className="px-5 pb-4 text-sm text-slate-600 leading-relaxed">
-                                        {item.a}
-                                    </p>
+                                <div className={`transition-all duration-200 overflow-hidden ${isOpen ? "max-h-60" : "max-h-0"}`}>
+                                    <p className="px-5 pb-4 text-sm text-slate-600 leading-relaxed">{item.a}</p>
                                 </div>
                             </div>
                         );
@@ -815,434 +341,225 @@ function FaqSection() {
     );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Home() {
     return (
         <div className="min-h-screen bg-white">
             <Navbar />
 
-            {/* ── B. Hero ── */}
-            <section className="pt-32 pb-24 px-6 relative overflow-hidden isolate bg-[linear-gradient(180deg,#F5F7F8_0%,#F4F7F5_55%,#F7F6F3_100%)]">
-                {/* Reference-style ambient field in green palette */}
-                <div
-                    className="absolute inset-0 z-0 pointer-events-none"
-                    style={{
-                        background: `
-                          radial-gradient(110% 70% at 50% 10%, rgba(16,185,129,0.20) 0%, rgba(16,185,129,0.10) 42%, rgba(16,185,129,0.00) 74%),
-                          radial-gradient(90% 50% at 50% 86%, rgba(34,197,94,0.30) 0%, rgba(34,197,94,0.14) 32%, rgba(34,197,94,0.00) 72%),
-                          radial-gradient(70% 34% at 50% 86%, rgba(163,230,53,0.22) 0%, rgba(163,230,53,0.00) 75%)
-                        `,
-                    }}
-                />
-                <div
-                    className="absolute inset-y-[2%] left-0 w-[32%] z-0 pointer-events-none opacity-60"
-                    style={{
-                        background: "linear-gradient(180deg, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.05) 48%, rgba(16,185,129,0.00) 100%)",
-                        clipPath: "polygon(0 0, 100% 6%, 76% 100%, 0 100%)",
-                    }}
-                />
-                <div
-                    className="absolute inset-y-[2%] right-0 w-[32%] z-0 pointer-events-none opacity-60"
-                    style={{
-                        background: "linear-gradient(180deg, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.05) 48%, rgba(16,185,129,0.00) 100%)",
-                        clipPath: "polygon(24% 0, 100% 0, 100% 100%, 0 100%)",
-                    }}
-                />
-
+            {/* Hero */}
+            <section className="pt-24 sm:pt-32 pb-16 sm:pb-24 px-6 relative overflow-hidden isolate bg-[linear-gradient(180deg,#F5F7F8_0%,#F4F7F5_55%,#F7F6F3_100%)]">
+                <div className="absolute inset-0 z-0 pointer-events-none" style={{ background: `radial-gradient(110% 70% at 50% 10%, rgba(16,185,129,0.20) 0%, rgba(16,185,129,0.10) 42%, rgba(16,185,129,0.00) 74%),radial-gradient(90% 50% at 50% 86%, rgba(34,197,94,0.30) 0%, rgba(34,197,94,0.14) 32%, rgba(34,197,94,0.00) 72%),radial-gradient(70% 34% at 50% 86%, rgba(163,230,53,0.22) 0%, rgba(163,230,53,0.00) 75%)` }} />
+                <div className="absolute inset-y-[2%] left-0 w-[32%] z-0 pointer-events-none opacity-60" style={{ background: "linear-gradient(180deg, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.05) 48%, rgba(16,185,129,0.00) 100%)", clipPath: "polygon(0 0, 100% 6%, 76% 100%, 0 100%)" }} />
+                <div className="absolute inset-y-[2%] right-0 w-[32%] z-0 pointer-events-none opacity-60" style={{ background: "linear-gradient(180deg, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.05) 48%, rgba(16,185,129,0.00) 100%)", clipPath: "polygon(24% 0, 100% 0, 100% 100%, 0 100%)" }} />
                 <div className="container mx-auto max-w-6xl relative z-10 flex flex-col items-center gap-8">
-
-                    <motion.h1
-                        {...fadeUp(0.06)}
-                        className="text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.08] text-midnight text-balance text-center"
-                    >
-                        Your AI assistant & CRM.
-                        <span className="block">
-                            Here to give you an <span className="text-primary">early mark</span>
-                        </span>
+                    <motion.h1 {...fadeUp(0.06)} className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.08] text-midnight text-balance text-center">
+                        Your AI assistant &amp; CRM.
+                        <span className="block">Here to give you an <span className="text-primary">early mark</span></span>
                     </motion.h1>
-
                     <motion.div {...fadeUp(0.10)} className="flex flex-col sm:flex-row gap-3">
-                        <Link href="/auth">
-                            <Button size="lg" variant="mint">
-                                Get started
-                            </Button>
-                        </Link>
-                        <Link href="#interview-assistant">
-                            <Button size="lg" variant="outline">
-                                Interview your assistant
-                            </Button>
-                        </Link>
+                        <Link href="/auth"><Button size="lg" variant="mint">Get started</Button></Link>
+                        <a href="#interview-assistant"><Button size="lg" variant="outline">Interview your assistant</Button></a>
                     </motion.div>
-
-                    {/* Dashboard hero reel with phone overlaid on RHS */}
                     <motion.div {...fadeUp(0.14)} className="relative w-full max-w-5xl mx-auto mt-8">
                         <HeroDashboardReel />
-
-                        {/* Phone mockup — overlaps RHS of dashboard */}
-                        <motion.div
-                            {...fadeUp(0.18)}
-                            className="hidden md:block absolute right-[-0.75rem] lg:right-[-1.5rem] bottom-[-3.25rem] z-20"
-                        >
+                        <motion.div {...fadeUp(0.18)} className="hidden md:block absolute right-[-0.75rem] lg:right-[-1.5rem] bottom-[-3.25rem] z-20">
                             <PulsingLogo />
                         </motion.div>
-                    </motion.div>
-
-                </div>
-            </section >
-
-            {/* ── C. Meet Tracey ── */}
-            <section className="bg-slate-50 px-6 py-24 overflow-hidden">
-                <div className="container mx-auto max-w-7xl">
-                    <motion.div {...fadeUp()} className="text-center mb-12">
-                        <h2 className="text-3xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em]">
-                            Loved by service businesses with non-stop calls
-                        </h2>
-                    </motion.div>
-                    <motion.div {...fadeUp(0.08)} className="-mx-6 px-6">
-                        <TestimonialsCarousel />
                     </motion.div>
                 </div>
             </section>
 
-            <section id="meet-tracey" className="bg-[#F8FAFC] px-6 py-24">
+            {/* Testimonials */}
+            <section className="bg-slate-50 px-6 py-12 md:py-24 overflow-hidden">
+                <div className="container mx-auto max-w-7xl">
+                    <motion.div {...fadeUp()} className="text-center mb-8 md:mb-12">
+                        <h2 className="text-2xl sm:text-3xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em]">Loved by service businesses with non-stop calls</h2>
+                    </motion.div>
+                    <motion.div {...fadeUp(0.08)} className="-mx-6 px-6"><TestimonialsCarousel /></motion.div>
+                </div>
+            </section>
+
+            {/* Interview form — invitation to try Tracey */}
+            <section id="interview-assistant" className="scroll-mt-28 py-12 md:py-24 px-6 relative overflow-hidden bg-[#1E232B]">
+                <div className="container mx-auto max-w-7xl">
+                    <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
+                        <div className="flex flex-col gap-8">
+                            <motion.h2 {...fadeUp()} className="text-3xl md:text-5xl font-extrabold text-white tracking-[-0.03em] leading-tight">
+                                Interview your assistant now. She will contact customers and run your CRM so you don&apos;t have to.
+                            </motion.h2>
+                        </div>
+                        <motion.div {...fadeUp(0.1)} className="bg-white/95 backdrop-blur-md rounded border border-white/40 p-7 shadow-xl">
+                            <h3 className="font-bold text-midnight text-lg mb-1">Interview Tracey for free</h3>
+                            <p className="text-slate-body text-sm mb-6 leading-relaxed">Tracey will call you and answer questions, explain her capabilities, or roleplay as your very own AI receptionist.</p>
+                            <InterviewForm />
+                        </motion.div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Platform diagram — voice agent + CRM */}
+            <section id="platform" className="bg-white px-6 py-12 md:py-24">
+                <div className="container mx-auto max-w-7xl">
+                    <motion.div {...fadeUp()} className="mx-auto mb-12 max-w-3xl text-center">
+                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600 mb-3">The platform</p>
+                        <h2 className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-midnight">One comprehensive platform.</h2>
+                        <p className="mt-4 text-lg text-slate-body">
+                            An AI assistant and a CRM that runs itself, so you don&apos;t have to.
+                        </p>
+                    </motion.div>
+                    <motion.div {...fadeUp(0.08)}>
+                        <PlatformDiagram />
+                    </motion.div>
+                </div>
+            </section>
+
+            {/* Section 1 — Meet Tracey (the voice agent) */}
+            <section id="meet-tracey" className="bg-[#F8FAFC] px-6 py-12 md:py-24">
                 <div className="container mx-auto max-w-7xl">
                     <motion.div {...fadeUp()} className="mx-auto mb-14 max-w-3xl text-center">
-                        <h2 className="text-4xl font-extrabold tracking-[-0.03em] text-midnight md:text-5xl">
-                            Meet Tracey
-                        </h2>
+                        <h2 className="text-4xl font-extrabold tracking-[-0.03em] text-midnight md:text-5xl">Meet Tracey</h2>
                         <p className="mt-3 text-lg text-slate-body max-w-xl mx-auto">
                             Your AI receptionist, CRM manager, and follow-up specialist — all in one.
                         </p>
                     </motion.div>
 
-                    <motion.div {...fadeUp(0.06)} className="grid gap-6 lg:grid-cols-[0.92fr_1.08fr]">
-                        <div className="space-y-4">
-                            {TRACEY_BENEFITS.map(({ title, desc, icon: Icon }) => (
-                                <div key={title} className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_16px_44px_rgba(15,23,42,0.06)]">
-                                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#E0FAF2]">
-                                        <Icon className="h-5 w-5 text-primary" />
+                    <motion.div {...fadeUp(0.06)} className="rounded-[2rem] border border-emerald-900/10 bg-[linear-gradient(145deg,#103126_0%,#1B4637_52%,#2B5F4D_100%)] shadow-[0_24px_80px_rgba(15,23,42,0.14)]">
+                        <div className="grid divide-y sm:divide-y-0 sm:divide-x divide-white/10 sm:grid-cols-3 p-8 md:p-12">
+                            {TRACEY_WORKFLOW.map(({ label, icon: Icon, points }, i) => (
+                                <div key={label} className="flex flex-col gap-5 sm:px-8 first:pl-0 last:pr-0 py-8 sm:py-0 first:pt-0 last:pb-0">
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-xs font-bold tabular-nums text-white/30 tracking-widest">0{i + 1}</span>
+                                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10">
+                                            <Icon className="h-4 w-4 text-white" />
+                                        </div>
+                                        <h4 className="text-base font-bold text-white">{label}</h4>
                                     </div>
-                                    <h3 className="mt-5 text-xl font-bold tracking-[-0.02em] text-midnight">{title}</h3>
-                                    <p className="mt-3 text-sm leading-relaxed text-slate-body">{desc}</p>
+                                    <ul className="space-y-3">
+                                        {points.map((point) => (
+                                            <li key={point} className="flex items-start gap-2.5">
+                                                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                                                <span className="text-sm leading-relaxed text-white/75">{point}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
                                 </div>
                             ))}
                         </div>
+                    </motion.div>
 
-                        <div className="rounded-[2rem] border border-emerald-900/10 bg-[linear-gradient(145deg,#103126_0%,#1B4637_52%,#2B5F4D_100%)] p-1 shadow-[0_24px_80px_rgba(15,23,42,0.14)]">
-                            <div className="h-full rounded-[1.7rem] bg-[linear-gradient(180deg,rgba(247,250,249,0.98)_0%,rgba(240,247,243,0.98)_100%)] p-6 md:p-7">
-                                <div className="mb-6 flex items-center justify-between">
-                                    <div>
-                                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">What Tracey handles</p>
-                                        <h3 className="mt-2 text-2xl font-extrabold tracking-[-0.02em] text-midnight">
-                                            From first call to follow-up
-                                        </h3>
-                                    </div>
-                                    <div className="hidden h-12 w-12 items-center justify-center rounded-2xl bg-[#E0FAF2] md:flex">
-                                        <Bot className="h-6 w-6 text-primary" />
-                                    </div>
-                                </div>
-
-                                <div className="space-y-4">
-                                    {TRACEY_WORKFLOW.map(({ label, icon: Icon, points }) => (
-                                        <div key={label} className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
-                                            <div className="flex items-center gap-3">
-                                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100">
-                                                    <Icon className="h-5 w-5 text-primary" />
-                                                </div>
-                                                <h4 className="text-lg font-bold text-midnight">{label}</h4>
-                                            </div>
-
-                                            <div className="mt-4 space-y-3">
-                                                {points.map((point) => (
-                                                    <div key={point} className="flex items-start gap-3">
-                                                        <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#E0FAF2]">
-                                                            <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
-                                                        </div>
-                                                        <p className="text-sm leading-relaxed text-slate-body">{point}</p>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div className="mt-5 rounded-[1.4rem] border border-emerald-900/10 bg-[#E0FAF2] px-4 py-3">
-                                    <p className="text-sm font-semibold leading-relaxed text-midnight">
-                                        While you are on the job, Tracey keeps the phone answered, the calendar moving, and the follow-up handled.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+                    <motion.div {...fadeUp(0.10)} className="mt-12 flex flex-col items-center gap-5">
+                        <p className="text-sm font-bold uppercase tracking-[0.2em] text-emerald-700">Total control. Pick your mode:</p>
+                        <AutonomyModeTabs />
                     </motion.div>
                 </div>
             </section>
-
-            {/* ── C.5: Tracey lives in your CRM ── */}
-            < section id="interview-assistant" className="py-24 px-6 relative overflow-hidden bg-[#1E232B]" >
-                <div className="container mx-auto max-w-7xl">
-                    <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
-                        {/* LHS — Text */}
-                        <div className="flex flex-col gap-8">
-                            <motion.h2 {...fadeUp()} className="text-3xl md:text-5xl font-extrabold text-white tracking-[-0.03em] leading-tight">
-                                Tracey lives in your CRM. She will contact customers and run your CRM so you don&apos;t have to.
-                            </motion.h2>
-                        </div>
-
-                        {/* RHS — Interview Form */}
-                        <motion.div {...fadeUp(0.1)} className="bg-white/95 backdrop-blur-md rounded border border-white/40 p-7 shadow-xl">
-                            <h3 className="font-bold text-midnight text-lg mb-1">Interview Tracey for free</h3>
-                            <p className="text-slate-body text-sm mb-6 leading-relaxed">
-                                Tracey will call you and answer questions, explain her capabilities, or roleplay as your very own AI receptionist.
-                            </p>
-                            <InterviewForm />
-                        </motion.div>
-                    </div>
-                </div>
-            </section >
-
-            {/* ── D. Hire Tracey Today ── */}
-            < section id="product" className="py-24 px-6" >
+            {/* Section 2 — A CRM that fills itself in */}
+            <section id="product" className="py-12 md:py-24 px-6 bg-white">
                 <div className="container mx-auto max-w-7xl flex flex-col gap-16">
                     <motion.div {...fadeUp()} className="text-center max-w-2xl mx-auto">
-                        <h2 className="text-4xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em]">
-                            Hire Tracey today
-                        </h2>
-                        <p className="text-slate-body mt-3 text-lg">
-                            Stop chasing jobs. Stop drowning in admin. Let Tracey handle it.
+                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600 mb-3">The CRM</p>
+                        <h2 className="text-4xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em]">A CRM that fills itself in.</h2>
+                        <p className="text-slate-body mt-3 text-lg leading-relaxed">
+                            Tracey writes every call, SMS, email, WhatsApp, job, quote, and payment to your CRM as it happens.<br />
+                            Run it from the dashboard, the in-app chat, or just message Tracey on WhatsApp.
                         </p>
                     </motion.div>
 
-                    {false && (<div className="max-w-2xl mx-auto w-full">
-                        <motion.p {...fadeUp()} className="text-center text-xs text-slate-body mb-4 font-semibold uppercase tracking-widest">
-                            Tracey in action
-                        </motion.p>
-                        <motion.div {...fadeUp(0.06)}>
-                            <ChatDemo />
-                        </motion.div>
-                    </div>)}
-
-                    <HireFeatureGrid />
-
-                    {false && (<div className="flex flex-col gap-10 mt-4">
-                        {HIRE_FEATURES.map((f, i) => {
-                            const isEven = i % 2 === 0;
-                            // Inline JSX mockups per feature
-                            const mockups: Record<number, React.ReactNode> = {
-                                0: (
-                                    /* Never miss a job — incoming call UI */
-                                    <div className="space-y-3">
-                                        <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded px-4 py-3">
-                                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0"><Phone className="w-4 h-4 text-blue-600" /></div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-xs font-semibold text-slate-700">Incoming call</p>
-                                                <p className="text-[11px] text-slate-500">+61 412 345 678</p>
-                                            </div>
-                                            <div className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center"><Phone className="w-3.5 h-3.5 text-white" /></div>
-                                        </div>
-                                        <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 rounded">
-                                            <Bot className="w-4 h-4 text-emerald-600" />
-                                            <span className="text-xs text-emerald-700 font-medium">Tracey answered ✓</span>
-                                        </div>
-                                        <div className="bg-white border border-slate-200 rounded px-4 py-3">
-                                            <p className="text-[10px] text-slate-400 uppercase font-semibold tracking-wider mb-1">New lead</p>
-                                            <p className="text-xs font-medium text-slate-700">Kitchen renovation — $4,200</p>
-                                        </div>
-                                    </div>
-                                ),
-                                1: (
-                                    /* Chat with CRM — chat interface mockup */
-                                    <div className="space-y-3">
-                                        <div className="flex justify-end"><div className="bg-emerald-500 text-white rounded rounded-tr-sm px-3 py-2 text-xs max-w-[80%]">Schedule the Smith job for Friday</div></div>
-                                        <div className="flex gap-2 items-end">
-                                            <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center shrink-0"><Bot className="w-3 h-3 text-emerald-600" /></div>
-                                            <div className="bg-slate-100 rounded rounded-bl-sm px-3 py-2 text-xs text-slate-700 max-w-[80%]">Done! Scheduled for Friday 9am. I&apos;ve also sent a confirmation SMS to Sarah Smith. ✅</div>
-                                        </div>
-                                        <div className="flex justify-end"><div className="bg-emerald-500 text-white rounded rounded-tr-sm px-3 py-2 text-xs max-w-[80%]">What&apos;s my revenue this week?</div></div>
-                                        <div className="flex gap-2 items-end">
-                                            <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center shrink-0"><Bot className="w-3 h-3 text-emerald-600" /></div>
-                                            <div className="bg-slate-100 rounded rounded-bl-sm px-3 py-2 text-xs text-slate-700 max-w-[80%]">$8,450 across 4 completed jobs. You&apos;re up 12% vs last week 📈</div>
-                                        </div>
-                                    </div>
-                                ),
-                                2: (
-                                    /* AI that actually works — SMS conversation */
-                                    <div className="space-y-3">
-                                        <div className="flex gap-2 items-end">
-                                            <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center shrink-0 text-[10px] font-bold text-slate-500">CJ</div>
-                                            <div className="bg-slate-100 rounded rounded-bl-sm px-3 py-2 text-xs text-slate-700">Hi, I got a quote from you for $2,400. Can you do the work next week?</div>
-                                        </div>
-                                        <div className="flex gap-2 items-end flex-row-reverse">
-                                            <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center shrink-0"><Bot className="w-3 h-3 text-emerald-600" /></div>
-                                            <div className="bg-emerald-50 border border-emerald-200 rounded rounded-br-sm px-3 py-2 text-xs text-emerald-800">Hi! Yes, we have availability Tuesday or Wednesday. Which works better for you?</div>
-                                        </div>
-                                        <div className="flex gap-2 items-end">
-                                            <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center shrink-0 text-[10px] font-bold text-slate-500">CJ</div>
-                                            <div className="bg-slate-100 rounded rounded-bl-sm px-3 py-2 text-xs text-slate-700">Tuesday works. See you then!</div>
-                                        </div>
-                                        <div className="flex gap-2 items-end flex-row-reverse">
-                                            <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center shrink-0"><Bot className="w-3 h-3 text-emerald-600" /></div>
-                                            <div className="bg-emerald-50 border border-emerald-200 rounded rounded-br-sm px-3 py-2 text-xs text-emerald-800">Locked in for Tuesday 8am! I&apos;ve confirmed it in the schedule. 📅</div>
-                                        </div>
-                                    </div>
-                                ),
-                                3: (
-                                    /* Total control — mini settings panel */
-                                    <div className="space-y-3">
-                                        {[{ label: "Auto-respond to calls", on: true }, { label: "Require approval for quotes", on: true }, { label: "Send follow-up reminders", on: true }, { label: "Auto-close stale jobs", on: false }].map((s) => (
-                                            <div key={s.label} className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded px-4 py-2.5">
-                                                <span className="text-xs font-medium text-slate-700">{s.label}</span>
-                                                {s.on ? <ToggleRight className="w-6 h-6 text-emerald-500" /> : <ToggleLeft className="w-6 h-6 text-slate-300" />}
-                                            </div>
-                                        ))}
-                                    </div>
-                                ),
-                            };
-                            return (
-                                <motion.div
-                                    key={f.title}
-                                    {...fadeUp(i * 0.08)}
-                                    className={`grid md:grid-cols-2 gap-6 items-center ${!isEven ? "md:direction-rtl" : ""}`}
-                                >
-                                    <div className={`bg-white rounded border border-border p-7 flex flex-col gap-3 shadow-sm hover:shadow-md transition-shadow ${!isEven ? "md:order-2" : "md:order-1"}`}>
-                                        <h3 className="text-xl font-bold text-midnight leading-snug">{f.title}</h3>
-                                        <p className="text-slate-body text-sm leading-relaxed">{f.desc}</p>
-                                    </div>
-
-                                    <div className={`rounded bg-[#F8FAFC] border border-border/50 overflow-hidden p-6 ${!isEven ? "md:order-1" : "md:order-2"}`}>
-                                        <div className="rounded border bg-white shadow-sm p-4">
-                                            {mockups[i]}
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            );
-                        })}
-                    </div>)}
-                </div>
-            </section >
-
-            {/* ── E. Tracey Features Carousel ── */}
-            < section className="py-24 px-6 bg-[#F8FAFC] relative overflow-hidden isolate" >
-                <div
-                    className="absolute inset-0 z-0 pointer-events-none"
-                    style={{
-                        background: `
-                          radial-gradient(90% 56% at 50% 90%, rgba(34,197,94,0.26) 0%, rgba(34,197,94,0.10) 36%, rgba(34,197,94,0.00) 72%),
-                          radial-gradient(70% 40% at 50% 18%, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.00) 76%)
-                        `,
-                        filter: "blur(16px)",
-                    }}
-                />
-                <div className="container mx-auto max-w-6xl flex flex-col gap-14 relative z-10">
-                    <motion.div {...fadeUp()} className="text-center max-w-2xl mx-auto">
-                        <h2 className="text-4xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em]">
-                            Simple but comprehensive features
-                        </h2>
-                        <p className="text-slate-body mt-3 text-lg">
-                            All the features you need to get the job done. Focus on the work, not the paperwork.
-                        </p>
+                    <motion.div {...fadeUp(0.06)} className="grid items-center gap-8 md:grid-cols-2">
+                        <div className="flex flex-col gap-6">
+                            <ul className="flex flex-col gap-3">
+                                {[
+                                    "Message Tracey on WhatsApp to move a job, send a quote, or pull a customer record",
+                                    "In-app chat sidebar that drives the CRM — no forms, no manual data entry",
+                                    "Actionable notifications: confirm jobs, approve completions, reply to customers in one tap",
+                                    "Lead bouncer triages every enquiry against your no-go rules before it hits the pipeline",
+                                    "Xero-ready invoicing with on-site signature capture and draft filing",
+                                ].map((b) => (
+                                    <li key={b} className="flex items-start gap-2.5 text-sm text-slate-body">
+                                        <CheckCircle2 className="mt-0.5 w-4 h-4 text-primary shrink-0" />
+                                        <span>{b}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                        <div className="relative min-h-[380px] overflow-hidden rounded border border-slate-200 shadow-[0_8px_40px_rgba(15,23,42,0.10)]">
+                            <HireMockup1 />
+                        </div>
                     </motion.div>
 
-                    <motion.div {...fadeUp(0.06)} className="px-6">
-                        <FeatureCarousel />
-                    </motion.div>
-                </div>
-            </section >
-
-            {/* ── E.5: FAQ Section ── */}
-            <FaqSection />
-
-            {/* ── E.6: Early Mark CTA ── */}
-            <section className="py-24 px-6 bg-[linear-gradient(135deg,#0f172a_0%,#065f46_100%)]">
-                <div className="mx-auto max-w-3xl text-center flex flex-col items-center gap-6">
-                    <motion.h2 {...fadeUp()} className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-white leading-tight text-balance">
-                        Give yourself an early mark today
-                    </motion.h2>
-                      <motion.p {...fadeUp(0.04)} className="text-lg text-white/65 leading-7 max-w-xl">
-                          Focus on the job, not the admin.
-                      </motion.p>
-                    <motion.div {...fadeUp(0.12)} className="flex flex-col sm:flex-row gap-3">
-                        <Link href="/auth">
-                            <Button size="lg" variant="mint">
-                                Get started <ArrowRight className="ml-2 h-4 w-4" />
-                            </Button>
-                        </Link>
-                        <Link href="/contact#contact-form">
-                            <Button size="lg" variant="ghost" className="text-white border-white/30 hover:bg-white/10">
-                                Get a demo
-                            </Button>
-                        </Link>
+                    <motion.div {...fadeUp(0.10)} className="flex flex-col gap-6">
+                        <div className="text-center">
+                            <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">Everything in the box</p>
+                            <h3 className="mt-2 text-2xl font-extrabold tracking-[-0.02em] text-midnight md:text-3xl">A full-featured CRM, built for the way trades actually work.</h3>
+                        </div>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                            {FEATURE_CARDS.map(({ icon: Icon, title, desc }) => (
+                                <div key={title} className="group flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-[0_12px_36px_rgba(15,23,42,0.08)]">
+                                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-100 group-hover:bg-emerald-100">
+                                        <Icon className="h-5 w-5 text-emerald-600" />
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-sm font-semibold text-midnight">{title}</span>
+                                        <span className="text-xs leading-relaxed text-slate-500">{desc}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </motion.div>
                 </div>
             </section>
 
-            {/* ── F. Footer ── */}
-            < footer className="bg-midnight text-white/55 py-16 px-6" >
+            <FaqSection />
+
+            {/* Final CTA */}
+            <section className="py-14 md:py-24 px-6 bg-[linear-gradient(135deg,#0f172a_0%,#065f46_100%)]">
+                <div className="mx-auto max-w-3xl text-center flex flex-col items-center gap-6">
+                    <motion.h2 {...fadeUp()} className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-white leading-tight text-balance">Give yourself an early mark today</motion.h2>
+                    <motion.p {...fadeUp(0.04)} className="text-lg text-white/65 leading-7 max-w-xl">Focus on the job, not the admin.</motion.p>
+                    <motion.div {...fadeUp(0.12)} className="flex flex-col sm:flex-row gap-3">
+                        <Link href="/auth"><Button size="lg" variant="mint">Get started <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
+                        <Link href="/contact#contact-form"><Button size="lg" variant="ghost" className="text-white border-white/30 hover:bg-white/10">Get a demo</Button></Link>
+                    </motion.div>
+                </div>
+            </section>
+
+            {/* Footer */}
+            <footer className="bg-midnight text-white/55 py-16 px-6">
                 <div className="container mx-auto max-w-6xl">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-10 pb-12 border-b border-white/10">
-                        {/* Col 1: Brand */}
                         <div className="col-span-2 md:col-span-1 flex flex-col gap-4">
                             <div className="flex items-center gap-2.5">
                                 <Image src="/latest-logo.png" alt="Earlymark" width={32} height={32} className="h-8 w-8 object-contain" unoptimized />
                                 <span className="text-white font-bold text-lg tracking-tight">Earlymark</span>
                             </div>
-                            <p className="text-sm leading-relaxed max-w-xs">
-                                AI-powered assistant and CRM for the modern business.
-                            </p>
+                            <p className="text-sm leading-relaxed max-w-xs">AI-powered assistant and CRM for the modern business.</p>
                         </div>
-
-                        {/* Col 2: Company */}
                         <div className="flex flex-col gap-3">
                             <h4 className="text-white font-semibold text-xs uppercase tracking-widest">Company</h4>
-                            {[
-                                { label: "Home", href: "/" },
-                                { label: "Product", href: "/features" },
-                                { label: "Solutions", href: "/solutions" },
-                                { label: "Pricing", href: "/pricing" },
-                                { label: "Contact", href: "/contact" },
-                            ].map((l) => (
-                                <Link key={l.label} href={l.href} className="text-sm hover:text-white transition-colors">
-                                    {l.label}
-                                </Link>
+                            {[{label:"Home",href:"/"},{label:"Product",href:"/features"},{label:"Solutions",href:"/solutions"},{label:"Pricing",href:"/pricing"},{label:"Contact",href:"/contact"}].map((l) => (
+                                <Link key={l.label} href={l.href} className="text-sm hover:text-white transition-colors">{l.label}</Link>
                             ))}
                         </div>
-
-                        {/* Col 3: Legal */}
                         <div className="flex flex-col gap-3">
                             <h4 className="text-white font-semibold text-xs uppercase tracking-widest">Legal</h4>
-                            {[
-                                { label: "Terms of Service", href: "/terms" },
-                                { label: "Privacy Policy", href: "/privacy" },
-                                { label: "Cookie Policy", href: "/cookies" },
-                            ].map((l) => (
-                                <Link key={l.label} href={l.href} className="text-sm hover:text-white transition-colors">
-                                    {l.label}
-                                </Link>
+                            {[{label:"Terms of Service",href:"/terms"},{label:"Privacy Policy",href:"/privacy"},{label:"Cookie Policy",href:"/cookies"}].map((l) => (
+                                <Link key={l.label} href={l.href} className="text-sm hover:text-white transition-colors">{l.label}</Link>
                             ))}
                         </div>
-
-                        {/* Col 4: Socials */}
                         <div className="flex flex-col gap-3">
                             <h4 className="text-white font-semibold text-xs uppercase tracking-widest">Socials</h4>
-                            {[
-                                { label: "LinkedIn", href: "https://linkedin.com" },
-                                { label: "Instagram", href: "https://instagram.com" },
-                                { label: "Facebook", href: "https://facebook.com" },
-                                { label: "Twitter / X", href: "https://x.com" },
-                            ].map((l) => (
-                                <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer"
-                                    className="text-sm hover:text-white transition-colors">
-                                    {l.label}
-                                </a>
+                            {[{label:"LinkedIn",href:"https://linkedin.com"},{label:"Instagram",href:"https://instagram.com"},{label:"Facebook",href:"https://facebook.com"},{label:"Twitter / X",href:"https://x.com"}].map((l) => (
+                                <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer" className="text-sm hover:text-white transition-colors">{l.label}</a>
                             ))}
                         </div>
                     </div>
-
                     <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
                         <p className="text-sm">© {new Date().getFullYear()} Earlymark. All rights reserved.</p>
                     </div>
                 </div>
-            </footer >
-        </div >
+            </footer>
+        </div>
     );
 }

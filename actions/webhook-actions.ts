@@ -22,7 +22,7 @@ export interface WebhookDiagnostic {
  * Returns last-seen timestamps and recent events per provider.
  */
 export async function getWebhookDiagnostics(): Promise<WebhookDiagnostic[]> {
-  const providers = ["stripe", "resend"];
+  const providers = ["stripe", "resend", "twilio", "resend_inbound"];
 
   const results: WebhookDiagnostic[] = [];
 

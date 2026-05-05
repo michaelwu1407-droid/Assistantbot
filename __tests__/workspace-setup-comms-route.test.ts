@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { NextRequest } from "next/server";
 
 const hoisted = vi.hoisted(() => ({
   getAuthUserId: vi.fn(),
@@ -43,10 +44,10 @@ describe("POST /api/workspace/setup-comms", () => {
     const { POST } = await import("@/app/api/workspace/setup-comms/route");
 
     const response = await POST(
-      new Request("https://app.example.com/api/workspace/setup-comms", {
+      new NextRequest("https://app.example.com/api/workspace/setup-comms", {
         method: "POST",
         body: JSON.stringify({ businessName: "Acme Plumbing", ownerPhone: "0400000000" }),
-      }) as any,
+      }),
     );
 
     expect(response.status).toBe(401);
@@ -59,10 +60,10 @@ describe("POST /api/workspace/setup-comms", () => {
     const { POST } = await import("@/app/api/workspace/setup-comms/route");
 
     const response = await POST(
-      new Request("https://app.example.com/api/workspace/setup-comms", {
+      new NextRequest("https://app.example.com/api/workspace/setup-comms", {
         method: "POST",
         body: JSON.stringify({ businessName: "Acme Plumbing", ownerPhone: "0400000000" }),
-      }) as any,
+      }),
     );
 
     expect(response.status).toBe(404);
@@ -92,10 +93,10 @@ describe("POST /api/workspace/setup-comms", () => {
     const { POST } = await import("@/app/api/workspace/setup-comms/route");
 
     const response = await POST(
-      new Request("https://app.example.com/api/workspace/setup-comms", {
+      new NextRequest("https://app.example.com/api/workspace/setup-comms", {
         method: "POST",
         body: JSON.stringify({ businessName: "Acme Plumbing", ownerPhone: "0400000000" }),
-      }) as any,
+      }),
     );
 
     expect(response.status).toBe(200);

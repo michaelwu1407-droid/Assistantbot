@@ -1,4 +1,4 @@
-import { streamText, convertToModelMessages, stepCountIs, createUIMessageStream, createUIMessageStreamResponse } from "ai";
+import { convertToModelMessages, createUIMessageStream, createUIMessageStreamResponse, stepCountIs, streamText } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import {
   runAddContactNote,
@@ -27,23 +27,40 @@ import { runGetAvailability, runGetClientContext, runGetTodaySummary } from "@/a
 import { getDeals } from "@/actions/deal-actions";
 import { getWorkspaceSettingsById } from "@/actions/settings-actions";
 import { buildJobDraftFromParams, resolveSchedule } from "@/lib/chat-utils";
-import { parseJobWithAI, parseMultipleJobsWithAI, extractAllJobsFromParagraph } from "@/lib/ai/job-parser";
+import { parseJobWithAI, parseMultipleJobsWithAI } from "@/lib/ai/job-parser";
 import { appendTicketNote } from "@/actions/activity-actions";
-import { addMem0Memory, buildAgentContext, fetchMemoryContext } from "@/lib/ai/context";
-import { buildCrmChatSystemPrompt } from "@/lib/ai/prompt-contract";
 import { normalizeAppAgentMode } from "@/lib/agent-mode";
-import { getAgentToolsForIntent } from "@/lib/ai/tools";
 import { preClassify, type PreClassification } from "@/lib/ai/pre-classifier";
-import { validatePricingInResponse } from "@/lib/ai/response-validator";
+import { buildCrmChatSystemPrompt } from "@/lib/ai/prompt-contract";
+import { getAgentToolsForIntent } from "@/lib/ai/tools";
 import { instrumentToolsWithLatency, nowMs, recordLatencyMetric } from "@/lib/telemetry/latency";
 import { rateLimit } from "@/lib/rate-limit";
 import { logger } from "@/lib/logging";
 import { getAttentionSignalsForDeal } from "@/lib/deal-attention";
+import { formatDateTimeInTimezone, formatTimeInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone";
+import { runPreprocessing } from "@/lib/ai/chat-preprocessing";
+import { runPostprocessing, type PostprocessingContext } from "@/lib/ai/chat-postprocessing";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+
+const CHAT_MODEL_ID = "gemini-2.0-flash-lite";
+const MAX_INPUT_TOKENS_ESTIMATE = 18_000;
+
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
+function toText(value: unknown): string {
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value ?? "");
+  }
+}
 
 type SelectionDeal = {
   id: string;
@@ -65,23 +82,6 @@ function looksLikeFollowUpDetail(text: string): boolean {
   return trimmed.length >= 6;
 }
 
-/** Cost-effective Gemini model for chat + tools */
-const CHAT_MODEL_ID = "gemini-2.0-flash-lite";
-const MAX_INPUT_TOKENS_ESTIMATE = 18_000;
-
-function estimateTokens(text: string): number {
-  // Fast, conservative estimate: ~4 chars per token for English-like text.
-  return Math.ceil(text.length / 4);
-}
-
-function toText(value: unknown): string {
-  if (typeof value === "string") return value;
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value ?? "");
-  }
-}
 
 type ParsedJob = {
   clientName: string;
@@ -104,7 +104,8 @@ type DirectCommandContext = {
 };
 
 type DirectCommandResult = {
-  text: string;
+  // text may be a plain string or a structured action result — extract .message when needed
+  text: string | { success: boolean; message: string; quickActions?: unknown[] };
   metricName?: string;
 };
 
@@ -186,6 +187,50 @@ function getUserMessageText(message: unknown): string {
   return (textPart?.text ?? (typeof m.content === "string" ? m.content : "") ?? "").trim();
 }
 
+function getAssistantMessageText(message: unknown): string {
+  const m = message as { role?: string; parts?: { type?: string; text?: string }[]; content?: string };
+  if (m?.role !== "assistant") return "";
+  const textParts = Array.isArray(m.parts)
+    ? m.parts
+        .filter((p) => p?.type === "text" && typeof p.text === "string")
+        .map((p) => p.text?.trim() ?? "")
+        .filter(Boolean)
+    : [];
+  if (textParts.length) return textParts.join("\n");
+  return typeof m.content === "string" ? m.content.trim() : "";
+}
+
+type AmbiguousContactOption = {
+  index: number;
+  name: string;
+  company: string | null;
+  phone: string | null;
+  email: string | null;
+};
+
+function parseAmbiguousContactPrompt(message: unknown): AmbiguousContactOption[] {
+  const text = getAssistantMessageText(message);
+  if (!text.startsWith("I found multiple contacts that match.")) return [];
+  const options: AmbiguousContactOption[] = [];
+  for (const line of text.split(/\r?\n/)) {
+    const match = line.match(/^(\d+)\.\s+(.+?)(?:\s+\((.+)\))?$/);
+    if (!match) continue;
+    const details = match[3]
+      ? match[3].split(",").map((part) => part.trim()).filter(Boolean)
+      : [];
+    const detailValue = (prefix: string) =>
+      details.find((part) => part.toLowerCase().startsWith(`${prefix} `))?.slice(prefix.length + 1) ?? null;
+    options.push({
+      index: Number(match[1]),
+      name: match[2].trim(),
+      company: detailValue("company"),
+      phone: detailValue("phone"),
+      email: detailValue("email"),
+    });
+  }
+  return options;
+}
+
 function findMostRecentMultiJobCandidate(messages: unknown[]): string | null {
   for (let i = messages.length - 1; i >= 0; i--) {
     const text = getUserMessageText(messages[i]);
@@ -238,11 +283,12 @@ function shouldFetchMemory(text: string): boolean {
   return true;
 }
 
-function getAdaptiveMaxSteps(text: string): number {
+function getAdaptiveMaxSteps(text: string, intent?: string): number {
   const trimmed = text.trim().toLowerCase();
   if (/^(next|confirm|cancel|ok|okay|yes|no|done|undo)\b/.test(trimmed)) return 2;
+  if (intent === "invoice") return 5;
+  if (/\b(and|then|also|plus)\b/.test(trimmed)) return 6;
   if (trimmed.length < 80) return 3;
-  if (/\b(and|then|also|plus)\b/.test(trimmed)) return 5;
   return 4;
 }
 
@@ -388,13 +434,83 @@ function filterDealsByQuery(
   }>,
   query: string,
 ) {
-  const cleaned = cleanDirectValue(query).toLowerCase();
+  const cleaned = normalizeRouteSearchPhrase(query);
+  const queryTokens = cleaned.split(" ").filter(Boolean);
   return deals.filter((deal) => {
     const fields = [deal.title, deal.company, deal.contactName]
       .filter(Boolean)
-      .map((value) => String(value).toLowerCase());
-    return fields.some((field) => field.includes(cleaned) || cleaned.includes(field));
+      .map((value) => normalizeRouteSearchPhrase(String(value)));
+    return fields.some((field) => {
+      if (
+        field === cleaned ||
+        field.startsWith(`${cleaned} `) ||
+        field.endsWith(` ${cleaned}`) ||
+        field.includes(` ${cleaned} `)
+      ) {
+        return true;
+      }
+      const fieldTokens = field.split(" ").filter(Boolean);
+      return queryTokens.every((token) => fieldTokens.includes(token));
+    });
   });
+}
+
+async function resolveAmbiguousContactFollowUp(
+  workspaceId: string,
+  content: string,
+  messages: unknown[],
+  workspaceTimezone?: string | null,
+): Promise<string | null> {
+  const trimmed = content.trim();
+  if (!/^\d+$/.test(trimmed)) return null;
+  const lastUserIndex = Array.isArray(messages) ? [...messages].map((m: any) => m?.role).lastIndexOf("user") : -1;
+  if (lastUserIndex <= 0) return null;
+  const previousAssistant = [...messages]
+    .slice(0, lastUserIndex)
+    .reverse()
+    .find((m: any) => m?.role === "assistant");
+  const options = parseAmbiguousContactPrompt(previousAssistant);
+  if (!options.length) return null;
+  const selected = options.find((option) => option.index === Number(trimmed));
+  if (!selected) {
+    return `I only listed ${options.length} contact option${options.length === 1 ? "" : "s"}. Reply with a number from that list and I'll open the right record.`;
+  }
+
+  const queryCandidates = [selected.phone, selected.email, selected.company, selected.name].filter(
+    (value): value is string => Boolean(value?.trim()),
+  );
+
+  let resolvedContactId: string | null = null;
+  for (const candidate of queryCandidates) {
+    const context = await runGetClientContext(workspaceId, { clientName: candidate });
+    if (!context.client) continue;
+    const sameName = context.client.name.trim().toLowerCase() === selected.name.trim().toLowerCase();
+    const samePhone = selected.phone && context.client.phone === selected.phone;
+    const sameEmail = selected.email && context.client.email === selected.email;
+    const sameCompany = selected.company && context.client.company === selected.company;
+    if (sameName || samePhone || sameEmail || sameCompany) {
+      resolvedContactId = context.client.id;
+      break;
+    }
+  }
+
+  if (!resolvedContactId) {
+    return "I couldn't confidently match that option to a single contact anymore. Reply with the phone number, email, or company name and I'll open the right record.";
+  }
+
+  const exactContext = await runGetClientContext(workspaceId, {
+    clientId: resolvedContactId,
+    clientName: selected.name,
+  });
+  return formatClientContextResult(exactContext, workspaceTimezone);
+}
+
+function normalizeRouteSearchPhrase(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
 }
 
 function formatDealList(
@@ -416,10 +532,17 @@ function formatDealList(
     .join("\n")}`;
 }
 
+function formatChatDateTime(date: Date | string | number, workspaceTimezone?: string | null): string {
+  const timezone = resolveWorkspaceTimezone(workspaceTimezone);
+  return `${formatDateTimeInTimezone(date, timezone)} (${timezone})`;
+}
+
 function extractLikelyContactReference(content: string, classification: PreClassification): string | null {
   if (!["contact_lookup", "communication"].includes(classification.intent)) return null;
 
   const patterns = [
+    /^(?:find|show|open) contact (.+?)[.?!]*$/i,
+    /^(?:find|show|open) client (.+?)[.?!]*$/i,
     /phone number and email do you have on file for (.+?)(?:[.?!]|$)/i,
     /what do you know about (.+?)(?:[.?!]|$)/i,
     /show me the client context for (.+?)(?:[.?!]|$)/i,
@@ -449,6 +572,18 @@ function extractLikelyDealQuery(content: string): string | null {
     /show me the full job context for (.+?)(?: including.*)?[.?!]*$/i,
     /summarize the current state of (.+?)(?: in one tight paragraph)?[.?!]*$/i,
     /search past job history for (.+?)[.?!]*$/i,
+    /what is the (?:exact )?current stage of (.+?)(?: now)?[.?!]*$/i,
+    /what(?:'s| is) the (?:current )?stage (?:of|for) (.+?)[.?!]*$/i,
+    /what recent (?:notes?|updates?|changes?) (?:exist |are there )?for (.+?)[.?!]*$/i,
+    /what are the most important facts (?:you have )?about (.+?)(?: without guessing)?[.?!]*$/i,
+    // Invoice/quote patterns
+    /(?:create|make|generate|send|draft|give me)(?: a)? (?:quote|estimate|invoice) for (.+?)(?:\s+for\s+\$[\d,]+)?[.?!]*$/i,
+    /(?:show me|what(?:'s| is)|get) the (?:invoice|quote) (?:status |)(?:for|on) (.+?)[.?!]*$/i,
+    /(?:latest|current) invoice (?:status )?(?:for|on) (.+?)[.?!]*$/i,
+    /update(?: the)?(?: final)? invoice amount for (.+?) to \$?[\d,]+(?:\.\d+)?[.?!]*$/i,
+    /(?:advance|move forward|push forward|next stage)(?: for)? (.+?)[.?!]*$/i,
+    /(?:customer|client|they).{0,20}(?:approved|accepted|said yes|confirmed).{0,20}(?:quote|estimate|job|work)(?: for)? (.+?)[.?!]*$/i,
+    /(?:mark|update)(?: the)? (.+?) (?:invoice|payment) (?:as )?paid[.?!]*$/i,
   ];
 
   for (const pattern of patterns) {
@@ -464,6 +599,7 @@ async function buildResolvedEntitiesBlock(
   content: string,
   classification: PreClassification,
   selectedDeals: SelectionDeal[],
+  workspaceTimezone?: string | null,
 ): Promise<string> {
   const lines: string[] = [];
   const textLower = content.toLowerCase();
@@ -481,7 +617,20 @@ async function buildResolvedEntitiesBlock(
   if (likelyContact) {
     try {
       const context = await runGetClientContext(workspaceId, { clientName: likelyContact });
-      if (context.client) {
+      if (context.ambiguousMatches?.length) {
+        lines.push(
+          `Ambiguous contacts for "${likelyContact}": ${context.ambiguousMatches
+            .map((match) => {
+              const details = [
+                match.company ? `company ${match.company}` : null,
+                match.phone ? `phone ${match.phone}` : null,
+                match.email ? `email ${match.email}` : null,
+              ].filter(Boolean);
+              return `${match.name}${details.length ? ` (${details.join(", ")})` : ""}`;
+            })
+            .join("; ")}. Ask the user which one they mean instead of guessing, and suggest they reply with a phone number, company, email, or option number.`,
+        );
+      } else if (context.client) {
         lines.push(
           `Likely contact: ${context.client.name}${context.client.phone ? `, phone ${context.client.phone}` : ""}${context.client.email ? `, email ${context.client.email}` : ""}`,
         );
@@ -494,7 +643,7 @@ async function buildResolvedEntitiesBlock(
           lines.push(
             `Recent jobs for ${context.client.name}: ${context.recentJobs
               .slice(0, 3)
-              .map((job) => `${job.title} (${job.stage})`)
+              .map((job) => `${job.title} (${DIRECT_STAGE_LABELS[job.stage] ?? DIRECT_STAGE_LABELS[String(job.stage).toUpperCase()] ?? job.stage})`)
               .join(", ")}`,
           );
         }
@@ -518,7 +667,7 @@ async function buildResolvedEntitiesBlock(
       if (exactMatches.length > 0) {
         lines.push(
           `Likely jobs: ${exactMatches
-            .map((deal) => `${deal.title} (${deal.stage}${deal.scheduledAt ? `, ${new Date(deal.scheduledAt).toLocaleString("en-AU")}` : ""})`)
+            .map((deal) => { const s = String(deal.stage ?? ""); return `${deal.title} (${DIRECT_STAGE_LABELS[s] ?? DIRECT_STAGE_LABELS[s.toUpperCase()] ?? s}${deal.scheduledAt ? `, ${formatChatDateTime(deal.scheduledAt, workspaceTimezone)}` : ""})`; })
             .join(", ")}`,
         );
       } else if (likelyDealQuery) {
@@ -571,7 +720,21 @@ function buildWorkspaceContextBlocks(
   return [...intentBlocks[classification.intent], includeBouncer ? context.bouncerStr : "", ...alwaysRelevant].filter(Boolean);
 }
 
-function formatClientContextResult(result: Awaited<ReturnType<typeof runGetClientContext>>): string {
+function formatClientContextResult(result: Awaited<ReturnType<typeof runGetClientContext>>, workspaceTimezone?: string | null): string {
+  if (result.ambiguousMatches?.length) {
+    const lines = ["I found multiple contacts that match. Tell me which one you mean:"];
+    result.ambiguousMatches.forEach((match, index) => {
+      const details = [
+        match.company ? `company ${match.company}` : null,
+        match.phone ? `phone ${match.phone}` : null,
+        match.email ? `email ${match.email}` : null,
+      ].filter(Boolean);
+      lines.push(`${index + 1}. ${match.name}${details.length ? ` (${details.join(", ")})` : ""}`);
+    });
+    lines.push("Reply with the option number, phone number, email, company name, or full contact name and I'll open the right record.");
+    return lines.join("\n");
+  }
+
   if (!result.client) {
     return "I couldn't find that contact in the CRM.";
   }
@@ -587,7 +750,8 @@ function formatClientContextResult(result: Awaited<ReturnType<typeof runGetClien
   if (result.recentJobs.length) {
     lines.push("Recent jobs:");
     for (const job of result.recentJobs) {
-      lines.push(`- ${job.title} (${job.stage}${job.scheduledAt ? `, ${new Date(job.scheduledAt).toLocaleString("en-AU")}` : ""})`);
+      const stageLabel = DIRECT_STAGE_LABELS[job.stage] ?? DIRECT_STAGE_LABELS[String(job.stage).toUpperCase()] ?? job.stage;
+      lines.push(`- ${job.title} (${stageLabel}${job.scheduledAt ? `, ${formatChatDateTime(job.scheduledAt, workspaceTimezone)}` : ""})`);
     }
   }
 
@@ -599,7 +763,7 @@ function formatClientContextResult(result: Awaited<ReturnType<typeof runGetClien
   return lines.join("\n");
 }
 
-function formatTodaySummaryResult(summary: Awaited<ReturnType<typeof runGetTodaySummary>>): string {
+function formatTodaySummaryResult(summary: Awaited<ReturnType<typeof runGetTodaySummary>>, workspaceTimezone?: string | null): string {
   const lines = ["Today's CRM summary:"];
 
   if (summary.preparationAlerts.length) {
@@ -614,7 +778,7 @@ function formatTodaySummaryResult(summary: Awaited<ReturnType<typeof runGetToday
   if (summary.todayJobs.length) {
     lines.push("Today's jobs:");
     for (const job of summary.todayJobs) {
-      lines.push(`- ${job.scheduledAt}: ${job.title} for ${job.clientName}${job.assignedTo ? ` (${job.assignedTo})` : ""}`);
+      lines.push(`- ${formatChatDateTime(job.scheduledAt, workspaceTimezone)}: ${job.title} for ${job.clientName}${job.assignedTo ? ` (${job.assignedTo})` : ""}`);
     }
   } else {
     lines.push("Today's jobs: none scheduled.");
@@ -631,13 +795,13 @@ function formatTodaySummaryResult(summary: Awaited<ReturnType<typeof runGetToday
   return lines.join("\n");
 }
 
-function formatAvailabilityResult(result: Awaited<ReturnType<typeof runGetAvailability>>, phrase: string): string {
+function formatAvailabilityResult(result: Awaited<ReturnType<typeof runGetAvailability>>, phrase: string, workspaceTimezone?: string | null): string {
   const lines = [`Availability for ${phrase}:`];
 
   if (result.scheduledJobs.length) {
     lines.push("Booked:");
     for (const job of result.scheduledJobs) {
-      lines.push(`- ${job.title} at ${new Date(job.startTime).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" })} for ${job.clientName}`);
+      lines.push(`- ${job.title} at ${formatTimeInTimezone(job.startTime, resolveWorkspaceTimezone(workspaceTimezone))} for ${job.clientName}`);
     }
   } else {
     lines.push("Booked: no jobs yet.");
@@ -798,7 +962,7 @@ async function executeDirectCrmCommand({ workspaceId, content }: DirectCommandCo
       };
     }
     const jobLines = result.recentJobs.length
-      ? result.recentJobs.map((job) => `- ${job.title} (${job.stage}${job.scheduledAt ? `, ${new Date(job.scheduledAt).toLocaleString("en-AU")}` : ""})`).join("\n")
+      ? result.recentJobs.map((job) => `- ${job.title} (${job.stage}${job.scheduledAt ? `, ${formatChatDateTime(job.scheduledAt)}` : ""})`).join("\n")
       : "No jobs found for that contact.";
     return {
       text: `Jobs for ${result.client.name}:\n${jobLines}`,
@@ -870,7 +1034,7 @@ async function executeDirectCrmCommand({ workspaceId, content }: DirectCommandCo
       };
     }
     return {
-      text: await runCreateTask({
+      text: await runCreateTask(workspaceId, {
         title: `Follow up ${cleanDirectValue(match[1])}`,
         dueAtISO: dueAtISO ?? undefined,
         description: cleanDirectValue(match[3]),
@@ -885,7 +1049,7 @@ async function executeDirectCrmCommand({ workspaceId, content }: DirectCommandCo
     const dueAtISO = resolveScheduleIso(match[2]);
     const clientContext = await runGetClientContext(workspaceId, { clientName: cleanDirectValue(match[1]) });
     return {
-      text: await runCreateTask({
+      text: await runCreateTask(workspaceId, {
         title: `Call ${cleanDirectValue(match[1])}`,
         dueAtISO: dueAtISO ?? undefined,
         description: cleanDirectValue(match[3]),
@@ -898,7 +1062,7 @@ async function executeDirectCrmCommand({ workspaceId, content }: DirectCommandCo
   match = text.match(/^create a new task called (.+?) due (.+?)[.?!]*$/i);
   if (match) {
     return {
-      text: await runCreateTask({
+      text: await runCreateTask(workspaceId, {
         title: cleanDirectValue(match[1]),
         dueAtISO: resolveScheduleIso(match[2]) ?? undefined,
       }),
@@ -1010,16 +1174,18 @@ async function executeDirectCrmCommand({ workspaceId, content }: DirectCommandCo
 
   match = text.match(/^create a draft invoice for (.+?)[.?!]*$/i);
   if (match) {
+    const result = await runCreateDraftInvoice(workspaceId, { dealTitle: cleanDirectValue(match[1]) });
     return {
-      text: await runCreateDraftInvoice(workspaceId, { dealTitle: cleanDirectValue(match[1]) }),
+      text: result.message,
       metricName: "chat.web.direct.invoice",
     };
   }
 
   match = text.match(/^(?:what is the latest invoice status for|show me the invoice status for) (.+?)[.?!]*$/i);
   if (match) {
+    const result = await runGetInvoiceStatusAction(workspaceId, { dealTitle: cleanDirectValue(match[1]) });
     return {
-      text: await runGetInvoiceStatusAction(workspaceId, { dealTitle: cleanDirectValue(match[1]) }),
+      text: result.message,
       metricName: "chat.web.direct.invoice",
     };
   }
@@ -1174,7 +1340,7 @@ async function executeDirectCrmCommand({ workspaceId, content }: DirectCommandCo
       workspaceTimezone: typeof settings?.workspaceTimezone === "string" ? settings.workspaceTimezone : undefined,
     });
     return {
-      text: formatAvailabilityResult(result, cleanDirectValue(match[1])),
+      text: formatAvailabilityResult(result, cleanDirectValue(match[1]), settings?.workspaceTimezone),
       metricName: "chat.web.direct.availability",
     };
   }
@@ -1278,6 +1444,21 @@ export async function POST(req: Request) {
       logger.error("Failed to save user message", { component: "chat-api", workspaceId }, err as Error);
     });
 
+    const ambiguousContactFollowUp = await resolveAmbiguousContactFollowUp(workspaceId, content, messages);
+    if (ambiguousContactFollowUp) {
+      const textId = "contact-disambiguation";
+      const stream = createUIMessageStream({
+        execute: ({ writer }) => {
+          writer.write({ type: "start" });
+          writer.write({ type: "text-start", id: textId });
+          writer.write({ type: "text-delta", id: textId, delta: ambiguousContactFollowUp });
+          writer.write({ type: "text-end", id: textId });
+          writer.write({ type: "finish" });
+        },
+      });
+      return createUIMessageStreamResponse({ stream });
+    }
+
     // "Next" in multi-job flow: use persisted multi-job state from previous tool outputs.
     const isNextMessage = /^\s*next\s*(job)?\s*(please)?\s*$/i.test(content.trim()) || content.trim().toLowerCase() === "next";
     if (isNextMessage && Array.isArray(messages) && messages.length >= 2) {
@@ -1353,7 +1534,6 @@ export async function POST(req: Request) {
 
     // Extract user ID from headers or use workspaceId as fallback
     const userId = req.headers.get("x-user-id") || workspaceId;
-    const preprocessingStartedAt = nowMs();
     const lastUserMessage = messages.filter((m: { role?: string }) => m.role === "user").pop();
     const lastMessageContent = getUserMessageText(lastUserMessage) || content;
 
@@ -1368,31 +1548,15 @@ export async function POST(req: Request) {
       const elapsed = nowMs() - requestStartedAt;
       recordLatencyMetric(directCommand.metricName ?? "chat.web.direct", elapsed);
       recordLatencyMetric("chat.web.total_ms", elapsed);
-      return createTextStreamResponse(directCommand.text);
+      const directText = typeof directCommand.text === "string"
+        ? directCommand.text
+        : directCommand.text.message;
+      return createTextStreamResponse(directText);
     }
 
-    const shouldRunStructuredExtraction = !isFlowControl && shouldAttemptStructuredJobExtraction(content, classification);
-    const includeHistoricalPricing = !isFlowControl && shouldIncludeHistoricalPricing(content);
-    const shouldGetMemoryContext = !isFlowControl && shouldFetchMemory(lastMessageContent);
-
-    // ── PARALLEL: Run job extraction, context building, and memory fetch concurrently ──
-    // This is the critical speed optimization — these 3 operations are independent and
-    // were previously running sequentially, adding 1-3+ seconds of dead time.
-    const jobExtractionStart = nowMs();
-    const agentContextStart = nowMs();
-    const memoryFetchStart = nowMs();
-    const [extractedJobs, agentContext, memoryContextStr] = await Promise.all([
-      (shouldRunStructuredExtraction
-        ? withTimeout(extractAllJobsFromParagraph(content), 1400, [])
-        : Promise.resolve([])
-      ).then(r => { recordLatencyMetric('chat.web.preprocessing.job_extraction_ms', nowMs() - jobExtractionStart); return r; }),
-      buildAgentContext(workspaceId, userId, { includeHistoricalPricing, pricingAudience: "business" })
-        .then(r => { recordLatencyMetric('chat.web.preprocessing.agent_context_ms', nowMs() - agentContextStart); return r; }),
-      (shouldGetMemoryContext
-        ? withTimeout(fetchMemoryContext(userId, lastMessageContent), 400, "")
-        : Promise.resolve("")
-      ).then(r => { recordLatencyMetric('chat.web.preprocessing.memory_fetch_ms', nowMs() - memoryFetchStart); return r; }),
-    ]);
+    // ── PARALLEL PREPROCESSING: job extraction, context, memory, entity pre-resolution ──
+    const preprocessing = await runPreprocessing(workspaceId, userId, content, lastMessageContent);
+    const { extractedJobs, agentContext, memoryContextStr, preprocessingMs } = preprocessing;
 
     const {
       settings,
@@ -1407,7 +1571,6 @@ export async function POST(req: Request) {
       bouncerStr,
       attachmentsStr,
     } = agentContext;
-    const preprocessingMs = nowMs() - preprocessingStartedAt;
 
     // ── Handle job extraction results (draft card early-returns) ──
     const multipleJobs = extractedJobs.length >= 2 ? extractedJobs : null;
@@ -1457,10 +1620,11 @@ export async function POST(req: Request) {
     }
 
     const singleJobFromParagraph = extractedJobs.length === 1 ? extractedJobs[0] : null;
+    const shouldRunFallbackParse = !useMultiJobFlow && !singleJobFromParagraph && shouldAttemptStructuredJobExtraction(content, classification);
     const parsed = useMultiJobFlow
       ? null
       : (singleJobFromParagraph ??
-        (shouldRunStructuredExtraction ? await withTimeout(parseJobWithAI(content), 1400, null) : null));
+        (shouldRunFallbackParse ? await withTimeout(parseJobWithAI(content), 1400, null) : null));
     if (parsed) {
       // One-liner: return a draft card for confirmation; do not create the job until user confirms.
       const draft = buildJobDraftFromParams(parsed) as ReturnType<typeof buildJobDraftFromParams> & { warnings: string[] };
@@ -1611,6 +1775,7 @@ export async function POST(req: Request) {
       content,
       classification,
       selectedDeals,
+      settings?.workspaceTimezone,
     );
     const workspaceContextBlocks = buildWorkspaceContextBlocks(classification, content, {
       currentDateStr: `CURRENT DATE/TIME:\n- Today is ${new Intl.DateTimeFormat("en-AU", {
@@ -1644,10 +1809,11 @@ export async function POST(req: Request) {
 - Before quoting any service price, you MUST call pricingLookup first to get the approved or historical price.
 - If pricingLookup returns no match, say "I don’t have an approved price in your glossary for this. For a firm quote, an on-site assessment is required (or add an approved glossary price so we can quote next time)." Do NOT estimate or guess.
 - When reporting a price, cite where it came from: "Our approved rate for X is $Y" or "Similar jobs have been $X-$Y".`,
-      messagingRuleBlock: `On "message/text/tell/send [name]" call sendSms immediately with no confirmation. Send the user's exact words and never rewrite or refuse them. Track pronouns from context. Confirm with: "Sent to [Name]: \\"[msg]\\"". Follow any SYSTEM_CONTEXT_SIGNAL from tool output.`,
-      uncertaintyBlock: "Never return blank. Ask to clarify if unclear. List options if ambiguous. Request missing info. If a tool fails, explain and suggest retry. If no data exists, say what you checked. For getTodaySummary, lead with preparation alerts before the schedule.",
-      roleGuardBlock: `Data changes: OWNER and MANAGER users confirm via showConfirmationCard, then recordManualRevenue after the user says "confirm", "ok", or "yes". TEAM_MEMBER users cannot change restricted data and should be told to ask their manager.`,
-      multiJobBlock: `Always use showJobDraftForConfirmation instead of plain text. Handle one job at a time. Do not call createJobNatural until the user confirms.`,
+      messagingRuleBlock: `On "message/text/tell/send [name]" call sendSms immediately with no confirmation. Extract the message body from the instruction — if the user says "tell John I’m on my way", the SMS body is "I’m on my way". Never send the full instruction as the message. Never rewrite or refuse the message content. Track pronouns from context. Confirm with: "Sent to [Name]: \\"[msg]\\"". Follow any SYSTEM_CONTEXT_SIGNAL from tool output.`,
+      uncertaintyBlock: "Never return blank. Ask to clarify if unclear. List options if ambiguous. Request missing info. TOOL RESULT TRUTHFULNESS: Always check the success field of tool results. If success is false, report the failure honestly — never say 'Done' or imply success when the tool returned success:false. Quote the message field from the tool result as the error reason. If a tool fails, explain what went wrong and suggest how to resolve it. If no data exists, say what you checked. For getTodaySummary, lead with preparation alerts before the schedule.",
+      roleGuardBlock: `recordManualRevenue always requires showConfirmationCard first — do not call it until the user confirms with "confirm", "ok", or "yes". Use showConfirmationCard for other high-risk mutations too (bulk stage moves, bulk deletes). TEAM_MEMBER users cannot perform restricted data changes and should be told to ask their manager.
+MULTI-STEP EXECUTION: When a request clearly requires a sequence of tool calls (e.g. create invoice → set amount → move stage), execute all steps in sequence without stopping to ask for confirmation between steps unless one fails or requires input the user didn't provide. Report the combined outcome at the end.`,
+      multiJobBlock: `For multi-job entry flows, use showJobDraftForConfirmation to handle one job at a time. Do not call createJobNatural until the user confirms. If the user gave a single, complete job request with client, work, price, and schedule all in one message and asked to create it now, use createJobNatural directly.`,
       jobDraftBlock: `When showJobDraftForConfirmation is used, the card itself is the full draft summary. Do not repeat the draft details, call-out fee, address, phone, or a second confirmation line underneath it. If needed, add only a very short instruction like "Use the card to confirm or edit."`,
     });
 
@@ -1666,10 +1832,11 @@ export async function POST(req: Request) {
 - Before quoting any service price, you MUST call pricingLookup first to get the approved or historical price.
 - If pricingLookup returns no match, say "I don’t have an approved price in your glossary for this. For a firm quote, an on-site assessment is required (or add an approved glossary price so we can quote next time)." Do NOT estimate or guess.
 - When reporting a price, cite where it came from: "Our approved rate for X is $Y" or "Similar jobs have been $X-$Y".`,
-        messagingRuleBlock: `On "message/text/tell/send [name]" call sendSms immediately with no confirmation. Send the user's exact words and never rewrite or refuse them. Track pronouns from context. Confirm with: "Sent to [Name]: \\"[msg]\\"". Follow any SYSTEM_CONTEXT_SIGNAL from tool output.`,
-        uncertaintyBlock: "Never return blank. Ask to clarify if unclear. List options if ambiguous. Request missing info. If a tool fails, explain and suggest retry. If no data exists, say what you checked. For getTodaySummary, lead with preparation alerts before the schedule.",
-        roleGuardBlock: `Data changes: OWNER and MANAGER users confirm via showConfirmationCard, then recordManualRevenue after the user says "confirm", "ok", or "yes". TEAM_MEMBER users cannot change restricted data and should be told to ask their manager.`,
-        multiJobBlock: `Always use showJobDraftForConfirmation instead of plain text. Handle one job at a time. Do not call createJobNatural until the user confirms.`,
+        messagingRuleBlock: `On "message/text/tell/send [name]" call sendSms immediately with no confirmation. Extract the message body from the instruction — if the user says "tell John I’m on my way", the SMS body is "I’m on my way". Never send the full instruction as the message. Never rewrite or refuse the message content. Track pronouns from context. Confirm with: "Sent to [Name]: \\"[msg]\\"". Follow any SYSTEM_CONTEXT_SIGNAL from tool output.`,
+        uncertaintyBlock: "Never return blank. Ask to clarify if unclear. List options if ambiguous. Request missing info. TOOL RESULT TRUTHFULNESS: Always check the success field of tool results. If success is false, report the failure honestly — never say 'Done' or imply success when the tool returned success:false. Quote the message field from the tool result as the error reason. If a tool fails, explain what went wrong and suggest how to resolve it. If no data exists, say what you checked. For getTodaySummary, lead with preparation alerts before the schedule.",
+        roleGuardBlock: `recordManualRevenue always requires showConfirmationCard first — do not call it until the user confirms with "confirm", "ok", or "yes". Use showConfirmationCard for other high-risk mutations too (bulk stage moves, bulk deletes). TEAM_MEMBER users cannot perform restricted data changes and should be told to ask their manager.
+MULTI-STEP EXECUTION: When a request clearly requires a sequence of tool calls (e.g. create invoice → set amount → move stage), execute all steps in sequence without stopping to ask for confirmation between steps unless one fails or requires input the user didn't provide. Report the combined outcome at the end.`,
+        multiJobBlock: `For multi-job entry flows, use showJobDraftForConfirmation to handle one job at a time. Do not call createJobNatural until the user confirms. If the user gave a single, complete job request with client, work, price, and schedule all in one message and asked to create it now, use createJobNatural directly.`,
         jobDraftBlock: `When showJobDraftForConfirmation is used, the card itself is the full draft summary. Do not repeat the draft details, call-out fee, address, phone, or a second confirmation line underneath it. If needed, add only a very short instruction like "Use the card to confirm or edit."`,
       });
       systemPrompt = reducedPrompt;
@@ -1690,7 +1857,7 @@ export async function POST(req: Request) {
       system: systemPrompt,
       messages: modelMessages as any,
       tools,
-      stopWhen: stepCountIs(getAdaptiveMaxSteps(content)),
+      stopWhen: stepCountIs(getAdaptiveMaxSteps(content, classification.intent)),
       onChunk: ({ chunk }) => {
         if (!ttftRecorded && chunk.type === 'text-delta') {
           ttftRecorded = true;
@@ -1712,51 +1879,17 @@ export async function POST(req: Request) {
         }
       },
       onFinish: async ({ text }) => {
-        const llmPhaseMs = nowMs() - llmStartedAt;
-        const modelMs = Math.max(0, llmPhaseMs - toolCallsMs);
-        const totalMs = nowMs() - requestStartedAt;
-        recordLatencyMetric("chat.web.preprocessing_ms", preprocessingMs);
-        recordLatencyMetric("chat.web.tool_calls_ms", toolCallsMs);
-        recordLatencyMetric("chat.web.model_ms", modelMs);
-        recordLatencyMetric("chat.web.total_ms", totalMs);
-
-        // === Pricing Response Validation ===
-        const validation = validatePricingInResponse(text, toolOutputsForValidation);
-        if (!validation.valid) {
-          console.warn(
-            `[PricingValidator] Unsourced amounts detected in response: ${validation.unsourcedAmounts.join(", ")}. ` +
-            `Sourced: ${validation.sourcedAmounts.join(", ")}. Mentioned: ${validation.mentionedAmounts.join(", ")}.`
-          );
-          recordLatencyMetric("chat.web.pricing_validation_fail", 1);
-        }
-
-        // === STEP B: "The Learning" (Post-Generation Memory Storage) ===
-        console.log(`[Mem0] Starting memory storage...`);
-
-        try {
-          addMem0Memory({
-            userId,
-            messages: [
-              { role: "user", content: lastMessageContent },
-              { role: "assistant", content: text },
-            ],
-            metadata: {
-              timestamp: new Date().toISOString(),
-              source: "chat",
-              workspaceId,
-            },
-          })
-            .then(() => {
-              console.log(`[Mem0] Successfully saved interaction`);
-            })
-            .catch((error: unknown) => {
-              logger.error("Mem0 save interaction failed", { component: "chat-api", workspaceId, userId }, error as Error);
-            });
-
-          // Note: Not awaiting to avoid blocking the response
-        } catch (error) {
-          logger.error("Mem0 storage pipeline failed", { component: "chat-api", workspaceId, userId }, error as Error);
-        }
+        const postCtx: PostprocessingContext = {
+          workspaceId,
+          userId,
+          lastMessageContent,
+          requestStartedAt,
+          preprocessingMs,
+          llmStartedAt,
+          toolCallsMs,
+          ttftMs,
+        };
+        runPostprocessing(postCtx, text, toolOutputsForValidation);
       },
     });
 

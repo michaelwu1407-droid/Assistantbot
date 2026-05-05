@@ -24,6 +24,7 @@ import { DealView } from "@/actions/deal-actions"
 import { ACTUAL_OUTCOME_OPTIONS, ActualOutcome } from "@/lib/deal-utils"
 import { reconcileStaleJob } from "@/actions/stale-job-actions"
 import { format } from "date-fns"
+import { toast } from "sonner"
 
 interface StaleJobReconciliationModalProps {
   deal: DealView
@@ -40,6 +41,23 @@ export function StaleJobReconciliationModal({
   const [actualOutcome, setActualOutcome] = useState<ActualOutcome | "">("")
   const [outcomeNotes, setOutcomeNotes] = useState("")
 
+  const getOutcomeNextStep = (outcome: ActualOutcome | "") => {
+    switch (outcome) {
+      case "COMPLETED":
+        return "Marks the job as completed and moves it to Completed."
+      case "RESCHEDULED":
+        return "Clears the old scheduled date and moves the job back so you can book a new time."
+      case "PARKED":
+        return "Removes the scheduled date and parks the job for follow-up when the customer is ready."
+      case "NO_SHOW":
+        return "Records that the customer did not show and closes the job out of the active pipeline."
+      case "CANCELLED":
+        return "Records the cancellation and closes the job out of the active pipeline."
+      default:
+        return ""
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -50,16 +68,22 @@ export function StaleJobReconciliationModal({
     setIsSubmitting(true)
     
     try {
-      await reconcileStaleJob({
+      const result = await reconcileStaleJob({
         dealId: deal.id,
         actualOutcome,
         outcomeNotes: outcomeNotes.trim() || null,
       })
-      
+
+      if (!result.success) {
+        toast.error(result.error || "Failed to update job")
+        return
+      }
+
+      toast.success("Job updated")
       onSuccess()
     } catch (error) {
       console.error("Failed to reconcile stale job:", error)
-      // You could add error handling here (toast, etc.)
+      toast.error("Failed to update job")
     } finally {
       setIsSubmitting(false)
     }
@@ -84,7 +108,7 @@ export function StaleJobReconciliationModal({
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-amber-500" />
@@ -105,7 +129,7 @@ export function StaleJobReconciliationModal({
             </div>
             <div className="text-xs text-amber-700">
               Customer: {deal.contactName}
-              {deal.address && ` • ${deal.address}`}
+              {deal.address && ` - ${deal.address}`}
             </div>
           </div>
 
@@ -133,6 +157,9 @@ export function StaleJobReconciliationModal({
                 ))}
               </SelectContent>
             </Select>
+            {actualOutcome && (
+              <p className="text-xs text-slate-500">{getOutcomeNextStep(actualOutcome)}</p>
+            )}
           </div>
 
           {/* Outcome Notes */}

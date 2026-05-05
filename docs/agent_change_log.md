@@ -1,111 +1,1030 @@
-## 2026-04-05 20:15 (AEDT) - Cursor Agent
+## 2026-05-01 (Codex) - Reduce default spoken PSTN canary cadence to control Twilio spend
 
 - Files changed:
-  - `components/crm/contact-profile.tsx`
-  - `components/crm/contact-timeline.tsx`
-  - `components/crm/deal-detail-modal.tsx`
-  - `components/crm/leaflet-map.tsx`
-  - `components/scheduler/draggable-job-card.tsx`
-  - `__tests__/job-portal-status-labels.test.ts`
+  - `lib/voice-monitor-config.ts`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
 - Summary:
-  - **Contact profile** property rows, **contact timeline** active deals, **map popups**, **deal detail modal** stage pill and “other jobs” list, and **scheduler** job cards now show **shared user-facing stage labels** (`getUserFacingDealStageLabel` / `formatJobHeaderStatus`) instead of raw Prisma codes or lowercase map stage ids.
-  - Scheduler status line drops forced **all-caps** styling so labels read naturally (e.g. “Scheduled” vs `SCHEDULED`).
+  - Changed the default synthetic-probe refresh cadence from 15 minutes to 180 minutes so the paid spoken PSTN canary now runs about every 3 hours instead of every 30 minutes under the current watchdog schedule.
+  - Widened the default synthetic-probe stale window from 45 minutes to 240 minutes so health does not flap unhealthy between the less-frequent probe runs.
+  - Documented this as a temporary cost-control setting that should be revisited later, ideally after separating the cheap gateway probe from the paid spoken PSTN canary path.
 - Why:
-  - Closes remaining checklist drift where internal stage strings still leaked in secondary CRM surfaces after the main kanban/deal-card cleanup.
+  - Live Twilio usage showed the spoken PSTN canary was the dominant variable monitoring cost, while passive checks and watchdog freshness were already giving us strong safety coverage.
+  - This keeps the watchdog and passive health checks frequent while reducing the paid active-call cadence for now.
+- Verified with:
+  - `npx tsc --noEmit`
+  - `npx vitest run __tests__/launch-readiness.test.ts __tests__/voice-fleet-health-route.test.ts __tests__/voice-monitor-watchdog-route.test.ts`
 
-## 2026-04-05 19:45 (AEDT) - Cursor Agent
+## 2026-05-01 (Codex) - Clarified Resend admin verification health without hiding it
 
 - Files changed:
-  - `app/crm/settings/integrations/page.tsx`
-  - `components/jobs/job-detail-view.tsx`
-  - `lib/job-portal-status-labels.ts`
-  - `__tests__/job-portal-status-labels.test.ts`
+  - `lib/inbound-lead-email-readiness.ts`
+  - `lib/launch-readiness.ts`
+  - `__tests__/inbound-lead-email-readiness.test.ts`
+  - `__tests__/launch-readiness.test.ts`
+  - `__tests__/customer-agent-readiness.test.ts`
+  - `docs/agent_change_log.md`
 - Summary:
-  - **Integrations**: Disabled Gmail, Outlook, Google Calendar, and Xero connect buttons expose **`title` + `aria-label`** with `getIntegrationConnectionReadiness` reasons so users see why OAuth is unavailable instead of a dead control with no explanation.
-  - **Tradie job portal**: Header badge and success toast use **human-readable job and deal-stage labels** (`formatJobHeaderStatus`); invoice rows use **Paid / Issued / Draft** etc. instead of raw status codes.
+  - Split inbound lead-email readiness into blocking `issues` and non-blocking `warnings`.
+  - Kept the existing verified-summary fallback for Resend domain-detail `429` responses, but now surface that rate limit explicitly as a warning instead of hiding it.
+  - Reworded domains-list failures so they read as a Resend admin verification problem, not as a vague "inbound email is broken" message.
+  - Taught launch readiness to forward both blocking issues and non-blocking admin warnings in the communications/email payload.
 - Why:
-  - Closes audit gaps on unexplained disabled integration CTAs and raw `WON` / `TRAVELING`-style strings on the job detail surface.
+  - We want real Resend admin/control-plane trouble to stay visible so it can be fixed, but we also do not want a verified inbound email setup to look customer-broken just because a provider admin endpoint is rate-limited.
+- Verified with:
+  - `npx vitest run __tests__/inbound-lead-email-readiness.test.ts __tests__/launch-readiness.test.ts __tests__/customer-agent-readiness.test.ts`
+  - `npx tsc --noEmit`
 
-## 2026-04-05 19:00 (AEDT) - Cursor Agent
+## 2026-05-01 (Codex) - Documented post-reliability voice optimization backlog
 
 - Files changed:
-  - `components/dashboard/notifications-btn.tsx`
-  - `components/crm/stale-deal-follow-up-modal.tsx`
-  - `components/crm/kanban-automation-modal.tsx`
+  - `docs/voice_agent_improvement_backlog.md`
+  - `docs/agent_change_log.md`
 - Summary:
-  - Notifications: **`SEND_INVOICE`** actions and row taps that open the job link now show a **`Opening job & billing`** success toast so users get immediate feedback (same helper used for primary action buttons and list-row navigation).
-  - Stale-deal and kanban automation modals show **user-facing stage labels** via `getUserFacingDealStageLabel` instead of raw internal stage strings.
+  - Added a review-only backlog for voice-agent improvements after the recent reliability work.
+  - Captured the strongest latency/quality ideas, plus my view on which ones are solid, premature, or based on incorrect assumptions about the current codebase.
 - Why:
-  - Aligns with the CRM stage-language cleanup and the audit note that invoice-related notification paths lacked an obvious outcome.
+  - We now have voice stability back, so the next tuning pass should be deliberate and reviewable instead of being mixed into outage recovery work.
 
-## 2026-04-05 18:15 (AEDT) - Cursor Agent
+## 2026-05-01 (Codex) - Ignore impossible SMS auto-replies to alphanumeric sender IDs
 
 - Files changed:
-  - `components/chatbot/chat-interface.tsx`
-  - `components/crm/job-map-view.tsx`
-  - `__tests__/chat-interface.test.tsx`
+  - `app/api/twilio/webhook/route.ts`
+  - `lib/passive-production-health.ts`
+  - `lib/sms-address.ts`
+  - `__tests__/twilio-sms-webhook.test.ts`
+  - `__tests__/passive-production-health.test.ts`
+  - `docs/agent_change_log.md`
 - Summary:
-  - **Quick actions** (Schedule a job, Create quote, etc.) now **send the prompt immediately** via `sendMessage` instead of only filling the textarea—users see the user bubble and “Thinking…” without a second Send click (addresses audit: no visible outcome from quick actions).
-  - **Chat interface tests** clear `sessionStorage` in `beforeEach` so history load is not skipped across runs after persisted messages.
-  - **Job map** sidebar stage pills use **shared user-facing stage labels** (`getUserFacingDealStageLabel`) instead of raw internal stage strings.
+  - Added a shared `isReplyableSmsAddress()` helper for SMS sender/recipient validation.
+  - Stopped the inbound Twilio SMS webhook from attempting automated SMS replies to non-replyable sender IDs such as `Anaconda`, and recorded those cases as intentionally suppressed instead of failed.
+  - Taught passive communications health to ignore historical `sms.reply` error events whose destination was never a real replyable SMS address.
 - Why:
-  - Clearer Tracey UX and consistent CRM wording on the map list.
+  - Production passive SMS health was red because Alexandria Automotive Services received inbound SMS from an alphanumeric sender ID and the app tried to auto-reply to that sender as if it were a phone number.
+  - That is not a real customer-facing SMS outage, so it should neither trigger an outbound reply attempt nor keep passive health red.
+- Verified with:
+  - `npx vitest run __tests__/twilio-sms-webhook.test.ts __tests__/passive-production-health.test.ts`
+  - `npx tsc --noEmit`
 
-## 2026-04-05 17:30 (AEDT) - Cursor Agent
+## 2026-05-01 (Codex) - Removed unsupported Vercel cron so web deploys can succeed again
 
 - Files changed:
-  - `app/crm/contacts/[id]/page.tsx`
-  - `components/crm/job-map-view.tsx`
-  - `__tests__/contact-page-access.test.tsx`
+  - `vercel.json`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
 - Summary:
-  - **Person** contacts on the detail page now show **Company** and **Address** when present (previously only the business-type card showed them), closing a gap vs edit form fields.
-  - Job map empty states explain **Today vs All Jobs** and that mapping depends on addresses / geocoding.
+  - Removed the unsupported 5-minute and 15-minute Vercel cron entries from `vercel.json`.
+  - Reasserted GitHub Actions schedules as the real recurring scheduler for `voice-monitor-watchdog` and `customer-agent-reconcile` on the current Vercel Hobby plan.
 - Why:
-  - Audit items on missing contact fields and confusing map empty copy; regression extended for contact detail.
+  - Manual production deploy verification showed Vercel was rejecting the web deploy entirely because Hobby only allows daily cron cadence, which left the web app stuck on old SHA `e73d4af3` even while workers kept updating.
+  - The recurring scheduler must stay on GitHub until the project is upgraded to a Vercel plan that supports sub-daily cron.
 
-## 2026-04-05 16:45 (AEDT) - Cursor Agent
+## 2026-05-01 (Codex) - Restored GitHub cron backstops while Vercel owns primary voice cadence
+
+- Files changed:
+  - `.github/workflows/voice-monitor-watchdog.yml`
+  - `.github/workflows/customer-agent-reconcile.yml`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Restored lower-frequency GitHub schedules for `voice-monitor-watchdog` and `customer-agent-reconcile` while keeping Vercel cron as the primary recurring scheduler.
+  - Staggered the GitHub schedules so they act as a safety net rather than competing with the live app cadence.
+  - Documented the dual-scheduler model explicitly in the voice operating brief.
+- Why:
+  - GitHub workflow schedules update immediately when `main` changes, but Vercel cron only becomes real after the matching web deploy is live.
+  - Removing the GitHub schedules first created a freshness gap even though the underlying voice stack was healthy.
+
+## 2026-05-01 (Codex) - Moved recurring voice monitor cadence onto Vercel cron
+
+- Files changed:
+  - `vercel.json`
+  - `.github/workflows/voice-monitor-watchdog.yml`
+  - `.github/workflows/customer-agent-reconcile.yml`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added production Vercel cron schedules for `voice-monitor-watchdog` and `customer-agent-reconcile`.
+  - Removed the recurring GitHub schedules for those two workflows and kept them as manual operator tools.
+  - Documented that the live app platform, not GitHub Actions, is now the primary scheduler for voice freshness and drift checks.
+- Why:
+  - Core voice was healthy, but public health was still degrading because monitor freshness depended on a single external scheduler path that stopped updating `voice-monitor-watchdog`, `voice-agent-health`, and `voice-synthetic-probe`.
+  - Running the recurring cadence from Vercel keeps the checks closer to the live runtime and removes the stale-monitor single point of failure.
+
+## 2026-05-01 (Codex) - Split core voice health from passive comms noise
+
+- Files changed:
+  - `app/api/internal/voice-fleet-health/route.ts`
+  - `lib/passive-production-health.ts`
+  - `__tests__/voice-fleet-health-route.test.ts`
+  - `__tests__/passive-production-health.test.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Separated the internal voice fleet endpoint into `voiceStatus`, `communicationsStatus`, `monitoringStatus`, and `overallStatus`, while keeping the top-level `status` focused on core voice health.
+  - Taught passive SMS health to downgrade to a recovered/degraded state when later SMS traffic proves the path recovered after a failure.
+- Why:
+  - We were still conflating a healthy voice stack with stale monitors or a separate customer SMS issue, which made the architecture look worse than it really was.
+
+## 2026-05-01 (Codex) - Retried voice watchdog fleet health after its own spoken probe
+
+- Files changed:
+  - `app/api/cron/voice-monitor-watchdog/route.ts`
+  - `__tests__/voice-monitor-watchdog-route.test.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Taught the watchdog to retry `voice-agent-health` once after it refreshes its own spoken canary when the only reported problem is temporary fleet call-capacity pressure.
+- Why:
+  - The watchdog could still create a false degraded voice result by checking fleet health while its own probe call was occupying the single sales worker. This keeps the monitor strict about real failures without letting it trip over its own synthetic load.
+
+## 2026-05-01 (Codex) - Waited for the new-deal modal reset state in Linux CI
+
+- Files changed:
+  - `__tests__/new-deal-modal.test.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Changed the post-submit reset assertion in the modal test to wait for the cleared job-description field instead of assuming the form resets synchronously.
+- Why:
+  - The next Linux-only failure after the map fix was a timing edge: the modal had already created the deal and navigated, but the test checked the cleared input a moment too early on the GitHub runner.
+
+## 2026-05-01 (Codex) - Removed a Linux-only clipboard teardown trap from the Google map route-mode test
+
+- Files changed:
+  - `__tests__/google-map-view.test.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Replaced `@testing-library/user-event` with plain `fireEvent` in the Google map route-mode test because the scenario only needs two button clicks.
+  - Kept the suite's stubs focused on `open` and `google` rather than depending on the broader clipboard-aware user-event path.
+  - Added explicit cleanup for the test's env/global stubs.
+- Why:
+  - The real remaining GitHub Actions failure reproduced in Linux as a `navigator.clipboard` teardown crash inside `@testing-library/user-event`.
+  - This suite never needed clipboard behavior, so removing that dependency is the simplest and lowest-risk fix.
+
+## 2026-04-30 (Codex) - Smoothed inbound demo low-signal turns and stopped the watchdog tripping over its own canary
+
+- Files changed:
+  - `livekit-agent/voice-latency.ts`
+  - `livekit-agent/agent.ts`
+  - `app/api/cron/voice-monitor-watchdog/route.ts`
+  - `__tests__/voice-latency-config.test.ts`
+  - `__tests__/voice-monitor-watchdog-route.test.ts`
+- Summary:
+  - Added a narrow fixed-audio fast path for low-signal `inbound_demo` turns like greeting-only openings and hearing checks, so the agent stops wasting a full LLM reply on "Hello, Tracy" / "Can you hear me?" style turns.
+  - Stopped the watchdog from immediately rerunning `voice-agent-health` after it launches its own spoken canary, which was creating false degraded runs while the single sales worker was temporarily busy with the probe call.
+- Why:
+  - Fresh prod canary rows showed most of the remaining first-turn slowness coming from redundant intro replies on low-signal inbound-demo turns, not from the model itself.
+  - The watchdog was also poisoning its own health status by checking fleet capacity during the canary it had just launched, so successful probes could still leave Actions red for the wrong reason.
+
+## 2026-04-29 (Codex) - Count canary calls in latency proof even when worker tagging is incomplete
+
+- Files changed:
+  - `lib/voice-call-latency-health.ts`
+  - `livekit-agent/agent.ts`
+  - `__tests__/voice-call-latency-health.test.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Stopped treating `syntheticProbeCall: false` as authoritative when stronger canary heuristics still match, so the latency proof layer keeps counting real spoken probes instead of dropping them.
+  - Updated the worker to only persist `monitoring.syntheticProbeCall` when it can positively identify the canary, which avoids poisoning later proof detection with a false negative.
+- Why:
+  - The first fresh post-deploy spoken canary was real and healthy, but the worker stored `syntheticProbeCall: false`, which would have hidden the exact proof sample we need for optimization work.
+
+## 2026-04-29 (Codex) - Exposed phone-call latency proof and reduced session TTS cold starts
+
+- Files changed:
+  - `app/api/health/route.ts`
+  - `lib/customer-agent-readiness.ts`
+  - `lib/launch-readiness.ts`
+  - `lib/voice-call-latency-health.ts`
+  - `livekit-agent/agent.ts`
+  - `__tests__/customer-agent-readiness.test.ts`
+  - `__tests__/health-route.test.ts`
+  - `__tests__/launch-readiness.test.ts`
+  - `__tests__/voice-call-latency-health.test.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added explicit latency-proof reporting for recent phone-call samples, including per-surface sample counts, last-sample timestamps, and spoken-canary sample counts for `inbound_demo`.
+  - Updated launch readiness and public health output so degraded phone-latency proof actually surfaces instead of hiding behind otherwise healthy voice checks.
+  - Marked persisted synthetic-probe calls explicitly in voice-call metadata and taught latency health to recognize them, which makes post-deploy measurement much cleaner.
+  - Reduced low-risk TTS cold-start cost by warming the session Cartesia client immediately and prewarming newly detected non-English reply languages as soon as we know the caller language.
+- Why:
+  - We needed a better answer to "is voice fast right now?" than raw averages with vague sample coverage, especially for real PSTN calls and canary-backed proof.
+  - The previous process-level TTS warmup helped, but each live session still created a fresh Cartesia client; overlapping a tiny warmup with session setup trims that first real-reply cost without changing call behavior.
+
+## 2026-04-29 (Codex) - Consolidated voice monitoring cadence and made latency proof explicit
+
+- Files changed:
+  - `.github/workflows/passive-communications-health.yml`
+  - `.github/workflows/voice-agent-health.yml`
+  - `.github/workflows/voice-monitor-watchdog.yml`
+  - `.github/workflows/voice-synthetic-probe.yml`
+  - `app/api/cron/voice-monitor-watchdog/route.ts`
+  - `app/api/cron/voice-synthetic-probe/route.ts`
+  - `app/api/internal/voice-fleet-health/route.ts`
+  - `lib/launch-readiness.ts`
+  - `lib/voice-call-latency-health.ts`
+  - `lib/voice-monitor-config.ts`
+  - `lib/voice-synthetic-probe.ts`
+  - `__tests__/launch-readiness.test.ts`
+  - `__tests__/voice-call-latency-health.test.ts`
+  - `__tests__/voice-fleet-health-route.test.ts`
+  - `__tests__/voice-monitor-watchdog-route.test.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Made `voice-monitor-watchdog` the single scheduled GitHub monitor and removed the extra scheduled monitor workflows that were starving each other on GitHub's real cron cadence.
+  - Added a shared `runVoiceSyntheticProbe` helper so the watchdog can refresh the spoken probe inline, then rerun `voice-agent-health` immediately with fresh canary truth.
+  - Gave the spoken probe its own cadence/staleness settings, made launch readiness and internal voice-fleet health treat the probe as a first-class signal, and improved canary summaries so failures surface the real probe summary instead of a vague warning fragment.
+  - Tightened latency truth by marking missing recent `inbound_demo` samples as degraded rather than silently healthy, which gives us an honest signal when canary-backed phone latency proof is absent.
+- Why:
+  - Production voice had recovered, but `/api/health` was still drifting into degraded because multiple GitHub scheduled workflows were not firing anywhere near their nominal frequency, which made monitor freshness noisy and stale.
+  - We also needed better optimization feedback: if the spoken canary is the main proof surface for phone responsiveness, then missing recent inbound-demo latency samples should be treated as "not verified" rather than "healthy."
+
+## 2026-04-29 (Codex) - Cached fixed greetings and aligned latency health with perceived voice speed
+
+- Files changed:
+  - `livekit-agent/agent.ts`
+  - `lib/voice-call-latency-health.ts`
+  - `__tests__/voice-call-latency-health.test.ts`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Prewarmed and cached the fixed inbound-demo greeting and the default demo greeting so callers do not wait on fresh Cartesia synthesis for those repeated lines.
+  - Updated latency health so `demo` and `inbound_demo` do not degrade solely on raw TTS first-byte timing when speculative heads keep perceived first-turn and overall turn-start latency comfortably within budget.
+- Why:
+  - Production was healthy again, but public `/api/health` still showed degraded because inbound spoken-canary calls were using the latency fast path successfully while the raw downstream TTS metric remained slightly above threshold.
+  - This change improves the real greeting latency for callers and makes readiness reflect experienced responsiveness instead of penalizing a hidden backend stage when the fast path is doing its job.
+
+## 2026-04-29 (Codex) - Moved production customer outbound-call control onto the OCI worker
+
+- Files changed:
+  - `lib/outbound-call.ts`
+  - `lib/outbound-call-queue.ts`
+  - `lib/outbound-call-health.ts`
+  - `app/api/internal/voice-outbound-queue/route.ts`
+  - `app/api/internal/voice-fleet-health/route.ts`
+  - `lib/voice-agent-health-monitor.ts`
+  - `lib/voice-monitoring.ts`
+  - `livekit-agent/outbound-call-control.ts`
+  - `livekit-agent/agent.ts`
+  - `livekit-agent/background-tasks.ts`
+  - `__tests__/outbound-call.test.ts`
+  - `__tests__/outbound-call-health.test.ts`
+  - `__tests__/voice-outbound-queue-route.test.ts`
+  - `__tests__/voice-agent-health-monitor.test.ts`
+  - `__tests__/voice-fleet-health-route.test.ts`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Replaced the production web-runtime direct LiveKit control path for `normal` outbound calls with a queued worker-owned path.
+  - The app now enqueues outbound-call requests in `ActionExecution`, the healthy `tracey-customer-agent` worker claims and executes them locally on OCI against `http://127.0.0.1:7880`, and the app waits for the worker result instead of trying to control LiveKit from Vercel.
+  - Added queued outbound-call health into `voice-fleet-health` and the scheduled voice monitor so stalled or failed worker-owned outbound requests show up as first-class voice incidents.
+- Why:
+  - The real production failure was not the homepage fallback path anymore; it was the architectural mismatch where Vercel-side code for scheduled calls, automation callbacks, and internal outbound calls still assumed it could reach the LiveKit control API directly.
+  - The canonical control-plane truth in this topology lives on the OCI host, so the clean fix is to keep outbound control on the worker host that can actually reach it and then monitor that queue explicitly.
+
+## 2026-04-28 (Codex) - Moved worker heartbeat startup into the long-lived agent process
+
+- Files changed:
+  - `livekit-agent/agent.ts`
+  - `livekit-agent/worker-entry.ts`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Started worker background tasks from the LiveKit agent's `prewarm` hook and removed the same startup from the wrapper entrypoint.
+- Why:
+  - Production kept showing the same pattern even after the timer change: a fresh heartbeat immediately after deploy, then silence. That points to the heartbeat loop being attached to the short-lived wrapper/bootstrap process instead of the long-lived agent process that survives between calls.
+
+## 2026-04-28 (Codex) - Removed invalid web-side LiveKit gate from worker deploy verification
+
+- Files changed:
+  - `ops/deploy/livekit-worker-verify.sh`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Removed the worker deploy gate that required `/api/internal/launch-readiness` to report `voiceCritical.livekitSip.status === "healthy"` before the deploy could pass.
+  - Kept the deploy strict on the checks that actually prove live voice behavior from this topology: worker heartbeat convergence, Twilio routing health, and the spoken PSTN canary.
+- Why:
+  - The canonical infra docs place the LiveKit control API on the OCI host at `http://localhost:7880`, while the web app runtime uses the public `live.earlymark.ai` hostname. That makes the web-side control-plane fetch an invalid hard deploy gate even when the workers and real PSTN voice path are healthy.
+
+## 2026-04-28 (Codex) - Kept worker heartbeats alive between idle voice calls
+
+- Files changed:
+  - `livekit-agent/background-tasks.ts`
+  - `livekit-agent/agent.ts`
+  - `__tests__/voice-worker-background-tasks.test.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Moved worker background-loop startup into a small helper and kept the grounding-cache refresh timer unref'd while leaving the heartbeat timer referenced.
+  - Added regression coverage proving the heartbeat loop stays referenced and the grounding refresh loop does not.
+- Why:
+  - Production worker deploys were succeeding through install/restart and then failing in `Verify Worker Heartbeats`, while live health showed both workers posting a single fresh heartbeat and then going stale about five minutes later.
+  - The previous `heartbeatTimer.unref?.()` made that failure mode plausible in this worker runtime because the process could look healthy at boot and then stop refreshing its heartbeat while idle.
+
+## 2026-04-28 (Codex) - Restored public demo callback recovery path
+
+- Files changed:
+  - `lib/demo-call.ts`
+  - `middleware.ts`
+  - `__tests__/demo-call.test.ts`
+  - `__tests__/middleware.test.ts`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added a real demo-call fallback path that uses Twilio to call the lead and bridge that call into Earlymark's existing SIP ingress when the app cannot reach the LiveKit control API.
+  - Preserved the existing direct LiveKit room/SIP participant path as the primary mode, but now surface which transport was used plus the fallback call SID for diagnostics.
+  - Re-exposed production `/api/health` by removing it from the middleware's internal-debug rewrite list and added regression coverage so the route stays publicly reachable.
+- Why:
+  - Production website callbacks were failing with `Failed to initiate call: fetch failed`, which traced to the app's server-side HTTPS path to `live.earlymark.ai` rather than to the form UI or lead persistence.
+  - Health visibility was also weaker than intended because the public health route was being rewritten to `404` in production even though the voice operating brief treats it as a canonical truth surface.
+
+## 2026-04-28 (Codex) - Restored canonical inbound voice room classification
+
+- Files changed:
+  - `lib/voice-room-routing.ts`
+  - `lib/livekit-sip-health.ts`
+  - `livekit-agent/room-routing.ts`
+  - `livekit-agent/worker-entry.ts`
+  - `livekit-agent/agent.ts`
+  - `__tests__/voice-room-routing.test.ts`
+  - `__tests__/livekit-sip-health.test.ts`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Fixed a real voice-health regression where the monitoring/runtime path only recognized `earlymark-inbound-*` rooms as Earlymark inbound, while the canonical OCI SIP dispatch rule and recent docs also use `inbound_*`.
+  - Updated LiveKit SIP health so dispatch rules with `roomPrefix: "inbound_"` are treated as valid inbound routing instead of falsely reporting the inbound surface as unhealthy.
+  - Updated the worker request/classification path so both accepted inbound room prefix forms resolve to `inbound_demo`, avoiding normal-call misclassification when room-name routing is used, and kept the worker-side helper inside `livekit-agent/` so the deploy bundle stays self-contained.
+  - Added focused regression coverage for inbound room-name recognition across both the app-side and worker-side helpers, plus SIP health acceptance of the `inbound_` prefix.
+- Why:
+  - This mismatch could make healthy inbound voice routing look broken in production and could also misclassify real inbound rooms at the worker layer.
+
+## 2026-04-11 (Codex) - Booking confirmation SMS now uses workspace-local time
+
+- Files changed:
+  - `actions/messaging-actions.ts`
+  - `__tests__/messaging-actions.test.ts`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Fixed a live customer-facing time bug**: inbox testing showed the actual booking confirmation SMS body used `12:30 am` while the CRM UI showed `10:30 AM` Sydney time.
+  - **Applied timezone formatting to outbound booking messages**: initial confirmation, reschedule confirmation, and confirmation nudge SMS now format scheduled times using the deal workspace timezone.
+  - **Verification**: added messaging-action assertions for timezone-adjusted SMS bodies, reran messaging/deal-action tests, and completed a clean `npx next build`.
+- Why:
+  - This is higher stakes than an internal display bug: customers must receive the same booking time the CRM user sees.
+
+## 2026-04-11 (Codex) - Tracey schedule answers now use workspace-local time
+
+- Files changed:
+  - `actions/agent-tools.ts`
+  - `actions/chat-actions.ts`
+  - `lib/ai/tools.ts`
+  - `__tests__/agent-tools.test.ts`
+  - `__tests__/chat-actions.test.ts`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Fixed a live Tracey correctness bug**: authenticated testing showed Tracey reporting a scheduled job's raw UTC time (`12:30 AM`) while the CRM UI correctly showed Sydney-local time (`10:30 AM`).
+  - **Fixed date-only schedule queries**: Tracey's schedule tool now treats `2026-04-13` to `2026-04-13` as the workspace-local calendar day instead of a zero-length/UTC-midnight range.
+  - **Grounded tool output in local time**: deal context now includes formatted workspace timezone, and schedule results include `scheduledAtLocal` plus the timezone.
+  - **Closed the second context leak**: route-level pre-resolved job/contact context and relevant tool wrappers now format scheduled jobs in workspace-local time too, so older UTC strings are not injected ahead of the model.
+  - **Verification**: added regression coverage for workspace-local deal context and date-only schedule ranges, reran targeted chat/tool tests, and completed a clean `npx next build`.
+- Why:
+  - Tracey can only be trusted as a CRM copilot if its answers match the same local schedule the user sees in the app.
+
+## 2026-04-11 (Codex) - New-job page scroll blocker fixed
+
+- Files changed:
+  - `app/crm/deals/new/page.tsx`
+  - `app/crm/deals/[id]/page.tsx`
+  - `components/modals/new-deal-modal.tsx`
+  - `components/modals/new-deal-modal-standalone.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Closed a live job-creation blocker**: authenticated Playwright testing on `www.earlymark.ai` showed `/crm/deals/new` rendered `Save Job & Close` below the viewport with no reachable scroll area.
+  - **Made the page own vertical scrolling**: the standalone new-job page now has its own full-height scroll container and bottom breathing room.
+  - **Removed the cramped inner-card scroll**: the standalone job form card no longer caps itself at `88vh`, so the page scrolls naturally instead of trapping controls inside a clipped card.
+  - **Made the dashboard new-job modal safer**: the modal now uses a fixed visible header/footer with a scrollable body, so `Cancel` and `Create Job` stay reachable on shorter screens.
+  - **Fixed the full job page clipping**: authenticated Playwright showed invoice/photo sections below the viewport with no page scroll on `/crm/deals/[id]`; the full job page now owns vertical scrolling with bottom padding.
+  - **Verification**: reran focused unit tests and completed a clean `npx next build`.
+- Why:
+  - Creating a job is a core CRM workflow. If the save button cannot be reached, the app is functionally broken even if the code compiles.
+
+## 2026-04-10 (Codex) - Kanban scheduling date blocker now has a real next step
+
+- Files changed:
+  - `components/crm/kanban-board.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Closed another scheduling dead end**: when a user drags a job into `Scheduled` without a booked date, the board no longer only throws an error toast.
+  - **Recovery path is now explicit**: the board opens a lightweight dialog that explains the missing prerequisite and gives the user an `Open Job` action so they can add the date immediately.
+  - **Verification**: reran the focused kanban suite and completed a clean `npx next build`.
+- Why:
+  - Blockers should always point to the fix. If the system knows exactly what’s missing, it should help the user resolve it, not just describe the problem.
+
+## 2026-04-10 (Codex) - Kanban scheduling setup now has a real recovery path
+
+- Files changed:
+  - `components/crm/kanban-board.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Closed a setup dead end**: when someone drags a job into `Scheduled` with no team members available to assign, the kanban dialog no longer just explains the problem and stop there.
+  - **Recovery path is now actionable**: it gives the user a real `Open Team Settings` action so they can fix the prerequisite immediately.
+  - **Verification**: reran the focused kanban suite and completed a clean `npx next build`.
+- Why:
+  - Good workflow design does not just explain blockers - it helps users resolve them in the same moment.
+
+## 2026-04-10 (Codex) - Inbox now falls back gracefully when direct SMS is impossible
 
 - Files changed:
   - `components/crm/inbox-view.tsx`
   - `__tests__/inbox-view.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
 - Summary:
-  - Re-ran the handoff targeted Vitest bundle (`chat-route`, `chat-actions`, `triage`, `digest`, `deal-utils`, `contact-actions`, `deal-actions`, `tradie-actions`, `settings-layout`, `new-deal-modal*`) — all 80 tests passed.
-  - Inbox composer: renamed the ambiguous `Send myself` control to **`Direct SMS`**, added a **Who sends the next message?** label, `tablist`/`tab` roles with `aria-selected`, clearer contrast for the active direct tab, and explainer copy that contrasts **direct Twilio SMS now** vs **Ask Tracey (AI / CRM orchestration, not raw SMS)**.
+  - **Removed another dead-end feeling**: when the selected customer has no phone number, the inbox no longer leaves users sitting in a disabled Direct SMS mode by default.
+  - **Ask Tracey becomes the graceful fallback**: the inbox auto-switches to the AI orchestration mode, keeps Direct SMS visible but unavailable, and explains why.
+  - **Verification**: reran the full inbox-view suite and completed a clean `npx next build`.
 - Why:
-  - Addresses the live-audit confusion between direct messaging and Tracey; regression tests updated and extended.
+  - A useful fallback keeps the workflow feeling alive. If a customer has no phone number, the best next action is still to ask Tracey to update the CRM or help decide what to do next, not to strand the user in a disabled composer.
 
-## 2026-04-05 16:00 (AEDT) - Cursor Agent
+## 2026-04-10 (Codex) - Deal-detail SMS shortcut now fails honestly
 
 - Files changed:
+  - `components/crm/deal-detail-modal.tsx`
+  - `__tests__/deal-detail-modal.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Closed a misleading send path**: the deal-detail modal no longer lets users type into a direct-SMS composer when the customer has no phone number on file.
+  - **The shortcut now fails honestly in the UI**: the input/button disable and the panel explains that a phone number is required before a direct SMS can be sent from there.
+  - **Verification**: reran the focused deal-detail modal suite and completed another clean `npx next build`.
+- Why:
+  - A disabled, explicit workflow is better than a composer that looks valid and only fails after the user has already typed a message.
+
+## 2026-04-10 (Codex) - Deal-detail messaging now matches the inbox model
+
+- Files changed:
+  - `components/crm/deal-detail-modal.tsx`
+  - `__tests__/deal-detail-modal.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Made the inline composer truthful**: the deal-detail modal no longer presents a vague `quick update` action that feels like a second inbox.
+  - **It is now explicitly a direct SMS shortcut**: helper copy, placeholder, button label, and success toast all say `SMS`, while the surrounding panel continues to direct users to `Open customer timeline` for the full thread.
+  - **Verification**: reran the focused deal-detail modal suite and completed a clean `npx next build`.
+- Why:
+  - The product now has a clear communication model: the inbox is the source of truth for the full customer timeline, and smaller surfaces should only expose honest shortcuts, not competing ambiguous “message” flows.
+
+## 2026-04-10 (Codex) - Schedule and timeline trust polish
+
+- Files changed:
+  - `actions/chat-actions.ts`
+  - `components/map/map-view.tsx`
+  - `components/map/google-map-view.tsx`
+  - `components/crm/job-map-view.tsx`
+  - `__tests__/chat-actions.test.ts`
+  - `__tests__/map-view.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Clarified Tracey’s proposed-time flow**: reschedule follow-up wording now tells users to confirm the proposed time with the customer and then update the booking, instead of the vague `lock it down` phrasing.
+  - **Aligned map CTAs with the unified inbox model**: map actions that open the full correspondence thread now say `Open customer timeline` instead of the looser `Message`.
+  - **Cleaned remaining malformed characters**: fixed the last visible apostrophe/arrow text issues in this workflow slice so schedule and planning UI reads cleanly.
+  - **Verification**: reran the focused Tracey/map suites and completed a clean `npx next build`.
+- Why:
+  - At this stage, the product gaps are mostly trust and clarity. Users should immediately understand what happens next in scheduling, and every communication CTA should use the same mental model for the inbox.
+
+## 2026-04-09 (Codex) - Legacy command palette now routes into the real CRM
+
+- Files changed:
+  - `components/core/search-command.tsx`
+  - `__tests__/search-command.test.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - **Fixed stale legacy routing**: the older command palette no longer sends contact results to `/contacts/[id]` or settings to `/settings`.
+  - **Canonical CRM destinations restored**: contact results now open `/crm/contacts/[id]`, the Contacts shortcut opens `/crm/contacts`, and Settings opens `/crm/settings`.
+  - **Verification**: added dedicated regression coverage for the legacy command palette and reran the broader search suites plus a clean production build.
+- Why:
+  - Search and command surfaces need to be trustworthy everywhere, not just in the newest component. An old palette that silently navigates to stale routes undermines the whole “find anything quickly” workflow.
+
+## 2026-04-09 (Codex) - Tradie completion modal now keeps photo capture in field workflow
+
+- Files changed:
+  - `components/tradie/job-completion-modal.tsx`
+  - `__tests__/tradie-job-completion-modal.test.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - **Removed another field-workflow detour**: the tradie completion modal no longer tells field users to jump into the full CRM just to add site photos.
+  - **Photo follow-up now stays in tradie flow**: it points to `/tradie/jobs/[id]` with `Open Full Job Mode`, which is where the real field photo capture actually exists.
+  - **Verification**: reran the tradie/completion/bottom-sheet suites and confirmed a clean production build.
+- Why:
+  - Field users should stay in the field workflow whenever possible. Sending them into office-side CRM screens for a simple site-photo task adds friction and makes the product feel less coherent.
+
+## 2026-04-09 (Codex) - Legacy phone settings now land on the real call-handling screen
+
+- Files changed:
+  - `app/crm/settings/phone-settings/page.tsx`
+  - `__tests__/settings-route-redirects.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Improved an old-settings dead end**: the legacy `/crm/settings/phone-settings` route no longer dumps people on the broad settings home.
+  - **Redirect now matches user intent**: it lands on `/crm/settings/call-settings`, which is the real phone and call-handling workflow.
+  - **Verification**: reran the settings redirect/layout/call-settings suites and confirmed a clean production build.
+- Why:
+  - Old links should still feel intentional. If a user or bookmark asks for phone settings, they should land on phone settings, not a generic menu page.
+
+## 2026-04-09 (Codex) - Tradie bottom-sheet photo tab no longer fakes uploads
+
+- Files changed:
+  - `components/tradie/job-bottom-sheet.tsx`
+  - `__tests__/job-bottom-sheet.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Removed a fake photo workflow**: the tradie bottom-sheet `Photos` tab no longer shows a clickable `Add Photo` tile that doesn’t actually save anything.
+  - **Replaced it with the real next step**: the tab now explains that photos should be captured from full job mode and links directly to `/tradie/jobs/[id]` with `Open Full Job Mode`.
+  - **Verification**: added focused UI coverage for the new tab state and reran the bottom-sheet/tradie suites plus a clean production build.
+- Why:
+  - A fake upload affordance is worse than no affordance. Field users need a truthful path that takes them to the screen where photo capture really works.
+
+## 2026-04-08 (Codex) - Live production verification: rescheduling, approvals, and daily summary
+
+- Files changed:
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Schedule/reschedule path proven live**: through the real authorized `/api/chat` route on production `9f6fe25f`, a fake scheduled job was moved to `tomorrow at 3pm`. The persisted production deal stayed in `SCHEDULED`, kept its assignee, updated `scheduledAt` to the new time, and had `lastReminderSentAt` cleared as expected.
+  - **Completion approval path proven live**: `Approve the completion for ...` invoked `approveCompletion`, returned a truthful success message with invoice/review follow-ups, and the persisted production deal moved from `PENDING_COMPLETION` to `WON`.
+  - **Completion rejection path proven live**: `Reject the completion for ... because the photos are missing.` invoked `rejectCompletion`, preserved the manager-provided reason in the response, and reverted the persisted production deal out of `PENDING_COMPLETION` as expected.
+  - **Morning briefing / today-summary path proven live**: `What's on my plate today?` invoked `getTodaySummary` and returned today’s scheduled jobs plus overdue tasks from production CRM state. This confirms the workspace-timezone-aware summary path is functioning in the live app.
+  - **Ops truth refreshed**: reran the spoken PSTN canary and refreshed the voice/passive monitors. Production `launch-readiness` on `9f6fe25f` is now only degraded for the intentionally skipped WhatsApp provider error; voice, scheduling, and passive comms are otherwise healthy.
+- Why:
+  - This closes more of the “real CRM work” loop in production. The remaining gaps are increasingly about UX polish, duplicate QA data, and real-device/provider verification rather than basic orchestration failures.
+
+## 2026-04-08 (Codex) - Job-detail billing dead end removed
+
+- Files changed:
+  - `components/jobs/job-detail-view.tsx`
+  - `__tests__/job-detail-view.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Removed a dead-end billing action**: the tradie/mobile job-detail view no longer shows a non-functional `Generate Invoice` button when a job has no invoices.
+  - **Replaced it with a real next step**: the empty state now explains that billing lives in the full CRM panel and links directly to `/crm/deals/[id]` with `Open Full Billing`.
+  - **Verification**: added focused UI coverage and confirmed the route target with `job-detail-view.test.tsx`; production build is clean.
+- Why:
+  - This was a real trust gap. Users on the job-detail screen were being invited to take a billing action that didn’t actually exist there. Routing them to the canonical billing surface is a better product path than pretending inline invoice generation is available.
+
+## 2026-04-08 (Codex) - Google-map route mode kept in sync
+
+- Files changed:
+  - `components/map/google-map-view.tsx`
+  - `__tests__/google-map-view.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Closed a parallel map dead end**: the Google Maps variant of the route-planning view was still ending on a dead-end `All Done!` card after today’s jobs were complete.
+  - **Matched the primary map experience**: it now surfaces the next upcoming job and offers `Show all upcoming jobs`, just like the Leaflet-based map view.
+  - **Verification**: added focused coverage in `google-map-view.test.tsx` and reran the shared map tests.
+- Why:
+  - Alternate surfaces should not quietly lag behind the primary one. This keeps route-mode behavior consistent no matter which map implementation is active.
+
+## 2026-04-08 (Codex) - Estimator success path now leads somewhere real
+
+- Files changed:
+  - `components/tradie/estimator-form.tsx`
+  - `__tests__/estimator-form.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Removed a placeholder CTA**: the estimator success state no longer shows a disabled `Download PDF (Coming Soon)` button.
+  - **Replaced it with a real next step**: after generating a quote, users now get an `Open Billing Panel` link that takes them straight to the selected deal’s CRM billing surface.
+  - **Verification**: updated estimator tests to assert the new link target and reran the estimator/billing/tradie suites plus a full production build.
+- Why:
+  - This keeps the manual quote flow honest. If the product tells the user the next step is issuing the draft invoice from billing, it should give them a direct path to do exactly that.
+
+## 2026-04-08 (Codex) - Tradie parts shortcut is now a real shortcut
+
+- Files changed:
+  - `components/tradie/job-bottom-sheet.tsx`
+  - `__tests__/job-bottom-sheet.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Removed a fake quick action**: the `Parts` button in the tradie bottom sheet no longer sits there without behavior.
+  - **Made it useful**: it now opens the billing tab directly so the tradie lands on the variation/materials area with `Search Material Database` ready to use.
+  - **Verification**: added focused UI coverage proving the button switches the sheet into the billing/materials view, and the app still passes `next build`.
+- Why:
+  - Quick actions on the tradie surface need to be immediate and trustworthy. A dead `Parts` button in a mobile-first workflow erodes confidence fast.
+
+## 2026-04-08 (Codex) - Tradie call/text actions now fail honestly
+
+- Files changed:
+  - `components/tradie/job-bottom-sheet.tsx`
+  - `__tests__/job-bottom-sheet.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Removed a silent failure path**: the tradie bottom-sheet `Call` and `Text` actions no longer try to open blank `tel:` / `sms:` links when the job has no customer phone number.
+  - **Made the state explicit**: both actions now disable themselves and relabel to `No Phone` when there is no contact number on the job.
+  - **Verification**: expanded `job-bottom-sheet.test.tsx` to prove both no-phone buttons are disabled, and reran the build.
+- Why:
+  - On a fast-moving field workflow, a button that does nothing is worse than a disabled one that tells the truth. This makes missing contact data obvious instead of quietly broken.
+
+## 2026-04-08 (Codex) - Job-detail overview actions are now real
+
+- Files changed:
+  - `components/jobs/job-detail-view.tsx`
+  - `__tests__/job-detail-view.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Removed two inert overview buttons**: the `Call` and `Map` actions in the tradie/full job-detail view are now wired instead of sitting there as dead controls.
+  - **Handled missing data honestly**: if a job has no phone or no address, those buttons now disable and relabel to `No phone` / `No address` instead of pretending the action is available.
+  - **Verification**: expanded `job-detail-view.test.tsx` to cover both the disabled state and the happy-path `tel:` / Google Maps links, then reran the focused invoice/job-detail suites plus a full production build.
+- Why:
+  - The overview card is one of the most obvious operational surfaces. Its quick actions need to be genuinely useful or explicitly unavailable, never decorative.
+
+## 2026-04-08 (Codex) - Older tradie detail view no longer dead-ends
+
+- Files changed:
+  - `components/tradie/job-detail-view.tsx`
+  - `__tests__/tradie-job-detail-view.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Cleaned up the older tradie detail surface**: this separate job-detail component had several stale/fake paths that no longer matched the improved CRM surfaces.
+  - **Billing tab now leads somewhere real**: replaced `Billing features coming soon.` with an `Open Full Billing` link into `/crm/deals/[id]`.
+  - **Handover now leads somewhere real too**: replaced the fake `Send Handover Pack to Client` button with guidance plus `Open Full Job in CRM`.
+  - **Call and map actions now behave honestly**: they either open the real phone/maps target or disable as `No phone` / `No address` when the data is missing.
+  - **Verification**: added focused tests for billing/handover routing and missing-data states, then reran `next build`.
+- Why:
+  - Older secondary surfaces are where trust often quietly breaks. This keeps the alternate tradie detail path aligned with the newer, more truthful CRM patterns instead of leaving outdated placeholders behind.
+
+## 2026-04-08 (Codex) - Tradie bottom-sheet header now reflects real job data
+
+- Files changed:
+  - `components/tradie/job-bottom-sheet.tsx`
+  - `__tests__/job-bottom-sheet.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Removed a hard-coded lie**: the collapsed tradie bottom-sheet header no longer shows `8:00 AM • Company` for every job.
+  - **Now uses real scheduling data**: it renders the actual scheduled time and only appends the company label when one exists.
+  - **Verification**: expanded `job-bottom-sheet.test.tsx` to assert the real time/company label, then reran the build.
+- Why:
+  - Operational headers need to be trustworthy at a glance. A hard-coded time on a field-work screen undermines confidence even if the rest of the data is correct.
+
+## 2026-04-08 (Codex) - CRM completion-review photo action is now honest
+
+- Files changed:
+  - `components/crm/job-completion-modal.tsx`
+  - `__tests__/crm-job-completion-modal.test.tsx`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Removed dummy photo follow-up state**: the CRM-side completion review no longer fakes attached photos by toggling `["photo1", "photo2"]` in local state.
+  - **Replaced it with a real path**: the follow-up section now tells the truth and links to the full CRM job view for photo attachment/sending, where messaging and files actually belong.
+  - **Verification**: added focused coverage in `crm-job-completion-modal.test.tsx` and reran the production build.
+- Why:
+  - This was a subtle but important trust bug: the UI implied there were real photos queued for sending when there were not. It’s better to route the user to the real photo/messaging surface than to simulate the behavior locally.
+
+## 2026-04-08 (Codex) - Draft rejection routed correctly
+
+- Files changed:
+  - `actions/chat-actions.ts`
+  - `lib/ai/tools.ts`
+  - `lib/ai/pre-classifier.ts`
+  - `__tests__/chat-actions.test.ts`
+  - `__tests__/pre-classifier.test.ts`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Fixed a real production misroute**: `Reject the draft for ...` was going to `rejectCompletion` instead of a draft-specific path, which produced the wrong “not pending approval” response and left the draft untouched.
+  - **Added first-class draft rejection support**: Tracey now has a dedicated `runRejectDraft()` action, the model can call `rejectDraft`, and the pre-classifier now explicitly steers draft-rejection language toward `rejectDraft`.
+  - **Verification**: focused suites passed for `chat-actions`, `pre-classifier`, and `chat-route`. `next build` is clean locally. The next step is a production rerun of the exact live prompt that previously failed.
+- Why:
+  - Draft review is part of the CRM promise. Rejecting a draft should never fall into the completion-approval workflow.
+
+## 2026-04-08 (Codex) - Live production verification: draft rejection
+
+- Files changed:
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Draft rejection is now proven live**: after the `rejectDraft` wiring shipped to production `aa3b6d15`, the exact failing prompt `Reject the draft for ... because the customer details are incomplete.` now invokes `rejectDraft` instead of `rejectCompletion`.
+  - **Persisted CRM state changed correctly**: the fake production draft ended with `isDraft: false` and `stage: DELETED`, which matches the intended reject-draft behavior.
+  - **User-facing response is truthful**: Tracey now says the draft was rejected and preserves the manager-supplied reason instead of incorrectly saying the job is not pending approval.
+- Why:
+  - This closes a real production bug in the draft-review workflow and removes one more case where Tracey previously looked confused about CRM state.
+
+## 2026-04-08 (Codex) - Live production verification: attention filtering
+
+- Files changed:
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Filtered stale/incomplete queries are working live**: on production, `What jobs for ZZZ ATTN FLOW ... look incomplete or blocked?` returned a direct-response answer with the exact fake job and the correct user-facing labels: `New request; Stale`.
+  - **No noisy leakage in the filtered path**: the response stayed scoped to the matching fake job instead of surfacing unrelated `livefull_*` / `liveprobe_*` records, confirming the stricter whole-word filtering still holds under a fresh live probe.
+- Why:
+  - This is a key manager workflow. The filtered attention path had previously been noisy and misleading, so a fresh production proof matters more than just code-level confidence.
+
+## 2026-04-08 (Codex) - Tracey contact ambiguity shortlist
+
+- Files changed:
+  - `actions/agent-tools.ts`
+  - `app/api/chat/route.ts`
+  - `__tests__/agent-tools.test.ts`
+  - `__tests__/chat-route.test.ts`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Duplicate-contact lookups are now more truthful and useful**: when `runGetClientContext()` sees multiple equally strong contact matches, it no longer silently picks one. It returns an ambiguity shortlist instead.
+  - **The LLM now gets better disambiguation context**: the resolved-entities block in the live chat route now includes `Ambiguous contacts for "..."` with company, phone, and email clues, plus an explicit instruction to ask the user which contact they mean instead of guessing.
+  - **Verification**: targeted suites passed for `agent-tools`, `chat-route`, and `pre-classifier`. `next build` is clean locally.
+- Why:
+  - The next real Tracey quality issue after the quote/invoice trust fix was contact ambiguity in production test data. This keeps Tracey LLM-first while making the contact-context tool truthful enough to support a good disambiguation turn.
+
+## 2026-04-08 (Codex) - WhatsApp outstanding logged, quote/invoice trust tightened
+
+- Files changed:
+  - `actions/chat-actions.ts`
+  - `__tests__/chat-actions.test.ts`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **WhatsApp outstanding logged clearly**: the repo docs now state the live WhatsApp assistant is app-complete but still blocked by provider-side Twilio WhatsApp sender configuration. Current production error remains `63007` (`Twilio could not find a Channel with the specified From address`) for `whatsapp:+61485010634`.
+  - **Quote amount updates now keep CRM money coherent**: `runUpdateInvoiceAmount()` now updates both `deal.value` and `deal.invoicedAmount`, so Tracey-driven quote changes stop leaving the deal card/value surfaces at `$0` while only the invoice field changes.
+  - **Paid-invoice next steps are now truthful**: Tracey no longer suggests `Move to Completed` after a successful paid-invoice path, because `markInvoicePaid()` already completes the job. Paid follow-ups now point to `Request review` instead.
+  - **Verification**: targeted suites passed for `chat-actions`, `chat-route`, and `pre-classifier`. `next build` is clean locally on this change set.
+- Why:
+  - The next product-quality issue after WhatsApp was a real trust bug in the quote/invoice flow: the CRM was functionally processing invoice actions, but some visible value surfaces could drift from invoice reality and one follow-up action was redundant/misleading.
+
+## 2026-04-08 (Codex) - Tracey live quote flow, internal probe auth, and route filter tightening
+
+- Files changed:
+  - `lib/auth.ts`
+  - `actions/chat-actions.ts`
+  - `actions/agent-tools.ts`
+  - `app/api/chat/route.ts`
+  - `__tests__/auth-lib.test.ts`
+  - `__tests__/agent-tools.test.ts`
+  - `__tests__/chat-actions.test.ts`
+  - `__tests__/chat-route.test.ts`
+- Summary:
+  - **Live quote/invoice flow now works through the real authorized route**: after adding a secure internal probe user override gated by `CRON_SECRET` + `x-user-id`, the production `/api/chat` probe can execute the same workspace-authorized tool path as a real signed-in user. Live production on `ddbcf1f4` now truthfully recognizes an existing draft quote for `Blocked Drain`, updates it to `$350`, and moves the job to `Quote sent` successfully.
+  - **Internal probe auth is safe and explicit**: `getAuthUserId()` / `getAuthUser()` now accept an internal user override only when the request carries the cron bearer token and a concrete `x-user-id`. This keeps normal product auth unchanged while making production verification reliable.
+  - **Invoice/deal target resolution hardened**: `runMoveDeal()` now stays on full `DealView` records, and the broader invoice/contact resolution path remains deploy-safe under `next build`.
+  - **Client context resolution improved**: `runGetClientContext()` now uses `searchContacts()` across loose query variants and scores exact whole-word matches ahead of noisy prefixed records, instead of taking the first `contains` hit.
+  - **Aggregate blocked/incomplete filters tightened**: both `runListIncompleteOrBlockedJobs()` and the route-level direct-response filter now use whole-word normalized matching instead of loose substring matching. This stops queries like `ZZZ AUTO LIVE` from leaking in `livefull_*` / `liveprobe_*` noise.
+  - **Live verification result**:
+    - `Create a quote for ZZZ AUTO LIVE Alex Harper for $350.` now succeeds end to end in production via the authorized path.
+    - `What is the latest invoice status for ZZZ AUTO LIVE Office Fitout Quote?` and `Mark the invoice paid for ZZZ AUTO LIVE Hot Water Service.` now give the correct no-invoice guidance in production.
+    - `What jobs for ZZZ AUTO LIVE look incomplete or blocked?` now returns a truthful no-match result instead of a noisy over-broad list.
+    - `Find contact ZZZ AUTO LIVE Alex Harper.` is no longer wrong, but still returns an ambiguity prompt because production contains four QA `Alex Harper` variants; that is now a data ambiguity / UX refinement issue rather than a bad match.
+  - **Readiness status**: after refreshing the monitor endpoints, `/api/internal/launch-readiness` on `https://www.earlymark.ai` is healthy on app SHA `ddbcf1f4`.
+- Why:
+  - The remaining Tracey trust problems were no longer about basic invoice logic. They were about making production verification truthful and making exact-ish CRM queries avoid noisy QA-prefix matches. This pass fixes the production quote flow and turns the remaining contact issue into a clear, bounded ambiguity case instead of a wrong answer.
+
+## 2026-04-07 (Claude) - Pre-classifier and multi-step flow improvements
+
+- Files changed:
+  - `lib/ai/pre-classifier.ts` (fast-path invoice/quote creation; advance/approved-quote/payment/send-issue hints; intent-specific suggested tools)
+  - `app/api/chat/route.ts` (getAdaptiveMaxSteps intent-aware; invoice intent gets 5 steps; and/then/also gets 6 steps; new extractLikelyDealQuery patterns for quote/invoice/advance flows)
+  - `__tests__/pre-classifier.test.ts` (5 new tests for quote creation, stage advance, quote accepted, send/issue, and payment)
+- Summary:
+  - **Fast-path invoice routing**: Added explicit fast-path for `create/draft/generate quote`, `send/issue invoice`, `mark invoice paid`, and `void invoice` so these always route to `invoice` intent instead of scoring a tie with `pricing`. Eliminates misrouting when a user says "Create a quote for X for $Y".
+  - **Quote flow multi-step context hint**: After creating a draft invoice and setting the amount, Tracey is now instructed to also move the deal to "Quote Sent" if it is still in "New Request" — completing the full quote flow in one turn.
+  - **Send/issue and payment hints**: Added dedicated context hints for `send/issue invoice` (→ issueInvoice) and `mark paid` (→ markInvoicePaid then moveDeal to Completed) so Tracey surfaces the right next action automatically.
+  - **Stage advance hints**: `advance`, `move forward`, `next stage` patterns now route to `crm_action` with a `STAGE ADVANCE` hint that tells Tracey to use getDealContext first, then moveDeal to the logical next stage.
+  - **Quote accepted hints**: `customer approved/accepted the quote` patterns now surface a `QUOTE ACCEPTED` hint instructing Tracey to move the deal to Scheduled and assign a team member.
+  - **Intent-aware max steps**: `getAdaptiveMaxSteps` now accepts the intent and gives invoice flows 5 steps (was 3 for short messages). Multi-step messages with `and/then/also/plus` now get 6 steps instead of 5.
+  - **extractLikelyDealQuery patterns**: Added patterns for `create quote for X`, `invoice status for X`, `advance X`, `customer approved X`, and `mark X invoice paid` so the right deal is pre-loaded into LIKELY CRM TARGETS before the LLM responds.
+  - **Intent-specific suggested tools for invoice**: `markInvoicePaid` queries now get `[markInvoicePaid, getInvoiceStatus, moveDeal]`; `send/issue` queries get `[issueInvoice, createDraftInvoice, getInvoiceStatus]`; default remains `[createDraftInvoice, issueInvoice, getInvoiceStatus, pricingCalculator]`.
+  - **Tests**: 654/654 unit tests pass (5 new pre-classifier tests). 3 pre-existing Playwright e2e failures unchanged.
+- Why:
+  - Quote/invoice flows are a key daily workflow for tradies. The old classifier frequently misrouted short quote-creation requests to `pricing` intent, leaving Tracey without the right tool hints and limiting step count. These changes let Tracey complete the full create→set amount→move stage sequence in one turn without needing extra prompting from the user.
+
+## 2026-04-07 (Codex) - Post-deploy provider re-verification
+
+- Files changed:
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **App deploy confirmed**: protected `/api/internal/launch-readiness` now reports web release `4fa2997a7755070198613ad588f851ac51e746fd`, confirming the inbound-email/webhook fix is live.
+  - **Voice spoken canary fully healthy in production**: reran `/api/cron/voice-synthetic-probe` after deploy. The canary now returns `status: healthy` with a completed Twilio call (`CAab631c480eaad0e25540df944759e169`) and transcript matching the relaxed probe-phrase logic even with `Hello, Tracy` / `Monitor probe` wording.
+  - **Outbound email webhook logging proven**: sent a fresh outbound QA email probe to `miguel.w1407@gmail.com` (`emailId: 8a0dcf4d-64ce-4c63-8f7c-12d3f87133ce`). Production created a fresh `webhookEvent(provider="resend", eventType="email.delivered", status="success")` at `2026-04-07T08:27:55.121Z`, proving the corrected shared Resend webhook path now logs delivery events in the live app.
+  - **Remaining launch-readiness gap**: the protected launch-readiness route still returns overall unhealthy because monitor freshness is stale (`voice-agent-health`, `voice-monitor-watchdog`, `passive-communications-health`) and worker release truth is still pinned to old worker SHA `4379d219...`, not because voice, SMS, or email paths are failing.
+- Why:
+  - This closes the live proof loop on the app changes: both inbound and outbound email webhook handling now work in production, and the spoken canary no longer stays degraded for transcript punctuation/wording variance.
+
+## 2026-04-07 (Codex) - Inbound email webhook fix and voice canary truthfulness
+
+- Files changed:
+  - `lib/inbound-lead-email-readiness.ts`
+  - `lib/voice-spoken-canary.ts`
+  - `lib/resend-status-events.ts`
+  - `app/api/webhooks/inbound-email/route.ts`
+  - `app/api/webhooks/resend/route.ts`
+  - `__tests__/inbound-lead-email-readiness.test.ts`
+  - `__tests__/voice-spoken-canary.test.ts`
+  - `__tests__/inbound-email-route.test.ts`
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Inbound email root cause fixed**: production Resend had a single enabled webhook still pointing at `https://assistantbot-zeta.vercel.app/api/webhooks/inbound-email` and it was not subscribed to `email.received`. I updated the live Resend webhook to `https://www.earlymark.ai/api/webhooks/inbound-email` with events `email.received`, `email.delivered`, `email.opened`, `email.bounced`, and `email.complained`.
+  - **Live inbound proof after fix**: after the webhook correction, a fresh QA probe to `alexandria-automotive-services-2@inbound.earlymark.ai` created a real production `webhookEvent(provider="resend", eventType="email.received", status="success")` at `2026-04-06T15:07:03.660Z`. That proves inbound email is now landing in the app.
+  - **Shared Resend webhook handling**: consolidated delivery/open/bounce/complaint handling into a reusable helper and taught `/api/webhooks/inbound-email` to process those status events too. This lets production run from one signed Resend webhook endpoint without needing multiple webhook secrets.
+  - **Inbound readiness truthfulness**: `getInboundLeadEmailReadiness()` now records `resendDomainStatus` for diagnostics, but no longer blocks on the provider’s domain summary status alone. Instead, it requires a recent successful `email.received` webhook before the feature is marked truly ready, which matches the actual product goal better than trusting static provider metadata.
+  - **Voice canary matcher fixed in repo**: the spoken PSTN canary now accepts punctuation and `Tracey/Tracy` transcript variants such as `Hello, Tracy` and `Monitor probe`, rather than degrading only because the transcript failed an overly exact phrase match.
+  - **Tests**: passed targeted suites for inbound readiness, inbound-email route, resend route, health/readiness routes, customer-agent readiness, and voice-spoken canary.
+- Why:
+  - This closes the biggest proven provider failure from the live verification pass and makes the app’s readiness signal match real observed inbound-email behavior rather than stale or misleading provider metadata.
+
+## 2026-04-07 (Codex) - Real provider verification on production
+
+- Files changed:
+  - `docs/agent_change_log.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Production env + live verifier**: Pulled the production Vercel env into a clean worktree and ran `scripts/verify-real-integrations.ts` against `https://www.earlymark.ai`. Twilio, Resend, LiveKit, and auth env readiness are present; Stripe is still missing `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` in the pulled env. Public `/api/health` and `/api/check-env` returned `404`, while protected `/api/internal/launch-readiness` was reachable with ops auth.
+  - **Launch-readiness truth**: production app release is `e18f44b8`, but worker release truth still reports `4379d219...`. Launch-readiness is currently unhealthy because `voice-agent-health` and `passive-communications-health` monitor freshness are stale, not because Twilio or LiveKit routing is broken.
+  - **Voice canary rerun**: Triggered the real spoken PSTN canary via `/api/cron/voice-synthetic-probe`. Gateway routing passed, the Twilio call completed, and the app persisted a matching voice call with both caller and Tracey speech. The canary still reports `degraded` because transcript phrase matching is too strict: the excerpt contained `Hello, Tracy` and `Monitor probe`, but did not satisfy the exact expected phrase matcher.
+  - **Twilio SMS probes**:
+    - Outbound probe from `+12624390786` to `+61434955958` delivered successfully (`SM58fab173c516ac10aee29cee763b502a`).
+    - Self-contained inbound probe from `+12624390786` to workspace number `+61468167497` delivered and was ingested by the app. A fresh `webhookEvent` with `provider=twilio`, `eventType=sms.received`, status `success` was created, and passive SMS health for the active workspace updated to healthy with a fresh success timestamp.
+  - **Resend probes**:
+    - Outbound email probe to `miguel.w1407@gmail.com` was accepted by Resend and the provider reports `last_event: delivered` (`54b3aa05-edc4-438b-b4c4-458f5dea231e`).
+    - Inbound email probe sent to `alexandria-automotive-services-2@inbound.earlymark.ai` was accepted for send by Resend, but after repeated polling there was still no `webhookEvent` with `provider=resend`, `eventType=email.received`, and no contact/deal was created. This is a real inbound-email integration failure.
+    - Resend domain API currently reports `inbound.earlymark.ai` as `status: not_started` with `receiving: enabled`, which conflicts with the app's internal readiness summary claiming inbound email is provider-verified/ready.
+  - **Current provider truth**:
+    - Voice routing and LiveKit SIP: working, but canary health is still degraded by transcript-match strictness and stale monitor freshness.
+    - SMS outbound and inbound: proven working in production.
+    - Email outbound: proven working at provider level.
+    - Email inbound: not proven; active probe indicates it is not landing in the app.
+    - Provisioning: launch-readiness still reports one failed workspace phone-provisioning record.
+- Why:
+  - This is the first production-backed verification pass that proves which integrations are truly working today and which ones only appear healthy from code or config alone.
+
+## 2026-04-06 Session 3 (Claude) - Tool output formatting and multi-step CRM accuracy
+
+- Files changed:
+  - `actions/chat-actions.ts` (runMoveDeal requiresSchedule guard; update message detail)
+  - `lib/ai/tools.ts` (getClientContext, getTodaySummary, searchJobHistory, getFinancialReport format as strings)
+  - `lib/ai/pre-classifier.ts` (filtered stale query routing; stale-with-filter uses listIncompleteOrBlockedJobs)
+  - `__tests__/chat-actions.test.ts` (requiresSchedule test; updated happy-path mock)
+- Summary:
+  - **runMoveDeal requiresSchedule guard**: Pre-check for missing scheduledAt returns `requiresSchedule:true` with a targeted message ("needs a scheduled date — what date and time?"), parallel to the existing `requiresAssignment:true` guard. Tool description updated with retry hint; updateDealFields description says to retry moveDeal after setting schedule.
+  - **Tool output formatting sweep**: getClientContext, getTodaySummary, searchJobHistory, getFinancialReport now all format their results as readable strings at the tool boundary rather than returning raw JSON structs. This eliminates a whole class of LLM formatting errors and makes Tracey's output consistent regardless of which tool call path is taken.
+  - **Filtered stale query routing**: Pre-classifier now distinguishes "which ZZZ AUTO jobs look stale?" (filter query → listIncompleteOrBlockedJobs) from "which jobs need attention?" (workspace-wide → getAttentionRequired). getAttentionRequired has no filter; using it for filtered queries returned unrelated results.
+  - **Tests**: 642/642 unit tests pass.
+- Why: Continuing systematic quality improvement so every tool call returns the right data in the right format for Tracey to present accurately.
+
+## 2026-04-06 Session 2 (Claude) - Tracey tool completeness and pre-classifier routing
+
+- Files changed:
+  - `actions/chat-actions.ts` (getDealContext assignee; createTask name resolution; unassign/restore by title; listDeals contactName; update messages; awaiting_payment alias; dead code removal)
+  - `lib/ai/tools.ts` (createTask schema adds dealTitle/contactName; unassignDeal/restoreDeal accept dealTitle)
+  - `lib/ai/pre-classifier.ts` (conversation history and job history patterns; searchJobHistory and getConversationHistory suggestions; unassignDeal/restoreDeal in crm_action tools)
+  - `app/api/chat/route.ts` (extractLikelyDealQuery patterns for stage lookup, recent notes, important facts; createTask workspaceId fix)
+  - `__tests__/chat-actions.test.ts` (8 new tests; 2 updated with assignedTo)
+  - `__tests__/pre-classifier.test.ts` (4 new tests for new routing cases)
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Tool completeness**: `getDealContext` now returns assigned team member ("Assigned to: Sam" / "(unassigned)"); `createTask` resolves `dealTitle` and `contactName` to IDs and passes `workspaceId`; `unassignDeal` and `restoreDeal` now accept `dealTitle` for one-step use; `listDeals` now includes `contactName`; update success messages list field→value changes.
+  - **Pre-classifier routing fixes**: "conversation history" queries now route to `contact_lookup` with `getConversationHistory` suggested; "past job history" queries route to `reporting` with `searchJobHistory` first; `unassignDeal`/`restoreDeal` added to `crm_action` suggested tools; job history pattern added to `REPORTING_PATTERNS` so it outscores `contact_lookup`.
+  - **Entity pre-resolution**: `extractLikelyDealQuery` extended with patterns for stage lookups, recent notes, and "most important facts" queries — pre-loads the matching deal into LIKELY CRM TARGETS.
+  - **Stage alias**: "awaiting payment" → `ready_to_invoice` added to `STAGE_ALIASES`; dead `awaiting_payment` case removed from `getDealNextStepGuidance`.
+  - **Tests**: 641/641 unit tests pass; 12 new/updated tests.
+- Why: Continued systematic improvement of Tracey's tool output quality and pre-classifier routing accuracy so common CRM questions can be answered in fewer tool round-trips.
+
+## 2026-04-06 (Claude) - Tracey accuracy, observability, and booking confirmation
+
+- Files changed:
+  - `actions/agent-tools.ts` (stage labels in financial report breakdown)
+  - `lib/messaging/send-notification.ts` (webhookEvent logging for reminders/emails)
+  - `app/api/webhooks/whatsapp/route.ts` (webhookEvent for WhatsApp inbound/outbound)
+  - `actions/chat-actions.ts` (getAttentionRequired stage label; searchContacts email; undo fix)
+  - `actions/deal-actions.ts` (no change — reverted erroneous check)
+  - `lib/ai/tools.ts` (moveDeal description; updateDealFields stage routing)
+  - `app/api/twilio/webhook/route.ts` (CONFIRM fast-path for customer SMS)
+  - `__tests__/whatsapp-route.test.ts` (webhookEvent mock)
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - **Stage language sweep (final)**: `runGetFinancialReport` breakdown now maps through `AGENT_STAGE_LABELS`. All tool output paths (Tracey agent + chat tools + search + financial report) use user-facing labels.
+  - **Observability completeness**: `send-notification.ts` now logs Twilio SMS and Resend email sends to `webhookEvent` on success and failure. WhatsApp inbound messages and outbound AI replies now log to `webhookEvent`. Admin ops diagnostics dashboard now covers all provider delivery paths.
+  - **Tracey multi-step accuracy**:
+    - `moveDeal` tool description now explicitly states both requirements for Scheduled stage (assignee + date)
+    - `updateDealFields` description steers Tracey to prefer `moveDeal` for stage changes
+    - `runGetAttentionRequired` now includes stage label per deal (e.g. `[Scheduled] — Stale`)
+    - `runUndoLastAction` fixed to check `title` field (not `description` which stores actor) for action detection; restored stage label is now user-facing
+    - `runSearchContacts` now includes email in output
+  - **Customer booking confirmation fast-path**: Twilio inbound SMS webhook now detects "CONFIRM/YES/OK" replies, finds the most recent pending-confirmation deal for that contact, updates `confirmationStatus` to "confirmed", and logs an activity — before passing to AI for reply generation.
+- Why: Continued systematic improvement of Tracey's tool output accuracy, ops dashboard visibility for all delivery channels, and the customer-facing booking confirmation flow.
+
+## 2026-04-05 (Claude) - CRM polish: locale dates, revalidation sweep, activity feed refresh
+
+- Files changed:
+  - `components/tradie/job-billing-tab.tsx`
+  - `components/jobs/job-detail-view.tsx`
+  - `components/crm/contact-profile.tsx`
+  - `components/crm/feedback-widget.tsx`
+  - `components/crm/kanban-automation-modal.tsx`
+  - `components/crm/stale-deal-follow-up-modal.tsx`
+  - `actions/contact-actions.ts` (deleteContact revalidatePath)
+  - `actions/tradie-actions.ts` (updateJobSchedule, updateJobStatus, completeJob, createQuoteVariation)
+  - `app/crm/deals/[id]/page.tsx` (pre-fetch initialActivities)
+  - `components/chatbot/chat-interface.tsx` (router.refresh on Tracey finish)
+- Summary:
+  - **Locale-less date formatting sweep**: `toLocaleDateString()` without a locale argument produces US-format dates (M/D/YYYY) on Linux CI instead of Australian DD/MM/YYYY. Fixed across all six remaining call sites by specifying `"en-AU"`. Eliminates any locale-sensitive test assertions in these components.
+  - **`deleteContact` revalidation**: `deleteContact` (singular) was missing `revalidatePath("/crm/contacts")` even though the bulk version had it. Contacts list now updates immediately after a single deletion.
+  - **Tradie job status/schedule revalidation**: `updateJobSchedule`, `updateJobStatus`, and `completeJob` only revalidated tradie-specific routes. Completing or rescheduling a job from the field left `/crm/dashboard`, `/crm/deals`, and the individual deal page stale — the root of the "cross-page schedule time mismatch" complaint. All three functions now call the full set of revalidation paths.
+  - **`createQuoteVariation` revalidation**: Adding a variation to a job was not calling `revalidateInvoiceSurfaces`, so the billing tab remained stale after a variation was added. Now consistent with `generateQuote`.
+  - **Activity feed refresh after Tracey responds**: `ActivityFeed` on the deal page was a client component that fetched its own data on mount and never re-fetched. After Tracey performed a mutation, the feed stayed stale. Fixed by: (1) pre-fetching `initialActivities` server-side and passing as `initialData` so `router.refresh()` propagates fresh data, and (2) calling `router.refresh()` in `chat-interface` `onFinish` so any CRM mutation Tracey performed is reflected in server components immediately after her response.
+- Why:
+  - Locale-less dates were causing cross-environment test failures. The revalidation gaps were silent live bugs causing data staleness across the CRM after field operations. The activity feed fix closes the loop on "notes don't appear after Tracey writes them".
+
+## 2026-04-05 (Claude) - CRM polish: revalidation gaps + global search click fix
+
+- Files changed:
+  - `actions/activity-actions.ts`
+  - `actions/contact-actions.ts`
   - `components/layout/global-search.tsx`
-  - `components/crm/contact-form.tsx`
-  - `components/crm/deal-card.tsx`
-  - `lib/ai/prompt-contract.ts`
-  - `__tests__/global-search.test.tsx`
-  - `__tests__/contact-form.test.tsx`
-  - `__tests__/tracey-prompt-contract.test.ts`
 - Summary:
-  - Global search (header palette) now mirrors the command palette’s explicit click handler so mouse clicks on results navigate reliably, not only keyboard `onSelect`.
-  - Contact create/edit uses `router.replace` after a successful save so the browser back button does not return users to an already-submitted form.
-  - Kanban deal cards show scheduled date and time in the workspace timezone, with a full datetime tooltip aligned to the job detail page and schedule views.
-  - CRM chat system prompt: require honest reporting of tool failures and user-facing stage language in confirmations (still LLM-first, no new routing).
+  - **`logActivity` and `appendTicketNote` revalidation**: Both functions now call `revalidatePath` for the relevant deal and/or contact page after writing an activity record. Previously, notes logged via Tracey or the UI would not appear on the deal/contact detail page until a hard browser refresh because the server component's cache was never invalidated.
+  - **`deleteContacts` revalidation**: Added `revalidatePath("/crm/contacts")` after bulk delete so the contacts list updates immediately without a hard refresh.
+  - **Global search contacts mouse-click**: The `contacts` `CommandItem` was missing an `onClick` handler while all other result types (deals, tasks, activity, calls) had both `onSelect` and `onClick`. The cmdk library does not always fire `onSelect` on mouse click. Fixed by adding `onClick={() => goTo(contact.url)}` and switching `onSelect` to use `goTo` for consistency.
 - Why:
-  - Closes audit gaps on search click trust, form completion flow, cross-surface schedule readability, and Tracey truthfulness—without shortcutting architecture.
+  - Activity revalidation is foundational — without it, every note Tracey saves appears to users as a no-op until they hard-refresh. The contacts delete no-op was flagged in live auditing. The global search click fix ensures contacts are navigable by mouse (keyboard-only was working via cmdk `onSelect`; mouse clicks were silently dropped).
 
-## 2026-04-05 14:30 (AEDT) - Cursor Agent
+## 2026-04-05 (Claude) - Fix flaky tests + deal revalidation gaps + Tracey contextual quick actions
 
 - Files changed:
-  - `app/crm/analytics/page.tsx`
-  - `app/crm/team/page.tsx`
-  - `components/crm/contacts-client.tsx`
-  - `__tests__/contacts-client.test.tsx`
-  - `__tests__/team-page.test.tsx`
+  - `__tests__/chat-agent-crm-mutation-flow.test.ts`
+  - `__tests__/lead-to-deal-flow.test.ts`
+  - `actions/deal-actions.ts`
+  - `actions/kanban-automation-actions.ts`
+  - `components/chatbot/chat-interface.tsx`
 - Summary:
-  - Team invites now distinguish email-send success from link-only success using an explicit channel flag, so the modal cannot show empty `Invite sent to` copy after generating a shareable link.
-  - Contacts list footer copy separates workspace totals from client-side search/stage/type filters: when filters are active, it reports matches on the loaded page versus how many rows this page returned and the workspace total.
-  - Analytics renamed the ambiguous `Status` block to `Jobs overview`, added a short description, and aligned the printable report section title with `Jobs by stage`.
+  - **`chat-agent-crm-mutation-flow.test.ts`**: The `preClassify` mock used `intent: "job_management"` which is not a valid `IntentHint`. `buildWorkspaceContextBlocks` has no key for it and throws `"intentBlocks[classification.intent] is not iterable"`, causing the route to return 500. Fixed by using `"crm_action"` in both the mock and the assertion.
+  - **`lead-to-deal-flow.test.ts`**: The test imports `createDeal` from `deal-actions.ts` which now calls `revalidatePath`. Missing `vi.mock("next/cache", ...)` caused "Invariant: static generation store missing" at runtime. Fixed by adding the mock.
+  - **`kanban-automation-actions.ts`**: `toLocaleDateString()` without a locale argument produces locale-dependent output (`"4/5/2026"` on this Linux CI box vs the expected `"05/04/2026"` Australian format). Fixed by specifying `"en-AU"` locale in both call sites.
+  - **`deal-actions.ts` revalidation gaps**: `approveDraft` and `rejectDraft` were missing `revalidatePath(\`/crm/deals/${dealId}\`)`. After either action, the deal detail page would still show the old draft state until a hard refresh. Fixed consistently with `approveCompletion`/`rejectCompletion`.
+  - **`chat-interface.tsx` contextual quick actions**: Quick actions like "Create quote" previously sent bare prompts ("Create a quote for this deal") with no deal ID, so Tracey had no context. Fixed by extracting deal/contact IDs from the URL pathname and embedding them directly in the prompt strings.
 - Why:
-  - Addresses live-audit trust issues (invite copy, contacts count confusion, analytics section labelling) with durable UI state and clearer semantics, plus regression tests.
+  - The pre-existing test failures blocked clean CI. The revalidation gaps were silent trust bugs affecting live deal detail pages after draft approval/rejection. The Tracey quick action context fix ensures prompts carry enough info for the LLM to act without needing a second round-trip.
+
+## 2026-04-05 (Claude) - CRM polish: analytics labels, contact notes revalidation, updateContact revalidation
+
+- Files changed:
+  - `actions/analytics-actions.ts`
+  - `actions/contact-actions.ts`
+  - `__tests__/contact-actions.test.ts`
+- Summary:
+  - **Analytics stage labels**: `NEGOTIATION` was labelled `"Negotiation"` and `PIPELINE` as `"Pipeline"` and `INVOICED` as `"Ready to invoice"` in the analytics stage-breakdown chart. All three are now aligned with the user-facing labels used across the rest of the app: `"Scheduled"`, `"Quote sent"`, and `"Awaiting payment"` respectively.
+  - **Contact notes revalidation**: `updateContactMetadata` now calls `revalidatePath` for the contact detail page after saving notes. Previously, saved notes would not appear when revisiting the contact page without a hard browser refresh, because the server component's cached render was not invalidated.
+  - **updateContact revalidation**: `updateContact` now revalidates the contact detail page and the contacts list after a successful edit. This ensures the contacts list and detail page reflect edits immediately on re-navigation.
+  - Added `next/cache` mock to `contact-actions.test.ts` so `revalidatePath` calls don't throw in the test environment.
+- Why:
+  - Analytics showing different stage names from the rest of the CRM made it harder to correlate numbers. Contact notes not persisting visually after save was a direct usability regression. The revalidation gaps were silent trust bugs.
+
+## 2026-04-05 (Claude) - Live CRM workflow polish: inbox classification + contacts count trust
+
+- Files changed:
+  - `components/crm/inbox-view.tsx`
+  - `components/crm/contacts-client.tsx`
+- Summary:
+  - **Inbox `isSystemEvent` fix**: the previous pattern list only matched 8 narrow titles, causing activities like `"Assigned team member updated"`, `"Deal updated"`, `"Stage updated"`, `"Job rescheduled"`, invoice operations, portal views, and other CRM system events to show up in the **Conversations** tab instead of **System Activity**. Expanded the pattern set to cover all known system activity title prefixes. Now only genuine customer-facing communications (inbound/outbound SMS, email, calls) show in Conversations.
+  - **Contacts list count trust fix (high-trust bug)**: the stage filter silently excluded contacts in three ways — contacts with no primary deal at all (`primaryDealStageKey = null`), contacts whose primary deal was LOST (`columnId = "lost"` was not in the initial stage set), and contacts in `PENDING_COMPLETION` (unmapped, returned null). This caused the footer to say `"Showing 8 of 8 contacts"` while only 4 rows were visible, with no indication that filtering was active. Fixes: (1) Added "Lost" to `KANBAN_STAGES` so lost contacts are visible and filterable. (2) Mapped `PENDING_COMPLETION → completed` and `ARCHIVED → deleted` in `prismaStageToColumnId`. (3) Changed the filter logic so contacts with null/unmapped primary deal stage are always included, not silently dropped.
+- Why:
+  - The inbox classification made it impossible to distinguish customer conversations from internal CRM events. The contacts count mismatch was a high-trust product bug that made the CRM feel broken or untrustworthy when the list showed different numbers than the footer. Both are directly observable product-level failures in the live app.
+
+## 2026-04-05 (Claude) - Stale/flaky test reconciliation for upstream CRM batch
+
+- Files changed:
+  - `__tests__/team-page.test.tsx`
+  - `__tests__/new-deal-modal.test.tsx`
+  - `components/crm/contacts-client.tsx`
+- Summary:
+  - Fixed `team-page.test.tsx`: the pending-invite "Open invite link" item is now rendered as a `<button>` using `window.open` (not an anchor link), so the test was updated from `getByRole("link")` to `getByRole("button")` and the `href` assertion removed.
+  - Fixed `contacts-client.tsx` header summary: without pagination the component showed `"Showing 3 of 0 contacts (page 1)"` which was incorrect. It now shows `"N contact(s)"` (singular/plural). When pagination is provided, the header no longer duplicates the summary text that the footer pagination section already renders, fixing the "Found multiple elements" test error.
+  - Fixed `new-deal-modal.test.tsx`: the assignee `<SelectItem>` now renders both name and email as separate spans, so the button accessible name includes the email suffix. Updated the click target to use a `/Jess Smith/i` regex match. Also updated the `scheduledAt` expectation to the correct UTC value (`2026-04-14T23:30:00.000Z`) after the workspace timezone anchoring fix interprets datetime-local input in `Australia/Sydney` (UTC+10).
+  - `contact-form.test.tsx` and `inbox-view.test.tsx` passed cleanly in isolation and in batch - treated as stable. No changes needed.
+  - Full targeted suite: 5 test files, 20 tests — all green. Original 10-file passing suite also re-verified: 76 tests still green.
+- Why:
+  - The previous upstream CRM batch improved real product behavior but left several tests stale against the new UI semantics. This pass reconciles those tests so the full targeted verification suite is green and the batch can be treated as fully signed off.
+
+## 2026-04-05 03:25 (AEST) - Codex
+
+- Files changed:
+  - `docs/agent_handoff_2026-04-05.md`
+  - `docs/master_outstanding_checklist.md`
+- Summary:
+  - Reviewed the later upstream AI-agent commits after the original handoff and compared them to the intended direction. Confirmed that the newer work generally stayed on-track, especially around CRM consistency, inbox clarity, stage labels, search behavior, and AI scheduling timezone fixes.
+  - Logged the key verification result: the newer upstream batch is promising, but not yet fully signed off because the targeted test bundle still has a mix of stale expectations and a couple of flaky batch failures.
+  - Added explicit next-step guidance so the next agent starts by reconciling those stale/flaky tests before assuming the later batch is fully verified.
+- Why:
+  - The repo now has a truthful handoff again. Without this note, the next agent could incorrectly assume the later upstream CRM/UI pass was fully green when it still needs one cleanup/verification step.
 
 ## 2026-04-05 00:15 (AEDT) - Codex
 
@@ -234,6 +1153,26 @@
 - Why:
   - Rescheduling a job previously left the old reminder marker intact, which meant the automation cron could treat a newly moved booking as already reminded and never send the correct reminder for the new appointment time.
 
+## 2026-04-03 (AEDT) - Claude (sonnet-4-6)
+
+- Files changed:
+  - `components/tutorial/tutorial-steps.ts`
+  - `components/tutorial/tutorial-overlay.tsx`
+  - `APP_FEATURES.md`
+  - `CHANGELOG.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - **Tutorial revamp**: Rewrote all 15 tutorial steps (reduced from 16) with accurate, up-to-date feature names and content.
+  - **New step**: Added Analytics page step (`nav-analytics`, targeting `reports-link` sidebar element, routes to `/crm/analytics`).
+  - **New step**: Added "More Than Just Chat" step showcasing quoting/invoicing, analytics, scheduling, and contact lookup via chat.
+  - **Settings step corrected**: Replaced outdated setting names (One-Tap Messages, Repair Glossary, AI Voice Agent, Phone & Support, Workspace & Display) with current structure (Calls & Texting, My Business, AI Assistant, Automations, AI Attachment Library).
+  - **Dashboard step updated**: Now highlights RHS chat panel availability in advanced mode.
+  - **Condensed**: Settings + Handbook merged into 1 step; Feedback + Finish merged into 1 step.
+  - **New TutorialStep interface fields**: `features?: string[]` (dot-list of feature bullets) and `tip?: string` (highlighted callout box).
+  - **Card redesign**: Chat examples now render as speech bubble mockups (user right-aligned, bot left-aligned). Feature lists use dot-prefixed rows. Tip shown in a mint callout box. Fixed `text-black` -> `text-foreground/80` for dark mode.
+  - **Overlay cleanup**: Consolidated 8 identical bottom-card rendering blocks into a single `BOTTOM_CARD_IDS.has()` check. Consolidated 8 separate route `useEffect` hooks into one routes map. Removed hardcoded schedule/preferences bullet logic (now data-driven via `features` field). Extracted `parseBold()` as a named function.
+- Why:
+  - Tutorial was referencing renamed/removed pages and settings, missing new features (Analytics, Quoting, Automations), and had poor card formatting (flat text dump, hardcoded `text-black`, boring bullet lists for chat examples).
 ## 2026-04-03 (AEDT) - Claude (sonnet-4-6)
 
 - Files changed:
@@ -3437,3 +4376,1736 @@ Rule: every agent change commit must include an entry in this file.
   - Updated the main handoff so the next agent reads this checklist before diving into code or the live workflow audit.
 - Why:
   - The handoff, change log, and workflow audit together were already strong, but they still required synthesis. This pass removes that ambiguity by giving the next agent one explicit checklist that captures the outstanding work from the whole session.
+## 2026-04-07 - Voice latency scoring correction
+
+- Corrected `lib/voice-call-latency-health.ts` so `inbound_demo` is evaluated like the real PSTN-backed surface it is, not like the stricter in-browser demo surface.
+- Raised the `inbound_demo` TTS TTFB threshold from `900ms` to `1100ms`, matching the observed healthy production baseline and the normal phone surface.
+- Fixed a scoring bug where only two recent calls could still mark latency `degraded` purely because TTS was the dominant component, even when end-to-end turn-start stayed healthy and there were not enough samples to treat it as a real regression.
+- Added direct regression coverage in `__tests__/voice-call-latency-health.test.ts`.
+- Verified with:
+  - `npx vitest run __tests__/voice-call-latency-health.test.ts __tests__/customer-agent-readiness.test.ts __tests__/launch-readiness.test.ts __tests__/voice-spoken-canary.test.ts __tests__/health-route.test.ts`
+- Pushed to `main` as `7eedf797`.
+- Production verification is currently blocked by Vercel deployment failures before build start:
+  - auto deploy for `7eedf797`: `dpl_BudT14vAyqJmwEz7V9rThCj3Tjnn`
+  - manual retry: `dpl_Fwiziy6vg84DmSYeDbcp4uB2e8wu`
+  - both fail with `Unexpected error. Please try again later.` and `Builds: . [0ms]`
+- Until Vercel accepts a new production deploy, `https://www.earlymark.ai/api/internal/launch-readiness` will continue to report the older app SHA `8347566f` and the pre-fix inbound-demo latency thresholds.
+
+## 2026-04-07 - Provisioning readiness schema correction
+
+- Fixed a deploy-blocking Prisma type error in `lib/provisioning-readiness.ts`.
+- Root cause: the Prisma schema has `Workspace.ownerId` but no `workspace.owner` relation, so selecting `owner` on `db.workspace.findMany()` was invalid.
+- Updated the implementation to:
+  - fetch workspaces with `ownerId`
+  - fetch matching users separately via `db.user.findMany()`
+  - derive orphaned-owner provisioning status from the referenced users' `workspaceId`
+- Updated `__tests__/provisioning-readiness.test.ts` to mock both `db.workspace.findMany()` and `db.user.findMany()`.
+- Verified with:
+  - `npx vitest run __tests__/provisioning-readiness.test.ts __tests__/launch-readiness.test.ts __tests__/health-route.test.ts`
+
+## 2026-04-07 - Outstanding work summary refreshed
+
+- Added a concise current-outstanding summary to `docs/master_outstanding_checklist.md` so the next AI agent can resume from the real remaining work without re-deriving it from the full session log.
+- The short version remains:
+  - get the latest `main` deployed successfully on Vercel
+  - rerun launch-readiness/monitors after deploy
+  - continue live CRM workflow testing
+  - continue Tracey output-quality work on real CRM operations
+  - finish remaining real provider/device verification
+## 2026-04-07 - Claude invoice/quote branch merged and production healthy
+
+- Merged Claude branch `origin/claude/deploy-main-vercel-fnJCO` via cherry-pick:
+  - `4c57c86c` `fix: improve Tracey quote/invoice classifier and multi-step flow budget`
+  - `7f1e502c` `fix: tighten invoice/quote multi-step flow and tool descriptions`
+- Verified locally with:
+  - `npx vitest run __tests__/pre-classifier.test.ts __tests__/chat-route.test.ts __tests__/chat-actions.test.ts __tests__/tracey-prompt-contract.test.ts`
+- Production deploy completed successfully on Vercel:
+  - deploy `dpl_83f5ZJCGWpxdXCVisnsnj62AScxy`
+  - `https://www.earlymark.ai` now reports app SHA `594ce5a8`
+- Refreshed production monitor routes:
+  - `/api/cron/voice-agent-health`
+  - `/api/cron/voice-monitor-watchdog`
+  - `/api/cron/passive-communications-health`
+- Live protected launch-readiness now returns `200` and `status: healthy` with summary:
+  - `Launch-critical web, voice, communications, and provisioning signals are healthy.`
+- Added route-level verification for the new invoice/quote behavior in `__tests__/chat-route.test.ts`:
+  - invoice intent gets a larger adaptive step budget
+  - combined quote/create/send requests carry the expected multi-step execution guidance through the actual chat route
+- This closes the previous production deploy/readiness blocker. The next outstanding work is now product-level: live CRM workflow trust/polish, Tracey quality on real CRM operations, and remaining real provider/device verification (especially WhatsApp assistant and the 3 Tracey call modes).
+
+## 2026-04-08 - WhatsApp webhook observability and workspace classification fix
+
+- Fixed `app/api/webhooks/whatsapp/route.ts` so internal-user WhatsApp processing classifies messages against the user's `workspaceId`, not the `user.id`.
+- Added synchronous inbound `webhookEvent` logging before the background AI path starts, so production probes are observable even if later processing fails.
+- Added durable error logging for background processing failures (`whatsapp.processing`) and outbound-send failures (`whatsapp.outbound` with `status: error`).
+- Simplified the route into a cleaner `sendWhatsApp()` helper and verified that unknown-number replies, spam handling, real command replies, and fallback-error replies all still return `200 OK` to Twilio.
+- Replaced and strengthened `__tests__/whatsapp-route.test.ts` to assert:
+  - workspace-scoped spam classification
+  - immediate inbound event logging
+  - successful outbound event logging
+  - processing-error event logging
+- Verified with:
+  - `npx vitest run __tests__/whatsapp-route.test.ts`
+  - `npx next build`
+- Next step after deploy: rerun the real production webhook probe and confirm `whatsapp.inbound` / `whatsapp.outbound` events appear in the production database.
+
+## 2026-04-08 - WhatsApp duplicate-phone routing and inline processing fix
+
+- Production probe confirmed the webhook was executing, but it was resolving `+61434955958` to the wrong historical owner because four different user accounts share that same phone number across old workspaces.
+- Updated `lib/workspace-routing.ts` so `findUserByPhone()` no longer returns the first arbitrary match. It now prefers:
+  - workspaces with `onboardingProvisioningStatus === "provisioned"`
+  - then workspaces with a real `twilioPhoneNumber`
+  - then owner records
+- Updated `app/api/webhooks/whatsapp/route.ts` again to process the assistant request inline instead of relying on `waitUntil()`, because production showed the synchronous inbound event being written but no follow-on processing or outbound reply ever completing.
+- Added `__tests__/workspace-routing.test.ts` to lock the duplicate-phone selection behavior and refreshed `__tests__/whatsapp-route.test.ts` to match the inline route execution.
+- Verified with:
+  - `npx vitest run __tests__/whatsapp-route.test.ts __tests__/workspace-routing.test.ts`
+  - `npx next build`
+- Next step after deploy: rerun the live WhatsApp probe and confirm all three production signals appear together for the same user/workspace:
+  - `whatsapp.inbound`
+  - either `whatsapp.outbound success` or `whatsapp.processing error`
+  - a corresponding Twilio WhatsApp message record if outbound send succeeds
+
+## 2026-04-08 - WhatsApp assistant no longer spam-filters authenticated user commands
+
+- Live verification on `9b5fdd3b` showed the route was now choosing the correct user/workspace, but the authorized WhatsApp assistant message was still being classified as spam because the route reused the inbound lead spam classifier.
+- Removed spam classification from the authenticated WhatsApp assistant path in `app/api/webhooks/whatsapp/route.ts`.
+- Product reasoning: this channel is explicitly for authenticated internal users talking to the CRM assistant, not for unknown inbound leads. Internal assistant commands should never be dropped as spam before they reach Tracey.
+- Updated `__tests__/whatsapp-route.test.ts` to reflect the new policy: authorized messages go straight to `processAgentCommand()` after inbound logging.
+- Re-verified with:
+  - `npx vitest run __tests__/whatsapp-route.test.ts __tests__/workspace-routing.test.ts`
+  - `npx next build`
+- Next step after deploy: rerun the live WhatsApp probe and confirm a real `whatsapp.outbound success` event and Twilio WhatsApp message are produced for Miguel's provisioned workspace.
+
+## 2026-04-08 - Headless WhatsApp assistant replies can no longer be blank
+
+- Live production verification on `d5d480f8` proved the internal WhatsApp assistant was now:
+  - hitting the correct provisioned workspace
+  - logging `whatsapp.inbound`
+  - reaching the outbound send attempt
+- The remaining app-side failure was Twilio error `21619` (`A text message body or media urls must be specified.`), which showed `processAgentCommand()` could still return an empty string on some tool-only turns.
+- Added `ensureHeadlessReply()` to `lib/services/ai-agent.ts` so headless assistant replies always have a non-empty fallback summary.
+- Added `__tests__/ai-agent.test.ts` to lock that behavior.
+- Re-verified with:
+  - `npx vitest run __tests__/ai-agent.test.ts __tests__/whatsapp-route.test.ts __tests__/workspace-routing.test.ts`
+- If the next live probe still fails, the remaining issue should be provider-side Twilio/WhatsApp configuration rather than a blank app response body.
+
+## 2026-04-08 - WhatsApp readiness now reflects real provider failures
+
+- After the latest live probe, the app-side WhatsApp assistant path is proven to work up to outbound delivery:
+  - `whatsapp.inbound` is logged on the correct provisioned workspace
+  - Tracey processing runs
+  - non-empty outbound text is generated
+- The remaining failure is provider-side Twilio/WhatsApp configuration:
+  - Twilio error `63007`
+  - message: `Twilio could not find a Channel with the specified From address`
+- Updated `lib/customer-agent-readiness.ts` so the `whatsappAssistant` readiness check looks at recent `whatsapp.outbound` / `whatsapp.processing` events and degrades when recent sends are failing.
+- Added readiness coverage in `__tests__/customer-agent-readiness.test.ts`.
+- Re-verified with:
+  - `npx vitest run __tests__/customer-agent-readiness.test.ts __tests__/ai-agent.test.ts __tests__/whatsapp-route.test.ts __tests__/workspace-routing.test.ts`
+  - `npx next build`
+- Next step after deploy: confirm `/api/internal/launch-readiness` stops calling WhatsApp healthy, and then fix the Twilio WhatsApp sender configuration outside the repo.
+
+## 2026-04-08 - WhatsApp outstanding state finalized
+
+- Confirmed production is now live on `edeee7cf`.
+- Refreshed the voice/passive monitors and rechecked `/api/internal/launch-readiness`.
+- Current truthful production status:
+  - overall readiness: `degraded`
+  - WhatsApp assistant: `degraded`
+  - warning: `Twilio could not find a Channel with the specified From address`
+- This closes the app-side WhatsApp debugging loop for now. Remaining WhatsApp work is external/provider-side Twilio channel configuration, not repo code.
+
+## 2026-04-08 - Inbox and map trust polish
+
+- Files:
+  - `components/crm/inbox-view.tsx`
+  - `components/map/map-view.tsx`
+  - `__tests__/inbox-view.test.tsx`
+  - `__tests__/map-view.test.tsx`
+- What changed:
+  - Made the inbox composer modes more explicit for real users, not just tests. `Direct SMS` now shows a colored `Sends immediately` badge and a `Send now` CTA, while `Ask Tracey` shows an `AI handles next step` badge and an `Ask Tracey to act` CTA.
+  - Kept route mode useful after the last scheduled job is done. Instead of ending in a dead-end `All Done!` card, the map now surfaces the next upcoming job and gives the user a clear `Show all upcoming jobs` path back into planning mode.
+- Why:
+  - The remaining non-provider product gaps are mostly trust/coherence issues. These two surfaces were already functionally working, but they still left room for "what mode am I in?" and "what do I do next?" confusion.
+- Verified with:
+  - `npx vitest run __tests__/inbox-view.test.tsx __tests__/map-view.test.tsx __tests__/inbox-page.test.tsx`
+
+## 2026-04-08 - Tracey contact disambiguation prompt polish
+
+- Files:
+  - `app/api/chat/route.ts`
+  - `__tests__/chat-route.test.ts`
+- What changed:
+  - Tightened the ambiguity instruction Tracey receives when multiple equally strong contact matches exist.
+  - The resolved-entities block now explicitly tells the model to ask the user which option they mean and suggests concrete clarifiers like phone number, company, email, or option number instead of a vague follow-up.
+- Why:
+  - The contact ambiguity path was truthful but still too basic. This keeps Tracey LLM-first while making the next-step clarification more actionable and less noisy for real users.
+- Verified with:
+  - `npx vitest run __tests__/chat-route.test.ts __tests__/agent-tools.test.ts __tests__/pre-classifier.test.ts`
+  - `npx next build`
+
+## 2026-04-08 - Internal health-route truth documented
+
+- Files:
+  - `docs/master_outstanding_checklist.md`
+  - `docs/REAL_INTEGRATION_VERIFICATION.md`
+- What changed:
+  - Closed the old `re-verify` note about public `/api/health` and `/api/check-env` returning `404` in production.
+  - Documented the real behavior: middleware intentionally rewrites those routes to `/404` in production unless `ENABLE_INTERNAL_DEBUG_ROUTES=true`.
+  - Updated the real-integration verification guide to use the protected/internal readiness surfaces rather than assuming those endpoints are public.
+- Why:
+  - This was no longer a code bug. The routes exist and are tested, but the docs still described them as public production probes, which created false uncertainty during live ops checks.
+- Verified with:
+  - existing middleware coverage in `__tests__/middleware.test.ts`
+
+## 2026-04-08 - Estimator quote UX and coverage pass
+
+- Files:
+  - `components/tradie/estimator-form.tsx`
+  - `__tests__/estimator-form.test.tsx`
+- What changed:
+  - The estimator now surfaces real user-facing errors when quote generation fails instead of only logging to the console.
+  - Added clearer follow-through copy in both states:
+    - before generation: explains that it creates a GST-inclusive draft invoice linked to the selected job
+    - after success: explains that the next step is issuing the draft invoice from the billing panel
+  - Added focused UI coverage for:
+    - baseline helper copy
+    - returned quote-generation errors
+    - successful quote next-step guidance
+- Why:
+  - Quote/invoice core logic was already strong, but the estimator surface still felt under-explained and under-tested compared with Tracey and the billing tab. This closes a real trust gap in the manual quoting flow.
+- Verified with:
+  - `npx vitest run __tests__/estimator-form.test.tsx __tests__/job-billing-tab.test.tsx __tests__/tradie-actions.test.ts`
+
+## 2026-04-08 - Tradie bottom sheet capture actions made honest
+
+- Files:
+  - `components/tradie/job-bottom-sheet.tsx`
+  - `__tests__/job-bottom-sheet.test.tsx`
+- What changed:
+  - Removed the fake local `Add Video Explanation` recording flow and fake tap-to-sign signature state from the tradie bottom sheet billing tab.
+  - Replaced them with honest guidance explaining that video explanations and signatures belong in the real completion flow so they save against the job properly.
+  - Added a concrete `Open Full CRM Job` link back to `/crm/deals/[id]` instead of pretending those captures already work inside the bottom sheet.
+- Why:
+  - This was a trust problem, not just a missing feature. The UI was simulating successful capture with temporary local state even though nothing persisted and no real workflow was being triggered.
+- Verified with:
+  - `npx vitest run __tests__/job-bottom-sheet.test.tsx`
+  - `npx next build`
+
+## 2026-04-08 - Tradie completion modal file uploads made honest
+
+- Files:
+  - `components/tradie/job-completion-modal.tsx`
+  - `__tests__/tradie-job-completion-modal.test.tsx`
+- What changed:
+  - Removed the fake local `Upload photos or files` picker from the tradie completion modal.
+  - Replaced it with clear guidance that files and photos need to be added from the full CRM job so they persist to the customer timeline and invoice record.
+  - Added a real `Open Full CRM Job` link back to `/crm/deals/[id]`.
+- Why:
+  - The old upload UI only stored `File[]` in local component state and never persisted anything, which made the completion flow look more complete than it really was.
+- Verified with:
+  - `npx vitest run __tests__/tradie-job-completion-modal.test.tsx`
+  - `npx next build`
+
+## 2026-04-08 - Contacts and deals POST APIs now use the real create actions
+
+- Files:
+  - `app/api/contacts/route.ts`
+  - `app/api/deals/route.ts`
+  - `__tests__/contact-api-route.test.ts`
+  - `__tests__/deal-api-route.test.ts`
+- What changed:
+  - Wired `POST /api/contacts` to `createContact()` instead of returning a placeholder `501`.
+  - Wired `POST /api/deals` to `createDeal()` instead of returning a placeholder `501`.
+  - Both routes now scope creation to the authenticated workspace even if a spoofed `workspaceId` is sent in the request body.
+  - Added route-level verification for both success paths.
+- Why:
+  - These endpoints already existed publicly in the app surface, but they still lied about being unimplemented even though the underlying server actions were real. That is backend trust debt waiting to surprise future UI or integration work.
+- Verified with:
+  - `npx vitest run __tests__/contact-api-route.test.ts __tests__/deal-api-route.test.ts`
+  - `npx next build`
+
+## 2026-04-08 - Tradie handover tab no longer shows fake resources
+
+- Files:
+  - `components/tradie/job-detail-view.tsx`
+  - `__tests__/tradie-job-detail-view.test.tsx`
+- What changed:
+  - Removed the static fake handover resource cards (`Maintenance Guide`, `Warranty Card`, `Before / After Photos`) from the tradie job detail handover tab.
+  - Replaced them with honest status copy that explains handover documents and attachments are managed from the full CRM job view.
+  - Kept a lightweight real status summary by surfacing whether there are actual job photos attached.
+- Why:
+  - The old UI implied that job-specific handover assets already existed even when they were just static placeholders. That made the product feel more complete than it really was.
+- Verified with:
+  - `npx vitest run __tests__/tradie-job-detail-view.test.tsx`
+  - `npx next build`
+
+## 2026-04-08 - Workspace API POST now uses the real update action
+
+- Files:
+  - `app/api/workspace/route.ts`
+  - `__tests__/workspace-route.test.ts`
+- What changed:
+  - Wired `POST /api/workspace` to the real `updateWorkspace()` action instead of returning a placeholder `501`.
+  - The route now resolves the authenticated user's current workspace, updates it, and returns the refreshed workspace payload.
+  - Added focused route-level coverage for both `GET` and `POST`.
+- Why:
+  - This was another backend trust gap: the route existed as part of the public app surface, but POST still advertised itself as unimplemented even though the server-side update path already existed.
+- Verified with:
+  - `npx vitest run __tests__/workspace-route.test.ts`
+  - `npx next build`
+
+## 2026-04-08 - Tradie post-job review step is clearer
+
+- Files:
+  - `components/tradie/job-completion-modal.tsx`
+  - `__tests__/tradie-job-completion-modal.test.tsx`
+- What changed:
+  - Tightened the completed-state wording after invoice generation so the next step is explicit.
+  - The modal now says the user is reviewing a ready-to-send feedback request, not just a vague message.
+  - Updated the buttons to `Review feedback request` and `I'll do this later`.
+- Why:
+  - The old copy was technically correct, but it still made the last step feel ambiguous. This is a real UX improvement in an important live workflow, not just wording polish for its own sake.
+- Verified with:
+  - `npx vitest run __tests__/tradie-job-completion-modal.test.tsx`
+  - `npx next build`
+
+## 2026-04-08 - Team page no longer carries fake-member product logic
+
+- Files:
+  - `app/crm/team/page.tsx`
+  - `__tests__/team-page.test.tsx`
+- What changed:
+  - Removed the `member.id.startsWith("fake-")` special-casing from the real team page UI.
+  - Managers now see role-management and removal affordances based only on actual product rules: current user, owner protection, and manager permissions.
+- Why:
+  - That `fake-` branch was test/demo leakage in the real product surface. Even if harmless most of the time, it encoded fixture knowledge into production UI logic and made the behavior less trustworthy.
+- Verified with:
+  - `npx vitest run __tests__/team-page.test.tsx`
+  - `npx next build`
+
+## 2026-04-08 - Tradie loaders now show the right jobs to the right person
+
+- Files:
+  - `actions/tradie-actions.ts`
+  - `__tests__/tradie-actions.test.ts`
+- What changed:
+  - Removed the old broad workspace-wide "demo" filtering from the shared tradie job loaders.
+  - `getTradieJobs()`, `getTodaySchedule()`, and `getNextJob()` now resolve the current authenticated workspace actor first.
+  - TEAM_MEMBER users are now scoped to their own assigned jobs; manager-level roles keep the full workspace tradie view.
+- Why:
+  - This is a product-truth fix, not just data hygiene. A tradie dashboard that quietly shows someone else's jobs makes the whole experience feel wrong even if the UI looks polished.
+- Verified with:
+  - `npx vitest run __tests__/tradie-actions.test.ts __tests__/tradie-job-detail-view.test.tsx __tests__/job-bottom-sheet.test.tsx __tests__/tradie-job-completion-modal.test.tsx`
+  - `npx next build`
+
+## 2026-04-08 - Tradie dashboard now keeps real next-job data and map coordinates
+
+- Files:
+  - `actions/tradie-actions.ts`
+  - `app/(dashboard)/tradie/page.tsx`
+  - `components/tradie/job-map.tsx`
+  - `__tests__/tradie-actions.test.ts`
+  - `__tests__/job-map.test.tsx`
+- What changed:
+  - `getNextJob()` now returns the real job value and customer phone, not just title/time/address.
+  - The tradie dashboard now carries those real fields into the initial bottom-sheet job instead of silently showing `$0` and an empty phone.
+  - The tradie dashboard map now respects `lat` / `lng` from the tradie loaders instead of defaulting to the Sydney fallback unless `latitude` / `longitude` are already present.
+- Why:
+  - These were quiet product-trust bugs. The dashboard looked polished, but the first job card and map could still be subtly wrong in ways a tradie would feel immediately.
+- Verified with:
+  - `npx vitest run __tests__/tradie-actions.test.ts __tests__/job-map.test.tsx`
+  - `npx next build`
+
+## 2026-04-08 - Deep-link tradie job page now uses the shared scoped job loader
+
+- Files:
+  - `app/(dashboard)/tradie/jobs/[id]/page.tsx`
+  - `components/tradie/job-detail-view.tsx`
+  - `__tests__/tradie-job-page.test.tsx`
+- What changed:
+  - Replaced the old raw `db.deal.findUnique()` page query with the shared `getJobDetails()` action.
+  - That means `/tradie/jobs/[id]` now inherits the same workspace scoping and shared job model as the rest of the tradie experience.
+  - Tightened the page wiring so broader CRM statuses are normalized into the tradie status model instead of forcing a fake narrower type.
+- Why:
+  - This route was a quiet trust gap: it could drift from the rest of the product because it bypassed the shared access/data path even though it looked like a normal tradie page.
+- Verified with:
+  - `npx vitest run __tests__/tradie-job-page.test.tsx __tests__/tradie-job-detail-view.test.tsx`
+  - `npx next build`
+
+## 2026-04-08 - Tradie day logic now follows the workspace timezone
+
+- Files:
+  - `actions/tradie-actions.ts`
+  - `__tests__/tradie-actions.test.ts`
+- What changed:
+  - `getTodaySchedule()` now resolves the workspace timezone and computes day boundaries from that timezone instead of the server clock.
+  - Tradie time strings now use the shared timezone formatter for both today-schedule rows and deep-linked job rows.
+- Why:
+  - This was a real end-to-end trust issue. If “today” and the displayed job times follow the server instead of the workspace, the tradie workflow can feel randomly wrong even when nothing crashes.
+- Verified with:
+  - `npx vitest run __tests__/tradie-actions.test.ts __tests__/job-map.test.tsx __tests__/tradie-job-page.test.tsx`
+  - `npx next build`
+
+## 2026-04-08 - Older job detail view now matches the product’s visible stage language
+
+- Files:
+  - `components/jobs/job-detail-view.tsx`
+  - `__tests__/job-detail-view.test.tsx`
+- What changed:
+  - The header badge now uses the shared user-facing status formatter instead of leaking raw internal stage values.
+  - The page only offers `Mark Job Complete` for actual field-work states (`Scheduled`, `On the way`, `On site`) instead of broadly for unrelated CRM stages.
+- Why:
+  - This was another subtle trust problem: the page looked complete, but it still spoke in internal pipeline language and suggested actions that did not always make sense for the current state.
+- Verified with:
+  - `npx vitest run __tests__/job-detail-view.test.tsx`
+  - `npx next build`
+
+## 2026-04-08 - Tradie navigation now stays inside the tradie experience
+
+- Files:
+  - `components/tradie/job-detail-view.tsx`
+  - `components/tradie/tradie-dashboard-client.tsx`
+  - `__tests__/tradie-job-detail-view.test.tsx`
+  - `__tests__/tradie-dashboard-client.test.tsx`
+- What changed:
+  - Fixed the tradie job-detail back link to return to `/tradie` instead of `/crm/tradie`.
+  - Fixed the tradie empty-state CTA to go to `/tradie/map` instead of `/crm/map`.
+- Why:
+  - These were real navigation coherence bugs. A tradie hitting “back” or “return to map” could be dumped into the wrong product surface even though the page itself looked correct.
+- Verified with:
+  - `npx vitest run __tests__/tradie-job-detail-view.test.tsx __tests__/tradie-dashboard-client.test.tsx`
+  - `npx next build`
+
+## 2026-04-08 - Legacy `/crm/tradie` now degrades into the right surface
+
+- Files:
+  - `app/crm/tradie/page.tsx`
+  - `__tests__/crm-tradie-page.test.tsx`
+- What changed:
+  - Changed the legacy `/crm/tradie` route redirect from `/crm/dashboard` to `/tradie`.
+- Why:
+  - This closes the loop on the tradie navigation cleanup. Even if an older link survives somewhere, it now lands the user in the right product area instead of silently switching them into the manager CRM.
+- Verified with:
+  - `npx vitest run __tests__/crm-tradie-page.test.tsx __tests__/tradie-dashboard-client.test.tsx`
+  - `npx next build`
+
+## 2026-04-09 - Estimator routes now lead to a real workflow instead of the dashboard
+
+- Files:
+  - `app/(dashboard)/tradie/estimator/page.tsx`
+  - `app/crm/estimator/page.tsx`
+  - `__tests__/tradie-estimator-page.test.tsx`
+  - `__tests__/crm-estimator-page.test.tsx`
+- What changed:
+  - Replaced both legacy estimator redirects with real pages built around the existing `EstimatorForm`.
+  - Both routes now load the current workspace, pull active deals, and scope team members down to their own assigned jobs.
+  - Each route also has an honest empty state when there is nothing ready to estimate.
+- Why:
+  - This was a true workflow gap: the estimator form already existed, but both public entry points still dumped users onto the dashboard instead of letting them complete the task they clicked into.
+- Verified with:
+  - `npx vitest run __tests__/crm-estimator-page.test.tsx __tests__/tradie-estimator-page.test.tsx __tests__/estimator-form.test.tsx`
+  - `npx next build`
+
+## 2026-04-09 - Legacy `/crm/agent` now lands on the real AI Assistant page
+
+- Files:
+  - `app/crm/agent/page.tsx`
+  - `__tests__/crm-agent-page.test.tsx`
+- What changed:
+  - Updated the old `/crm/agent` alias to redirect to `/crm/settings/agent` instead of the generic CRM dashboard.
+- Why:
+  - This is a product-coherence fix. Anyone opening an older AI Assistant bookmark should land on the real AI Assistant settings page, not a page that forces them to hunt for it again.
+- Verified with:
+  - `npx vitest run __tests__/crm-agent-page.test.tsx`
+  - `npx next build`
+
+## 2026-04-09 - `/crm/deals/new` now opens a real create-job workflow
+
+- Files:
+  - `app/crm/deals/new/page.tsx`
+  - `__tests__/new-deal-page.test.tsx`
+- What changed:
+  - Replaced the old `/crm/deals/new` redirect with a real standalone job-creation page using `NewDealModalStandalone`.
+  - The route now resolves the authenticated workspace and renders the actual form instead of dumping the user back onto the dashboard.
+- Why:
+  - This was another clear workflow gap: the route existed, but clicking into it gave the user no way to complete the action they came for.
+- Verified with:
+  - `npx vitest run __tests__/new-deal-page.test.tsx __tests__/new-deal-modal-standalone.test.tsx`
+  - `npx next build`
+
+## 2026-04-09 - Inbox now behaves like a unified customer communication timeline
+
+- Files:
+  - `actions/activity-actions.ts`
+  - `components/crm/inbox-view.tsx`
+  - `__tests__/activity-actions.test.ts`
+  - `__tests__/inbox-view.test.tsx`
+- What changed:
+  - Enriched `ActivityView` so inbox rendering can distinguish channel, direction, transcript, summary, subject, and duration instead of treating everything like a generic note row.
+  - Voice calls now enter the inbox timeline with compact summary-first metadata and optional full transcript detail, while SMS/email keep their message bodies readable inline.
+  - Reworked the inbox thread renderer into a single chronological customer timeline with per-item channel badges, inbound/outbound labels, inline message bodies for lighter channels, and expandable long-form detail for calls and long emails.
+- Why:
+  - This is the product-correct model for a multi-channel customer inbox: users should be able to follow one coherent relationship history without bouncing between separate medium-specific views, but long call transcripts still need to stay out of the way unless expanded.
+- Verified with:
+  - `npx vitest run __tests__/inbox-view.test.tsx __tests__/inbox-page.test.tsx __tests__/activity-actions.test.ts`
+  - `npx next build`
+
+## 2026-04-09 - Legacy job detail no longer bypasses the field completion workflow
+
+- Files:
+  - `components/jobs/job-detail-view.tsx`
+  - `__tests__/job-detail-view.test.tsx`
+- What changed:
+  - The older job-detail surface no longer lets scheduled or traveling jobs jump straight to completed.
+  - Only `ON_SITE` jobs can complete from this view, and that now opens the shared tradie completion modal instead of directly flipping status.
+  - Earlier-stage jobs now show an honest explanation plus a real `Open Field Workflow` link into `/tradie/jobs/[id]`.
+- Why:
+  - This removes a workflow contradiction. Users should not see one screen telling them to travel/arrive/safety-check and another screen letting them bypass all of that with one click.
+- Verified with:
+  - `npx vitest run __tests__/job-detail-view.test.tsx __tests__/tradie-job-completion-modal.test.tsx`
+  - `npx next build`
+
+## 2026-04-09 - Tradie job detail now uses clearer labels and actions
+
+- Files:
+  - `components/tradie/job-detail-view.tsx`
+  - `__tests__/tradie-job-detail-view.test.tsx`
+- What changed:
+  - The tradie job page now uses shared user-facing status labels instead of leaking raw internal keys like `TRAVELING`.
+  - Contact/location actions now say `Call` and `Navigate` instead of icon-only buttons, which is clearer in field use.
+- Why:
+  - These are small but high-impact clarity fixes. A field workflow should be obvious at a glance; tradies should not have to infer action meaning from icons or internal stage words.
+- Verified with:
+  - `npx vitest run __tests__/tradie-job-detail-view.test.tsx`
+  - `npx next build`
+
+## 2026-04-09 - Tradie chat tab now links back into the real customer timeline
+
+- Files:
+  - `actions/tradie-actions.ts`
+  - `components/tradie/job-detail-view.tsx`
+  - `__tests__/tradie-job-detail-view.test.tsx`
+- What changed:
+  - `getJobDetails()` now returns the scoped `contactId` so field views can route into the correct customer record.
+  - The tradie `Chat` tab now explains that the full call/email/SMS/system story lives in the unified inbox and provides a real `Open Customer Timeline` link.
+- Why:
+  - An empty chat pane is not a usable workflow. When the real correspondence lives elsewhere, the product should route the user to it explicitly instead of making them hunt.
+- Verified with:
+  - `npx vitest run __tests__/tradie-job-detail-view.test.tsx`
+  - `npx next build`
+
+## 2026-04-09 - Tracey numbered contact disambiguation now actually works
+
+- Files:
+  - `app/api/chat/route.ts`
+  - `actions/agent-tools.ts`
+  - `__tests__/chat-route.test.ts`
+- What changed:
+  - Tracey no longer just tells users to “reply with the option number” when duplicate contacts exist.
+  - If the user replies with `1`, `2`, etc. on the next turn, the chat route now resolves that exact option back to a single contact and returns the right CRM context directly.
+  - Out-of-range numeric replies now get an honest “pick one of the listed options” response instead of falling through into generic model behavior.
+  - `runGetClientContext()` now supports exact `clientId` resolution so the follow-up path can fetch the real contact record without a second fuzzy search.
+- Why:
+  - This fixes a core trust gap in the chat experience. The assistant should never tell the user to respond in a particular way unless that follow-up actually works.
+- Verified with:
+  - `npx vitest run __tests__/chat-route.test.ts __tests__/agent-tools.test.ts`
+  - `npx next build`
+
+## 2026-04-09 - Deal communication surfaces now point to the real customer timeline
+
+- Files:
+  - `app/crm/deals/[id]/page.tsx`
+  - `components/crm/deal-detail-modal.tsx`
+  - `__tests__/deal-detail-modal.test.tsx`
+  - `__tests__/deal-page-access.test.tsx`
+- What changed:
+  - The deal page and deal modal no longer use the vague `Contact them` CTA above the activity panel.
+  - That action now says `Open customer timeline`, which is what the workflow actually does: it sends the user into the unified inbox thread for full SMS, email, and call correspondence.
+  - Both surfaces now explain that the local panel is recent activity and that the full cross-channel story lives in the customer timeline.
+  - If a job has no linked contact, the CTA now disables honestly as `No contact linked` instead of implying there is somewhere valid to go.
+- Why:
+  - This keeps the product mentally clean. The job page should show recent context, but it should not pretend to be a second full inbox.
+- Verified with:
+  - `npx vitest run __tests__/deal-detail-modal.test.tsx __tests__/deal-page-access.test.tsx`
+  - `npx next build`
+
+## 2026-04-09 - Contact detail now links into the real customer timeline too
+
+- Files:
+  - `app/crm/contacts/[id]/page.tsx`
+  - `__tests__/contact-page-access.test.tsx`
+- What changed:
+  - The real contact detail page now has an explicit `Open customer timeline` action in the header.
+  - It also explains that the page is for notes/job context, while the full SMS, email, and call correspondence lives in the customer timeline.
+- Why:
+  - This removes another split-brain workflow. Users should not have to guess whether communications belong on the contact page, deal page, or inbox.
+- Verified with:
+  - `npx vitest run __tests__/contact-page-access.test.tsx`
+  - `npx next build`
+
+## 2026-04-09 - Billing panel now tells the user the next real invoice step
+
+- Files:
+  - `components/tradie/job-billing-tab.tsx`
+  - `__tests__/job-billing-tab.test.tsx`
+- What changed:
+  - The job billing panel now includes a `Next best action` card above the invoice history.
+  - The guidance changes with the actual latest invoice state:
+    - no invoice yet -> create the first draft
+    - draft -> issue it when ready
+    - issued -> wait for payment and mark paid
+    - paid -> payment is recorded
+    - void -> invoice is no longer active
+  - This makes the quote/invoice workflow explicit instead of assuming the user already knows the right next button to press.
+- Why:
+  - The product goal is not just to expose invoice actions, but to make the billing workflow feel obvious and low-friction for a real user in the moment.
+- Verified with:
+  - `npx vitest run __tests__/job-billing-tab.test.tsx`
+  - `npx next build`
+
+## 2026-04-09 - Billing actions now describe the real send flow truthfully
+
+- Files:
+  - `components/tradie/job-billing-tab.tsx`
+  - `__tests__/job-billing-tab.test.tsx`
+- What changed:
+  - The billing panel no longer implies that `Issue` sends the invoice to the customer.
+  - Draft guidance now tells the user to finish the draft, mark it as issued, and then use `Email customer` to actually send it.
+  - Issued guidance now truthfully explains that the invoice is marked as issued, and that `Email customer` is the send/resend action while `Mark Paid` is the payment action.
+  - The action labels now match that workflow:
+    - `Issue` -> `Mark issued`
+    - `Email` -> `Email customer`
+- Why:
+  - This was a real workflow-truth bug. The UI should never teach a user the wrong mental model for how quoting and invoicing works.
+- Verified with:
+  - `npx vitest run __tests__/job-billing-tab.test.tsx`
+  - `npx next build`
+
+## 2026-04-09 - Tracey quote and invoice follow-ups now match the real billing workflow
+
+- Files:
+  - `actions/chat-actions.ts`
+  - `__tests__/chat-actions.test.ts`
+- What changed:
+  - Tracey no longer uses the misleading quick-action label `Issue to client` for draft invoices.
+  - Draft invoice follow-ups now use the truthful label `Mark issued`.
+  - The issue-invoice success message now explains the real workflow: the invoice is marked as issued, and if it still needs to be sent, that happens from the billing workflow.
+  - The issue-invoice follow-up card now suggests `Invoice status` instead of jumping straight to `Send reminder`, which only makes sense once the send flow has actually happened.
+- Why:
+  - The chat assistant and the billing UI should teach the same mental model. If those two surfaces disagree, the product feels unreliable even when the backend logic is correct.
+- Verified with:
+  - `npx vitest run __tests__/chat-actions.test.ts __tests__/job-billing-tab.test.tsx`
+  - `npx next build`
+
+## 2026-04-09 - Deal context next-step guidance now teaches the real invoice flow too
+
+- Files:
+  - `actions/chat-actions.ts`
+  - `__tests__/chat-actions.test.ts`
+- What changed:
+  - The deal-context `Next steps` guidance for invoice-ready and completed jobs no longer says to simply “send” or “issue” an invoice as if those are the same action.
+  - It now explains the real order:
+    - generate the invoice
+    - mark it as issued when ready
+    - email it to the customer
+    - then mark it paid once payment lands
+- Why:
+  - This keeps the CRM page guidance, Tracey follow-ups, and billing panel all teaching the same workflow instead of giving users three different mental models.
+- Verified with:
+  - `npx vitest run __tests__/chat-actions.test.ts`
+  - `npx next build`
+
+## 2026-04-09 - Estimator success state now teaches the same invoice sequence
+
+- Files:
+  - `components/tradie/estimator-form.tsx`
+  - `__tests__/estimator-form.test.tsx`
+- What changed:
+  - The estimator success state no longer says to issue the draft invoice “when you’re ready to send it,” which implied issuing and sending were the same thing.
+  - It now tells the user to mark the draft as issued when ready and then email it to the customer.
+- Why:
+  - The estimator, billing panel, deal-context guidance, and Tracey follow-ups now all teach the same invoice lifecycle instead of contradicting each other.
+- Verified with:
+  - `npx vitest run __tests__/estimator-form.test.tsx`
+  - `npx next build`
+
+## 2026-04-09 - Tradie estimator page intro now matches the real billing flow
+
+- Files:
+  - `app/(dashboard)/tradie/estimator/page.tsx`
+- What changed:
+  - The estimator landing-page copy no longer says the draft invoice goes back to billing “when you are ready to send it”.
+  - It now explains the truthful sequence: billing is where the draft gets marked as issued and emailed to the customer.
+- Why:
+  - This closes the last visible wording gap in the quote/invoice workflow. The same user should not get three different explanations depending on which page they happen to be on.
+- Verified with:
+  - `npx next build`
+
+## 2026-04-09 - Contact detail CTA copy no longer reads like placeholder text
+
+- Files:
+  - `app/crm/contacts/[id]/page.tsx`
+- What changed:
+  - The current-job CTA on contact detail now says `Open job` instead of `Open job ->`.
+- Why:
+  - Small copy polish matters on high-traffic workflow pages. This removes another leftover dev-style label so the page feels intentionally designed rather than half-finished.
+- Verified with:
+  - `npx next build`
+
+## 2026-04-09 - Daily digest invoice guidance now matches the real billing workflow
+
+- Files:
+  - `components/chatbot/chat-interface.tsx`
+- What changed:
+  - The evening digest `Next steps` card in Draft mode no longer says to approve invoice drafts “so I can send reminders tomorrow”.
+  - It now tells the user to review draft invoices, mark the ready ones as issued, and email them before the next reminder run.
+- Why:
+  - The daily briefing should reinforce the same billing workflow the rest of the product teaches, not resurrect older language that implies issuing/sending are interchangeable.
+- Verified with:
+  - `npx next build`
+
+## 2026-04-09 - Stale invoice wording removed from chat actions and checklist docs
+
+- Files:
+  - `actions/chat-actions.ts`
+  - `docs/master_outstanding_checklist.md`
+- What changed:
+  - The remaining `runIssueInvoiceAction` no-invoice guidance no longer says “ready to go out”; it now simply says to mark the draft as issued when it is ready.
+  - The master checklist no longer cites outdated invoice quick actions like `Issue to client` or `Move to Completed` in its summary of the current chat workflow.
+- Why:
+  - The product and the source-of-truth docs should reinforce the same language. Once the workflow changed, stale checklist examples became misleading too.
+- Verified with:
+  - `npx vitest run __tests__/chat-actions.test.ts`
+  - `npx next build`
+
+## 2026-04-10 - Xero settings copy no longer overclaims automatic sync behavior
+
+- Files:
+  - `app/crm/settings/integrations/page.tsx`
+- What changed:
+  - The Xero card in Settings → Integrations no longer claims draft invoices are created automatically whenever jobs are ready to invoice.
+  - It now explains the real product behavior: Xero draft invoices are created from the job-completion workflow and then reviewed in Xero.
+- Why:
+  - This was a product-truth issue. The integration page should describe what the app actually does today, not the broader automatic-sync behavior we may want later.
+- Verified with:
+  - `npx next build`
+
+## 2026-04-10 - Contact header no longer offers fake SMS when no phone exists
+
+- Files:
+  - `components/crm/contact-header.tsx`
+  - `__tests__/contact-header.test.tsx`
+- What changed:
+  - The contact-header dropdown no longer renders the Twilio SMS composer when the customer has no phone number.
+  - Instead, it tells the user to add a phone number first and offers a real recovery path into the shared customer timeline.
+- Why:
+  - This was another product-truth gap. A communication shortcut should either work honestly or guide the user to the right place, not pretend SMS is available when the contact has no number.
+- Verified with:
+  - `npx vitest run __tests__/contact-header.test.tsx`
+  - `npx next build`
+
+## 2026-04-10 - Contact profile now routes communication into the shared timeline honestly
+
+- Files:
+  - `components/crm/contact-profile.tsx`
+  - `__tests__/contact-profile.test.tsx`
+- What changed:
+  - The profile header no longer labels the shared inbox/timeline action as a fake Twilio or agent-specific send path.
+  - Native phone and email actions still appear when contact details exist, but the CRM action is now consistently `Open customer timeline`.
+  - Missing email and phone details now render honest empty states instead of malformed placeholder text.
+- Why:
+  - The contact profile should teach the same communication model as the rest of the product: use native apps for direct device actions, and use the shared customer timeline for CRM-managed communication.
+- Verified with:
+  - `npx vitest run __tests__/contact-profile.test.tsx`
+  - `npx next build`
+
+## 2026-04-10 - Legacy job detail views now recover missing customer details through CRM
+
+- Files:
+  - `components/jobs/job-detail-view.tsx`
+  - `components/tradie/job-detail-view.tsx`
+  - `__tests__/job-detail-view.test.tsx`
+  - `__tests__/tradie-job-detail-view.test.tsx`
+- What changed:
+  - Older job-detail screens no longer stop at disabled `No phone` and `No address` buttons.
+  - When those details are missing, both views now send the user back to the CRM job record to add the missing contact or address information.
+- Why:
+  - A truthful workflow should not just tell the user something is missing; it should give them the shortest sensible path to fix it.
+- Verified with:
+  - `npx vitest run __tests__/job-detail-view.test.tsx __tests__/tradie-job-detail-view.test.tsx`
+  - `npx next build`
+
+## 2026-04-10 - Tradie bottom sheet no longer dead-ends on missing phone details
+
+- Files:
+  - `components/tradie/job-bottom-sheet.tsx`
+  - `__tests__/job-bottom-sheet.test.tsx`
+- What changed:
+  - The tradie bottom sheet no longer shows disabled `No Phone` quick actions.
+  - When customer phone details are missing, the quick actions now route back into the CRM job record so the tradie has a clear recovery path.
+  - The collapsed header now uses a clean bullet separator instead of malformed text.
+- Why:
+  - Mobile field workflows need the same standard as the CRM: if a shortcut cannot run, the user should get a simple path to fix the blocker instead of a dead-end button.
+- Verified with:
+  - `npx vitest run __tests__/job-bottom-sheet.test.tsx __tests__/tradie-job-detail-view.test.tsx`
+  - `npx next build`
+
+## 2026-04-10 - Stale follow-up modal now defaults to an available channel
+
+- Files:
+  - `components/crm/stale-deal-follow-up-modal.tsx`
+  - `__tests__/stale-deal-follow-up-modal.test.tsx`
+- What changed:
+  - The stale-deal follow-up modal no longer defaults to SMS when the contact has no phone number.
+  - It now automatically falls back to email when that is the only available channel, or to a phone-call reminder when neither SMS nor email is available.
+  - The modal also explains why only certain channels are available instead of making the user discover that through a failed send.
+- Why:
+  - Re-engagement workflows should start in a sensible state. Users should not have to fight the modal just because customer contact data is incomplete.
+- Verified with:
+  - `npx vitest run __tests__/stale-deal-follow-up-modal.test.tsx`
+  - `npx next build`
+
+## 2026-04-10 - Kanban automation now uses the real CRM stage model
+
+- Files:
+  - `components/crm/kanban-automation-modal.tsx`
+  - `actions/kanban-automation-actions.ts`
+  - `__tests__/kanban-automation-modal.test.tsx`
+  - `__tests__/kanban-automation-actions.test.ts`
+- What changed:
+  - The Kanban automation modal no longer shows old generic sales-pipeline stages like `Qualified` or `Closed Won`.
+  - It now offers the real Earlymark CRM stages with the same user-facing labels used across the app.
+  - Stage-move activity logs now also use those user-facing labels instead of leaking raw internal values.
+- Why:
+  - This was a product-model mismatch. Automation surfaces should teach the same pipeline language as the dashboard, deal cards, and Tracey, otherwise users learn the wrong workflow.
+- Verified with:
+  - `npx vitest run __tests__/kanban-automation-actions.test.ts __tests__/kanban-automation-modal.test.tsx`
+  - `npx next build`
+
+## 2026-04-10 - Contact header wording now matches the shared communication model
+
+- Files:
+  - `components/crm/contact-header.tsx`
+  - `__tests__/contact-header.test.tsx`
+- What changed:
+  - The contact header no longer mixes old channel wording like `Send via Agent (Resend)` and `Send via Twilio` with the newer shared timeline model.
+  - Email dropdown actions now point users to `Open customer timeline` for CRM-managed communication.
+  - The inline SMS composer is now labeled as a direct workspace-number action with `Direct SMS from workspace number` and `Send direct SMS`.
+- Why:
+  - Communication surfaces should teach one simple model. If users see different wording in the same contact header than they see in inbox and profile surfaces, the product feels more complicated than it is.
+- Verified with:
+  - `npx vitest run __tests__/contact-header.test.tsx`
+  - `npx next build`
+
+## 2026-04-10 - Deal detail direct SMS now gives a recovery path
+
+- Files:
+  - `components/crm/deal-detail-modal.tsx`
+  - `__tests__/deal-detail-modal.test.tsx`
+- What changed:
+  - The deal detail modal no longer just disables direct SMS when the customer has no phone number.
+  - It now explains the blocker in plain language and gives the user an `Add phone in CRM` action that jumps straight to the contact edit flow.
+- Why:
+  - This was another workflow dead end. If a user is trying to message a customer from a job and the contact record is incomplete, the UI should help them fix that immediately instead of leaving them stuck.
+- Verified with:
+  - `npx vitest run __tests__/deal-detail-modal.test.tsx`
+  - `npx next build`
+
+## 2026-04-10 - Inbox fallback mode now still helps fix missing phone data
+
+- Files:
+  - `components/crm/inbox-view.tsx`
+  - `__tests__/inbox-view.test.tsx`
+- What changed:
+  - When a contact has no phone number and the inbox falls back from `Direct SMS` to `Ask Tracey`, the composer now still shows an `Add phone in CRM` recovery action.
+  - The direct-message warning remains honest, but the user no longer has to hunt elsewhere in the app to fix the missing data.
+- Why:
+  - Falling back to AI mode is helpful, but it should not hide the actual fix. Users still need a simple path to make direct communication available again.
+- Verified with:
+  - `npx vitest run __tests__/inbox-view.test.tsx`
+  - `npx next build`
+
+## 2026-04-10 - Full job page now gives a recovery path for missing phone data
+
+- Files:
+  - `app/crm/deals/[id]/page.tsx`
+  - `__tests__/deal-page-access.test.tsx`
+- What changed:
+  - The full CRM job page no longer silently drops the `Call client` / `Text client` actions when the contact has no phone number.
+  - It now explains the blocker and gives the user an `Add phone in CRM` action right inside the job sidebar.
+- Why:
+  - The job page is a common decision surface. If communication is blocked there, the user should not have to infer why the actions disappeared or hunt through the app to fix the record.
+- Verified with:
+  - `npx vitest run __tests__/deal-page-access.test.tsx`
+  - `npx next build`
+
+## 2026-04-10 - Stale follow-up modal now links straight to missing contact data fixes
+
+- Files:
+  - `components/crm/stale-deal-follow-up-modal.tsx`
+  - `__tests__/stale-deal-follow-up-modal.test.tsx`
+- What changed:
+  - The stale follow-up modal now shows `Add phone in CRM`, `Add email in CRM`, or `Add contact details in CRM` directly inside the contact details / channel guidance when customer data is missing.
+  - That recovery path is visible even when the modal automatically falls back to another available channel.
+- Why:
+  - Exception-handling flows should help the user recover from incomplete data immediately. It is not enough to warn that a channel is unavailable if the UI does not also show how to fix it.
+- Verified with:
+  - `npx vitest run __tests__/stale-deal-follow-up-modal.test.tsx`
+  - `npx next build`
+
+## 2026-04-10 - Stale job reconciliation now explains the consequences and confirms save state
+
+- Files:
+  - `components/crm/stale-job-reconciliation-modal.tsx`
+  - `__tests__/stale-job-reconciliation-modal.test.tsx`
+- What changed:
+  - The stale-job reconciliation modal now explains what each selected outcome will do next before the user submits it.
+  - It also now shows real success and error toasts instead of failing silently.
+- Why:
+  - Reconciliation changes job state in a significant way. Users should know whether they are closing the job, sending it back for rescheduling, or parking it for later, and they should get explicit feedback that the save worked.
+- Verified with:
+  - `npx vitest run __tests__/stale-job-reconciliation-modal.test.tsx`
+  - `npx next build`
+
+## 2026-04-10 - Schedule empty state now tells the user what to do next
+
+- Files:
+  - `app/crm/schedule/schedule-calendar.tsx`
+  - `__tests__/schedule-calendar.test.tsx`
+- What changed:
+  - The schedule no longer leaves users staring at a blank grid when nothing is booked yet.
+  - It now explains whether jobs simply need a scheduled date or whether there are no jobs yet at all, and gives direct `Open dashboard` and `Create job` next steps on both desktop and mobile.
+- Why:
+  - A blank calendar is technically accurate but poor UX. The schedule is a planning surface, so when it is empty the user still needs a clear explanation and a next action.
+- Verified with:
+  - `npx vitest run __tests__/schedule-calendar.test.tsx __tests__/schedule-page.test.tsx`
+  - `npx next build`
+
+## 2026-04-10 - Reschedule flow now tells the user when a customer update was sent
+
+- Files:
+  - `actions/deal-actions.ts`
+  - `app/crm/schedule/schedule-calendar.tsx`
+  - `__tests__/deal-actions.test.ts`
+  - `__tests__/schedule-calendar.test.tsx`
+- What changed:
+  - `rescheduleDeal()` now returns structured outcome flags so the UI knows whether a moved booking also triggered a customer-facing reschedule confirmation and whether the move changed assignee.
+  - The schedule drag/drop success toast now tells the truth:
+    - `Job rescheduled. Customer update sent.`
+    - `Job rescheduled and reassigned`
+    - or the generic `Job updated` fallback when neither of those special cases happened.
+- Why:
+  - Rescheduling is a high-trust workflow. Users should not have to guess whether moving a job only changed the calendar internally or also sent a customer-facing update.
+- Verified with:
+  - `npx vitest run __tests__/deal-actions.test.ts __tests__/schedule-calendar.test.tsx`
+  - `npx next build`
+
+## 2026-04-10 - Inbox timeline now exposes the email recovery path too
+
+- Files:
+  - `components/crm/inbox-view.tsx`
+  - `__tests__/inbox-view.test.tsx`
+- What changed:
+  - The customer timeline now tells the truth when a contact has no email on file, not just when they are missing a phone number.
+  - It surfaces `Add email in CRM` directly in the inbox so users can fix the blocker from the same workflow instead of discovering it only through a disabled header button.
+  - The composer helper copy was also cleaned up to remove malformed punctuation in the user-facing text.
+- Why:
+  - The inbox is supposed to be the source of truth for customer communication. If a channel is unavailable, the fix path should be just as obvious there as it is in the contact and deal screens.
+- Verified with:
+  - `npx vitest run __tests__/inbox-view.test.tsx`
+  - `npx next build`
+
+## 2026-04-10 - Contact header no longer hides the email fix behind dead ends
+
+- Files:
+  - `components/crm/contact-header.tsx`
+  - `__tests__/contact-header.test.tsx`
+- What changed:
+  - The contact header edit icon now routes to the real CRM contact edit page instead of being a dead-end icon button.
+  - The email dropdown now exposes `Add email in CRM` when the contact has no email on file, instead of only showing the generic customer-timeline path.
+- Why:
+  - The header is one of the first places a user reaches for contact maintenance. Missing contact data should be fixable from there, and visible edit actions should always lead somewhere real.
+- Verified with:
+  - `npx vitest run __tests__/contact-header.test.tsx`
+  - `npx next build`
+
+## 2026-04-10 - Deal detail now exposes the route/map recovery path too
+
+- Files:
+  - `app/crm/deals/[id]/page.tsx`
+  - `__tests__/deal-page-access.test.tsx`
+- What changed:
+  - The full CRM job page no longer silently drops route/map help when the job has no address.
+  - It now explains the blocker in place and offers `Add address in CRM` so the user can fix route/navigation data from the same workflow.
+- Why:
+  - Route and map actions are only as trustworthy as the underlying address data. When that data is missing, the deal page should help the user recover immediately instead of just omitting navigation affordances.
+- Verified with:
+  - `npx vitest run __tests__/deal-page-access.test.tsx`
+  - `npx next build`
+
+## 2026-04-10 - Deal detail modal now matches the full-page address recovery flow
+
+- Files:
+  - `components/crm/deal-detail-modal.tsx`
+  - `__tests__/deal-detail-modal.test.tsx`
+- What changed:
+  - The deal detail modal now mirrors the full page when a job has no address.
+  - Instead of just omitting address content, it now explains that route/map actions need an address and offers `Add address in CRM`.
+- Why:
+  - The modal and the full job page should not teach different recovery patterns for the same data problem. Users move between both surfaces during real CRM work, so the fix path has to stay consistent.
+- Verified with:
+  - `npx vitest run __tests__/deal-detail-modal.test.tsx`
+  - `npx next build`
+
+## 2026-04-10 - Job map now gives real next steps when locations are missing
+
+- Files:
+  - `components/crm/job-map-view.tsx`
+  - `__tests__/job-map-view.test.tsx`
+- What changed:
+  - The job-map empty state no longer just hints that jobs are waiting to be mapped.
+  - When there are pending unmapped jobs, it now gives two concrete actions:
+    - `Update locations`
+    - `Open dashboard to fix addresses`
+  - The explanatory copy was also tightened so it clearly states that route planning needs addresses, rather than vaguely referencing geocoding.
+- Why:
+  - The planning/map surface should help the user recover from missing location data directly. Passive “waiting to be mapped” text makes the problem visible but not solvable.
+- Verified with:
+  - `npx vitest run __tests__/job-map-view.test.tsx`
+  - `npx next build`
+
+## 2026-04-10 - Contact profile now matches the newer contact recovery patterns
+
+- Files:
+  - `components/crm/contact-profile.tsx`
+  - `__tests__/contact-profile.test.tsx`
+- What changed:
+  - The profile `Edit` button now routes to the real CRM contact edit page.
+  - When phone or email is missing, the profile now surfaces `Add phone in CRM` / `Add email in CRM` instead of just showing placeholders.
+  - The email and call/text dropdowns also expose those same recovery actions when the corresponding channel data is missing.
+- Why:
+  - Users should not have to switch between the old contact profile and the newer contact header just to find the real maintenance path for missing data. Both surfaces should teach the same recovery model.
+- Verified with:
+  - `npx vitest run __tests__/contact-profile.test.tsx`
+  - `npx next build`
+
+## 2026-04-11 - Claude quote branch merged and assistant pill shipped
+
+- Files:
+  - `app/api/chat/route.ts`
+  - `components/layout/Shell.tsx`
+  - `lib/store.ts`
+  - `__tests__/shell-store.test.ts`
+- What changed:
+  - Merged `origin/claude/deploy-main-vercel-fnJCO` into the current integration branch so the Claude quote/invoice branch is formally accounted for.
+  - Kept the newer current Tracey classifier/tool behavior where conflicts overlapped with the older branch, while preserving the non-conflicting route improvements from the merge.
+  - Replaced the assistant resize/toggle grip dots with the requested split-diamond / two-opposing-triangles control.
+  - The assistant panel now defaults closed on first boot, then persists the user's open/closed state via `pj_assistant_panel_expanded`.
+- Branch decision:
+  - `origin/claude/fix-flaky-tests-Cltkr`, `origin/claude/revamp-onboarding-tutorial-CZ2PC`, and `origin/claude/deploy-main-vercel-fnJCO` are now accounted for in `main`.
+  - `backup/pre-sync-20260401-231757` remains intentionally unmerged because it contains older camera/video/upload work that conflicts with the later product decision to remove fake/unproven capture and upload workflows.
+- Verified with:
+  - `npx vitest run __tests__/shell-store.test.ts __tests__/pre-classifier.test.ts __tests__/chat-route.test.ts __tests__/chat-actions.test.ts __tests__/tracey-prompt-contract.test.ts`
+  - `npx next build`
+
+## 2026-04-10 - Tradie job detail now routes missing-data fixes to the same CRM source of truth
+
+- Files:
+  - `components/tradie/job-detail-view.tsx`
+  - `__tests__/tradie-job-detail-view.test.tsx`
+- What changed:
+  - The older tradie job-detail screen no longer sends missing phone/address fixes through the deal page when a linked contact exists.
+  - It now routes those fixes straight to the contact edit form, matching the newer CRM and inbox recovery patterns.
+- Why:
+  - Field users should not be taught a different repair path from office users. Missing customer phone/address data belongs on the contact record, so both surfaces should send the user to the same source of truth.
+- Verified with:
+  - `npx vitest run __tests__/tradie-job-detail-view.test.tsx`
+  - `npx next build`
+
+## 2026-04-11 - Settings and SMS provisioning truth pass
+
+- Files:
+  - `actions/knowledge-actions.ts`
+  - `actions/messaging-actions.ts`
+  - `app/crm/settings/privacy/page.tsx`
+  - `__tests__/knowledge-actions.test.ts`
+  - `__tests__/messaging-actions.test.ts`
+- What changed:
+  - Fixed the live `Settings > My business` crash where Google-authenticated users could load the page but the pricing/service-area widgets crashed with `User not found`.
+  - Knowledge/service-area actions now resolve the workspace through the same auth/workspace path as the rest of the CRM instead of assuming the Supabase auth ID always matches an app `User.id` row.
+  - Customer-facing SMS no longer silently falls back to a platform Twilio env number when the workspace has no provisioned Tracey number.
+  - Removed user-facing `DRAFT` labels from the privacy/data policy settings copy.
+- Why:
+  - The settings experience must be truthful and usable under the actual Google-login account, not only under ideal seeded app-user rows.
+  - Settings said automated texts wait for provisioning, but production scheduling had sent a real SMS through fallback credentials. The product now fails honestly until the workspace sender is provisioned.
+- Verified with:
+  - `npx vitest run __tests__/messaging-actions.test.ts __tests__/knowledge-actions.test.ts __tests__/google-review-url-section.test.tsx __tests__/business-contact-form.test.tsx`
+  - `npx next build`
+  - Live production Playwright via logged-in Chrome/CDP:
+    - `/crm/settings/my-business` loaded with no `4xx/5xx` responses.
+    - `Save service areas` succeeded with a success toast and no network failures.
+    - `/crm/settings/privacy` contained no `DRAFT` copy.
+    - `/crm/settings/call-settings` loaded with the provisioning notice and `Save contact hours` succeeded with no network failures.
+- Notes:
+  - `npx tsc --noEmit --pretty false` still reports existing test-type debt outside this change (`contact-api-route`, `deal-api-route`, `map-view`, `task-actions`, `tradie-job-completion-modal`, `twilio-voice-gateway-route`). The production build passes.
+
+## 2026-04-11 - Quote, field job, and on-my-way workflow clarity pass
+
+- Files:
+  - `components/tradie/job-billing-tab.tsx`
+  - `components/sms/message-action-sheet.tsx`
+  - `actions/tradie-actions.ts`
+  - `actions/sms-templates.ts`
+  - `__tests__/message-action-sheet.test.tsx`
+  - `__tests__/job-billing-tab.test.tsx`
+  - `__tests__/tradie-actions.test.ts`
+  - `__tests__/tradie-job-detail-view.test.tsx`
+- What changed:
+  - The billing panel now says `Create Draft Invoice` instead of `Create Invoice` when the action creates a draft quote/invoice record.
+  - Draft invoice cards now expose `Email quote`; issued invoice cards expose `Email invoice`. The next-step copy now matches those two distinct user paths.
+  - Field job details now use `deal.address` before `contact.address`, so a job with a job-specific address no longer appears as `No address` in the tradie view while the CRM page can navigate.
+  - `START TRAVEL` no longer sends an automatic server-side on-my-way SMS. It only updates the CRM status; the opened action sheet remains the single reviewed customer-message path.
+  - The reviewed customer-message sheet now disables send and explains the recovery path when SMS/email is unavailable, including the no-provisioned-Tracey-number case.
+- Why:
+  - The quote/invoice UI was technically functional but confusing: users could create a draft while the button said invoice, and email actions did not explain whether they were sending a quote or an invoice.
+  - The field job view contradicted the office CRM by dropping the job address.
+  - The on-my-way flow risked hidden sends, silent SMS failures, or double customer messages.
+- Verified with:
+  - Live production Playwright before the fix:
+    - Created a draft invoice on QA job `cmntt3u150003d4rj56tvu1jc`; GST calculation was correct (`$12.34` -> `$13.57`), but UI wording was confusing.
+    - Confirmed the tradie field page showed `No address` while the CRM job page had `123 Test Street, Sydney NSW`.
+  - Live production Playwright after deploy:
+    - CRM job billing now shows `Create Draft Invoice`, `Email quote`, and no old `Create Invoice` button.
+    - Tradie field job page now shows `123 Test Street, Sydney NSW` plus `Navigate`, with no false `No address` state.
+  - `npx vitest run __tests__/tradie-actions.test.ts __tests__/tradie-job-detail-view.test.tsx __tests__/job-billing-tab.test.tsx __tests__/tradie-job-completion-modal.test.tsx __tests__/crm-job-completion-modal.test.tsx`
+  - `npx vitest run __tests__/message-action-sheet.test.tsx __tests__/tradie-actions.test.ts __tests__/job-billing-tab.test.tsx`
+  - `npx next build`
+
+## 2026-04-11 - Inbound lead capture and held-review triage pass
+
+- Files:
+  - `app/api/webhooks/webform/route.ts`
+  - `app/api/webhooks/inbound-email/route.ts`
+  - `app/api/twilio/webhook/route.ts`
+  - `__tests__/webform-route.test.ts`
+  - `__tests__/inbound-email-route.test.ts`
+  - `__tests__/twilio-sms-webhook.test.ts`
+- What changed:
+  - Website form leads now run through the same Tracey triage persistence as manually-created CRM jobs.
+  - Held website leads now save the orange-badge data (`aiTriageRecommendation`, `agentFlags`), notify the owner with a direct deal link, and do not trigger customer-facing new-lead automations.
+  - Provider lead emails now persist triage fields through `saveTriageRecommendation` instead of only writing a note, and triage-held provider leads now use the truthful `triage_review` block reason.
+  - The provider email manual-follow-up note no longer incorrectly says after-hours when the real reason is Tracey review.
+  - Obvious new inbound SMS enquiries now create a `NEW` CRM deal when the contact has no active job, preserving the first message in metadata and activity.
+  - Risky SMS leads held by triage now notify the owner and intentionally do not auto-reply to the customer.
+- Why:
+  - The product promise is that inbound enquiries from forms, provider emails, and customer SMS make it back into the CRM and are visible/actionable.
+  - The user's policy is "do not decline immediately"; risky/out-of-scope/unclear leads should be held silently for review with clear warning flags.
+  - Relying on an LLM tool call alone for SMS lead creation made the real workflow too fragile.
+- Verified with:
+  - `npx vitest run __tests__/triage.test.ts __tests__/webform-route.test.ts __tests__/inbound-email-route.test.ts __tests__/twilio-sms-webhook.test.ts`
+  - `npx vitest run __tests__/twilio-sms-webhook.test.ts __tests__/webform-route.test.ts __tests__/inbound-email-route.test.ts`
+  - `npx next build`
+
+## 2026-04-11 - Inbox timeline now includes actual SMS/email message rows
+
+- Files:
+  - `actions/activity-actions.ts`
+  - `__tests__/activity-actions.test.ts`
+- What changed:
+  - `getActivities()` now merges customer-facing `chatMessage` rows for SMS/email into the shared `ActivityView` timeline, alongside Activities, voice calls, and voicemails.
+  - Chat messages are mapped with channel, direction, full body text, contact details, deal links, and readable titles like `Inbound SMS` / `Outbound SMS`.
+  - Inbox, deal history, and contact history can now show the real SMS/email back-and-forth instead of relying on generic `SMS Conversation` activity placeholders.
+- Why:
+  - The inbox UI already had the right product pattern: compact previews, expandable long messages/transcripts, channel labels, and clear direct/Tracey composer modes.
+  - The missing piece was the data source. SMS and some AI email replies are persisted as `chatMessage` rows, so the user could miss full correspondence even though the UI looked complete.
+- Verified with:
+  - `npx vitest run __tests__/activity-actions.test.ts __tests__/inbox-view.test.tsx __tests__/inbox-page.test.tsx`
+  - `npx next build`
+  - Live production Playwright via logged-in Chrome/CDP after Vercel deployed commit `79b5a4c`:
+    - Seeded QA thread `ZZZ Inbox QA 1775903958611` in the logged-in `Friendly Plumbing` workspace.
+    - Opened `/crm/inbox?contact=cmnu7d4d000011019qlwv80q8`.
+    - Verified the contact appears in the inbox list.
+    - Verified full `Inbound SMS` and `Outbound SMS` rows render in the conversation timeline with complete bodies.
+    - Verified `Direct SMS` and `Ask Tracey` next-step modes are both visible.
+    - Observed no `4xx/5xx` network responses during the check.
+
+## 2026-04-11 - Job completion invoice/Xero truth hardening
+
+- Files:
+  - `components/tradie/job-completion-modal.tsx`
+  - `actions/accounting-actions.ts`
+  - `__tests__/tradie-job-completion-modal.test.tsx`
+  - `__tests__/accounting-actions.test.ts`
+- What changed:
+  - `Confirm & Generate Invoice` now stops if local invoice generation fails, instead of moving the deal to completed and attempting Xero anyway.
+  - Xero draft sync failures remain non-blocking after the local invoice exists, but now create a visible CRM activity note (`Xero Draft Invoice Skipped`) explaining the reason.
+  - Added regression coverage for both the modal failure path and the server-side Xero-not-connected activity log.
+- Why:
+  - Users need strong truthfulness around money. The app must not say or imply an invoice was generated if the local invoice write failed.
+  - Xero failures are expected while the integration is not connected, but they must be visible in the job history rather than disappearing into console logs.
+- Verified with:
+  - `npx vitest run __tests__/tradie-job-completion-modal.test.tsx __tests__/crm-job-completion-modal.test.tsx __tests__/accounting-actions.test.ts`
+  - `npx next build`
+
+## 2026-04-11 - Map route address truth pass
+
+- Files:
+  - `app/crm/map/page.tsx`
+  - `__tests__/map-page-access.test.tsx`
+- What changed:
+  - `/crm/map` now excludes scheduled jobs without an address before passing jobs into the map and route UI.
+  - Added regression coverage proving scheduled jobs with missing addresses are not rendered as navigable route targets.
+- Why:
+  - The map page tells users jobs appear once they have both a scheduled time and an address.
+  - Passing addressless jobs into route mode creates fake navigation targets and makes the field workflow feel untrustworthy.
+- Verified with:
+  - `npx vitest run __tests__/map-page-access.test.tsx __tests__/map-view.test.tsx __tests__/google-map-view.test.tsx __tests__/job-map-view.test.tsx __tests__/schedule-calendar.test.tsx __tests__/schedule-page.test.tsx`
+  - `npx next build`
+
+## 2026-04-11 - Stale job exception workflow access hardening
+
+- Files:
+  - `actions/stale-job-actions.ts`
+  - `app/api/stale-jobs/sync/route.ts`
+  - `components/crm/stale-deal-follow-up-modal.tsx`
+  - `components/crm/stale-job-reconciliation-modal.tsx`
+  - `__tests__/stale-job-actions.test.ts`
+- What changed:
+  - Stale job reconciliation now uses the shared workspace/deal access path instead of owner-only workspace lookup.
+  - Interactive stale scans are scoped to the signed-in user's workspace and reject mismatched workspace IDs.
+  - Trusted cron stale scans now run with an explicit system flag, so the cron-secret-protected route does not fail just because there is no interactive browser user.
+  - Stale follow-up and reconciliation dialogs now allow vertical scrolling on short screens.
+  - Cleaned visible stale dialog separators so the UI does not show mojibake.
+- Why:
+  - Exception handling must work for the real CRM roles and scheduled jobs, not only for owner-path local tests.
+  - A cron route that authenticates by secret should be able to run the stale scan without a browser session.
+  - Users must be able to reach modal actions even on shorter screens.
+- Verified with:
+  - `npx vitest run __tests__/stale-job-actions.test.ts __tests__/stale-job-reconciliation-modal.test.tsx __tests__/stale-deal-follow-up-modal.test.tsx`
+  - `npx next build`
+
+## 2026-04-12 - Tracey digest card reload and copy cleanup
+
+- Files:
+  - `components/chatbot/chat-interface.tsx`
+  - `lib/digest.ts`
+  - `__tests__/chat-interface.test.tsx`
+- What changed:
+  - Saved Morning Briefing and Evening Wrap-Up assistant messages now render as clickable digest cards after chat history/session restore, not as inert plain text.
+  - Digest detection now keys off the briefing text instead of depending on exact emoji/variation-selector bytes.
+  - The digest modal now has an accessible description.
+  - User-facing digest separators were cleaned to plain `-` copy so the UI does not risk mojibake-looking text in briefing cards or digest descriptions.
+- Why:
+  - The morning/evening routine only makes sense if the user can click the briefing after reopening Tracey.
+  - Briefing copy should feel finished and reliable, especially because this is one of the main "what do I do next?" surfaces.
+- Verified with:
+  - `npx vitest run __tests__/chat-interface.test.tsx __tests__/digest.test.ts __tests__/chat-actions.test.ts`
+  - `npx next build`
+
+## 2026-04-12 - Support request auth and delivery truth hardening
+
+- Files:
+  - `app/api/support/contact/route.ts`
+  - `__tests__/support-contact-route.test.ts`
+- What changed:
+  - Support request submission now uses shared workspace access instead of raw auth-ID user lookup.
+  - This keeps the Help/Support form working for Google-authenticated users whose auth ID may not equal the app `User.id`.
+  - Support request activity rows now include `userId`, making the CRM-side audit trail traceable to the user who submitted the request.
+  - Added API tests for unauthenticated access, configured Resend delivery, and the not-configured support email path.
+- Why:
+  - The support form is the user's safety net when something does not make sense. It must not fail for the same auth mapping issue already found in other settings flows.
+  - If support email delivery is not configured, the UI should receive a truthful failure and the app should still have a local note that the request was attempted.
+- Verified with:
+  - `npx vitest run __tests__/support-contact-route.test.ts __tests__/support-request-panel.test.tsx __tests__/settings-route-redirects.test.tsx __tests__/settings-layout.test.tsx`
+  - `npx next build`
+
+## 2026-04-12 - Production CSP console-cleanup pass
+
+- Files:
+  - `middleware.ts`
+  - `next.config.mjs`
+  - `__tests__/middleware.test.ts`
+- What changed:
+  - Middleware CSP now allows `blob:` scripts/workers so browser-created analytics or app workers are not blocked.
+  - Middleware and static header CSP now allow Google Fonts stylesheet/font hosts needed by the Google Maps UI.
+  - Added regression coverage for the active middleware CSP header.
+- Why:
+  - Live production Playwright smoke testing showed Help, Inbox, Map, Dashboard, and AI Assistant loaded without 4xx/5xx responses, but browser console errors showed CSP blocks.
+  - Those console errors make the app look brittle and can break map/provider UI details even when the page appears to load.
+- Verified with:
+  - Live production Playwright before the fix:
+    - `/crm/settings/help`, `/crm/inbox`, `/crm/map`, `/crm/dashboard`, and `/crm/settings/agent` loaded for the logged-in browser with no 4xx/5xx responses.
+    - Console showed CSP blocks for `blob:` workers and Google Fonts styles on the map surface.
+  - Live production Playwright after deploy:
+    - `/crm/settings/help`, `/crm/inbox`, `/crm/map`, and `/crm/settings/agent` loaded for the logged-in browser with no 4xx/5xx responses.
+    - No CSP console errors were observed on those pages.
+  - `npx vitest run __tests__/middleware.test.ts`
+  - `npx next build`
+
+## 2026-04-12 - Help/support contact truth cleanup
+
+- Files:
+  - `app/crm/settings/help/page.tsx`
+  - `__tests__/settings-help-page.test.tsx`
+- What changed:
+  - Removed the unverified `1300 EARLYMARK` support phone number from Help.
+  - Help now points users to `support@earlymark.ai` and the tracked support request form, with urgent issues handled by setting the request priority.
+  - Added page coverage so the unverified support phone number does not come back.
+- Why:
+  - A fake or unproven support number is worse than no phone number: it creates a dead end exactly when the user is blocked.
+  - Support requests should go through a channel we know is configured/tracked.
+- Verified with:
+  - `npx vitest run __tests__/settings-help-page.test.tsx __tests__/support-contact-route.test.ts __tests__/support-request-panel.test.tsx`
+  - `npx next build`
+  - Live production Playwright after deploy:
+    - `/crm/settings/help` showed `support@earlymark.ai`, `Contact support`, and the support request form.
+    - `1300 EARLYMARK` was not present.
+
+## 2026-04-12 - Contact management workspace-access hardening
+
+- Files:
+  - `lib/rbac.ts`
+  - `app/crm/contacts/page.tsx`
+  - `app/crm/contacts/new/page.tsx`
+  - `app/crm/contacts/[id]/edit/page.tsx`
+  - `__tests__/contact-crud-page-access.test.tsx`
+  - `__tests__/rbac.test.ts`
+- What changed:
+  - Contact list, create, and edit pages now resolve the current actor through shared workspace access instead of mixing raw auth IDs, `getOrCreateWorkspace`, and a separate RBAC lookup.
+  - The RBAC helper now uses the same workspace-aware resolver and fails closed to `TEAM_MEMBER` if access cannot be resolved.
+  - Team members are still redirected away from contact management, while owners/managers use the actor workspace ID for scoped contact reads.
+- Why:
+  - Real Google-authenticated users can have an auth ID that does not equal the app `User.id`; contact management is a core CRM workflow and should not break or create the wrong workspace under that condition.
+  - RBAC should never default to owner-level access when the user lookup fails.
+- Verified with:
+  - `npx vitest run __tests__/contact-crud-page-access.test.tsx __tests__/contact-page-access.test.tsx __tests__/contact-actions.test.ts __tests__/rbac.test.ts`
+  - `npx next build`
+
+## 2026-04-12 - Core CRM page actor scoping
+
+- Files:
+  - `app/crm/map/page.tsx`
+  - `app/crm/schedule/page.tsx`
+  - `app/crm/estimator/page.tsx`
+  - `app/crm/inbox/page.tsx`
+  - `__tests__/map-page-access.test.tsx`
+  - `__tests__/schedule-page.test.tsx`
+  - `__tests__/crm-estimator-page.test.tsx`
+  - `__tests__/inbox-page.test.tsx`
+- What changed:
+  - Map, schedule, estimator, and inbox pages now use the workspace actor from shared workspace access instead of mixing auth-provider IDs with app `User.id` records.
+  - Team-member filtering on map, schedule, and estimator now compares assigned jobs against `actor.id`, so Google-authenticated users whose provider ID differs from their app user row still see the correct work.
+  - Inbox now scopes activities/contacts from `actor.workspaceId` and blocks team members from the global inbox without a second RBAC lookup.
+- Why:
+  - These are common day-to-day CRM surfaces. If a tradie logs in through Google, the page should not silently show no jobs or the wrong workspace just because the external auth ID differs from the CRM user ID.
+- Verified with:
+  - `npx vitest run __tests__/map-page-access.test.tsx __tests__/schedule-page.test.tsx __tests__/crm-estimator-page.test.tsx __tests__/inbox-page.test.tsx __tests__/contact-crud-page-access.test.tsx __tests__/rbac.test.ts`
+  - `npx next build`
+
+## 2026-04-12 - Settings and new-booking actor scoping
+
+- Files:
+  - `app/crm/deals/new/page.tsx`
+  - `app/crm/settings/page.tsx`
+  - `app/crm/settings/automations/page.tsx`
+  - `app/crm/settings/billing/page.tsx`
+  - `app/crm/settings/my-business/page.tsx`
+  - `__tests__/new-deal-page.test.tsx`
+  - `__tests__/settings-route-redirects.test.tsx`
+  - `__tests__/settings-core-page-access.test.tsx`
+- What changed:
+  - New booking, account settings, automations, billing, and my-business now use the workspace actor instead of raw auth-provider IDs.
+  - Account settings now passes the app user ID into profile/security/referral components.
+  - My-business now reads business profile and documents from the actor user/workspace, keeping settings aligned with the CRM workspace the user actually belongs to.
+  - Billing now reads the subscription fields directly from the actor workspace and still blocks team members.
+- Why:
+  - These surfaces are where users configure the business, subscription, automations, and new CRM jobs. They must not point at a newly-created or wrong workspace when Google auth IDs differ from app user IDs.
+- Verified with:
+  - `npx vitest run __tests__/new-deal-page.test.tsx __tests__/settings-route-redirects.test.tsx __tests__/settings-core-page-access.test.tsx __tests__/map-page-access.test.tsx __tests__/schedule-page.test.tsx __tests__/crm-estimator-page.test.tsx __tests__/inbox-page.test.tsx`
+  - `npx next build`
+
+## 2026-04-12 - Dashboard shell actor state hardening
+
+- Files:
+  - `lib/dashboard-shell.ts`
+  - `__tests__/dashboard-shell.test.ts`
+- What changed:
+  - Dashboard shell state now resolves the app user through shared workspace access after workspace creation/resolution.
+  - The shell now publishes the app `User.id` and app role into `ShellInitializer`, instead of the external auth-provider ID and a raw-ID role lookup.
+  - If workspace actor resolution fails, the shell fails closed to `TEAM_MEMBER` rather than owner-level access.
+- Why:
+  - The shell state drives global header/sidebar/chat context. If it uses the wrong user ID or role, downstream notifications, role-gated navigation, and team-member views can behave incorrectly even when individual pages are fixed.
+- Verified with:
+  - `npx vitest run __tests__/dashboard-shell.test.ts __tests__/dashboard-layout.test.tsx __tests__/settings-layout.test.tsx __tests__/crm-route-guards.test.tsx __tests__/settings-core-page-access.test.tsx`
+  - `npx next build`
+
+## 2026-04-12 - Settings, integrations, and SMS action actor scoping
+
+- Files:
+  - `actions/settings-actions.ts`
+  - `actions/integration-actions.ts`
+  - `actions/sms-templates.ts`
+  - `__tests__/settings-actions.test.ts`
+  - `__tests__/integration-actions.test.ts`
+  - `__tests__/sms-templates.test.ts`
+- What changed:
+  - Settings actions now resolve workspace ID through shared workspace access.
+  - Integration connection/status/disconnect actions now use the actor workspace/app user instead of raw auth-provider IDs.
+  - SMS template list/save/preview/send actions now use the actor app user, and message preview/send only load deals in the actor workspace.
+- Why:
+  - The UI can look correct while server actions save/read against the wrong user or workspace. These are the actions behind business settings, OAuth connections, calendar/Xero status, and reviewed customer-message sends.
+  - Message actions must not preview or send templates for a deal outside the current workspace.
+- Verified with:
+  - `npx vitest run __tests__/settings-actions.test.ts __tests__/integration-actions.test.ts __tests__/sms-templates.test.ts __tests__/message-action-sheet.test.tsx __tests__/settings-core-page-access.test.tsx`
+  - `npx next build`
+
+## 2026-04-12 - Knowledge, documents, and tradie estimator actor scoping
+
+- Files:
+  - `actions/document-actions.ts`
+  - `actions/knowledge-actions.ts`
+  - `app/(dashboard)/tradie/estimator/page.tsx`
+  - `__tests__/document-actions.test.ts`
+  - `__tests__/knowledge-actions.test.ts`
+  - `__tests__/tradie-estimator-page.test.tsx`
+- What changed:
+  - Business document list/upload/create/delete actions now use the workspace actor and write/read documents from `actor.workspaceId`.
+  - Knowledge and service-area actions now use the workspace actor for knowledge rules and business-profile ownership.
+  - The older tradie estimator page now scopes visible jobs by `actor.id` and uses `actor.workspaceId`, matching the CRM estimator.
+- Why:
+  - My Business settings feeds Tracey's real answers. Attachments, service areas, pricing/knowledge rules, and tradie estimates must belong to the current CRM workspace, not an auth-provider ID that may not match the app user row.
+- Verified with:
+  - `npx vitest run __tests__/document-actions.test.ts __tests__/knowledge-actions.test.ts __tests__/tradie-estimator-page.test.tsx __tests__/settings-core-page-access.test.tsx __tests__/crm-estimator-page.test.tsx`
+  - `npx next build`
+
+## 2026-04-12 - Billing action actor authorization
+
+- Files:
+  - `actions/billing-actions.ts`
+  - `__tests__/billing-actions.test.ts`
+  - `__tests__/billing-activation-flow.test.ts`
+- What changed:
+  - Checkout and customer-portal session actions now authorize from the workspace actor instead of comparing `workspace.ownerId` to the raw auth-provider ID.
+  - Billing remains blocked for team members and for actors outside the target workspace.
+  - Stripe checkout metadata now uses the actor app user ID for referral attribution.
+- Why:
+  - A legitimate Google-authenticated owner/manager should not be blocked from billing because the external auth ID differs from the CRM app user ID.
+  - Billing should fail early and clearly for wrong-workspace or team-member access.
+- Verified with:
+  - `npx vitest run __tests__/billing-actions.test.ts __tests__/billing-activation-flow.test.ts __tests__/settings-route-redirects.test.tsx`
+  - `npx next build`
+
+## 2026-04-12 - Deviation learning actor scoping
+
+- Files:
+  - `actions/learning-actions.ts`
+  - `__tests__/learning-actions.test.ts`
+- What changed:
+  - Unresolved deviation reads now use `actor.workspaceId`.
+  - Deviation resolution now requires the deviation to belong to the actor workspace before marking it resolved or deleting matching negative-scope rules.
+- Why:
+  - This is part of the held-lead/evening-review feedback loop. A user should only see and resolve learning events for their own CRM workspace.
+- Verified with:
+  - `npx vitest run __tests__/learning-actions.test.ts __tests__/deal-actions.test.ts __tests__/deal-lifecycle-flow.test.ts`
+  - `npx next build`
+
+## 2026-04-12 - CI lint blocker cleanup
+
+- Files:
+  - `__tests__/feature-verification.test.ts`
+  - `__tests__/workspace-setup-comms-route.test.ts`
+  - `lib/chat-utils.ts`
+  - `actions/contact-actions.ts`
+  - `components/layout/Shell.tsx`
+  - `components/settings/support-request-panel.tsx`
+- What changed:
+  - Removed explicit `any` usage in failing tests and contact-action error handling.
+  - Fixed the timezone `offset` variable to satisfy `prefer-const`.
+  - Deferred the advanced-mode chatbot collapse state update so React Compiler no longer flags synchronous `setState` inside the effect.
+  - Escaped the support request copy apostrophe for JSX lint compliance.
+- Why:
+  - GitHub Actions was failing on `npm run lint` despite local build/test coverage passing.
+- Verified with:
+  - `npm run lint`
+  - `npx vitest run __tests__/shell-store.test.ts __tests__/dashboard-layout.test.tsx __tests__/support-request-panel.test.tsx __tests__/contact-actions.test.ts __tests__/feature-verification.test.ts __tests__/workspace-setup-comms-route.test.ts`
+  - `npx next build`
+
+## 2026-04-12 - CI TypeScript blocker cleanup
+
+- Files:
+  - `__tests__/contact-api-route.test.ts`
+  - `__tests__/deal-api-route.test.ts`
+  - `__tests__/workspace-setup-comms-route.test.ts`
+  - `__tests__/map-view.test.tsx`
+  - `__tests__/task-actions.test.ts`
+  - `__tests__/tradie-job-completion-modal.test.tsx`
+  - `__tests__/twilio-voice-gateway-route.test.ts`
+- What changed:
+  - API route tests now pass `NextRequest` fixtures where the route contract requires `NextRequest`.
+  - Browser/navigator test stubs now cast via `unknown` before `Navigator`.
+  - Task and tradie completion fixtures now match the action/component types.
+  - Twilio voice gateway tests now use `vi.stubEnv` instead of assigning read-only `NODE_ENV`.
+- Why:
+  - `npx tsc --noEmit` was failing in CI on test harness type mismatches even though runtime behavior was covered.
+- Verified with:
+  - `npx tsc --noEmit`
+  - `npx vitest run __tests__/contact-api-route.test.ts __tests__/deal-api-route.test.ts __tests__/map-view.test.tsx __tests__/task-actions.test.ts __tests__/tradie-job-completion-modal.test.tsx __tests__/twilio-voice-gateway-route.test.ts __tests__/workspace-setup-comms-route.test.ts`
+  - `npm run lint`
+  - `npx next build`
+
+## 2026-04-26 - Bulletproof homepage demo-call form
+
+- Files:
+  - `app/page.tsx`
+  - `actions/demo-call-action.ts`
+  - `app/api/demo-call/route.ts`
+  - `lib/demo-call.ts`
+  - `lib/demo-lead-store.ts`
+  - `prisma/schema.prisma`
+  - `prisma/migrations/20260426_add_demo_lead/migration.sql`
+  - `__tests__/demo-call.test.ts`
+  - `__tests__/demo-call-action.test.ts`
+  - `__tests__/demo-lead-store.test.ts`
+- What changed:
+  - Added a `DemoLead` Prisma model + migration so every homepage form submission is persisted before the LiveKit dial. Prospects are no longer lost when LiveKit, Twilio, or the network fails.
+  - `requestDemoCall` now validates every required field with field-specific errors, persists a `PENDING` `DemoLead`, marks it `INITIATED` on success or `FAILED` (with truncated error) on throw, and never re-throws.
+  - Added strict E.164 phone validation (`isValidE164Phone`) in `lib/demo-call.ts`. Malformed numbers fail fast with a fixable user-facing message instead of a silent SIP no-ring.
+  - Added an explicit warning when no outbound caller number can be resolved for the demo SIP trunk so the silent-no-ring case has a visible reason instead of guessing.
+  - Hardened `InterviewForm.handleSubmit` with try/catch, a 30s timeout, and a friendly retry message. The button can no longer get stuck on `Calling you now...` when the action rejects.
+  - `/api/demo-call` route mirrors the same lead persistence + status-update flow.
+- Why:
+  - A user reported filling in the homepage form and never receiving a call back. Investigation showed the action could throw without being caught by the form (silent infinite loading), and even when it succeeded the lead existed only as LiveKit room metadata — so any infrastructure failure dropped the prospect entirely with no record. This change makes the flow visible (DB-backed leads + status), validates input before LiveKit sees it, and guarantees the user always sees feedback.
+- Verified with:
+  - `npx tsc --noEmit --skipLibCheck`
+  - `npx vitest run __tests__/demo-call.test.ts __tests__/demo-call-action.test.ts __tests__/demo-lead-store.test.ts` (16 tests pass)
+  - `npm run lint` (0 errors; only pre-existing warnings remain)
+
+## 2026-04-28 - Canonicalize worker heartbeat freshness at server receipt time
+
+- Files:
+  - `app/api/internal/voice-agent-status/route.ts`
+  - `__tests__/voice-agent-status-route.test.ts`
+  - `__tests__/voice-agent-health-monitor.test.ts`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- What changed:
+  - Voice worker heartbeat ingestion now stores `voiceWorkerHeartbeat.heartbeatAt` from the app server's receipt time instead of trusting the worker's self-reported `heartbeatAt`.
+  - The route now preserves the worker-reported timestamp and computed clock skew in heartbeat diagnostics so host clock drift is still visible without poisoning fleet freshness.
+  - Added a regression test proving an old worker-reported heartbeat still lands as fresh at receipt time, and cleaned the explicit-`any` lint blocker in the monitor-details test.
+- Why:
+  - GitHub Actions showed a real production voice failure pattern on April 28, 2026: repeated `Voice Agent Health`, `Customer Agent Reconcile`, and `Voice Monitor Watchdog` schedule failures, plus `Deploy LiveKit Agent` failing in `Verify Worker Heartbeats`, while the worker containers themselves were still reaching local healthy state.
+  - The app was using the worker host's wall clock as the canonical freshness source. If the OCI/Docker host clock drifts backward, healthy heartbeats are recorded as stale, which falsely trips fleet health, runtime drift, launch-readiness, and deploy verification all at once.
+- Verified with:
+  - `npx vitest run __tests__/voice-agent-status-route.test.ts __tests__/voice-agent-health-monitor.test.ts`
+  - `npm run lint`
+  - `npx tsc --noEmit`
+
+## 2026-04-28 - Normalize LiveKit SIP trunk numbers in voice health gates
+
+- Files:
+  - `lib/livekit-sip-health.ts`
+  - `lib/demo-call.ts`
+  - `__tests__/livekit-sip-health.test.ts`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- What changed:
+  - Normalized inbound and outbound LiveKit SIP trunk phone numbers to E.164 before using them in health checks.
+  - Hardened outbound demo-trunk resolution to compare caller numbers with `phoneMatches(...)` instead of exact string equality.
+  - Added regression coverage proving a trunk that reports `0485 010 634` / `61 485 010 634` still satisfies Earlymark inbound coverage and outbound readiness.
+- Why:
+  - After the server-receipt heartbeat fix, the deploy verifier still failed late in the host-scoped launch gate, which strongly points at the remaining `launch-readiness` checks rather than heartbeat ingestion itself.
+  - `livekitSip` was still vulnerable to false-unhealthy results when LiveKit returned the correct number in a different format than the app env.
+- Verified with:
+  - `npx vitest run __tests__/livekit-sip-health.test.ts __tests__/voice-room-routing.test.ts __tests__/voice-agent-status-route.test.ts __tests__/voice-agent-health-monitor.test.ts`
+  - `npx tsc --noEmit`
+
+## 2026-04-28 - Keep Vitest out of Playwright e2e specs
+
+- Files:
+  - `vitest.config.ts`
+  - `docs/agent_change_log.md`
+- What changed:
+  - Added an explicit Vitest `exclude` list for `e2e/**` plus build output folders so `npm test` only runs the intended unit/integration suite.
+  - Raised the default Vitest timeout to 15s and capped the runner at `50%` worker fan-out so slower React/jsdom tests stop timing out when the whole suite runs under GitHub Actions contention.
+- Why:
+  - CI `npm test` was failing because `vitest run` was trying to execute Playwright files like `e2e/public-preview.spec.ts` and `e2e/team-member.spec.ts`, which call `test()`/`test.use()` under Playwright rather than Vitest.
+  - After removing the Playwright bleed-through, the remaining failures were clustered 5s timeouts in UI-heavy tests that pass when run in smaller groups, which points to suite-level runner pressure rather than broken feature behavior.
+- Verified with:
+  - `npm test`
+
+## 2026-04-28 - Harden public demo callback routing and monitor real failures
+
+- Files:
+  - `lib/demo-call.ts`
+  - `lib/livekit-sip-health.ts`
+  - `lib/demo-call-errors.ts`
+  - `lib/demo-call-failure-alert.ts`
+  - `lib/demo-call-health.ts`
+  - `actions/demo-call-action.ts`
+  - `app/api/contact/route.ts`
+  - `app/api/demo-call/route.ts`
+  - `app/api/internal/voice-fleet-health/route.ts`
+  - `lib/demo-lead-store.ts`
+  - `lib/voice-agent-health-monitor.ts`
+  - `lib/voice-monitoring.ts`
+  - `__tests__/demo-call.test.ts`
+  - `__tests__/demo-call-action.test.ts`
+  - `__tests__/contact-route.test.ts`
+  - `__tests__/demo-call-health.test.ts`
+  - `__tests__/voice-agent-health-monitor.test.ts`
+  - `__tests__/voice-fleet-health-route.test.ts`
+  - `docs/agent_change_log.md`
+- What changed:
+  - Hardened outbound demo callback trunk resolution so it can derive a caller ID from LiveKit inbound trunk numbers when env-only caller number config is incomplete.
+  - Added an immediate ops alert path for real public demo callback failures from the homepage form, contact form, and `/api/demo-call`, while skipping user-input phone validation errors.
+  - Added `demo-call` health aggregation from recent `DemoLead` outcomes and wired it into the scheduled voice health monitor plus the internal voice fleet health endpoint.
+  - Distinguished contact-page callback leads from homepage leads with `source: "contact_form"` so failures are easier to trace.
+- Why:
+  - A live website submission hit the generic "Could not reach voice service" fallback, which showed the public callback path could fail even when the broader voice system had only coarse monitoring.
+  - The outbound demo path previously trusted env vars and outbound trunk metadata for caller ID resolution; wildcard outbound trunks plus incomplete env config could still leave the demo callback path unable to pick a real caller number.
+  - The system needed both a better chance of succeeding automatically and a fast human-visible signal when public callback submissions start failing for real users.
+- Verified with:
+  - `npx vitest run __tests__/demo-call.test.ts __tests__/demo-call-action.test.ts __tests__/contact-route.test.ts __tests__/demo-call-health.test.ts __tests__/voice-agent-health-monitor.test.ts __tests__/voice-fleet-health-route.test.ts __tests__/livekit-sip-health.test.ts`
+  - `npx tsc --noEmit`
+  - `npm test`
+
+## 2026-04-29 13:42 AEST - Correct voice runtime docs after live OCI recovery
+
+- Agent: Codex
+- Files:
+  - `AGENTS.md`
+  - `docs/voice_operating_brief.md`
+  - `docs/current_agent_handoff.md`
+  - `docs/OCI_LEGACY_REDIS_SIDECAR_CLEANUP.md`
+  - `docs/agent_change_log.md`
+- What changed:
+  - Updated the canonical voice runtime docs to match the recovered OCI topology: Dockerized `livekit-livekit-1` + `livekit-sip` using bind mounts rooted at `/home/ubuntu/livekit/live.earlymark.ai`, with host `caddy` and host `redis-server` providing TLS and Redis.
+  - Added the Snap Docker `/opt/livekit` bind-mount caveat so future operators do not misread the `read-only file system` startup failure as a disk problem.
+  - Rewrote the short handoff doc to reflect the now-healthy voice state, the remaining email-only degradation, and the need for the next normal deploy to restore worker `deployGitSha` labeling.
+  - Updated the legacy Redis-sidecar cleanup note so it no longer tells operators to preserve or recreate `livekit-redis-1` / `livekit-caddy-1`.
+- Why:
+  - The live voice outage was ultimately caused by infrastructure drift plus incorrect operational assumptions in the docs. Leaving the old `/opt/livekit` story in place would make the next incident much more likely.
+  - After the live recovery, the repo needed to tell the truth about the running production topology so monitoring, deploy, and incident work starts from the right baseline.
+
+## 2026-04-29 14:27 AEST - Harden launch readiness against monitor drift and Resend rate limits
+
+- Agent: Codex
+- Files:
+  - `lib/inbound-lead-email-readiness.ts`
+  - `lib/voice-monitor-config.ts`
+  - `app/api/cron/voice-monitor-watchdog/route.ts`
+  - `.github/workflows/voice-synthetic-probe.yml`
+  - `__tests__/inbound-lead-email-readiness.test.ts`
+  - `__tests__/voice-monitor-watchdog-route.test.ts`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- What changed:
+  - Stopped treating “no recent inbound email traffic” as launch-readiness failure when DNS and Resend inbound receiving are already configured correctly.
+  - Added a Resend detail-lookup fallback so provider `HTTP 429` rate limits do not falsely degrade inbound email readiness when the domain summary is already verified and receiving is enabled.
+  - Increased the default monitor stale window from 15 to 20 minutes to absorb normal GitHub Actions scheduler drift without waiting so long that real outages disappear into the noise.
+  - Extended the voice watchdog so it refreshes stale `passive-communications-health` runs inline, not just stale `voice-agent-health`.
+  - Put the spoken synthetic probe workflow back on a schedule so the active canary does not simply age into a stale red state.
+- Why:
+  - After the live voice recovery, public health was still being dragged down by stale monitor timing and by an email readiness check that treated vendor introspection hiccups as if customer-facing email were actually broken.
+  - The app already has a passive production health surface for real traffic failures, so launch readiness should focus on configuration truth and keep rate-limit noise from masking the real operational picture.
+- Verified with:
+  - `npx vitest run __tests__/inbound-lead-email-readiness.test.ts __tests__/voice-monitor-watchdog-route.test.ts __tests__/launch-readiness.test.ts __tests__/health-route.test.ts __tests__/customer-agent-readiness.test.ts`
+  - `npx tsc --noEmit`
+
+## 2026-05-01 01:43 AEST - Stabilize Linux CI deal lifecycle flow
+
+- Agent: Codex
+- Files:
+  - `__tests__/deal-lifecycle-flow.test.ts`
+  - `docs/agent_change_log.md`
+- What changed:
+  - Moved the heavy action-module imports for the deal lifecycle integration test out of the timed test body and into shared promises.
+  - Narrowed the fake-timer setup to freeze `Date` only, instead of faking every timer primitive.
+  - Increased that single integration test's timeout from 15 seconds to 45 seconds so cold Linux runners have realistic headroom.
+- Why:
+  - Production voice had recovered, but GitHub `CI Quality Checks` was still red because `__tests__/deal-lifecycle-flow.test.ts` timed out on `ubuntu-latest` while passing locally.
+  - Reproducing the workflow inside a Linux `node:20` container showed this was a runner-specific timeout, not a voice regression.
+- Verified with:
+  - `npx vitest run __tests__/deal-lifecycle-flow.test.ts`
+  - `docker run --rm -v "C:/Users/micha/Projects/Assistantbot:/app" -w /app node:20 bash -lc "npx vitest run __tests__/deal-lifecycle-flow.test.ts --reporter=verbose"`
+  - `npx tsc --noEmit`
+  - `npm test`
+
+## 2026-04-30 22:43 AEST - Preserve caller transcript in inbound demo fast path
+
+- Agent: Codex
+- Files:
+  - `livekit-agent/agent.ts`
+  - `docs/agent_change_log.md`
+- What changed:
+  - Added a small transcript helper so manually injected turns do not double-write identical entries.
+  - When the `inbound_demo` low-signal fast path handles probe-style turns, it now records the caller utterance and latency turn before clearing the session turn and speaking the cached reply.
+  - Switched normal transcript appends to use the same helper so the fast path and the standard conversation-item path stay in sync.
+- Why:
+  - The latency optimization in `f34b04b7` sped up spoken canary turns, but it also cleared the user turn before the caller transcript was safely persisted.
+  - That made production canary verification go unhealthy even though the assistant replied correctly, because the stored transcript no longer showed both sides of the exchange.
+- Verified with:
+  - `npx vitest run __tests__/voice-spoken-canary.test.ts __tests__/voice-latency-config.test.ts __tests__/voice-monitor-watchdog-route.test.ts`
+  - `npx tsc --noEmit`
+  - `npm test`
+  - `npm run build`
+
+## 2026-05-01 02:27 AEST - Stabilize remaining Linux-sensitive flow tests
+
+- Agent: Codex
+- Files:
+  - `app/api/health/route.ts`
+  - `__tests__/health-route.test.ts`
+- What changed:
+  - Split the public health route into `voiceStatus`, `coreStatus`, and `overallStatus` so healthy voice/runtime no longer looks like a full outage just because passive communications or monitor freshness is degraded.
+  - Kept the detailed passive-production and monitoring signals in the payload, and added a clearer summary when core voice is healthy but secondary ops signals are not.
+  - Added coverage for the exact case we were seeing in prod: healthy core voice with an unhealthy passive SMS rollup.
+- Why:
+  - The public `/api/health` contract was conflating "voice is broken" with "a passive SMS workspace signal is red", which made the live story much noisier than the actual runtime truth.
+  - We still want the red details, but we need the top-level health to distinguish launch-critical voice/runtime health from secondary traffic-monitoring issues.
+- Verified with:
+  - `npx vitest run __tests__/health-route.test.ts __tests__/launch-readiness.test.ts`
+  - `npx tsc --noEmit`
+  - `npm run build`
+
+- Agent: Codex
+- Files:
+  - `__tests__/onboarding-ready-workspace-flow.test.ts`
+  - `__tests__/billing-activation-flow.test.ts`
+  - `__tests__/lead-to-deal-flow.test.ts`
+  - `__tests__/chat-agent-crm-mutation-flow.test.ts`
+  - `docs/agent_change_log.md`
+- What changed:
+  - Narrowed fake timers in the remaining flow-style integration tests to freeze `Date` only instead of intercepting every timer primitive.
+  - Hoisted heavyweight dynamic imports out of hot test bodies so Linux CI no longer pays extra startup cost inside the per-test timeout window.
+  - Reused the same stabilization pattern that already fixed `deal-lifecycle-flow.test.ts`, applying it to the sibling tests most likely to fail next under GitHub Actions.
+- Why:
+  - The previous CI red was a Linux-only timeout in a similar flow test, and these four files shared the same risk pattern: fake timers plus expensive module loading during the test body.
+  - Tightening them proactively is lower risk than waiting for GitHub to fail one sibling at a time.
+- Verified with:
+  - `npx vitest run __tests__/onboarding-ready-workspace-flow.test.ts __tests__/billing-activation-flow.test.ts __tests__/lead-to-deal-flow.test.ts __tests__/chat-agent-crm-mutation-flow.test.ts`
+  - `npx tsc --noEmit`
+  - `npm test`
+  - `CI=true GITHUB_ACTIONS=true npm test`
+  - `npm run build`
+
+## 2026-04-29 14:54 AEST - Fix worker request gating that was rejecting live voice jobs
+
+- Agent: Codex
+- Files:
+  - `livekit-agent/worker-entry.ts`
+  - `__tests__/voice-worker-entry.test.ts`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- What changed:
+  - Changed Docker worker request gating to read the child agent's fresh health snapshot from disk before rejecting a job for readiness/capacity.
+  - Kept the existing in-memory runtime-state checks only as a fallback when no fresh snapshot exists.
+  - Added focused tests covering the exact cross-process failure mode where the parent wrapper thinks the worker is unavailable while the child agent snapshot says it is ready.
+- Why:
+  - Live OCI logs showed the sales worker repeatedly rejecting inbound demo jobs with `worker is not accepting new calls` even while `activeCalls: 0`.
+  - The parent `worker-entry.ts` process does not share `bootReady` / `activeCalls` state with the child agent process that actually handles calls, so the old gate could silently reject every inbound call and make the spoken canary fail intermittently.
+- Verified with:
+  - `npx vitest run __tests__/voice-worker-entry.test.ts __tests__/voice-monitor-watchdog-route.test.ts __tests__/inbound-lead-email-readiness.test.ts`
+  - `npx tsc --noEmit`

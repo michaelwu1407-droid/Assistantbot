@@ -4,19 +4,15 @@ import { render, screen } from "@testing-library/react";
 
 const {
   redirect,
-  getAuthUser,
-  getOrCreateWorkspace,
+  requireCurrentWorkspaceAccess,
   getDeals,
-  getCurrentUserRole,
   findMany,
 } = vi.hoisted(() => ({
   redirect: vi.fn((path: string) => {
     throw new Error(`REDIRECT:${path}`);
   }),
-  getAuthUser: vi.fn(),
-  getOrCreateWorkspace: vi.fn(),
+  requireCurrentWorkspaceAccess: vi.fn(),
   getDeals: vi.fn(),
-  getCurrentUserRole: vi.fn(),
   findMany: vi.fn(),
 }));
 
@@ -24,20 +20,12 @@ vi.mock("next/navigation", () => ({
   redirect,
 }));
 
-vi.mock("@/lib/auth", () => ({
-  getAuthUser,
-}));
-
-vi.mock("@/actions/workspace-actions", () => ({
-  getOrCreateWorkspace,
+vi.mock("@/lib/workspace-access", () => ({
+  requireCurrentWorkspaceAccess,
 }));
 
 vi.mock("@/actions/deal-actions", () => ({
   getDeals,
-}));
-
-vi.mock("@/lib/rbac", () => ({
-  getCurrentUserRole,
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -69,8 +57,11 @@ import SchedulePage from "@/app/crm/schedule/page";
 describe("SchedulePage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    getAuthUser.mockResolvedValue({ id: "user_1" });
-    getOrCreateWorkspace.mockResolvedValue({ id: "ws_1" });
+    requireCurrentWorkspaceAccess.mockResolvedValue({
+      id: "user_1",
+      role: "OWNER",
+      workspaceId: "ws_1",
+    });
     getDeals.mockResolvedValue([
       { id: "deal_1", title: "Blocked drain", stage: "scheduled", assignedToId: "user_1" },
       { id: "deal_2", title: "Hot water", stage: "scheduled", assignedToId: "user_2" },
@@ -83,8 +74,6 @@ describe("SchedulePage", () => {
   });
 
   it("shows managers all non-deleted jobs and the full team roster", async () => {
-    getCurrentUserRole.mockResolvedValue("OWNER");
-
     render(await SchedulePage());
 
     expect(screen.getByTestId("deal-ids")).toHaveTextContent("deal_1,deal_2");
@@ -93,12 +82,25 @@ describe("SchedulePage", () => {
   });
 
   it("shows team members only their own jobs and their own lane", async () => {
-    getCurrentUserRole.mockResolvedValue("TEAM_MEMBER");
+    requireCurrentWorkspaceAccess.mockResolvedValue({
+      id: "app_user_1",
+      role: "TEAM_MEMBER",
+      workspaceId: "ws_1",
+    });
+    getDeals.mockResolvedValue([
+      { id: "deal_1", title: "Blocked drain", stage: "scheduled", assignedToId: "app_user_1" },
+      { id: "deal_2", title: "Hot water", stage: "scheduled", assignedToId: "user_2" },
+      { id: "deal_3", title: "Old quote", stage: "deleted", assignedToId: "app_user_1" },
+    ]);
+    findMany.mockResolvedValue([
+      { id: "app_user_1", name: null, email: "jess@example.com", role: "TEAM_MEMBER" },
+      { id: "user_2", name: "Michael", email: "michael@example.com", role: "OWNER" },
+    ]);
 
     render(await SchedulePage());
 
     expect(screen.getByTestId("deal-ids")).toHaveTextContent("deal_1");
-    expect(screen.getByTestId("team-member-ids")).toHaveTextContent("user_1");
+    expect(screen.getByTestId("team-member-ids")).toHaveTextContent("app_user_1");
     expect(screen.getByTestId("team-member-names")).toHaveTextContent("jess");
   });
 });

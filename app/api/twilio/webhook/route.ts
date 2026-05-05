@@ -5,6 +5,8 @@ import { classifyMessage } from "@/lib/spam-classifier"
 import { getWorkspaceTwilioClient } from "@/lib/twilio"
 import { generateSMSResponse } from "@/lib/ai/sms-agent"
 import { findContactByPhone, findWorkspaceByTwilioNumber } from "@/lib/workspace-routing"
+import { saveTriageRecommendation, triageIncomingLead } from "@/lib/ai/triage"
+import { isReplyableSmsAddress } from "@/lib/sms-address"
 
 export const maxDuration = 60;
 
@@ -18,7 +20,18 @@ type SmsWebhookEventPayload = {
     messageSid?: string | null;
     responseMessageSid?: string | null;
     autoRespondEnabled?: boolean;
+    replySuppressedReason?: string | null;
 };
+
+const ACTIVE_DEAL_STAGES = ["NEW", "CONTACTED", "NEGOTIATION", "SCHEDULED", "PIPELINE", "INVOICED", "PENDING_COMPLETION"] as const;
+
+function looksLikeNewSmsLead(message: string): boolean {
+    const text = message.trim().toLowerCase();
+    if (!text || text.length < 8) return false;
+    if (/^(ok|okay|yes|no|thanks|thank you|confirm|cancel|stop)\b/.test(text)) return false;
+
+    return /\b(quote|quoted|price|cost|estimate|book|booking|job|repair|fix|install|installation|service|replace|blocked|leak|burst|drain|toilet|tap|hot water|no power|sparking|urgent|emergency|asap|can you|need|looking for)\b/.test(text);
+}
 
 async function recordSmsWebhookEvent(params: {
     eventType: "sms.received" | "sms.reply";
@@ -157,9 +170,51 @@ export async function POST(req: NextRequest) {
         const interactionId = interaction.id;
         const workspaceId = workspace.id;
         const contactId = contact.id;
+        const canReplyToSender = isReplyableSmsAddress(From);
 
         const processPromise = (async () => {
             try {
+                // ─── Booking Confirmation Fast-Path ──────────────────────
+                // If the customer replies "CONFIRM" (or "YES"), find the most
+                // recent pending-confirmation deal and mark it confirmed.
+                if (/^(confirm|confirmed|yes|yep|yeah|yup|ok|okay|sounds good)\b/i.test(Body.trim())) {
+                    try {
+                        const pendingDeal = await prisma.deal.findFirst({
+                            where: {
+                                workspaceId,
+                                contactId: contact.id,
+                                metadata: { path: ["confirmationStatus"], equals: "pending" },
+                            },
+                            orderBy: { scheduledAt: "asc" },
+                            select: { id: true, title: true, contactId: true, metadata: true },
+                        });
+                        if (pendingDeal) {
+                            const existingMeta = (pendingDeal.metadata as Record<string, unknown>) ?? {};
+                            await prisma.deal.update({
+                                where: { id: pendingDeal.id },
+                                data: {
+                                    metadata: JSON.parse(JSON.stringify({
+                                        ...existingMeta,
+                                        confirmationStatus: "confirmed",
+                                        confirmedAt: new Date().toISOString(),
+                                    })),
+                                },
+                            });
+                            await prisma.activity.create({
+                                data: {
+                                    type: "NOTE",
+                                    title: "Booking confirmed by customer",
+                                    content: `Customer replied "${Body.trim()}" to confirm the booking.`,
+                                    dealId: pendingDeal.id,
+                                    contactId: pendingDeal.contactId ?? undefined,
+                                },
+                            });
+                        }
+                    } catch {
+                        // Non-blocking — confirmation update failure must not stop the AI reply
+                    }
+                }
+
                 // ─── Spam Check ─────────────────────────────────────────
                 const spamResult = await classifyMessage(workspaceId, Body, From);
 
@@ -179,6 +234,103 @@ export async function POST(req: NextRequest) {
                 }
 
                 // ─── AI Response Generation ─────────────────────────────
+                let activeDeal = await prisma.deal.findFirst({
+                    where: {
+                        workspaceId,
+                        contactId,
+                        stage: { in: [...ACTIVE_DEAL_STAGES] },
+                    },
+                    orderBy: { updatedAt: "desc" },
+                    select: { id: true },
+                });
+
+                if (!activeDeal && looksLikeNewSmsLead(Body)) {
+                    const deal = await prisma.deal.create({
+                        data: {
+                            workspaceId,
+                            contactId,
+                            title: `SMS enquiry from ${contact.name || From}`,
+                            stage: "NEW",
+                            source: "sms",
+                            metadata: {
+                                leadSource: "sms",
+                                initialMessage: Body,
+                                inboundMessageSid: MessageSid || null,
+                            },
+                        },
+                        select: { id: true },
+                    });
+                    activeDeal = deal;
+
+                    await prisma.activity.create({
+                        data: {
+                            type: "NOTE",
+                            title: "SMS enquiry captured",
+                            content: Body,
+                            contactId,
+                            dealId: deal.id,
+                        },
+                    });
+
+                    const triage = await triageIncomingLead(workspaceId, {
+                        title: `SMS enquiry from ${contact.name || From}`,
+                        description: Body,
+                    }).catch(() => null);
+
+                    if (triage) {
+                        await saveTriageRecommendation(deal.id, triage).catch(() => {});
+                    }
+
+                    if (triage?.recommendation === "HOLD_REVIEW") {
+                        const owner = await prisma.user.findFirst({
+                            where: { workspaceId, role: "OWNER" },
+                            select: { id: true },
+                        }).catch(() => null);
+                        if (owner) {
+                            await prisma.notification.create({
+                                data: {
+                                    userId: owner.id,
+                                    title: "SMS lead held for review",
+                                    message: `${contact.name || From}: ${(triage.flags.length > 0 ? triage.flags : ["Needs review"]).join("; ")}`,
+                                    type: "WARNING",
+                                    link: `/crm/deals/${deal.id}`,
+                                },
+                            }).catch(() => {});
+                        }
+
+                        await recordSmsWebhookEvent({
+                            eventType: "sms.reply",
+                            status: "success",
+                            payload: {
+                                workspaceId,
+                                workspaceName: workspace.name,
+                                from: To,
+                                to: From,
+                                messageSid: MessageSid || null,
+                                autoRespondEnabled: false,
+                            },
+                        });
+                        return;
+                    }
+                }
+
+                if (!canReplyToSender) {
+                    await recordSmsWebhookEvent({
+                        eventType: "sms.reply",
+                        status: "success",
+                        payload: {
+                            workspaceId,
+                            workspaceName: workspace.name,
+                            from: To,
+                            to: From,
+                            messageSid: MessageSid || null,
+                            autoRespondEnabled: false,
+                            replySuppressedReason: "non_replyable_sender",
+                        },
+                    });
+                    return;
+                }
+
                 const aiResponse = await generateSMSResponse(interactionId, Body, workspaceId);
                 const aiResponseText = aiResponse.text;
 

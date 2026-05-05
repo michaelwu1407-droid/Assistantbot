@@ -163,7 +163,7 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
     const shouldHighlightBusinessName = attemptedSubmit && mode === "create" && newContactType === "BUSINESS" && !newContactCompany.trim()
 
     return (
-        <Card className="w-full max-w-2xl max-h-[88vh] overflow-y-auto bg-white shadow-xl border-slate-200">
+        <Card className="w-full max-w-2xl overflow-visible bg-white shadow-xl border-slate-200">
             <CardHeader className="border-b bg-slate-50/50 rounded-t-xl">
                 <div className="flex items-center gap-2 mb-2">
                     <Button variant="ghost" size="icon" onClick={() => router.push('/crm/dashboard')} className="h-8 w-8 -ml-2">

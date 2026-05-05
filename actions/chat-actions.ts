@@ -1,5 +1,6 @@
 "use server";
 
+import type { DealStage, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getAuthUser } from "@/lib/auth";
@@ -35,6 +36,7 @@ import {
 } from "@/lib/agent-mode";
 import { getAttentionSignalsForDeal } from "@/lib/deal-attention";
 import { logger } from "@/lib/logging";
+import { formatDateTimeInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone";
 
 /**
  * Find similar contact names using fuzzy matching
@@ -132,6 +134,8 @@ const STAGE_ALIASES: Record<string, string> = {
   "quoting": "quote_sent",
   "scheduled": "scheduled",
   "ready to invoice": "ready_to_invoice",
+  "awaiting payment": "ready_to_invoice",
+  "awaiting_payment": "ready_to_invoice",
   "pending approval": "pending_approval",
   "completed": "completed",
   "lost": "lost",
@@ -220,14 +224,14 @@ function getDealNextStepGuidance(input: {
         : "Complete the work, record any field notes or materials, and generate the invoice when the job is finished.";
     case "ready_to_invoice":
       return input.hasInvoice
-        ? "Issue the invoice or update its status, then follow through to payment."
-        : "Generate the invoice and send or review it before closing out payment.";
+        ? "The invoice is marked as issued. Email it to the customer if it still needs to go out, then follow up on payment and mark it paid when received."
+        : "Generate the invoice, mark it as issued when it is ready, and email it to the customer so they can pay.";
     case "pending_approval":
       return "Review the completion details, then approve it to move to completed or reject it with a reason.";
     case "completed":
       return input.hasInvoice
         ? "The job is completed. The main remaining step is making sure the invoice and payment status are correct."
-        : "The job is completed. Generate or issue the invoice if billing is still outstanding.";
+        : "The job is completed. Generate the invoice, mark it as issued when ready, and email it if billing is still outstanding.";
     default:
       return null;
   }
@@ -269,6 +273,178 @@ function findDealByTitle<T extends { id: string; title: string }>(deals: T[], qu
   return bestDeal;
 }
 
+type InvoiceTargetDeal = {
+  id: string;
+  title: string;
+  stage?: string | null;
+  updatedAt?: Date;
+  createdAt?: Date;
+  contactId?: string | null;
+};
+
+type InvoiceTargetContact = Awaited<ReturnType<typeof searchContacts>>[number];
+
+type AmbiguousInvoiceLookup = {
+  __kind: "ambiguous";
+  message: string;
+};
+
+type InvoiceLookupRecord = Prisma.InvoiceGetPayload<{
+  include: {
+    deal: {
+      include: {
+        contact: true;
+      };
+    };
+  };
+}> | null;
+
+const CLOSED_OR_REMOVED_DEAL_STAGES: DealStage[] = ["DELETED", "LOST"];
+const PREFERRED_INVOICE_DEAL_STAGES = ["NEW", "PIPELINE", "CONTACTED", "QUOTE_SENT", "SCHEDULED", "INVOICED", "READY_TO_INVOICE", "COMPLETED"];
+
+function getDealStageRank(stage?: string | null): number {
+  const normalized = (stage ?? "").toUpperCase();
+  const index = PREFERRED_INVOICE_DEAL_STAGES.indexOf(normalized);
+  return index === -1 ? PREFERRED_INVOICE_DEAL_STAGES.length : index;
+}
+
+function formatDealChoicesForPrompt(deals: Array<Pick<InvoiceTargetDeal, "title" | "stage">>): string {
+  return deals
+    .slice(0, 3)
+    .map((deal) => `"${deal.title}"${deal.stage ? ` (${CHAT_STAGE_LABELS[PRISMA_STAGE_TO_CHAT_STAGE[deal.stage] ?? deal.stage.toLowerCase()] ?? deal.stage})` : ""}`)
+    .join(", ");
+}
+
+function getLooseContactSearchQueries(rawTarget: string): string[] {
+  const trimmed = rawTarget.trim().replace(/^["']|["']$/g, "");
+  const normalized = trimmed.replace(/\s+/g, " ");
+  const queries = new Set<string>([normalized]);
+  const tokens = normalized.split(" ").filter(Boolean);
+
+  if (tokens.length >= 2) {
+    queries.add(tokens.slice(-2).join(" "));
+  }
+  if (tokens.length >= 3) {
+    queries.add(tokens.slice(-3).join(" "));
+  }
+
+  // Common QA/test prefixes like "ZZZ AUTO LIVE Alex Harper" should still resolve to "Alex Harper".
+  const capitalisedTail = tokens.filter((token) => /^[A-Z][a-z]+(?:'[A-Z][a-z]+)?$/.test(token));
+  if (capitalisedTail.length >= 2) {
+    queries.add(capitalisedTail.slice(-2).join(" "));
+  }
+
+  return [...queries].filter(Boolean);
+}
+
+async function resolveContactForInvoiceTarget(workspaceId: string, rawTarget: string) {
+  const seen = new Set<string>();
+  const matches: Array<InvoiceTargetContact & { score: number }> = [];
+  for (const query of getLooseContactSearchQueries(rawTarget)) {
+    const contacts = await searchContacts(workspaceId, query);
+    for (const contact of contacts) {
+      if (seen.has(contact.id)) continue;
+      seen.add(contact.id);
+      const name = (contact.name ?? "").toLowerCase();
+      const target = rawTarget.trim().toLowerCase();
+      let score = fuzzyScore(target, name);
+      if (target.includes(name) || name.includes(target)) score = Math.max(score, 0.92);
+      if (query.toLowerCase() !== target && (name.includes(query.toLowerCase()) || query.toLowerCase().includes(name))) {
+        score = Math.max(score, 0.88);
+      }
+      matches.push({ ...contact, score });
+    }
+  }
+  matches.sort((a, b) => b.score - a.score);
+  return matches;
+}
+
+async function resolveDealForInvoiceTarget(
+  workspaceId: string,
+  rawTarget: string,
+): Promise<{ deal: InvoiceTargetDeal | null; ambiguityMessage?: string }> {
+  const target = rawTarget.trim();
+  if (!target) return { deal: null };
+
+  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+  const directDealMatch = findDealByTitle(deals, target);
+  if (directDealMatch) {
+    return { deal: directDealMatch };
+  }
+
+  const contacts = await resolveContactForInvoiceTarget(workspaceId, target);
+  if (!contacts.length) {
+    return { deal: null };
+  }
+
+  const candidateDeals: Array<InvoiceTargetDeal & { contactName?: string | null; contactScore: number }> = [];
+  for (const contact of contacts) {
+    const dealsForContact = await db.deal.findMany({
+      where: {
+        workspaceId,
+        contactId: contact.id,
+        stage: { notIn: CLOSED_OR_REMOVED_DEAL_STAGES },
+      },
+      select: {
+        id: true,
+        title: true,
+        stage: true,
+        updatedAt: true,
+        createdAt: true,
+        contactId: true,
+      },
+      orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+    });
+    for (const deal of dealsForContact) {
+      candidateDeals.push({
+        ...deal,
+        contactName: contact.name,
+        contactScore: contact.score,
+      });
+    }
+  }
+
+  if (candidateDeals.length === 0) {
+    return { deal: null };
+  }
+
+  if (candidateDeals.length === 1) {
+    return { deal: candidateDeals[0] };
+  }
+
+  const rankedDeals = [...candidateDeals].sort((a, b) => {
+    const contactScoreDelta = b.contactScore - a.contactScore;
+    if (contactScoreDelta !== 0) return contactScoreDelta;
+    const stageDelta = getDealStageRank(a.stage) - getDealStageRank(b.stage);
+    if (stageDelta !== 0) return stageDelta;
+    return (b.updatedAt?.getTime() ?? b.createdAt?.getTime() ?? 0) - (a.updatedAt?.getTime() ?? a.createdAt?.getTime() ?? 0);
+  });
+
+  const best = rankedDeals[0];
+  const second = rankedDeals[1];
+  if (best && second && best.contactScore > second.contactScore) {
+    return { deal: best };
+  }
+  if (best && second && getDealStageRank(best.stage) < getDealStageRank(second.stage)) {
+    return { deal: best };
+  }
+
+  return {
+    deal: null,
+    ambiguityMessage: `I found multiple jobs for "${target}": ${formatDealChoicesForPrompt(rankedDeals)}. Tell me which job you mean and I'll handle the invoice from there.`,
+  };
+}
+
+function isAmbiguousInvoiceLookup(value: unknown): value is AmbiguousInvoiceLookup {
+  return Boolean(
+    value &&
+    typeof value === "object" &&
+    "__kind" in value &&
+    (value as { __kind?: unknown }).__kind === "ambiguous" &&
+    "message" in value
+  );
+}
+
 export interface IndustryContext {
   dealLabel: string;
   dealsLabel: string;
@@ -296,7 +472,7 @@ function getIndustryContext(industryType: string | null): IndustryContext {
           WON: "Under Contract",
           LOST: "Lost"
         },
-        helpExtras: "\n  \"Start open house\" — Begin kiosk mode",
+        helpExtras: '\n  "Start open house" - Begin kiosk mode',
         greeting: "Hi! I'm your real estate assistant. How can I help you today?",
         unknownFallback: "I'm not sure how to help with that. Try asking about listings, buyers, or scheduling."
       };
@@ -312,7 +488,7 @@ function getIndustryContext(industryType: string | null): IndustryContext {
           WON: "Awarded",
           LOST: "Lost"
         },
-        helpExtras: "\n  \"Site check\" — Complete safety checklist",
+        helpExtras: '\n  "Site check" - Complete safety checklist',
         greeting: "Hi! I'm your construction assistant. What can I help you with today?",
         unknownFallback: "I'm not sure how to help with that. Try asking about projects, clients, or site checks."
       };
@@ -328,7 +504,7 @@ function getIndustryContext(industryType: string | null): IndustryContext {
           WON: "Scheduled",
           LOST: "Lost"
         },
-        helpExtras: "\n  \"On my way\" — Notify client you're traveling",
+        helpExtras: '\n  "On my way" - Notify client you\'re traveling',
         greeting: "Hi! I'm your trades assistant. How can I help you today?",
         unknownFallback: "I'm not sure how to help with that. Try asking about jobs, clients, or scheduling."
       };
@@ -344,9 +520,25 @@ export async function runMoveDeal(
   dealTitle: string,
   stageAlias: string,
   assignedTo?: string
-): Promise<{ success: boolean; message: string; dealId?: string; stage?: string; requiresAssignment?: boolean }> {
+): Promise<{ success: boolean; message: string; dealId?: string; stage?: string; requiresAssignment?: boolean; requiresSchedule?: boolean }> {
   const deals = await getDeals(workspaceId, undefined, { unbounded: true });
-  const deal = findDealByTitle(deals, dealTitle);
+  let deal = findDealByTitle(deals, dealTitle);
+  if (!deal) {
+    const resolution = await resolveDealForInvoiceTarget(workspaceId, dealTitle);
+    if (resolution.deal) {
+      const fallback =
+        deals.find((candidate) => candidate.id === resolution.deal?.id) ??
+        findDealByTitle(deals, resolution.deal.title);
+      if (fallback) {
+        deal = fallback;
+      }
+    } else if (resolution.ambiguityMessage) {
+      return {
+        success: false,
+        message: resolution.ambiguityMessage,
+      };
+    }
+  }
   if (!deal) {
     const suggestions = deals.slice(0, 5).map(d => `"${d.title}"`).join(", ");
     return {
@@ -360,12 +552,21 @@ export async function runMoveDeal(
     return { success: false, message: `Unknown stage "${stageAlias}". Try: ${validStages}` };
   }
 
-  // Check if moving to Scheduled and needs team member assignment
+  // Check if moving to Scheduled — requires both an assignee AND a scheduled date.
   if (resolvedStage === "scheduled" && !deal.assignedToId && !assignedTo) {
     return {
       success: false,
       message: `"${dealTitle}" needs a team member assigned to move to Scheduled. Who should I assign this job to?`,
       requiresAssignment: true,
+      dealId: deal.id,
+    };
+  }
+
+  if (resolvedStage === "scheduled" && !deal.scheduledAt) {
+    return {
+      success: false,
+      message: `"${dealTitle}" needs a scheduled date before it can be moved to Scheduled. What date and time should this job be booked for?`,
+      requiresSchedule: true,
       dealId: deal.id,
     };
   }
@@ -435,7 +636,7 @@ export async function runProposeReschedule(
   await logActivity({
     type: "NOTE",
     title: "Proposed Job Time",
-    content: `Proposed new time: ${display}. Reach out to customer to lock it down.`,
+    content: `Proposed new time: ${display}. Follow up with the customer to confirm it.`,
     dealId: deal.id,
     contactId: contactId ?? undefined,
   });
@@ -444,7 +645,7 @@ export async function runProposeReschedule(
   tomorrow9am.setHours(9, 0, 0, 0);
   await createTask({
     title: `Confirm new time with ${contactName}`,
-    description: `Proposed: ${display}. Contact them to confirm the new time.`,
+    description: `Proposed time: ${display}. Confirm with the customer and update the booking once they agree.`,
     dueAt: tomorrow9am,
     dealId: deal.id,
     contactId: contactId ?? undefined,
@@ -453,22 +654,26 @@ export async function runProposeReschedule(
   revalidatePath("/crm/deals");
   return {
     success: true,
-    message: `Proposed ${display} for "${deal.title}". I’ve logged it and added a task to confirm with ${contactName} (due tomorrow 9am).`,
+    message: `Proposed ${display} for "${deal.title}". I've logged it and added a task to confirm with ${contactName} (due tomorrow 9am).`,
   };
 }
 
 /**
  * List deals for the LLM (title, stage, value). Used by the chat listDeals tool.
  */
-export async function runListDeals(workspaceId: string): Promise<{ deals: { id: string; title: string; stage: string; value: number }[] }> {
+export async function runListDeals(workspaceId: string): Promise<{ deals: { id: string; title: string; stage: string; value: number; contactName: string }[] }> {
   const deals = await getDeals(workspaceId, undefined, { unbounded: true });
   return {
-    deals: deals.map((d) => ({
-      id: d.id,
-      title: d.title,
-      stage: d.stage,
-      value: d.value,
-    })),
+    deals: deals.map((d) => {
+      const rawStage = String(d.stage ?? "");
+      return {
+        id: d.id,
+        title: d.title,
+        stage: CHAT_STAGE_LABELS[rawStage] ?? CHAT_STAGE_LABELS[rawStage.toLowerCase()] ?? rawStage,
+        value: d.value,
+        contactName: d.contactName ?? "",
+      };
+    }),
   };
 }
 
@@ -476,12 +681,32 @@ function matchesDealQuery(
   deal: { title?: string; company?: string; contactName?: string },
   query: string,
 ) {
-  const cleaned = query.trim().toLowerCase();
+  const cleaned = normalizeSearchPhrase(query);
   if (!cleaned) return true;
+  const queryTokens = cleaned.split(" ").filter(Boolean);
   return [deal.title, deal.company, deal.contactName]
     .filter(Boolean)
-    .map((value) => String(value).toLowerCase())
-    .some((field) => field.includes(cleaned));
+    .map((value) => normalizeSearchPhrase(String(value)))
+    .some((field) => {
+      if (
+        field === cleaned ||
+        field.startsWith(`${cleaned} `) ||
+        field.endsWith(` ${cleaned}`) ||
+        field.includes(` ${cleaned} `)
+      ) {
+        return true;
+      }
+      const fieldTokens = field.split(" ").filter(Boolean);
+      return queryTokens.every((token) => fieldTokens.includes(token));
+    });
+}
+
+function normalizeSearchPhrase(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
 }
 
 export async function runListInvoiceReadyJobs(
@@ -535,7 +760,9 @@ export async function runListIncompleteOrBlockedJobs(
 
   return `Jobs matching "${params.query}" that still look incomplete or blocked:\n${matches
     .map(({ deal, signals }) => {
-      const suffix: string[] = [deal.stage];
+      const rawStage = String(deal.stage ?? "");
+      const stageLabel = CHAT_STAGE_LABELS[rawStage] ?? CHAT_STAGE_LABELS[rawStage.toLowerCase()] ?? rawStage;
+      const suffix: string[] = [stageLabel];
       if (signals.length) suffix.push(signals.map((signal) => signal.label).join(", "));
       return `- ${deal.title}${suffix.length ? ` (${suffix.join("; ")})` : ""}`;
     })
@@ -576,7 +803,9 @@ export async function runGetAttentionRequired(workspaceId: string): Promise<{
 
   const lines = flagged.map(({ deal, signals }) => {
     const signalText = signals.map((s) => s.label).join(", ");
-    return `- ${deal.title} (${signalText})`;
+    const rawStage = String(deal.stage ?? "");
+    const stageLabel = CHAT_STAGE_LABELS[rawStage] ?? CHAT_STAGE_LABELS[rawStage.toLowerCase()] ?? rawStage;
+    return `- ${deal.title} [${stageLabel}] — ${signalText}`;
   });
 
   return {
@@ -716,6 +945,13 @@ export async function runUpdateDealFields(
     };
   }
 
+  // Resolve workspace timezone so AI-scheduled times anchor to the right city.
+  const wsRecord = await db.workspace.findUnique({
+    where: { id: workspaceId },
+    select: { workspaceTimezone: true },
+  });
+  const workspaceTz = resolveWorkspaceTimezone(wsRecord?.workspaceTimezone);
+
   const payload: {
     title?: string;
     value?: number;
@@ -727,7 +963,23 @@ export async function runUpdateDealFields(
   if (params.newTitle?.trim()) payload.title = params.newTitle.trim();
   if (typeof params.value === "number") payload.value = params.value;
   if (params.address !== undefined) payload.address = params.address.trim() || null;
-  if (params.schedule !== undefined) payload.scheduledAt = params.schedule.trim() || null;
+  if (params.schedule !== undefined) {
+    const raw = params.schedule.trim();
+    if (!raw) {
+      payload.scheduledAt = null;
+    } else {
+      // Convert natural-language schedule string (e.g. "Monday 3pm") to a
+      // UTC ISO string anchored to the workspace timezone, then pass the ISO
+      // string to updateDeal which treats it as UTC-exact (no re-conversion).
+      try {
+        const resolved = resolveSchedule(raw, workspaceTz);
+        payload.scheduledAt = resolved.iso;
+      } catch {
+        // If resolveSchedule throws, pass the raw string and let normalizeScheduledAtInput handle it
+        payload.scheduledAt = raw;
+      }
+    }
+  }
   if (params.newStage?.trim()) {
     const resolvedStage = resolveStage(params.newStage.trim());
     if (!resolvedStage) {
@@ -747,15 +999,19 @@ export async function runUpdateDealFields(
   }
 
   const changes: string[] = [];
-  if (payload.title) changes.push(`title`);
-  if (typeof payload.value === "number") changes.push(`value`);
-  if (payload.address !== undefined) changes.push(`address`);
-  if (payload.scheduledAt !== undefined) changes.push(`schedule`);
-  if (payload.stage) changes.push(`stage`);
+  if (payload.title) changes.push(`title → "${payload.title}"`);
+  if (typeof payload.value === "number") changes.push(`value → $${payload.value.toLocaleString()}`);
+  if (payload.address !== undefined) changes.push(payload.address ? `address → "${payload.address}"` : "address cleared");
+  if (payload.scheduledAt !== undefined) changes.push(`schedule updated`);
+  if (payload.stage) {
+    const stageLabel = CHAT_STAGE_LABELS[payload.stage] ?? payload.stage;
+    changes.push(`stage → ${stageLabel}`);
+  }
 
+  const jobTitle = payload.title ?? deal.title;
   return {
     success: true,
-    message: `Updated "${deal.title}" (${changes.join(", ")}).`,
+    message: `Updated "${jobTitle}" (${changes.join(", ")}).`,
     dealId: deal.id,
   };
 }
@@ -869,7 +1125,13 @@ export async function runCreateJobNatural(
   let scheduleDisplay = params.schedule ?? "";
   if (hasSchedule) {
     try {
-      const resolved = resolveSchedule(params.schedule!.trim());
+      // Resolve the workspace timezone so "10am Monday" means 10am Sydney, not 10am UTC.
+      const wsRec = await db.workspace.findUnique({
+        where: { id: workspaceId },
+        select: { workspaceTimezone: true },
+      });
+      const wsTz = resolveWorkspaceTimezone(wsRec?.workspaceTimezone);
+      const resolved = resolveSchedule(params.schedule!.trim(), wsTz);
       scheduledAt = new Date(resolved.iso);
       scheduleDisplay = resolved.display;
     } catch {
@@ -1029,7 +1291,10 @@ export async function runUpdateInvoiceAmount(
     if (!target) return `Could not find a job matching "${params.dealTitle}". Try asking for the list of jobs.`;
 
     const { updateDeal } = await import("./deal-actions");
-    await updateDeal(target.id, { invoicedAmount: params.amount });
+    await updateDeal(target.id, {
+      value: params.amount,
+      invoicedAmount: params.amount,
+    });
     return `Successfully updated the invoiced amount for "${target.title}" to $${params.amount}.`;
   } catch (err) {
     return `Error updating invoice amount: ${err instanceof Error ? err.message : String(err)}`;
@@ -1272,12 +1537,10 @@ export async function runAddAgentFlag(workspaceId: string, params: { dealTitle: 
 /**
  * AI Tool Action: Create a Task/Reminder
  */
-export async function runCreateTask(params: { title: string, dueAtISO?: string, description?: string, dealId?: string, contactId?: string }) {
-  // 🎯 AI AGENT COMMUNICATION - IMPORTANT:
-  // This function creates a task/reminder in the CRM system
-  // It does not initiate any external communication (calls, emails, etc.)
-  // For manual communication, user clicks Call/Text buttons on contact cards
-  // DO NOT confuse AI agent with manual communication methods
+export async function runCreateTask(
+  workspaceId: string,
+  params: { title: string, dueAtISO?: string, description?: string, dealId?: string, contactId?: string, dealTitle?: string, contactName?: string }
+) {
   try {
     // Default due tomorrow 9AM if nothing specified
     let dueAt = new Date();
@@ -1288,16 +1551,37 @@ export async function runCreateTask(params: { title: string, dueAtISO?: string, 
       dueAt = new Date(params.dueAtISO);
     }
 
+    let dealId = params.dealId;
+    let contactId = params.contactId;
+
+    // Resolve dealTitle → dealId if not already provided
+    if (!dealId && params.dealTitle) {
+      const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+      const matched = findDealByTitle(deals, params.dealTitle.trim());
+      if (matched) dealId = matched.id;
+    }
+
+    // Resolve contactName → contactId if not already provided
+    if (!contactId && params.contactName) {
+      const contacts = await searchContacts(workspaceId, params.contactName.trim());
+      if (contacts.length) contactId = contacts[0].id;
+    }
+
     const result = await createTask({
       title: params.title,
       description: params.description,
       dueAt,
-      dealId: params.dealId,
-      contactId: params.contactId
+      dealId,
+      contactId,
     });
 
     if (!result.success) throw new Error(result.error);
-    return `Successfully created task: "${params.title}" due at ${dueAt.toLocaleString()}`;
+
+    const linkParts: string[] = [];
+    if (dealId) linkParts.push(`linked to job`);
+    if (contactId) linkParts.push(`linked to contact`);
+    const linkNote = linkParts.length ? ` (${linkParts.join(", ")})` : "";
+    return `Task created: "${params.title}" due ${dueAt.toLocaleDateString("en-AU", { weekday: "short", month: "short", day: "numeric" })} at ${dueAt.toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" })}${linkNote}.`;
   } catch (err) {
     return `Error creating task: ${err instanceof Error ? err.message : String(err)}`;
   }
@@ -1311,7 +1595,13 @@ export async function runSearchContacts(workspaceId: string, query: string) {
     const contacts = await searchContacts(workspaceId, query);
     if (!contacts.length) return `No contacts found matching "${query}".`;
 
-    return `Found ${contacts.length} matches:\n` + contacts.map(c => `- ${c.name} ${c.company ? `(${c.company})` : ''} ${c.phone ? `Ph: ${c.phone}` : ''}`).join("\n");
+    return `Found ${contacts.length} matches:\n` + contacts.map(c => {
+      const parts = [c.name];
+      if (c.company) parts.push(`(${c.company})`);
+      if (c.phone) parts.push(`Ph: ${c.phone}`);
+      if (c.email) parts.push(`Email: ${c.email}`);
+      return `- ${parts.join(" ")}`;
+    }).join("\n");
   } catch (err) {
     return `Error searching contacts: ${err instanceof Error ? err.message : String(err)}`;
   }
@@ -1319,7 +1609,7 @@ export async function runSearchContacts(workspaceId: string, query: string) {
 
 export async function runGetDealContext(
   workspaceId: string,
-  params: { dealTitle: string }
+  params: { dealTitle: string; workspaceTimezone?: string | null }
 ): Promise<string> {
   const deals = await getDeals(workspaceId, undefined, { unbounded: true });
   const deal = findDealByTitle(deals, params.dealTitle.trim());
@@ -1340,6 +1630,9 @@ export async function runGetDealContext(
           address: true,
         },
       },
+      assignedTo: {
+        select: { name: true },
+      },
       invoices: {
         orderBy: { createdAt: "desc" },
         take: 1,
@@ -1356,6 +1649,8 @@ export async function runGetDealContext(
   if (!fullDeal) {
     return `Couldn't load details for "${deal.title}".`;
   }
+
+  const timezone = resolveWorkspaceTimezone(params.workspaceTimezone);
 
   const notes = await db.activity.findMany({
     where: { dealId: deal.id, type: "NOTE" },
@@ -1376,7 +1671,8 @@ export async function runGetDealContext(
     `Stage: ${CHAT_STAGE_LABELS[chatStage] ?? fullDeal.stage}`,
     `Value: $${Number(fullDeal.value ?? 0).toLocaleString()}`,
     fullDeal.address ? `Address: ${fullDeal.address}` : null,
-    fullDeal.scheduledAt ? `Scheduled: ${fullDeal.scheduledAt.toLocaleString("en-AU")}` : null,
+    fullDeal.scheduledAt ? `Scheduled: ${formatDateTimeInTimezone(fullDeal.scheduledAt, timezone)} (${timezone})` : null,
+    fullDeal.assignedTo ? `Assigned to: ${fullDeal.assignedTo.name}` : "Assigned to: (unassigned)",
     fullDeal.contact
       ? `Contact: ${fullDeal.contact.name}${fullDeal.contact.phone ? ` (${fullDeal.contact.phone})` : ""}${fullDeal.contact.email ? `, ${fullDeal.contact.email}` : ""}`
       : null,
@@ -1416,7 +1712,7 @@ export async function runCreateContact(workspaceId: string, params: { name: stri
 async function findInvoiceInWorkspace(
   workspaceId: string,
   params: { invoiceId?: string; dealTitle?: string; contactName?: string }
-) {
+): Promise<InvoiceLookupRecord | AmbiguousInvoiceLookup> {
   if (params.invoiceId?.trim()) {
     return db.invoice.findFirst({
       where: {
@@ -1432,9 +1728,14 @@ async function findInvoiceInWorkspace(
   }
 
   if (params.dealTitle?.trim()) {
-    const deals = await getDeals(workspaceId, undefined, { unbounded: true });
-    const target = findDealByTitle(deals, params.dealTitle.trim());
-    if (!target) return null;
+    const resolution = await resolveDealForInvoiceTarget(workspaceId, params.dealTitle.trim());
+    const target = resolution.deal;
+    if (!target) {
+      if (resolution.ambiguityMessage) {
+        return { __kind: "ambiguous", message: resolution.ambiguityMessage } as const;
+      }
+      return null;
+    }
     return db.invoice.findFirst({
       where: { dealId: target.id },
       orderBy: { createdAt: "desc" },
@@ -1469,14 +1770,35 @@ async function findInvoiceInWorkspace(
   return null;
 }
 
+async function findDealForInvoiceLookup(
+  workspaceId: string,
+  params: { dealTitle?: string; contactName?: string }
+): Promise<InvoiceTargetDeal | null> {
+  if (params.dealTitle?.trim()) {
+    const resolution = await resolveDealForInvoiceTarget(workspaceId, params.dealTitle.trim());
+    return resolution.deal;
+  }
+
+  if (params.contactName?.trim()) {
+    const resolution = await resolveDealForInvoiceTarget(workspaceId, params.contactName.trim());
+    return resolution.deal;
+  }
+
+  return null;
+}
+
 export async function runCreateDraftInvoice(
   workspaceId: string,
   params: { dealTitle: string }
-) {
-  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
-  const deal = findDealByTitle(deals, params.dealTitle.trim());
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[]; alreadyExists?: boolean; created?: boolean; resolvedDealTitle?: string }> {
+  const resolution = await resolveDealForInvoiceTarget(workspaceId, params.dealTitle.trim());
+  const deal = resolution.deal;
   if (!deal) {
-    return `Couldn't find a job matching "${params.dealTitle}".`;
+    return {
+      success: false,
+      message: resolution.ambiguityMessage ?? `Couldn't find a job matching "${params.dealTitle}".`,
+      quickActions: [],
+    };
   }
 
   const existingDraft = await db.invoice.findFirst({
@@ -1484,14 +1806,23 @@ export async function runCreateDraftInvoice(
     orderBy: { createdAt: "desc" },
   });
   if (existingDraft) {
-    return `Draft invoice ${existingDraft.number} already exists for "${deal.title}".`;
+    return {
+      success: false,
+      message: `Draft invoice ${existingDraft.number} already exists for "${deal.title}". Do not say a new quote was created.`,
+      quickActions: [
+        { label: "Mark issued", prompt: `Issue invoice ${existingDraft.number} for "${deal.title}"` },
+        { label: "Invoice status", prompt: `Show invoice status for "${deal.title}"` },
+      ],
+      alreadyExists: true,
+      resolvedDealTitle: deal.title,
+    };
   }
 
   const fullDeal = await db.deal.findUnique({
     where: { id: deal.id },
     select: { id: true, title: true, value: true, contactId: true },
   });
-  if (!fullDeal) return "Deal not found.";
+  if (!fullDeal) return { success: false, message: "Deal not found.", quickActions: [] };
 
   const invoiceNumber = await allocateWorkspaceInvoiceNumber(workspaceId);
   const total = Number(fullDeal.value || 0);
@@ -1530,22 +1861,46 @@ export async function runCreateDraftInvoice(
     },
   });
   revalidatePath("/crm", "layout");
-  return `Created draft invoice ${invoiceNumber} for "${fullDeal.title}".`;
+  return {
+    success: true,
+    message: `Draft invoice ${invoiceNumber} created for "${fullDeal.title}" — total $${total.toLocaleString("en-AU")}. Open the Billing tab to review.`,
+    quickActions: [
+      { label: "Mark issued", prompt: `Issue invoice ${invoiceNumber} for "${fullDeal.title}"` },
+      { label: "Update amount", prompt: `Update invoice amount for "${fullDeal.title}"` },
+    ],
+    created: true,
+    resolvedDealTitle: fullDeal.title,
+  };
 }
 
 export async function runIssueInvoiceAction(
   workspaceId: string,
   params: { invoiceId?: string; dealTitle?: string; contactName?: string }
-) {
-  const invoice = await findInvoiceInWorkspace(workspaceId, params);
-  if (!invoice) {
-    return "Couldn't find an invoice for that deal/contact.";
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
+  const invoiceLookup = await findInvoiceInWorkspace(workspaceId, params);
+  if (isAmbiguousInvoiceLookup(invoiceLookup)) {
+    return { success: false, message: invoiceLookup.message, quickActions: [] };
+  }
+  if (!invoiceLookup) {
+    const deal = await findDealForInvoiceLookup(workspaceId, params);
+    if (deal) {
+      return {
+        success: false,
+        message: `There isn’t an invoice yet for "${deal.title}". Create a draft invoice first, then mark it as issued when it is ready.`,
+        quickActions: [{ label: "Create draft invoice", prompt: `Create a draft invoice for "${deal.title}"` }],
+      };
+    }
+    return { success: false, message: "Couldn't find an invoice for that deal/contact.", quickActions: [] };
+  }
+  const invoice = invoiceLookup;
+  if (isAmbiguousInvoiceLookup(invoice)) {
+    return { success: false, message: invoice.message, quickActions: [] };
   }
 
   const { issueInvoice } = await import("./tradie-actions");
   const result = await issueInvoice(invoice.id);
   if (!result.success) {
-    return `Failed to issue invoice ${invoice.number}.`;
+    return { success: false, message: `Failed to issue invoice ${invoice.number}.`, quickActions: [] };
   }
   await db.activity.create({
     data: {
@@ -1556,34 +1911,69 @@ export async function runIssueInvoiceAction(
       contactId: invoice.deal.contactId,
     },
   });
-  return `Issued invoice ${invoice.number} for "${invoice.deal.title}".`;
+  revalidatePath("/crm", "layout");
+  return {
+    success: true,
+    message: `Invoice ${invoice.number} is now marked as issued for "${invoice.deal.title}". If you still need to send it, email it from the billing workflow, then mark it as paid once payment lands.`,
+    quickActions: [
+      { label: "Mark as paid", prompt: `Mark invoice ${invoice.number} as paid for "${invoice.deal.title}"` },
+      { label: "Invoice status", prompt: `Show invoice status for "${invoice.deal.title}"` },
+    ],
+  };
 }
 
 export async function runMarkInvoicePaidAction(
   workspaceId: string,
   params: { invoiceId?: string; dealTitle?: string; contactName?: string }
-) {
-  const invoice = await findInvoiceInWorkspace(workspaceId, params);
-  if (!invoice) {
-    return "Couldn't find an invoice for that deal/contact.";
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
+  const invoiceLookup = await findInvoiceInWorkspace(workspaceId, params);
+  if (isAmbiguousInvoiceLookup(invoiceLookup)) {
+    return { success: false, message: invoiceLookup.message, quickActions: [] };
+  }
+  if (!invoiceLookup) {
+    const deal = await findDealForInvoiceLookup(workspaceId, params);
+    if (deal) {
+      return {
+        success: false,
+        message: `There isn’t an invoice yet for "${deal.title}", so there’s nothing to mark as paid yet.`,
+        quickActions: [{ label: "Create draft invoice", prompt: `Create a draft invoice for "${deal.title}"` }],
+      };
+    }
+    return { success: false, message: "Couldn't find an invoice for that deal/contact.", quickActions: [] };
+  }
+  const invoice = invoiceLookup;
+  if (isAmbiguousInvoiceLookup(invoice)) {
+    return { success: false, message: invoice.message, quickActions: [] };
   }
 
   const { markInvoicePaid } = await import("./tradie-actions");
   const result = await markInvoicePaid(invoice.id);
   if (!result.success) {
-    return `Failed to mark invoice ${invoice.number} as paid.`;
+    return { success: false, message: `Failed to mark invoice ${invoice.number} as paid.`, quickActions: [] };
   }
-  return `Marked invoice ${invoice.number} as paid.`;
+  revalidatePath("/crm", "layout");
+  const dealTitle = invoice.deal.title;
+  return {
+    success: true,
+    message: `Invoice ${invoice.number} marked as paid for "${dealTitle}". Job is complete.`,
+    quickActions: [
+      { label: "Request review", prompt: `Send a review request to the client for "${dealTitle}"` },
+    ],
+  };
 }
 
 export async function runReverseInvoiceStatus(
   workspaceId: string,
   params: { invoiceId?: string; dealTitle?: string; contactName?: string; targetStatus: "DRAFT" | "ISSUED" }
 ) {
-  const invoice = await findInvoiceInWorkspace(workspaceId, params);
-  if (!invoice) {
+  const invoiceLookup = await findInvoiceInWorkspace(workspaceId, params);
+  if (isAmbiguousInvoiceLookup(invoiceLookup)) {
+    return invoiceLookup.message;
+  }
+  if (!invoiceLookup) {
     return "Couldn't find an invoice for that deal/contact.";
   }
+  const invoice = invoiceLookup;
 
   if (invoice.status === params.targetStatus) {
     return `Invoice ${invoice.number} is already ${params.targetStatus}.`;
@@ -1638,10 +2028,14 @@ export async function runSendInvoiceReminder(
   workspaceId: string,
   params: { invoiceId?: string; dealTitle?: string; contactName?: string; channel?: "auto" | "email" | "sms" }
 ) {
-  const invoice = await findInvoiceInWorkspace(workspaceId, params);
-  if (!invoice) {
+  const invoiceLookup = await findInvoiceInWorkspace(workspaceId, params);
+  if (isAmbiguousInvoiceLookup(invoiceLookup)) {
+    return invoiceLookup.message;
+  }
+  if (!invoiceLookup) {
     return "Couldn't find an invoice for that deal/contact.";
   }
+  const invoice = invoiceLookup;
 
   const contact = invoice.deal.contact;
   const amount = Number(invoice.total || 0).toFixed(2);
@@ -1672,22 +2066,55 @@ export async function runSendInvoiceReminder(
 export async function runGetInvoiceStatusAction(
   workspaceId: string,
   params: { invoiceId?: string; dealTitle?: string; contactName?: string }
-) {
-  const invoice = await findInvoiceInWorkspace(workspaceId, params);
-  if (!invoice) {
-    return "Couldn't find an invoice for that deal/contact.";
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
+  const invoiceLookup = await findInvoiceInWorkspace(workspaceId, params);
+  if (isAmbiguousInvoiceLookup(invoiceLookup)) {
+    return { success: false, message: invoiceLookup.message, quickActions: [] };
   }
+  if (!invoiceLookup) {
+    const deal = await findDealForInvoiceLookup(workspaceId, params);
+    if (deal) {
+      return {
+        success: false,
+        message: `There isn’t an invoice yet for "${deal.title}".`,
+        quickActions: [{ label: "Create draft invoice", prompt: `Create a draft invoice for "${deal.title}"` }],
+      };
+    }
+    return { success: false, message: "Couldn't find an invoice for that deal/contact.", quickActions: [] };
+  }
+  const invoice = invoiceLookup;
 
   const { getInvoiceSyncStatus } = await import("./accounting-actions");
   const syncStatus = await getInvoiceSyncStatus(invoice.id);
-  return [
+  const total = Number(invoice.total || 0);
+  const summary = [
     `Invoice ${invoice.number}`,
     `Status: ${invoice.status}`,
     `Deal: ${invoice.deal.title}`,
     `Contact: ${invoice.deal.contact.name}`,
-    `Total: $${Number(invoice.total || 0).toFixed(2)}`,
+    `Total: $${total.toFixed(2)}`,
     `Accounting sync: ${syncStatus?.synced ? `synced via ${syncStatus.provider}` : "not synced / accounting not connected"}`,
   ].join("\n");
+
+  const followUpByStatus: Record<string, { label: string; prompt: string }[]> = {
+    DRAFT: [
+      { label: "Mark issued", prompt: `Issue invoice ${invoice.number} for "${invoice.deal.title}"` },
+      { label: "Update amount", prompt: `Update invoice amount for "${invoice.deal.title}"` },
+    ],
+    ISSUED: [
+      { label: "Mark as paid", prompt: `Mark invoice ${invoice.number} as paid` },
+      { label: "Send reminder", prompt: `Send payment reminder for invoice ${invoice.number} to "${invoice.deal.contact.name}"` },
+    ],
+    PAID: [
+      { label: "Request review", prompt: `Send a review request to the client for "${invoice.deal.title}"` },
+    ],
+  };
+
+  return {
+    success: true,
+    message: summary,
+    quickActions: followUpByStatus[invoice.status] ?? [],
+  };
 }
 
 export async function runUpdateInvoiceFields(
@@ -1704,10 +2131,14 @@ export async function runUpdateInvoiceFields(
     issuedAtISO?: string | null;
   }
 ) {
-  const invoice = await findInvoiceInWorkspace(workspaceId, params);
-  if (!invoice) {
+  const invoiceLookup = await findInvoiceInWorkspace(workspaceId, params);
+  if (isAmbiguousInvoiceLookup(invoiceLookup)) {
+    return invoiceLookup.message;
+  }
+  if (!invoiceLookup) {
     return "Couldn't find an invoice for that deal/contact.";
   }
+  const invoice = invoiceLookup;
 
   if (invoice.status === "VOID") {
     return `Invoice ${invoice.number} is void and can't be edited.`;
@@ -1790,18 +2221,26 @@ export async function runUpdateInvoiceFields(
 export async function runVoidInvoice(
   workspaceId: string,
   params: { invoiceId?: string; dealTitle?: string; contactName?: string }
-) {
-  const invoice = await findInvoiceInWorkspace(workspaceId, params);
-  if (!invoice) {
-    return "Couldn't find an invoice for that deal/contact.";
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
+  const invoiceLookup = await findInvoiceInWorkspace(workspaceId, params);
+  if (isAmbiguousInvoiceLookup(invoiceLookup)) {
+    return { success: false, message: invoiceLookup.message, quickActions: [] };
   }
+  if (!invoiceLookup) {
+    return { success: false, message: "Couldn't find an invoice for that deal/contact.", quickActions: [] };
+  }
+  const invoice = invoiceLookup;
 
   if (invoice.status === "VOID") {
-    return `Invoice ${invoice.number} is already void.`;
+    return { success: false, message: `Invoice ${invoice.number} is already void.`, quickActions: [
+      { label: "Create new invoice", prompt: `Create a new draft invoice for "${invoice.deal.title}"` },
+    ]};
   }
 
   if (invoice.status === "PAID") {
-    return `Invoice ${invoice.number} is paid. Reverse it out of PAID before voiding it.`;
+    return { success: false, message: `Invoice ${invoice.number} is paid. Reverse it out of PAID before voiding.`, quickActions: [
+      { label: "Reverse to Draft", prompt: `Reverse invoice ${invoice.number} to Draft status` },
+    ]};
   }
 
   await db.invoice.update({
@@ -1842,7 +2281,14 @@ export async function runVoidInvoice(
   });
 
   revalidatePath("/crm", "layout");
-  return `Voided invoice ${invoice.number} for "${invoice.deal.title}".`;
+  return {
+    success: true,
+    message: `Invoice ${invoice.number} voided for "${invoice.deal.title}". The job was moved back to Quote sent stage.`,
+    quickActions: [
+      { label: "Create new invoice", prompt: `Create a new draft invoice for "${invoice.deal.title}"` },
+      { label: "View job", prompt: `Show me the deal "${invoice.deal.title}"` },
+    ],
+  };
 }
 
 function findTaskByTitle(
@@ -1916,7 +2362,14 @@ export async function runUpdateContactFields(
       return `Failed to update ${contact.name}: ${result.error ?? "Unknown error."}`;
     }
 
-    return `Updated ${contact.name}.`;
+    const changedFields: string[] = [];
+    if (params.newName?.trim()) changedFields.push(`name to "${params.newName.trim()}"`);
+    if (params.phone !== undefined) changedFields.push(`phone to "${params.phone.trim()}"`);
+    if (params.email !== undefined) changedFields.push(`email to "${params.email.trim()}"`);
+    if (params.company !== undefined) changedFields.push(`company to "${params.company.trim()}"`);
+    if (params.address !== undefined) changedFields.push(`address to "${params.address.trim()}"`);
+    const changeSummary = changedFields.length ? ` (${changedFields.join(", ")})` : "";
+    return `Updated ${contact.name}${changeSummary}.`;
   } catch (err) {
     return `Error updating contact: ${err instanceof Error ? err.message : String(err)}`;
   }
@@ -2506,6 +2959,8 @@ export async function runBulkMoveDeals(
     return "No matching jobs were found for the selected IDs.";
   }
 
+  const stageDisplayLabel = CHAT_STAGE_LABELS[resolvedStage] ?? resolvedStage;
+
   const results: Array<{ id: string; title: string; status: "success" | "skipped" | "blocked"; reason?: string }> = [];
   for (const deal of deals) {
     const currentStage = PRISMA_STAGE_TO_CHAT_STAGE[deal.stage] ?? "new";
@@ -2522,7 +2977,7 @@ export async function runBulkMoveDeals(
 
     await logActivity({
       type: "NOTE",
-      title: `Bulk moved to ${resolvedStage}`,
+      title: `Bulk moved to ${stageDisplayLabel}`,
       content: `Bulk stage change applied by CRM chatbot.`,
       dealId: deal.id,
       contactId: deal.contactId ?? undefined,
@@ -2532,7 +2987,7 @@ export async function runBulkMoveDeals(
 
   revalidatePath("/crm", "layout");
   revalidatePath("/crm/deals");
-  return formatBulkOperationSummary(`Bulk move to ${resolvedStage}`, results);
+  return formatBulkOperationSummary(`Bulk move to ${stageDisplayLabel}`, results);
 }
 
 export async function runBulkAssignDeals(
@@ -2684,12 +3139,24 @@ export async function runRevertDealStageMove(
 
 export async function runUnassignDeal(
   workspaceId: string,
-  params: { dealId: string }
+  params: { dealId?: string; dealTitle?: string }
 ): Promise<string> {
-  const deal = await db.deal.findFirst({
-    where: { id: params.dealId, workspaceId },
-    select: { id: true, title: true, assignedToId: true, contactId: true },
-  });
+  let deal: { id: string; title: string; assignedToId: string | null; contactId: string | null } | null = null;
+  if (params.dealId) {
+    deal = await db.deal.findFirst({
+      where: { id: params.dealId, workspaceId },
+      select: { id: true, title: true, assignedToId: true, contactId: true },
+    });
+  } else if (params.dealTitle) {
+    const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+    const matched = findDealByTitle(deals, params.dealTitle.trim());
+    if (matched) {
+      deal = await db.deal.findFirst({
+        where: { id: matched.id },
+        select: { id: true, title: true, assignedToId: true, contactId: true },
+      });
+    }
+  }
   if (!deal) return "Deal not found.";
   if (!deal.assignedToId) return `"${deal.title}" is not currently assigned.`;
 
@@ -2710,12 +3177,24 @@ export async function runUnassignDeal(
 
 export async function runRestoreDeal(
   workspaceId: string,
-  params: { dealId: string }
+  params: { dealId?: string; dealTitle?: string }
 ): Promise<string> {
-  const deal = await db.deal.findFirst({
-    where: { id: params.dealId, workspaceId },
-    select: { id: true, title: true, stage: true, metadata: true, contactId: true },
-  });
+  let deal: { id: string; title: string; stage: string; metadata: unknown; contactId: string | null } | null = null;
+  if (params.dealId) {
+    deal = await db.deal.findFirst({
+      where: { id: params.dealId, workspaceId },
+      select: { id: true, title: true, stage: true, metadata: true, contactId: true },
+    });
+  } else if (params.dealTitle) {
+    const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+    const matched = findDealByTitle(deals, params.dealTitle.trim());
+    if (matched) {
+      deal = await db.deal.findFirst({
+        where: { id: matched.id },
+        select: { id: true, title: true, stage: true, metadata: true, contactId: true },
+      });
+    }
+  }
   if (!deal) return "Deal not found.";
 
   if (!["LOST", "DELETED", "ARCHIVED"].includes(deal.stage)) {
@@ -2762,11 +3241,13 @@ export async function runUndoLastAction(workspaceId: string): Promise<string> {
       return "No recent actions found to undo.";
     }
 
-    const description = lastActivity.description ?? lastActivity.title ?? "";
-    const descLower = description.toLowerCase();
+    // Check title (the action keyword) and content/description separately so we
+    // don't accidentally use the actor suffix stored in activity.description.
+    const titleLower = (lastActivity.title ?? "").toLowerCase();
+    const contentLower = (lastActivity.content ?? "").toLowerCase();
 
     // Undo a deal stage move (restore from metadata)
-    if (descLower.includes("moved to") || descLower.includes("stage changed")) {
+    if (titleLower.startsWith("moved to") || titleLower.includes("stage changed") || contentLower.includes("stage changed to")) {
       const deal = lastActivity.deal;
       if (!deal) return "Could not find the associated deal to undo.";
 
@@ -2782,14 +3263,16 @@ export async function runUndoLastAction(workspaceId: string): Promise<string> {
         });
         await db.activity.delete({ where: { id: lastActivity.id } });
         revalidatePath("/crm", "layout");
-        return `Undone: "${deal.title}" moved back to "${previousStage}" stage.`;
+        const prevChatStage = PRISMA_STAGE_TO_CHAT_STAGE[previousStage] ?? previousStage.toLowerCase();
+        const prevLabel = CHAT_STAGE_LABELS[prevChatStage] ?? previousStage;
+        return `Undone: "${deal.title}" moved back to ${prevLabel}.`;
       }
 
       return `Cannot undo: no previous stage recorded for "${deal.title}".`;
     }
 
     // Undo deal creation (delete the deal)
-    if (descLower.includes("created deal") || descLower.includes("new deal") || descLower.includes("new job")) {
+    if (titleLower.includes("created deal") || titleLower.includes("deal created") || titleLower.includes("new deal") || titleLower.includes("new job")) {
       const deal = lastActivity.deal;
       if (!deal) return "Could not find the deal to undo.";
 
@@ -2799,10 +3282,162 @@ export async function runUndoLastAction(workspaceId: string): Promise<string> {
       return `Undone: Deal "${deal.title}" has been deleted.`;
     }
 
-    return `The last action ("${description}") cannot be automatically undone. You may need to reverse it manually.`;
+    return `The last action ("${lastActivity.title}") cannot be automatically undone. You may need to reverse it manually.`;
   } catch (err) {
     return `Error undoing action: ${err instanceof Error ? err.message : String(err)}`;
   }
+}
+
+/**
+ * Approve a job draft (moves it from draft/new to active pipeline).
+ */
+export async function runApproveDraft(
+  workspaceId: string,
+  params: { dealTitle: string }
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
+  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+  const deal = findDealByTitle(deals, params.dealTitle.trim());
+  if (!deal) {
+    return { success: false, message: `Couldn't find a job draft matching "${params.dealTitle}".`, quickActions: [] };
+  }
+
+  const { approveDraft } = await import("./deal-actions");
+  const result = await approveDraft(deal.id);
+  if (!result.success) {
+    return { success: false, message: result.error ?? `Couldn't approve draft for "${deal.title}".`, quickActions: [] };
+  }
+  revalidatePath("/crm", "layout");
+  return {
+    success: true,
+    message: `Draft "${deal.title}" approved and moved to active pipeline.`,
+    quickActions: [
+      { label: "Schedule this job", prompt: `Schedule a time for "${deal.title}"` },
+      { label: "Assign team member", prompt: `Assign a team member to "${deal.title}"` },
+    ],
+  };
+}
+
+/**
+ * Reject a job draft (moves it out of the active draft queue).
+ */
+export async function runRejectDraft(
+  workspaceId: string,
+  params: { dealTitle: string; reason?: string }
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
+  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+  const deal = findDealByTitle(deals, params.dealTitle.trim());
+  if (!deal) {
+    return { success: false, message: `Couldn't find a job draft matching "${params.dealTitle}".`, quickActions: [] };
+  }
+
+  const { rejectDraft } = await import("./deal-actions");
+  const result = await rejectDraft(deal.id, params.reason?.trim());
+  if (!result.success) {
+    return { success: false, message: result.error ?? `Couldn't reject draft for "${deal.title}".`, quickActions: [] };
+  }
+  revalidatePath("/crm", "layout");
+  const reasonSuffix = params.reason?.trim() ? ` Reason: "${params.reason.trim()}"` : "";
+  return {
+    success: true,
+    message: `Draft "${deal.title}" rejected and removed from the active draft queue.${reasonSuffix}`,
+    quickActions: [
+      { label: "View job", prompt: `Show me the deal "${deal.title}"` },
+      { label: "Add note", prompt: `Add a note to "${deal.title}" explaining why the draft was rejected` },
+    ],
+  };
+}
+
+/**
+ * Approve a completion request (moves PENDING_COMPLETION deal to WON).
+ */
+export async function runApproveCompletion(
+  workspaceId: string,
+  params: { dealTitle: string }
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
+  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+  const deal = findDealByTitle(deals, params.dealTitle.trim());
+  if (!deal) {
+    return { success: false, message: `Couldn't find a job matching "${params.dealTitle}".`, quickActions: [] };
+  }
+
+  const { approveCompletion } = await import("./deal-actions");
+  const result = await approveCompletion(deal.id);
+  if (!result.success) {
+    return { success: false, message: result.error ?? `Couldn't approve completion for "${deal.title}".`, quickActions: [] };
+  }
+  revalidatePath("/crm", "layout");
+  return {
+    success: true,
+    message: `"${deal.title}" completion approved — job is now Completed.`,
+    quickActions: [
+      { label: "Create invoice", prompt: `Create a draft invoice for "${deal.title}"` },
+      { label: "Request review", prompt: `Send a review request to the client for "${deal.title}"` },
+    ],
+  };
+}
+
+/**
+ * Reject a completion request (reverts PENDING_COMPLETION deal and notifies team member).
+ */
+export async function runRejectCompletion(
+  workspaceId: string,
+  params: { dealTitle: string; reason?: string }
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
+  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+  const deal = findDealByTitle(deals, params.dealTitle.trim());
+  if (!deal) {
+    return { success: false, message: `Couldn't find a job matching "${params.dealTitle}".`, quickActions: [] };
+  }
+
+  const { rejectCompletion } = await import("./deal-actions");
+  const result = await rejectCompletion(deal.id, params.reason?.trim());
+  if (!result.success) {
+    return { success: false, message: result.error ?? `Couldn't reject completion for "${deal.title}".`, quickActions: [] };
+  }
+  revalidatePath("/crm", "layout");
+  const reasonSuffix = params.reason?.trim() ? ` Reason: "${params.reason.trim()}"` : "";
+  return {
+    success: true,
+    message: `Completion request for "${deal.title}" rejected.${reasonSuffix} The team member has been notified and the job has been reverted.`,
+    quickActions: [
+      { label: "Add note", prompt: `Add a note to "${deal.title}" explaining what needs to be fixed` },
+      { label: "View job", prompt: `Show me the deal "${deal.title}"` },
+    ],
+  };
+}
+
+/**
+ * Send a post-job review/feedback request SMS to the client.
+ */
+export async function runRequestReview(
+  workspaceId: string,
+  params: { dealTitle: string }
+): Promise<{ success: boolean; message: string; quickActions: { label: string; prompt: string }[] }> {
+  const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+  const deal = findDealByTitle(deals, params.dealTitle.trim());
+  if (!deal) {
+    return { success: false, message: `Couldn't find a job matching "${params.dealTitle}".`, quickActions: [] };
+  }
+
+  const { sendReviewRequestSMS } = await import("./messaging-actions");
+  const result = await sendReviewRequestSMS(deal.id);
+  if (!result.success) {
+    return {
+      success: false,
+      message: result.error ?? `Couldn't send review request for "${deal.title}". Check the contact has a phone number.`,
+      quickActions: [
+        { label: "Add phone number", prompt: `Show me the contact for "${deal.title}" so I can add their phone number` },
+      ],
+    };
+  }
+  revalidatePath("/crm", "layout");
+  return {
+    success: true,
+    message: `Review request sent to the client for "${deal.title}". They'll receive a text with a feedback link.`,
+    quickActions: [
+      { label: "View responses", prompt: `Show customer feedback for "${deal.title}"` },
+    ],
+  };
 }
 
 /**
