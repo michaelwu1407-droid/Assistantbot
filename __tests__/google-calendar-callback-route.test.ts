@@ -9,6 +9,11 @@ vi.mock("@/lib/workspace-calendar", () => ({
   upsertGoogleCalendarIntegration,
 }));
 
+vi.mock("@/lib/oauth-state", () => ({
+  // Treat any non-empty state value as a valid workspace token in tests.
+  verifyWorkspaceState: (raw: string | null | undefined) => (raw ? raw : null),
+}));
+
 import { GET } from "@/app/api/auth/google-calendar/callback/route";
 
 describe("GET /api/auth/google-calendar/callback", () => {

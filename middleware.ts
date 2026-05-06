@@ -16,8 +16,6 @@ const INTERNAL_ONLY_PREFIXES = [
   "/api/test-",
   "/api/debug",
   "/api/check-env",
-  "/api/health",
->>>>>>> 88b40b7618875a86c145c73f43781d77b3a33b8e
 ]
 
 function shouldSkipSessionRefresh(pathname: string) {

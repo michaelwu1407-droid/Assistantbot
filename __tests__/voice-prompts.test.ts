@@ -79,7 +79,7 @@ describe("voice prompts", () => {
     const prompt = buildDemoPrompt({ ...caller, callType: "demo" });
 
     expect(prompt).toContain("LANGUAGE");
-    expect(prompt).toContain("Reply in the same language as the caller.");
+    expect(prompt).toContain("Reply in the caller's language");
     expect(prompt).toContain("Do not switch back to English unless the caller does.");
   });
 

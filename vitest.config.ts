@@ -11,6 +11,8 @@ export default defineConfig({
     exclude: [
       "e2e/**",
       "node_modules/**",
+      "**/node_modules/**",
+      "livekit-agent/**",
       "dist/**",
       ".next/**",
     ],

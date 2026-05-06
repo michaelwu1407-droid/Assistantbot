@@ -11,6 +11,11 @@ vi.mock("@/lib/xero", () => ({
   storeXeroTokens: hoisted.storeXeroTokens,
 }));
 
+vi.mock("@/lib/oauth-state", () => ({
+  // For these tests, treat any non-empty state as a valid workspace token.
+  verifyWorkspaceState: (raw: string | null | undefined) => (raw ? raw : null),
+}));
+
 describe("GET /api/auth/xero/callback", () => {
   beforeEach(() => {
     vi.clearAllMocks();
