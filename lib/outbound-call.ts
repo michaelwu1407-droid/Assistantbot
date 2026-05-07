@@ -155,6 +155,27 @@ async function initiateOutboundCallDirect(request: QueuedOutboundCallRequest): P
   };
 }
 
+function getWorkerWakeUrl(env: NodeJS.ProcessEnv = process.env) {
+  return (env.VOICE_WORKER_WAKE_URL || "").trim();
+}
+
+function notifyWorkerQueueReady() {
+  const wakeUrl = getWorkerWakeUrl();
+  if (!wakeUrl) return;
+
+  const secret = (process.env.VOICE_AGENT_WEBHOOK_SECRET || "").trim();
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (secret) headers["x-voice-agent-secret"] = secret;
+
+  void fetch(`${wakeUrl.replace(/\/$/, "")}/wake-queue`, {
+    method: "POST",
+    headers,
+    signal: AbortSignal.timeout(3_000),
+  }).catch(() => {
+    // best-effort — poll fallback will catch it
+  });
+}
+
 async function enqueueOutboundCallRequest(request: QueuedOutboundCallRequest) {
   const idempotencyKey = buildQueuedOutboundCallKey(request);
   const envelope = buildQueuedOutboundCallEnvelope({ request });
@@ -301,6 +322,8 @@ export async function initiateOutboundCall(input: OutboundCallInput): Promise<Ou
   if (queued.completedResult) {
     return queued.completedResult;
   }
+
+  notifyWorkerQueueReady();
 
   const completed = await waitForQueuedOutboundCall(queued.idempotencyKey);
   return {

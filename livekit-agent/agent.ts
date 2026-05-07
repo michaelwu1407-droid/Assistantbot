@@ -68,6 +68,7 @@ import {
   buildNormalPrompt,
 } from "./voice-prompts";
 import { startWorkerBackgroundLoops } from "./background-tasks";
+import { isWakeServerEnabled, startWakeServer } from "./wake-server";
 import {
   executeQueuedOutboundCall,
   type VoiceWorkerQueuedOutboundCallRequest,
@@ -3310,17 +3311,23 @@ export function startVoiceWorkerBackgroundTasks(logPrefix = "[agent]") {
   if (workerBackgroundTasksStarted) return;
   workerBackgroundTasksStarted = true;
 
+  const canProcessQueue = shouldProcessQueuedOutboundCalls();
+
   startWorkerBackgroundLoops({
     logPrefix,
     setWorkerBootReady,
     writeWorkerHealthSnapshot,
     refreshVoiceGroundingIndex,
     postVoiceAgentStatus,
-    processQueuedOutboundCalls: shouldProcessQueuedOutboundCalls() ? processQueuedOutboundCalls : undefined,
+    processQueuedOutboundCalls: canProcessQueue ? processQueuedOutboundCalls : undefined,
     voiceGroundingCacheTtlMs: VOICE_GROUNDING_CACHE_TTL_MS,
     voiceAgentHeartbeatMs: VOICE_AGENT_HEARTBEAT_MS,
     queuedOutboundCallPollMs: VOICE_OUTBOUND_CALL_QUEUE_POLL_MS,
   });
+
+  if (canProcessQueue && isWakeServerEnabled()) {
+    startWakeServer({ onWake: processQueuedOutboundCalls });
+  }
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
