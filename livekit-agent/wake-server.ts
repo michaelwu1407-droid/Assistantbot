@@ -10,11 +10,11 @@ export function getWakeServerHost(env: NodeJS.ProcessEnv = process.env) {
   return (env.VOICE_WORKER_WAKE_HOST || "").trim() || "0.0.0.0";
 }
 
+// Requires explicit opt-in. Defaulting to true in production was unsafe:
+// startWakeServer() with network_mode:host can EADDRINUSE on Docker restart
+// and crash the worker before the startup heartbeat fires.
 export function isWakeServerEnabled(env: NodeJS.ProcessEnv = process.env) {
-  const explicit = (env.VOICE_WORKER_WAKE_SERVER || "").trim().toLowerCase();
-  if (explicit === "true") return true;
-  if (explicit === "false") return false;
-  return (env.NODE_ENV || "").trim() === "production";
+  return (env.VOICE_WORKER_WAKE_SERVER || "").trim().toLowerCase() === "true";
 }
 
 export function startWakeServer(params: {
@@ -40,6 +40,11 @@ export function startWakeServer(params: {
     void params.onWake().catch((err: unknown) => {
       console.error("[wake-server] Queue processing error:", err);
     });
+  });
+
+  server.on("error", (err: NodeJS.ErrnoException) => {
+    // Non-fatal: log and continue. The 30s poll fallback handles queue processing.
+    console.warn(`[wake-server] Failed to bind ${host}:${port} — ${err.message}. Falling back to poll.`);
   });
 
   server.listen(port, host, () => {

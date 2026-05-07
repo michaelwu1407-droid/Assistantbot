@@ -3314,7 +3314,10 @@ export function startVoiceWorkerBackgroundTasks(logPrefix = "[agent]") {
 
   const canProcessQueue = shouldProcessQueuedOutboundCalls();
   const wakeServerEnabled = canProcessQueue && isWakeServerEnabled();
-  const queuedOutboundCallPollMs = wakeServerEnabled
+  // Poll slow in production regardless of wake server — push wake is additive,
+  // not a prerequisite for the reduced cadence.
+  const isProduction = (process.env.NODE_ENV || "").trim() === "production";
+  const queuedOutboundCallPollMs = isProduction
     ? VOICE_OUTBOUND_CALL_QUEUE_POLL_MS_SLOW
     : VOICE_OUTBOUND_CALL_QUEUE_POLL_MS_FAST;
 
