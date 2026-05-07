@@ -94,7 +94,7 @@ const DEPLOY_GIT_SHA = process.env.DEPLOY_GIT_SHA || "unknown";
 const AGENT_STARTED_AT = new Date().toISOString();
 const VOICE_AGENT_HEARTBEAT_MS = 60 * 1000;
 const VOICE_GROUNDING_CACHE_TTL_MS = 5 * 60 * 1000;
-const VOICE_OUTBOUND_CALL_QUEUE_POLL_MS = 2_000;
+const VOICE_OUTBOUND_CALL_QUEUE_POLL_MS = 30_000;
 console.log(`[agent-version] ${JSON.stringify({ gitSha: DEPLOY_GIT_SHA, startedAt: AGENT_STARTED_AT })}`);
 
 const NORMAL_WRAP_UP_MS = 8 * 60 * 1000;
