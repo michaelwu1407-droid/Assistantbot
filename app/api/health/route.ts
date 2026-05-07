@@ -130,7 +130,9 @@ export async function GET() {
       canary: launchReadiness?.canary || null,
     };
 
-    return NextResponse.json(payload, { status: httpStatus });
+    const res = NextResponse.json(payload, { status: httpStatus });
+    res.headers.set("Cache-Control", "s-maxage=30, stale-while-revalidate=10");
+    return res;
   } catch (error) {
     return NextResponse.json(
       {
