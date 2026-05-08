@@ -490,12 +490,12 @@ class MultilingualTTS extends agentsTts.TTS {
   #ttsByLang = new Map<string, cartesia.TTS>();
   #langWarmups = new Map<string, Promise<void>>();
   #currentReplyLanguage: string;
-  #opts: { model: string; voice: string; chunkTimeout: number };
+  #opts: { model: string; voice: string; chunkTimeout: number; baseUrl: string };
   #attachedListeners: Array<{ tts: cartesia.TTS; metricsHandler: (metrics: unknown) => void; errorHandler: (error: unknown) => void }> = [];
 
   constructor(
     defaultTts: cartesia.TTS,
-    opts: { model: string; voice: string; chunkTimeout: number },
+    opts: { model: string; voice: string; chunkTimeout: number; baseUrl: string },
     options?: { ownsDefaultTts?: boolean },
   ) {
     super(defaultTts.sampleRate, defaultTts.numChannels, defaultTts.capabilities);
@@ -547,6 +547,7 @@ class MultilingualTTS extends agentsTts.TTS {
           voice: this.#opts.voice,
           language: lang,
           chunkTimeout: this.#opts.chunkTimeout,
+          baseUrl: this.#opts.baseUrl,
         });
       this.#forwardTtsEvents(tts);
       this.#ttsByLang.set(lang, tts);
@@ -1071,18 +1072,38 @@ function createCartesiaTts(language = resolveConfiguredTtsLanguage()) {
 
 let cachedDefaultTts: cartesia.TTS | null = null;
 let cachedDefaultTtsCreatedAt: number | null = null;
+let cachedDefaultTtsSource: "process_prewarm" | "session_init" | null = null;
 
-function getOrCreatePersistentDefaultTts(): { tts: cartesia.TTS; reused: boolean; ageMs: number } {
+type PersistentDefaultTts = {
+  tts: cartesia.TTS;
+  reused: boolean;
+  ageMs: number;
+  prewarmed: boolean;
+  source: "process_prewarm" | "session_init";
+};
+
+function getOrCreatePersistentDefaultTts(
+  source: "process_prewarm" | "session_init" = "session_init",
+): PersistentDefaultTts {
   if (cachedDefaultTts) {
     return {
       tts: cachedDefaultTts,
       reused: true,
       ageMs: cachedDefaultTtsCreatedAt ? Date.now() - cachedDefaultTtsCreatedAt : 0,
+      prewarmed: cachedDefaultTtsSource === "process_prewarm",
+      source: cachedDefaultTtsSource || source,
     };
   }
   cachedDefaultTts = createCartesiaTts();
   cachedDefaultTtsCreatedAt = Date.now();
-  return { tts: cachedDefaultTts, reused: false, ageMs: 0 };
+  cachedDefaultTtsSource = source;
+  return {
+    tts: cachedDefaultTts,
+    reused: false,
+    ageMs: 0,
+    prewarmed: source === "process_prewarm",
+    source,
+  };
 }
 
 async function warmCartesiaTts(tts: cartesia.TTS, text: string, logPrefix: string) {
@@ -1095,7 +1116,7 @@ async function warmCartesiaTts(tts: cartesia.TTS, text: string, logPrefix: strin
 
 async function prewarmVoiceProcess(logPrefix = "[agent-prewarm]") {
   try {
-    const warmTts = createCartesiaTts();
+    const warmTts = getOrCreatePersistentDefaultTts("process_prewarm").tts;
     await warmCartesiaTts(warmTts, "Hi there.", `${logPrefix} [VOICE_LATENCY]`);
     await Promise.allSettled(getSharedFixedLineAudioCache(warmTts, logPrefix).values());
     await Promise.allSettled(getSharedOpenerAudioCache(warmTts, logPrefix).values());
@@ -2083,13 +2104,14 @@ export default defineAgent({
     const ttsBaseUrl = resolveCartesiaBaseUrl();
     const persistentDefaultTts = getOrCreatePersistentDefaultTts();
     const defaultTts = persistentDefaultTts.tts;
-    if (!persistentDefaultTts.reused) {
+    if (!persistentDefaultTts.reused && !persistentDefaultTts.prewarmed) {
       void warmCartesiaTts(defaultTts, "Yep.", "[voice-latency:session]");
     }
     const ttsOpts = {
       model: resolveConfiguredTtsModel(),
       voice: resolveConfiguredTtsVoiceId(),
       chunkTimeout: ttsChunkTimeoutMs,
+      baseUrl: ttsBaseUrl,
     };
     const tts = new MultilingualTTS(defaultTts, ttsOpts, { ownsDefaultTts: false });
 
@@ -2192,6 +2214,8 @@ export default defineAgent({
       baseUrl: ttsBaseUrl,
       defaultInstanceReused: persistentDefaultTts.reused,
       defaultInstanceAgeMs: persistentDefaultTts.ageMs,
+      defaultInstanceSource: persistentDefaultTts.source,
+      defaultInstancePrewarmed: persistentDefaultTts.prewarmed,
     })}`);
     markCallStarted();
     let activeCallReleased = false;
@@ -3132,6 +3156,8 @@ export default defineAgent({
         ttsBaseUrl,
         ttsDefaultInstanceReused: persistentDefaultTts.reused,
         ttsDefaultInstanceAgeMs: persistentDefaultTts.ageMs,
+        ttsDefaultInstanceSource: persistentDefaultTts.source,
+        ttsDefaultInstancePrewarmed: persistentDefaultTts.prewarmed,
         eouAvgMs: avg(latencyAudit.eouMs),
         transcriptionDelayAvgMs: avg(latencyAudit.transcriptionDelayMs),
         totalTurnStartAvgMs: avg(measuredTurnStarts),
@@ -3193,6 +3219,8 @@ export default defineAgent({
             ttsBaseUrl: latency.ttsBaseUrl,
             ttsDefaultInstanceReused: latency.ttsDefaultInstanceReused,
             ttsDefaultInstanceAgeMs: latency.ttsDefaultInstanceAgeMs,
+            ttsDefaultInstanceSource: latency.ttsDefaultInstanceSource,
+            ttsDefaultInstancePrewarmed: latency.ttsDefaultInstancePrewarmed,
             eouAvgMs: avg(latencyAudit.eouMs),
             transcriptionDelayAvgMs: avg(latencyAudit.transcriptionDelayMs),
             totalTurnStartAvgMs: latency.totalTurnStartAvgMs,
