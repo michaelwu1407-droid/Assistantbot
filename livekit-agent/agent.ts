@@ -93,7 +93,10 @@ const {
 
 const DEPLOY_GIT_SHA = process.env.DEPLOY_GIT_SHA || "unknown";
 const AGENT_STARTED_AT = new Date().toISOString();
-const VOICE_AGENT_HEARTBEAT_MS = 10 * 60 * 1000;
+// 60s — must stay well under VOICE_WORKER_HEALTH_STALE_MS (180s) or
+// the Docker healthcheck (livekit-agent/healthcheck.js) will mark the
+// worker unhealthy and restart it before the next heartbeat fires.
+const VOICE_AGENT_HEARTBEAT_MS = 60 * 1000;
 const VOICE_GROUNDING_CACHE_TTL_MS = 5 * 60 * 1000;
 const VOICE_OUTBOUND_CALL_QUEUE_POLL_MS_FAST = 2_000;
 const VOICE_OUTBOUND_CALL_QUEUE_POLL_MS_SLOW = 30_000;
