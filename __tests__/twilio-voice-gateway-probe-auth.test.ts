@@ -76,7 +76,7 @@ describe("POST /api/webhooks/twilio-voice-gateway synthetic probe auth", () => {
     getExpectedVoiceGatewayUrl.mockReturnValue("https://app.example.com/api/webhooks/twilio-voice-gateway");
     getKnownEarlymarkInboundNumbers.mockReturnValue(["+61485010634"]);
     isKnownEarlymarkInboundNumber.mockImplementation((phone: string) => phone === "+61485010634" || phone === "61485010634");
-    getEarlymarkInboundSipUri.mockReturnValue("sip:+61485010634@live.earlymark.ai:5060");
+    getEarlymarkInboundSipUri.mockReturnValue("sip:+61485010634@live.earlymark.ai:5060;transport=tcp;region=au1");
     getVoiceFleetHealth.mockResolvedValue({ status: "healthy", summary: "healthy fleet" });
     isVoiceSurfaceRoutable.mockReturnValue(true);
     reconcileVoiceIncidents.mockResolvedValue([]);
@@ -96,7 +96,7 @@ describe("POST /api/webhooks/twilio-voice-gateway synthetic probe auth", () => {
     const response = await POST(buildRequest());
     const twiml = await response.text();
 
-    expect(twiml).toContain("<Sip>sip:+61485010634@live.earlymark.ai:5060</Sip>");
+    expect(twiml).toContain("<Sip>sip:+61485010634@live.earlymark.ai:5060;transport=tcp;region=au1</Sip>");
     expect(twiml).not.toContain("VOICE MONITOR PROBE PASS");
   });
 
@@ -138,7 +138,7 @@ describe("POST /api/webhooks/twilio-voice-gateway synthetic probe auth", () => {
     const twiml = await response.text();
 
     expect(response.status).toBe(200);
-    expect(twiml).toContain("<Sip>sip:+61485010634@live.earlymark.ai:5060</Sip>");
+    expect(twiml).toContain("<Sip>sip:+61485010634@live.earlymark.ai:5060;transport=tcp;region=au1</Sip>");
     expect(twiml).not.toContain("VOICE MONITOR PROBE PASS");
   });
 

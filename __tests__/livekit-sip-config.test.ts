@@ -60,12 +60,12 @@ describe("getRecommendedTwilioOriginationUri", () => {
 describe("getEarlymarkInboundSipUri", () => {
   it("returns static default SIP URI when no env vars are set and no number provided", async () => {
     const { getEarlymarkInboundSipUri } = await getModule();
-    expect(getEarlymarkInboundSipUri()).toBe("sip:live.earlymark.ai:5060");
+    expect(getEarlymarkInboundSipUri()).toBe("sip:live.earlymark.ai:5060;transport=tcp;region=au1");
   });
 
   it("includes calledNumber in static default when env vars are absent", async () => {
     const { getEarlymarkInboundSipUri } = await getModule();
-    expect(getEarlymarkInboundSipUri("+61480123456")).toBe("sip:+61480123456@live.earlymark.ai:5060");
+    expect(getEarlymarkInboundSipUri("+61480123456")).toBe("sip:+61480123456@live.earlymark.ai:5060;transport=tcp;region=au1");
   });
 
   it("uses LIVEKIT_SIP_URI when set and injects calledNumber for bare sip: URI", async () => {
@@ -89,13 +89,13 @@ describe("getEarlymarkInboundSipUri", () => {
   it("derives SIP URI from LIVEKIT_URL when SIP_URI is absent", async () => {
     process.env.LIVEKIT_URL = "wss://lk.example.com";
     const { getEarlymarkInboundSipUri } = await getModule();
-    expect(getEarlymarkInboundSipUri("+61480123456")).toBe("sip:+61480123456@lk.example.com:5060");
+    expect(getEarlymarkInboundSipUri("+61480123456")).toBe("sip:+61480123456@lk.example.com:5060;transport=tcp;region=au1");
   });
 
   it("returns only host-based SIP URI when LIVEKIT_URL set but no calledNumber", async () => {
     process.env.LIVEKIT_URL = "wss://lk.example.com";
     const { getEarlymarkInboundSipUri } = await getModule();
-    expect(getEarlymarkInboundSipUri()).toBe("sip:lk.example.com:5060");
+    expect(getEarlymarkInboundSipUri()).toBe("sip:lk.example.com:5060;transport=tcp;region=au1");
   });
 
   it("strips ;params when injecting calledNumber into LIVEKIT_SIP_URI", async () => {

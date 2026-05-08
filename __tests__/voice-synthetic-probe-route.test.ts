@@ -68,7 +68,7 @@ describe("GET /api/cron/voice-synthetic-probe", () => {
     isOpsAuthorized.mockReturnValue(true);
     getExpectedVoiceGatewayUrl.mockReturnValue("https://app.example.com/api/webhooks/twilio-voice-gateway");
     getKnownEarlymarkInboundNumbers.mockReturnValue(["61485010634"]);
-    getEarlymarkInboundSipUri.mockReturnValue("sip:+61485010634@live.earlymark.ai:5060");
+    getEarlymarkInboundSipUri.mockReturnValue("sip:+61485010634@live.earlymark.ai:5060;transport=tcp;region=au1");
     reconcileVoiceIncidents.mockResolvedValue([]);
     recordMonitorRun.mockResolvedValue(undefined);
     dispatchVoiceIncidentNotifications.mockResolvedValue(null);
@@ -96,7 +96,7 @@ describe("GET /api/cron/voice-synthetic-probe", () => {
       },
     });
     fetchMock.mockResolvedValue(
-      new Response("<Response><Dial><Sip>sip:+61485010634@live.earlymark.ai:5060</Sip></Dial></Response>", { status: 200 }),
+      new Response("<Response><Dial><Sip>sip:+61485010634@live.earlymark.ai:5060;transport=tcp;region=au1</Sip></Dial></Response>", { status: 200 }),
     );
     delete process.env.VOICE_MONITOR_PROBE_TARGET_NUMBER;
   });

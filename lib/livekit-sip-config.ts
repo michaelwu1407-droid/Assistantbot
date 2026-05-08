@@ -1,6 +1,20 @@
 const DEFAULT_LIVEKIT_SIP_TERMINATION_URI =
   "earlymark-outbound.pstn.sydney.twilio.com";
 
+function applyTwilioSipDialDefaults(uri: string) {
+  if (!uri) return uri;
+  const hasTransport = /(?:^|;)transport=/i.test(uri);
+  const hasRegion = /(?:^|;)region=/i.test(uri);
+  let next = uri;
+  if (!hasTransport) {
+    next += ";transport=tcp";
+  }
+  if (!hasRegion) {
+    next += ";region=au1";
+  }
+  return next;
+}
+
 export function getLivekitSipTerminationUri() {
   return (
     process.env.LIVEKIT_SIP_TERMINATION_URI?.trim() ||
@@ -39,10 +53,10 @@ export function getEarlymarkInboundSipUri(calledNumber?: string | null) {
       const parsed = new URL(livekitUrl.replace(/^wss:/i, "https:").replace(/^ws:/i, "http:"));
       const host = parsed.host;
       if (host && normalizedCalledNumber) {
-        return `sip:${normalizedCalledNumber}@${host}:5060`;
+        return applyTwilioSipDialDefaults(`sip:${normalizedCalledNumber}@${host}:5060`);
       }
       if (host) {
-        return `sip:${host}:5060`;
+        return applyTwilioSipDialDefaults(`sip:${host}:5060`);
       }
     } catch {
       // Fall through to the static default if LIVEKIT_URL is malformed.
@@ -50,6 +64,6 @@ export function getEarlymarkInboundSipUri(calledNumber?: string | null) {
   }
 
   return normalizedCalledNumber
-    ? `sip:${normalizedCalledNumber}@live.earlymark.ai:5060`
-    : "sip:live.earlymark.ai:5060";
+    ? applyTwilioSipDialDefaults(`sip:${normalizedCalledNumber}@live.earlymark.ai:5060`)
+    : applyTwilioSipDialDefaults("sip:live.earlymark.ai:5060");
 }

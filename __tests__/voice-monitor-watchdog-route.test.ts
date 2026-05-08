@@ -221,12 +221,12 @@ describe("GET /api/cron/voice-monitor-watchdog", () => {
       targetNumber: "+61485010634",
       targetNumberSource: "known_inbound_env",
       gatewayUrl: "https://app.example.com/api/webhooks/twilio-voice-gateway",
-      expectedSipTarget: "sip:+61485010634@live.earlymark.ai:5060",
+      expectedSipTarget: "sip:+61485010634@live.earlymark.ai:5060;transport=tcp;region=au1",
       responseStatus: 200,
       gatewayProbe: {
         result: "pass",
         responseStatus: 200,
-        twiml: "<Response><Dial><Sip>sip:+61485010634@live.earlymark.ai:5060</Sip></Dial></Response>",
+        twiml: "<Response><Dial><Sip>sip:+61485010634@live.earlymark.ai:5060;transport=tcp;region=au1</Sip></Dial></Response>",
       },
       spokenCanary: {
         status: "healthy",

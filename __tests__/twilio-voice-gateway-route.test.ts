@@ -70,7 +70,7 @@ describe("POST /api/webhooks/twilio-voice-gateway", () => {
     delete process.env.TWILIO_ACCOUNT_SID;
     getKnownEarlymarkInboundNumbers.mockReturnValue([]);
     isKnownEarlymarkInboundNumber.mockReturnValue(false);
-    getEarlymarkInboundSipUri.mockReturnValue("sip:+61485010634@live.earlymark.ai:5060");
+    getEarlymarkInboundSipUri.mockReturnValue("sip:+61485010634@live.earlymark.ai:5060;transport=tcp;region=au1");
     getVoiceFleetHealth.mockResolvedValue({ status: "healthy", summary: "healthy fleet" });
     isVoiceSurfaceRoutable.mockReturnValue(true);
     reconcileVoiceIncidents.mockResolvedValue([]);
@@ -112,5 +112,17 @@ describe("POST /api/webhooks/twilio-voice-gateway", () => {
     expect(response.status).toBe(200);
     expect(twiml).toContain("Please leave a message for the team");
     expect(twiml).not.toContain("<Sip>");
+  });
+
+  it("rejects unsigned voice webhooks in production", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("TWILIO_AUTH_TOKEN", "prod-token");
+    vi.stubEnv("TWILIO_SKIP_SIGNATURE_VERIFICATION", "");
+
+    const response = await POST(buildRequest());
+
+    expect(response.status).toBe(401);
+    expect(await response.text()).toBe("forbidden");
+    expect(reconcileVoiceIncidents).not.toHaveBeenCalled();
   });
 });

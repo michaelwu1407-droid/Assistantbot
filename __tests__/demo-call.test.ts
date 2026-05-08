@@ -205,7 +205,7 @@ describe("demo-call outbound routing", () => {
       expect.objectContaining({
         to: "+61434955958",
         from: "+61485010634",
-        twiml: expect.stringContaining("<Sip>sip:+61485010634@live.earlymark.ai:5060</Sip>"),
+        twiml: expect.stringContaining("<Sip>sip:+61485010634@live.earlymark.ai:5060;transport=tcp;region=au1</Sip>"),
       }),
     );
     expect(result.roomName).toBe("twilio-bridge-CA_demo");
