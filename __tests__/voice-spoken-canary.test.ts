@@ -99,6 +99,15 @@ describe("runVoiceSpokenPstnCanary", () => {
     expect(result.callStatus).toBe("completed");
     expect(result.verification?.heardProbePhrase).toBe(true);
     expect(result.verification?.capturedAssistantSpeech).toBe(true);
+    expect(result.fallbackReason).toBeNull();
+    expect(result.attempts).toEqual([
+      expect.objectContaining({
+        mode: "pstn_spoken",
+        target: "+61485010634",
+        callSid: "CA123",
+        callStatus: "completed",
+      }),
+    ]);
     expect(twilioState.createCall).toHaveBeenCalledWith(
       expect.objectContaining({
         twiml: expect.stringContaining('language="en-AU"'),
@@ -206,5 +215,81 @@ describe("runVoiceSpokenPstnCanary", () => {
 
     expect(result.status).toBe("healthy");
     expect(result.verification?.callId).toBe("voice_call_exact");
+  });
+
+  it("falls back to direct SIP when the PSTN number leg returns busy", async () => {
+    twilioState.createCall
+      .mockResolvedValueOnce({
+        sid: "CA_PSTN",
+        status: "queued",
+        dateCreated: new Date("2026-03-17T06:00:00.000Z"),
+      })
+      .mockResolvedValueOnce({
+        sid: "CA_SIP",
+        status: "queued",
+        dateCreated: new Date("2026-03-17T06:00:02.000Z"),
+      });
+    twilioState.fetchCall
+      .mockResolvedValueOnce({
+        sid: "CA_PSTN",
+        status: "busy",
+        duration: "0",
+        dateUpdated: new Date("2026-03-17T06:00:01.000Z"),
+      })
+      .mockResolvedValueOnce({
+        sid: "CA_SIP",
+        status: "completed",
+        duration: "9",
+        dateUpdated: new Date("2026-03-17T06:00:11.000Z"),
+      });
+    db.voiceCall.findMany.mockResolvedValue([
+      {
+        callId: "voice_call_sip_fallback",
+        createdAt: new Date("2026-03-17T06:00:05.000Z"),
+        startedAt: new Date("2026-03-17T06:00:03.000Z"),
+        callerPhone: "+61434955958",
+        calledPhone: "+61485010634",
+        participantIdentity: "sip-participant",
+        transcriptText: "Caller: Hello Tracey. This is the voice monitor probe. Can you hear me?\nTracey: Yes, I can hear you clearly.",
+        metadata: {
+          providerCallIds: {
+            twilioCallSid: "CA_SIP",
+          },
+        },
+      },
+    ]);
+
+    const result = await runVoiceSpokenPstnCanary({
+      probeCaller: "+61434955958",
+      targetNumber: "+61485010634",
+      checkedAt: new Date("2026-03-17T06:00:00.000Z"),
+    });
+
+    expect(result.status).toBe("degraded");
+    expect(result.mode).toBe("sip_direct");
+    expect(result.callSid).toBe("CA_SIP");
+    expect(result.callStatus).toBe("completed");
+    expect(result.fallbackReason).toBe("pstn_busy");
+    expect(result.verification?.callId).toBe("voice_call_sip_fallback");
+    expect(result.attempts).toEqual([
+      expect.objectContaining({
+        mode: "pstn_spoken",
+        target: "+61485010634",
+        callSid: "CA_PSTN",
+        callStatus: "busy",
+      }),
+      expect.objectContaining({
+        mode: "sip_direct",
+        target: "sip:+61485010634@live.earlymark.ai:5060;transport=tcp;region=au1",
+        callSid: "CA_SIP",
+        callStatus: "completed",
+      }),
+    ]);
+    expect(twilioState.createCall).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        to: "sip:+61485010634@live.earlymark.ai:5060;transport=tcp;region=au1",
+      }),
+    );
   });
 });

@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { getEarlymarkInboundSipUri } from "@/lib/livekit-sip-config";
 import { phoneMatches, normalizePhone } from "@/lib/phone-utils";
 import { twilioMasterClient } from "@/lib/twilio";
 import type { RuntimeStatus } from "@/lib/voice-fleet";
@@ -40,7 +41,7 @@ export type VoiceSpokenCanaryResult = {
   status: RuntimeStatus;
   summary: string;
   warnings: string[];
-  mode: "gateway_only" | "pstn_spoken";
+  mode: "gateway_only" | "pstn_spoken" | "sip_direct";
   configured: boolean;
   supported: boolean;
   probeCaller: string;
@@ -50,6 +51,14 @@ export type VoiceSpokenCanaryResult = {
   durationSeconds: number | null;
   expectedPhrase: string;
   verification: SpokenCanaryVerification | null;
+  fallbackReason: string | null;
+  attempts: Array<{
+    mode: "pstn_spoken" | "sip_direct";
+    target: string;
+    callSid: string | null;
+    callStatus: string | null;
+    durationSeconds: number | null;
+  }>;
 };
 
 type VoiceCallVerificationCandidate = {
@@ -198,6 +207,33 @@ function parseDurationSeconds(value?: string | null) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+async function startProbeCall(params: {
+  to: string;
+  from: string;
+  expectedPhrase: string;
+}) {
+  if (!twilioMasterClient) {
+    return null;
+  }
+
+  return twilioMasterClient.calls.create({
+    to: params.to,
+    from: params.from,
+    timeout: getVoiceMonitorProbeCallTimeoutSeconds(),
+    twiml: buildProbeTwiml(params.expectedPhrase),
+  }) as Promise<TwilioCallSnapshot>;
+}
+
+function buildAttempt(params: {
+  mode: "pstn_spoken" | "sip_direct";
+  target: string;
+  callSid: string | null;
+  callStatus: string | null;
+  durationSeconds: number | null;
+}) {
+  return params;
+}
+
 async function waitForTerminalCallStatus(callSid: string, maxWaitMs: number) {
   if (!twilioMasterClient) return null;
 
@@ -309,6 +345,8 @@ export async function runVoiceSpokenPstnCanary(params: {
       durationSeconds: null,
       expectedPhrase,
       verification: null,
+      fallbackReason: null,
+      attempts: [],
     };
   }
 
@@ -327,6 +365,8 @@ export async function runVoiceSpokenPstnCanary(params: {
       durationSeconds: null,
       expectedPhrase,
       verification: null,
+      fallbackReason: null,
+      attempts: [],
     };
   }
 
@@ -345,18 +385,22 @@ export async function runVoiceSpokenPstnCanary(params: {
       durationSeconds: null,
       expectedPhrase,
       verification: null,
+      fallbackReason: null,
+      attempts: [],
     };
   }
 
   const startedAt = params.checkedAt || new Date();
 
   try {
-    const createdCall = await twilioMasterClient.calls.create({
+    const createdCall = await startProbeCall({
       to: targetNumber,
       from: probeCaller,
-      timeout: getVoiceMonitorProbeCallTimeoutSeconds(),
-      twiml: buildProbeTwiml(expectedPhrase),
-    }) as TwilioCallSnapshot;
+      expectedPhrase,
+    });
+    if (!createdCall) {
+      throw new Error("Twilio is not configured for the spoken PSTN canary.");
+    }
 
     const terminalCall = await waitForTerminalCallStatus(
       createdCall.sid,
@@ -364,6 +408,13 @@ export async function runVoiceSpokenPstnCanary(params: {
     );
     const callStatus = (terminalCall?.status || createdCall.status || "").toLowerCase() || null;
     const durationSeconds = parseDurationSeconds(terminalCall?.duration || createdCall.duration || null);
+    const pstnAttempt = buildAttempt({
+      mode: "pstn_spoken",
+      target: targetNumber,
+      callSid: createdCall.sid,
+      callStatus,
+      durationSeconds,
+    });
 
     if (!terminalCall || !callStatus) {
       return {
@@ -380,10 +431,110 @@ export async function runVoiceSpokenPstnCanary(params: {
         durationSeconds,
         expectedPhrase,
         verification: null,
+        fallbackReason: null,
+        attempts: [pstnAttempt],
       };
     }
 
     if (FAILURE_CALL_STATUSES.has(callStatus)) {
+      const sipTarget = getEarlymarkInboundSipUri(targetNumber);
+      if (sipTarget) {
+        const sipCreatedCall = await startProbeCall({
+          to: sipTarget,
+          from: probeCaller,
+          expectedPhrase,
+        });
+        const sipTerminalCall =
+          sipCreatedCall
+            ? await waitForTerminalCallStatus(
+                sipCreatedCall.sid,
+                getVoiceMonitorProbeMaxWaitSeconds() * 1_000,
+              )
+            : null;
+        const sipCallStatus = (sipTerminalCall?.status || sipCreatedCall?.status || "").toLowerCase() || null;
+        const sipDurationSeconds = parseDurationSeconds(sipTerminalCall?.duration || sipCreatedCall?.duration || null);
+        const attempts = [
+          pstnAttempt,
+          buildAttempt({
+            mode: "sip_direct",
+            target: sipTarget,
+            callSid: sipCreatedCall?.sid || null,
+            callStatus: sipCallStatus,
+            durationSeconds: sipDurationSeconds,
+          }),
+        ];
+
+        if (sipTerminalCall && sipCallStatus && !FAILURE_CALL_STATUSES.has(sipCallStatus)) {
+          const verification = await waitForVoiceCallVerification({
+            probeCaller,
+            targetNumber,
+            startedAt,
+            maxWaitMs: getVoiceMonitorProbeMaxWaitSeconds() * 1_000,
+            callSid: sipCreatedCall?.sid || null,
+          });
+
+          if (verification) {
+            const healthyExchange =
+              verification.heardProbePhrase &&
+              verification.capturedCallerSpeech &&
+              verification.capturedAssistantSpeech;
+            const partialExchange = verification.capturedCallerSpeech && verification.capturedAssistantSpeech;
+
+            return {
+              status: "degraded",
+              summary: healthyExchange
+                ? `Real PSTN spoken canary hit Twilio status ${callStatus}, but direct SIP fallback reached the voice agent and captured both caller and Tracey speech.`
+                : partialExchange
+                  ? `Real PSTN spoken canary hit Twilio status ${callStatus}, and direct SIP fallback completed with only a partial transcript match.`
+                  : `Real PSTN spoken canary hit Twilio status ${callStatus}, and direct SIP fallback completed without a full spoken exchange in the transcript.`,
+              warnings: [
+                `The PSTN probe call to ${targetNumber} ended as ${callStatus}.`,
+                healthyExchange
+                  ? "Direct SIP fallback succeeded, so the voice agent path is reachable even though the PSTN number leg is degraded."
+                  : partialExchange
+                    ? "Direct SIP fallback reached the voice agent, but the transcript did not clearly capture the expected probe phrase."
+                    : "Direct SIP fallback did not capture both caller and Tracey speech in the persisted transcript.",
+              ],
+              mode: "sip_direct",
+              configured: true,
+              supported: true,
+              probeCaller,
+              targetNumber,
+              callSid: sipCreatedCall?.sid || null,
+              callStatus: sipCallStatus,
+              durationSeconds: sipDurationSeconds,
+              expectedPhrase,
+              verification,
+              fallbackReason: `pstn_${callStatus}`,
+              attempts,
+            };
+          }
+        }
+
+        return {
+          status: "unhealthy",
+          summary: `Real PSTN spoken canary call failed with Twilio status ${callStatus}, and direct SIP fallback did not verify the voice agent path.`,
+          warnings: [
+            `The PSTN probe call to ${targetNumber} ended as ${callStatus}.`,
+            sipCallStatus
+              ? `The direct SIP fallback attempt ended as ${sipCallStatus}.`
+              : "The direct SIP fallback attempt did not settle to a verified terminal status.",
+          ],
+          mode: "pstn_spoken",
+          configured: true,
+          supported: true,
+          probeCaller,
+          targetNumber,
+          callSid: createdCall.sid,
+          callStatus,
+          durationSeconds,
+          expectedPhrase,
+          verification: null,
+          fallbackReason: `pstn_${callStatus}`,
+          attempts,
+        };
+      }
+
       return {
         status: "unhealthy",
         summary: `Real PSTN spoken canary call failed with Twilio status ${callStatus}.`,
@@ -398,6 +549,8 @@ export async function runVoiceSpokenPstnCanary(params: {
         durationSeconds,
         expectedPhrase,
         verification: null,
+        fallbackReason: null,
+        attempts: [pstnAttempt],
       };
     }
 
@@ -424,6 +577,8 @@ export async function runVoiceSpokenPstnCanary(params: {
         durationSeconds,
         expectedPhrase,
         verification: null,
+        fallbackReason: null,
+        attempts: [pstnAttempt],
       };
     }
 
@@ -458,6 +613,8 @@ export async function runVoiceSpokenPstnCanary(params: {
       durationSeconds,
       expectedPhrase,
       verification,
+      fallbackReason: null,
+      attempts: [pstnAttempt],
     };
   } catch (error) {
     return {
@@ -474,6 +631,8 @@ export async function runVoiceSpokenPstnCanary(params: {
       durationSeconds: null,
       expectedPhrase,
       verification: null,
+      fallbackReason: null,
+      attempts: [],
     };
   }
 }

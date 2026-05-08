@@ -94,6 +94,8 @@ describe("GET /api/cron/voice-synthetic-probe", () => {
         heardGreeting: true,
         transcriptExcerpt: "Caller: Hello Tracey. This is the voice monitor probe.",
       },
+      fallbackReason: null,
+      attempts: [],
     });
     fetchMock.mockResolvedValue(
       new Response("<Response><Dial><Sip>sip:+61485010634@live.earlymark.ai:5060;transport=tcp;region=au1</Sip></Dial></Response>", { status: 200 }),
@@ -171,6 +173,8 @@ describe("GET /api/cron/voice-synthetic-probe", () => {
       durationSeconds: null,
       expectedPhrase: "Hello Tracey. This is the Earlymark voice monitor probe. Can you hear me?",
       verification: null,
+      fallbackReason: null,
+      attempts: [],
     });
 
     const response = await GET(new NextRequest("https://app.example.com/api/cron/voice-synthetic-probe"));
@@ -179,5 +183,60 @@ describe("GET /api/cron/voice-synthetic-probe", () => {
     expect(response.status).toBe(200);
     expect(body.status).toBe("degraded");
     expect(body.spokenCanary.mode).toBe("gateway_only");
+  });
+
+  it("returns degraded when the PSTN leg fails but direct SIP fallback still verifies the agent path", async () => {
+    runVoiceSpokenPstnCanary.mockResolvedValue({
+      status: "degraded",
+      summary: "Real PSTN spoken canary hit Twilio status busy, but direct SIP fallback reached the voice agent and captured both caller and Tracey speech.",
+      warnings: [
+        "The PSTN probe call to +61485010634 ended as busy.",
+        "Direct SIP fallback succeeded, so the voice agent path is reachable even though the PSTN number leg is degraded.",
+      ],
+      mode: "sip_direct",
+      configured: true,
+      supported: true,
+      probeCaller: "+61434955958",
+      targetNumber: "+61485010634",
+      callSid: "CA456",
+      callStatus: "completed",
+      durationSeconds: 9,
+      expectedPhrase: "Hello Tracey. This is the Earlymark voice monitor probe. Can you hear me?",
+      verification: {
+        callId: "voice_call_sip_fallback",
+        createdAt: "2026-03-17T06:00:00.000Z",
+        heardProbePhrase: true,
+        capturedCallerSpeech: true,
+        capturedAssistantSpeech: true,
+        heardGreeting: true,
+        transcriptExcerpt: "Caller: Hello Tracey. This is the voice monitor probe.",
+      },
+      fallbackReason: "pstn_busy",
+      attempts: [
+        {
+          mode: "pstn_spoken",
+          target: "+61485010634",
+          callSid: "CA123",
+          callStatus: "busy",
+          durationSeconds: 0,
+        },
+        {
+          mode: "sip_direct",
+          target: "sip:+61485010634@live.earlymark.ai:5060;transport=tcp;region=au1",
+          callSid: "CA456",
+          callStatus: "completed",
+          durationSeconds: 9,
+        },
+      ],
+    });
+
+    const response = await GET(new NextRequest("https://app.example.com/api/cron/voice-synthetic-probe"));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.status).toBe("degraded");
+    expect(body.spokenCanary.mode).toBe("sip_direct");
+    expect(body.spokenCanary.fallbackReason).toBe("pstn_busy");
+    expect(body.spokenCanary.attempts).toHaveLength(2);
   });
 });
