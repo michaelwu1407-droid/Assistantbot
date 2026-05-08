@@ -18,6 +18,12 @@ const {
     activity: { create: vi.fn(), count: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
     notification: { create: vi.fn() },
     chatMessage: { create: vi.fn(), updateMany: vi.fn() },
+    actionExecution: {
+      create: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn(),
+    },
   },
   processIncomingEmailWithGemini: vi.fn(),
   triageIncomingLead: vi.fn(),
@@ -46,6 +52,10 @@ describe("POST /api/webhooks/inbound-email", () => {
     db.chatMessage.create.mockResolvedValue({ id: "chat_1" });
     db.chatMessage.updateMany.mockResolvedValue({ count: 1 });
     db.workspace.findUnique.mockResolvedValue({ ownerId: "owner_1" });
+    db.actionExecution.create.mockResolvedValue({ id: "ax_1" });
+    db.actionExecution.findUnique.mockResolvedValue(null);
+    db.actionExecution.update.mockResolvedValue({ id: "ax_1" });
+    db.actionExecution.updateMany.mockResolvedValue({ count: 1 });
     triageIncomingLead.mockResolvedValue(null);
     saveTriageRecommendation.mockResolvedValue(undefined);
     createGoogleGenerativeAI.mockReturnValue(vi.fn());

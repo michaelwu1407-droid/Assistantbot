@@ -187,6 +187,13 @@ function parseEmailAddress(raw: string): { name: string; email: string } {
 // ─── POST Handler ────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  // Idempotency state captured by the try/finally below. claimedKey is set
+  // after we win a fresh ActionExecution row; didFail flips inside the catch
+  // so the finally can mark the row FAILED (lets a future retry re-claim it)
+  // instead of COMPLETED.
+  let claimedKey: string | null = null;
+  let didFail = false;
+
   try {
     // 1. Read raw body for signature verification, then parse as JSON
     const rawBody = await req.text();
@@ -230,6 +237,50 @@ export async function POST(req: NextRequest) {
 
     if (eventType && eventType !== "email.received") {
       return NextResponse.json({ ok: true, skipped: eventType });
+    }
+
+    // Idempotency claim: Svix delivers the same svix-id for retries of the
+    // same event, so we use it as the key. Fall back to a hash of the body
+    // when the header is absent (dev/local). Two concurrent deliveries race
+    // on the unique constraint; the loser short-circuits with deduped:true.
+    {
+      const svixId = req.headers.get("svix-id") || "";
+      const dedupSeed = svixId
+        || crypto.createHash("sha256").update(rawBody).digest("hex").slice(0, 32);
+      const dedupKey = `resend.inbound-email:${dedupSeed}`;
+
+      try {
+        await db.actionExecution.create({
+          data: {
+            idempotencyKey: dedupKey,
+            actionType: "resend.inbound-email",
+            status: "IN_PROGRESS",
+          },
+        });
+        claimedKey = dedupKey;
+      } catch (claimErr) {
+        // P2002 = duplicate. Look at the existing row to decide.
+        const existing = await db.actionExecution.findUnique({
+          where: { idempotencyKey: dedupKey },
+          select: { status: true },
+        }).catch(() => null);
+
+        if (existing?.status === "FAILED") {
+          // Allow a manual retry to re-claim the FAILED row. Race-safe via updateMany.
+          const reClaim = await db.actionExecution.updateMany({
+            where: { idempotencyKey: dedupKey, status: "FAILED" },
+            data: { status: "IN_PROGRESS", error: null },
+          }).catch(() => ({ count: 0 }));
+          if (reClaim.count > 0) {
+            claimedKey = dedupKey;
+          } else {
+            return NextResponse.json({ ok: true, deduped: true });
+          }
+        } else {
+          // COMPLETED or IN_PROGRESS — another worker has it.
+          return NextResponse.json({ ok: true, deduped: true });
+        }
+      }
     }
 
     const data = payload.data ?? payload;
@@ -683,6 +734,7 @@ export async function POST(req: NextRequest) {
       leadQuality: geminiResult?.isGenuineLead ? "genuine" : "tire_kicker",
     });
   } catch (err) {
+    didFail = true;
     Sentry.captureException(err, {
       tags: { webhook: "resend", stage: "processing" },
     });
@@ -701,5 +753,14 @@ export async function POST(req: NextRequest) {
       { error: "Internal server error" },
       { status: 500 }
     );
+  } finally {
+    if (claimedKey) {
+      await db.actionExecution.update({
+        where: { idempotencyKey: claimedKey },
+        data: {
+          status: didFail ? "FAILED" : "COMPLETED",
+        },
+      }).catch(() => {});
+    }
   }
 }
