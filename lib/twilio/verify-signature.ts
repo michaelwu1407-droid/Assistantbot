@@ -41,6 +41,32 @@ export function verifyTwilioSignature(params: {
   return { ok: true }
 }
 
+function readForwardedValue(headers: Headers, key: string): string {
+  return (headers.get(key) || "")
+    .split(",")[0]
+    .trim()
+}
+
+export function getTwilioRequestPublicUrl(req: Request): string {
+  const originalUrl = new URL(req.url)
+  const forwardedProto = readForwardedValue(req.headers, "x-forwarded-proto")
+  const forwardedHost = readForwardedValue(req.headers, "x-forwarded-host")
+
+  if (!forwardedProto && !forwardedHost) return originalUrl.toString()
+
+  const publicUrl = new URL(originalUrl.toString())
+  if (forwardedProto) {
+    publicUrl.protocol = forwardedProto.endsWith(":") ? forwardedProto : `${forwardedProto}:`
+  }
+  if (forwardedHost) {
+    publicUrl.host = forwardedHost
+    if (!/:\d+$/.test(forwardedHost)) {
+      publicUrl.port = ""
+    }
+  }
+  return publicUrl.toString()
+}
+
 /**
  * Helper for Next.js App Router routes that receive Twilio's
  * `application/x-www-form-urlencoded` POST. Reads the body, builds a plain
@@ -55,15 +81,19 @@ export type TwilioFormPostResult =
   | { ok: true; params: Record<string, string> }
   | { ok: false; reason: "missing_signature" | "missing_secret" | "invalid_signature"; status: number }
 
-export async function verifyTwilioFormPost(req: Request): Promise<TwilioFormPostResult> {
+export async function readTwilioFormParams(req: Request): Promise<Record<string, string>> {
   const formData = await req.formData()
   const params: Record<string, string> = {}
   for (const [key, value] of formData.entries()) {
     params[key] = typeof value === "string" ? value : value.name
   }
+  return params
+}
 
+export async function verifyTwilioFormPost(req: Request): Promise<TwilioFormPostResult> {
+  const params = await readTwilioFormParams(req)
   const signatureHeader = req.headers.get("x-twilio-signature")
-  const fullUrl = req.url
+  const fullUrl = getTwilioRequestPublicUrl(req)
   const result = verifyTwilioSignature({ signatureHeader, fullUrl, formParams: params })
   if (!result.ok) {
     return { ok: false, reason: result.reason, status: result.reason === "missing_signature" ? 401 : 403 }

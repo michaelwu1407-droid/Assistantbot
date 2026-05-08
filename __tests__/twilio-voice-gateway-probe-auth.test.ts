@@ -87,6 +87,9 @@ describe("POST /api/webhooks/twilio-voice-gateway synthetic probe auth", () => {
   afterEach(() => {
     delete process.env.TWILIO_ACCOUNT_SID;
     delete process.env.CRON_SECRET;
+    delete process.env.TWILIO_VERIFY_IN_DEV;
+    delete process.env.TWILIO_SKIP_SIGNATURE_VERIFICATION;
+    delete process.env.TWILIO_AUTH_TOKEN;
   });
 
   it("routes a real call from the probe phone number through the voice gateway", async () => {
@@ -123,6 +126,10 @@ describe("POST /api/webhooks/twilio-voice-gateway synthetic probe auth", () => {
   });
 
   it("keeps authenticated internal probes on the same resolved SIP route", async () => {
+    process.env.TWILIO_VERIFY_IN_DEV = "true";
+    process.env.TWILIO_SKIP_SIGNATURE_VERIFICATION = "false";
+    process.env.TWILIO_AUTH_TOKEN = "secret";
+
     const response = await POST(
       buildRequest({
         "x-voice-probe-key": "probe-secret",
@@ -130,7 +137,18 @@ describe("POST /api/webhooks/twilio-voice-gateway synthetic probe auth", () => {
     );
     const twiml = await response.text();
 
+    expect(response.status).toBe(200);
     expect(twiml).toContain("<Sip>sip:+61485010634@live.earlymark.ai:5060</Sip>");
     expect(twiml).not.toContain("VOICE MONITOR PROBE PASS");
+  });
+
+  it("still rejects unsigned non-probe requests when signature verification is enabled", async () => {
+    process.env.TWILIO_VERIFY_IN_DEV = "true";
+    process.env.TWILIO_SKIP_SIGNATURE_VERIFICATION = "false";
+    process.env.TWILIO_AUTH_TOKEN = "secret";
+
+    const response = await POST(buildRequest());
+
+    expect(response.status).toBe(401);
   });
 });

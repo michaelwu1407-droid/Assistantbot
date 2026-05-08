@@ -10,6 +10,7 @@ import { getVoiceFleetHealth, isVoiceSurfaceRoutable, type VoiceSurface } from "
 import { reconcileVoiceIncidents } from "@/lib/voice-incidents";
 import { findManagedTwilioNumberByPhone } from "@/lib/twilio-drift";
 import { findWorkspaceByTwilioNumber } from "@/lib/workspace-routing";
+import { getTwilioRequestPublicUrl, readTwilioFormParams, verifyTwilioSignature } from "@/lib/twilio/verify-signature";
 
 export const dynamic = "force-dynamic";
 
@@ -94,7 +95,7 @@ function voicemailFallbackTwiml(params: {
   callerNumber: string;
   surface: VoiceSurface;
 }) {
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
+  const appUrl = (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
   const actionUrl = appUrl
     ? `${appUrl}/api/webhooks/twilio-voice-fallback?surface=${encodeURIComponent(params.surface)}&called=${encodeURIComponent(params.calledNumber)}&from=${encodeURIComponent(params.callerNumber)}`
     : "";
@@ -202,15 +203,27 @@ export async function POST(req: NextRequest) {
   let lastSurface: VoiceSurface = "inbound_demo";
 
   try {
-    const formData = await req.formData();
-    const callerNumber = formData.get("From")?.toString() || "";
-    const calledNumber = formData.get("To")?.toString() || formData.get("Called")?.toString() || "";
-    const stirVerstat = formData.get("StirVerstat")?.toString() || "";
+    const syntheticProbe = isAuthenticatedSyntheticProbe(req);
+    const params = await readTwilioFormParams(req);
+
+    if (!syntheticProbe) {
+      const signatureCheck = verifyTwilioSignature({
+        signatureHeader: req.headers.get("x-twilio-signature"),
+        fullUrl: getTwilioRequestPublicUrl(req),
+        formParams: params,
+      });
+      if (!signatureCheck.ok) {
+        return new NextResponse("forbidden", { status: signatureCheck.reason === "missing_signature" ? 401 : 403 });
+      }
+    }
+
+    const callerNumber = params.From || "";
+    const calledNumber = params.To || params.Called || "";
+    const stirVerstat = params.StirVerstat || "";
     const dtmfPassed = req.nextUrl.searchParams.get("dtmf_passed");
-    const digits = formData.get("Digits")?.toString() || "";
+    const digits = params.Digits || "";
     const knownInboundNumbers = getKnownEarlymarkInboundNumbers();
     const isEarlymarkInboundCall = isKnownEarlymarkInboundNumber(calledNumber);
-    const syntheticProbe = isAuthenticatedSyntheticProbe(req);
     const spokenProbeCaller = isConfiguredSpokenProbeCaller(callerNumber, calledNumber);
     lastCallerNumber = callerNumber;
     lastCalledNumber = calledNumber;
