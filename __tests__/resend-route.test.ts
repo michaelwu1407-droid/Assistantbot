@@ -29,6 +29,21 @@ vi.mock("@sentry/nextjs", () => ({
   captureException: hoisted.captureException,
 }));
 
+vi.mock("@/lib/idempotency", () => {
+  const seen = new Set<string>();
+  return {
+    runIdempotent: vi.fn(async (params: { actionType: string; parts: unknown[]; resultFactory: () => Promise<unknown> }) => {
+      const key = `${params.actionType}|${JSON.stringify(params.parts)}`;
+      if (seen.has(key)) {
+        return { idempotencyKey: key, created: false, result: null };
+      }
+      seen.add(key);
+      const result = await params.resultFactory();
+      return { idempotencyKey: key, created: true, result };
+    }),
+  };
+});
+
 import { POST } from "@/app/api/webhooks/resend/route";
 
 function buildSignedRequest(payload: string, secretBase64: string) {

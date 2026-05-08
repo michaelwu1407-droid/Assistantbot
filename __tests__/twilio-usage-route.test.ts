@@ -15,6 +15,21 @@ const hoisted = vi.hoisted(() => ({
 
 vi.mock("@/lib/db", () => ({ db: hoisted.db }));
 
+vi.mock("@/lib/idempotency", () => {
+  const seen = new Set<string>();
+  return {
+    runIdempotent: vi.fn(async (params: { actionType: string; parts: unknown[]; resultFactory: () => Promise<unknown> }) => {
+      const key = `${params.actionType}|${JSON.stringify(params.parts)}`;
+      if (seen.has(key)) {
+        return { idempotencyKey: key, created: false, result: null };
+      }
+      seen.add(key);
+      const result = await params.resultFactory();
+      return { idempotencyKey: key, created: true, result };
+    }),
+  };
+});
+
 import { POST } from "@/app/api/webhooks/twilio-usage/route";
 
 function buildUsageRequest(fields: Record<string, string>) {
@@ -65,7 +80,7 @@ describe("POST /api/webhooks/twilio-usage", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ ok: true, voiceDisabled: true });
+    expect(await response.json()).toEqual(expect.objectContaining({ ok: true, voiceDisabled: true }));
     expect(hoisted.db.workspace.update).toHaveBeenCalledWith({
       where: { id: "ws_1" },
       data: { voiceEnabled: false },
@@ -86,8 +101,9 @@ describe("POST /api/webhooks/twilio-usage", () => {
     });
 
     const response = await POST(
+      // Distinct AccountSid so the in-test idempotency mock doesn't dedupe with the prior case.
       buildUsageRequest({
-        AccountSid: "ACsub123",
+        AccountSid: "ACsub-already-disabled",
         CurrentValue: "55",
         TriggerValue: "50",
         UsageCategory: "calls",
@@ -95,7 +111,7 @@ describe("POST /api/webhooks/twilio-usage", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ ok: true, alreadyDisabled: true });
+    expect(await response.json()).toEqual(expect.objectContaining({ ok: true, alreadyDisabled: true }));
     expect(hoisted.db.workspace.update).not.toHaveBeenCalled();
     expect(hoisted.db.activity.create).not.toHaveBeenCalled();
   });

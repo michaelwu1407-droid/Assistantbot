@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { findUserByPhone } from "@/lib/workspace-routing";
 import { sendWhatsApp } from "@/lib/twilio/whatsapp";
 import { parseActionCode, resolveAndExecute } from "@/lib/notifications/whatsapp-reply-parser";
+import { runIdempotent } from "@/lib/idempotency";
 
 export const maxDuration = 60;
 
@@ -12,6 +13,7 @@ export async function POST(req: Request) {
     const formData = await req.formData();
     const from = formData.get("From")?.toString() || "";
     const body = formData.get("Body")?.toString() || "";
+    const messageSid = formData.get("MessageSid")?.toString() || "";
     console.log(`[WhatsApp Webhook] Received message from ${from}: ${body}`);
 
     const cleanNumber = from.replace("whatsapp:", "").trim();
@@ -43,21 +45,65 @@ export async function POST(req: Request) {
       bodyLength: body.length,
     };
 
+    // Twilio retries deliver the same MessageSid for the same inbound message.
+    // Wrap the rest of the work so a retry does not double-fire the AI agent
+    // or send a second outbound WhatsApp message.
+    const dedupKey = messageSid || `${cleanNumber}:${body.slice(0, 64)}:${Math.floor(Date.now() / 60_000)}`;
+    const idempotency = await runIdempotent({
+      actionType: "whatsapp.inbound",
+      parts: [dedupKey],
+      bucketAt: new Date(),
+      resultFactory: () => processWhatsappMessage({ user, body, cleanNumber, inboundPayload }),
+      waitForCompletionMs: 4000,
+    });
+
+    if (!idempotency.created) {
+      console.log(`[WhatsApp Webhook] Deduped retry for MessageSid=${messageSid}`);
+    }
+
+    return new NextResponse("OK", { status: 200 });
+  } catch (error) {
+    console.error("[WhatsApp Webhook] Fatal system error:", error);
     await db.webhookEvent
       .create({
         data: {
           provider: "twilio",
-          eventType: "whatsapp.inbound",
-          status: "received",
-          payload: inboundPayload,
+          eventType: "whatsapp.processing",
+          status: "fatal",
+          payload: {
+            error: error instanceof Error ? error.message : String(error),
+          },
         },
       })
-      .catch((eventErr) => {
-        console.error("[WhatsApp Webhook] Failed to record inbound event:", eventErr);
-        return null;
-      });
+      .catch(() => {});
+    return new NextResponse("OK", { status: 200 });
+  }
+}
 
-    // Action-code pre-parse: handle deterministic replies before AI agent
+async function processWhatsappMessage(args: {
+  user: Awaited<ReturnType<typeof findUserByPhone>>;
+  body: string;
+  cleanNumber: string;
+  inboundPayload: { userId: string; workspaceId?: string; from: string; bodyLength: number };
+}): Promise<{ handled: boolean; reason?: string }> {
+  const { user, body, cleanNumber, inboundPayload } = args;
+  if (!user) return { handled: false, reason: "no_user" };
+
+  await db.webhookEvent
+    .create({
+      data: {
+        provider: "twilio",
+        eventType: "whatsapp.inbound",
+        status: "received",
+        payload: inboundPayload,
+      },
+    })
+    .catch((eventErr) => {
+      console.error("[WhatsApp Webhook] Failed to record inbound event:", eventErr);
+      return null;
+    });
+
+  // Action-code pre-parse: handle deterministic replies before AI agent
     const parsed = parseActionCode(body);
     if (parsed) {
       const outcome = await resolveAndExecute(user, parsed).catch(() => ({ handled: false as const }));
@@ -77,7 +123,7 @@ export async function POST(req: Request) {
         } catch (sendErr) {
           console.error("[WhatsApp Webhook] Error sending action-code reply:", sendErr);
         }
-        return new NextResponse("OK", { status: 200 });
+        return { handled: true, reason: "action_code" };
       }
       // Notification not found for this user → fall through to AI agent
     }
@@ -169,21 +215,5 @@ export async function POST(req: Request) {
       }
     }
 
-    return new NextResponse("OK", { status: 200 });
-  } catch (error) {
-    console.error("[WhatsApp Webhook] Fatal system error:", error);
-    await db.webhookEvent
-      .create({
-        data: {
-          provider: "twilio",
-          eventType: "whatsapp.processing",
-          status: "fatal",
-          payload: {
-            error: error instanceof Error ? error.message : String(error),
-          },
-        },
-      })
-      .catch(() => {});
-    return new NextResponse("OK", { status: 200 });
-  }
+  return { handled: true };
 }
