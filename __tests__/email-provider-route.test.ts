@@ -36,6 +36,7 @@ describe("GET /api/auth/email-provider", () => {
     process.env.OUTLOOK_CLIENT_ID = "outlook-client";
     process.env.OUTLOOK_CLIENT_SECRET = "outlook-secret";
     process.env.NEXT_PUBLIC_APP_URL = "https://earlymark.ai";
+    process.env.OAUTH_STATE_SECRET = "test-secret-do-not-use-in-prod";
 
     hoisted.getAuthUser.mockResolvedValue({ email: "miguel@example.com" });
     hoisted.db.user.findFirst.mockResolvedValue({ id: "user_1", workspaceId: "ws_1" });
@@ -101,6 +102,10 @@ describe("GET /api/auth/email-provider", () => {
     expect(response.status).toBe(200);
     expect(body.authUrl).toContain("https://accounts.google.com/o/oauth2/v2/auth?");
     expect(body.authUrl).toContain("client_id=google-client");
-    expect(body.authUrl).toContain("state=%7B%22userId%22%3A%22user_1%22%2C%22provider%22%3A%22gmail%22%7D");
+    // State is now an HMAC-signed token (`<base64-payload>.<signature>`),
+    // so we just confirm it's present and non-empty rather than asserting a literal value.
+    const stateParam = new URL(body.authUrl).searchParams.get("state");
+    expect(stateParam).toBeTruthy();
+    expect(stateParam).toMatch(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
   });
 });

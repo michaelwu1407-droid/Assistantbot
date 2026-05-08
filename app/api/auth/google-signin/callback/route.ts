@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from "next/server"
 
 /**
+ * Returns the input `state` only if it is a same-origin relative path. Anything
+ * else (`//evil.com`, `https://evil.com/x`, `javascript:...`) collapses to the
+ * default `/auth/next`. Without this, the callback's `next` param could be used
+ * to bounce a freshly-signed-in user to an attacker-controlled URL.
+ */
+function safeNextPath(raw: string | null): string {
+  if (!raw) return "/auth/next"
+  if (!raw.startsWith("/") || raw.startsWith("//") || raw.startsWith("/\\")) return "/auth/next"
+  return raw
+}
+
+/**
  * Google OAuth callback. Exchanges the code for an id_token, then redirects
  * to /auth/google-done with the token in the fragment so the client can
  * call Supabase signInWithIdToken and set the session.
@@ -9,7 +21,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
   const code = searchParams.get("code")
   const error = searchParams.get("error")
-  const nextPath = searchParams.get("state") || "/auth/next"
+  const nextPath = safeNextPath(searchParams.get("state"))
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin
 
   if (error) {

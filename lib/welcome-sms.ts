@@ -1,6 +1,9 @@
 import { db } from "@/lib/db";
 import { getSubaccountClient, twilioMasterClient } from "@/lib/twilio";
 import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
+import { withCostCeiling } from "@/lib/cost-ceiling";
+
+const TWILIO_SMS_COST_USD = 0.05;
 
 function getWorkspaceSettings(settings: unknown): Record<string, unknown> {
   if (!settings || typeof settings !== "object" || Array.isArray(settings)) {
@@ -72,11 +75,14 @@ export async function sendProvisionedWelcomeSmsIfNeeded(params: {
   }
 
   const safeTo = assertSafeRecipient("sms", params.ownerPhone);
-  await client.messages.create({
-    to: safeTo,
-    from: workspace.twilioPhoneNumber,
-    body: buildTraceyWelcomeSmsBody(params.businessName, workspace.twilioPhoneNumber),
-  });
+  const fromNumber = workspace.twilioPhoneNumber;
+  await withCostCeiling("twilio", TWILIO_SMS_COST_USD, () =>
+    client.messages.create({
+      to: safeTo,
+      from: fromNumber,
+      body: buildTraceyWelcomeSmsBody(params.businessName, fromNumber),
+    }),
+  );
 
   await db.workspace.update({
     where: { id: params.workspaceId },

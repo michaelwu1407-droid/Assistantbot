@@ -1,6 +1,7 @@
 import { generateObject } from "ai";
 import type { ZodType } from "zod";
 import { contextModel, logicModel } from "@/lib/ai-models";
+import { withCostCeiling, type CostProvider } from "@/lib/cost-ceiling";
 
 type Tier = "context" | "logic";
 
@@ -8,6 +9,19 @@ const modelMap = {
   context: contextModel,
   logic: logicModel,
 } as const;
+
+// Approximate cost per request. Overestimate slightly so the cap kicks in early
+// rather than late — these wrappers protect against runaway loops, not for
+// per-token billing accuracy.
+const COST_PER_REQUEST_USD: Record<Tier, number> = {
+  context: 0.005,
+  logic: 0.01,
+};
+
+const PROVIDER_BY_TIER: Record<Tier, CostProvider> = {
+  context: "gemini",
+  logic: "deepinfra",
+};
 
 const LOGIC_SYSTEM_PROMPT =
   "You are a JSON-only API. Do not explain your reasoning. Output ONLY valid JSON.";
@@ -42,10 +56,12 @@ export async function runDashboardTask<T>({
         : LOGIC_SYSTEM_PROMPT
       : system;
 
-  return generateObject({
-    model,
-    schema,
-    prompt,
-    ...(systemPrompt ? { system: systemPrompt } : {}),
-  });
+  return withCostCeiling(PROVIDER_BY_TIER[tier], COST_PER_REQUEST_USD[tier], async () =>
+    generateObject({
+      model,
+      schema,
+      prompt,
+      ...(systemPrompt ? { system: systemPrompt } : {}),
+    }),
+  );
 }

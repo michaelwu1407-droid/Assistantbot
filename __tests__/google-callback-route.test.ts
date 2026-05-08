@@ -9,6 +9,10 @@ vi.mock("@/lib/workspace-calendar", () => ({
   upsertGoogleCalendarIntegration,
 }));
 
+vi.mock("@/lib/oauth-state", () => ({
+  verifyWorkspaceState: (raw: string | null | undefined) => (raw ? raw : null),
+}));
+
 describe("GET /api/auth/google/callback", () => {
   beforeEach(() => {
     vi.clearAllMocks();

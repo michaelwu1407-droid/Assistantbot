@@ -18,6 +18,18 @@ vi.mock("@/lib/encryption", () => ({
   encrypt: hoisted.encrypt,
 }));
 
+vi.mock("@/lib/oauth-state", () => ({
+  verifyOAuthState: (raw: string | null | undefined) => {
+    if (!raw) return { ok: false, reason: "missing" } as const;
+    try {
+      const payload = JSON.parse(raw) as { userId?: string; provider?: string };
+      return { ok: true, payload: { ...payload, iat: 0, exp: 9_999_999_999, nonce: "test" } } as const;
+    } catch {
+      return { ok: false, reason: "malformed" } as const;
+    }
+  },
+}));
+
 describe("GET /api/auth/outlook/callback", () => {
   beforeEach(() => {
     vi.clearAllMocks();

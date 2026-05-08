@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
+import { signOAuthState } from "@/lib/oauth-state";
 
 // ─── OAuth Configuration ───────────────────────────────────────────────
 
@@ -74,7 +75,7 @@ export async function GET(req: NextRequest) {
       response_type: "code",
       access_type: "offline", // Important for refresh token
       prompt: "consent", // Force consent to get refresh token
-      state: JSON.stringify({ userId: user.id, provider: "gmail" })
+      state: signOAuthState({ userId: user.id, provider: "gmail", intent: "connect" })
     });
     authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
   } else {
@@ -84,7 +85,7 @@ export async function GET(req: NextRequest) {
       scope: config.scopes.join(" "),
       response_type: "code",
       response_mode: "query",
-      state: JSON.stringify({ userId: user.id, provider: "outlook" })
+      state: signOAuthState({ userId: user.id, provider: "outlook", intent: "connect" })
     });
     authUrl = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params.toString()}`;
   }

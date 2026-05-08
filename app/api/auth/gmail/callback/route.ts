@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { encrypt } from "@/lib/encryption";
+import { verifyOAuthState } from "@/lib/oauth-state";
 
 // ─── Gmail OAuth Callback ─────────────────────────────────────────────────
 
@@ -22,9 +23,22 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  // Verify HMAC-signed state and extract userId/provider from the trusted payload.
+  const verified = verifyOAuthState(state);
+  if (!verified.ok) {
+    return NextResponse.redirect(
+      `${process.env.NEXT_PUBLIC_APP_URL}/crm/settings/integrations?error=invalid_state`,
+    );
+  }
+  const userId = typeof verified.payload.userId === "string" ? verified.payload.userId : "";
+  const provider = typeof verified.payload.provider === "string" ? verified.payload.provider : "";
+  if (!userId || !provider) {
+    return NextResponse.redirect(
+      `${process.env.NEXT_PUBLIC_APP_URL}/crm/settings/integrations?error=invalid_state`,
+    );
+  }
+
   try {
-    // Parse state to get user info
-    const { userId, provider } = JSON.parse(state);
 
     // Exchange authorization code for tokens
     let tokenData;

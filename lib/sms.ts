@@ -2,6 +2,10 @@ import { db } from "@/lib/db";
 import { getWorkspaceTwilioClient } from "@/lib/twilio";
 import { buildPublicJobPortalUrl } from "@/lib/public-job-portal";
 import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
+import { withCostCeiling } from "@/lib/cost-ceiling";
+
+// AU/US SMS rates land around $0.04-0.05 per outbound segment.
+const TWILIO_SMS_COST_USD = 0.05;
 
 /**
  * Sends an introductory SMS to a new lead.
@@ -47,11 +51,14 @@ export async function sendIntroSms(options: {
   }
 
   const safeTo = assertSafeRecipient("sms", options.to);
-  const message = await twilioClient.messages.create({
-    body: introMessage,
-    from: workspace.twilioPhoneNumber,
-    to: safeTo,
-  });
+  const fromNumber = workspace.twilioPhoneNumber;
+  const message = await withCostCeiling("twilio", TWILIO_SMS_COST_USD, () =>
+    twilioClient.messages.create({
+      body: introMessage,
+      from: fromNumber,
+      to: safeTo,
+    }),
+  );
 
   await db.activity.create({
     data: {

@@ -16,7 +16,16 @@
 
 import * as Sentry from "@sentry/nextjs"
 
-export type CostProvider = "openai" | "anthropic" | "cartesia" | "deepgram" | "twilio" | "resend"
+export type CostProvider =
+  | "openai"
+  | "anthropic"
+  | "gemini"
+  | "deepinfra"
+  | "groq"
+  | "cartesia"
+  | "deepgram"
+  | "twilio"
+  | "resend"
 
 export class CostCeilingExceededError extends Error {
   readonly provider: CostProvider
@@ -34,6 +43,9 @@ export class CostCeilingExceededError extends Error {
 const DEFAULT_DAILY_CAPS_USD: Record<CostProvider, number> = {
   openai: 50,
   anthropic: 50,
+  gemini: 25,
+  deepinfra: 25,
+  groq: 25,
   cartesia: 25,
   deepgram: 25,
   twilio: 25,
@@ -43,6 +55,9 @@ const DEFAULT_DAILY_CAPS_USD: Record<CostProvider, number> = {
 const ceilingState: Record<CostProvider, { dayKey: string; spentUsd: number; warnedAt50: boolean; warnedAt80: boolean }> = {
   openai: emptyBucket(),
   anthropic: emptyBucket(),
+  gemini: emptyBucket(),
+  deepinfra: emptyBucket(),
+  groq: emptyBucket(),
   cartesia: emptyBucket(),
   deepgram: emptyBucket(),
   twilio: emptyBucket(),

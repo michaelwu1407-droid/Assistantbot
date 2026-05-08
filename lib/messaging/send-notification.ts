@@ -3,6 +3,10 @@ import { getWorkspaceTwilioClient } from "@/lib/twilio"
 import { buildPublicJobPortalUrl } from "@/lib/public-job-portal"
 import { getNotificationChannel, NotificationScenario, type NotificationChannel } from "./channel-router"
 import { checkSafeRecipient } from "./safe-recipient"
+import { withCostCeiling } from "@/lib/cost-ceiling"
+
+const TWILIO_SMS_COST_USD = 0.05
+const RESEND_EMAIL_COST_USD = 0.001
 
 type WorkspaceMessagingConfig = {
   id: string
@@ -86,12 +90,15 @@ export async function sendNotification(
       return { channel, sent: false, error: `Refusing SMS: ${smsRecipient.reason}` }
     }
     let smsSid: string | undefined
+    const fromNumber = workspace.twilioPhoneNumber
     try {
-      const msg = await client.messages.create({
-        to: smsRecipient.target,
-        from: workspace.twilioPhoneNumber,
-        body,
-      })
+      const msg = await withCostCeiling("twilio", TWILIO_SMS_COST_USD, () =>
+        client.messages.create({
+          to: smsRecipient.target,
+          from: fromNumber,
+          body,
+        }),
+      )
       smsSid = msg.sid
     } catch (err) {
       db.webhookEvent.create({
@@ -148,12 +155,14 @@ export async function sendNotification(
   }
   const { Resend } = await import("resend")
   const resend = new Resend(resendKey)
-  const { error } = await resend.emails.send({
-    from: `${workspace.name} <noreply@${fromDomain}>`,
-    to: [emailRecipient.target],
-    subject: options.emailSubject,
-    text: emailBody,
-  })
+  const { error } = await withCostCeiling("resend", RESEND_EMAIL_COST_USD, () =>
+    resend.emails.send({
+      from: `${workspace.name} <noreply@${fromDomain}>`,
+      to: [emailRecipient.target],
+      subject: options.emailSubject,
+      text: emailBody,
+    }),
+  )
 
   if (error) {
     db.webhookEvent.create({
