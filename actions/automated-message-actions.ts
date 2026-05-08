@@ -6,6 +6,11 @@ import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
 import { DEFAULT_WORKSPACE_TIMEZONE } from "@/lib/timezone";
 import { runIdempotent } from "@/lib/idempotency";
 import { buildPublicJobPortalUrl } from "@/lib/public-job-portal";
+import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
+import { withCostCeiling } from "@/lib/cost-ceiling";
+
+const TWILIO_SMS_COST_USD = 0.05;
+const RESEND_EMAIL_COST_USD = 0.001;
 
 export interface AutomatedMessageRuleView {
   id: string;
@@ -287,12 +292,15 @@ export async function processBookingReminders(): Promise<{
                 ? `Booking confirmed: ${job.title || "your appointment"}`
                 : `Reminder: ${job.title || "your appointment"} is tomorrow`;
 
-              const { error } = await resend.emails.send({
-                from: `${workspace?.name || "Earlymark"} <noreply@${fromDomain}>`,
-                to: [job.contact!.email!],
-                subject,
-                text: emailBody,
-              });
+              const safeEmailTo = assertSafeRecipient("email", job.contact!.email!);
+              const { error } = await withCostCeiling("resend", RESEND_EMAIL_COST_USD, () =>
+                resend.emails.send({
+                  from: `${workspace?.name || "Earlymark"} <noreply@${fromDomain}>`,
+                  to: [safeEmailTo],
+                  subject,
+                  text: emailBody,
+                }),
+              );
               if (error) throw new Error(error.message);
 
               const sentAt = new Date();
@@ -324,12 +332,15 @@ export async function processBookingReminders(): Promise<{
                 throw new Error("No usable Twilio messaging client is available for this workspace");
               }
 
+              const safeSmsTo = assertSafeRecipient("sms", job.contact!.phone!);
               await retryWithBackoff(() =>
-                client.messages.create({
-                  to: job.contact!.phone!,
-                  from: workspace!.twilioPhoneNumber!,
-                  body: smsBody,
-                })
+                withCostCeiling("twilio", TWILIO_SMS_COST_USD, () =>
+                  client.messages.create({
+                    to: safeSmsTo,
+                    from: workspace!.twilioPhoneNumber!,
+                    body: smsBody,
+                  }),
+                ),
               );
 
               const sentAt = new Date();

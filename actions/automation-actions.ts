@@ -6,6 +6,10 @@ import { createNotification } from "./notification-actions";
 import { createTask } from "./task-actions";
 import { runSendEmail } from "./chat-actions";
 import { renderTemplate } from "./template-actions";
+import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
+import { withCostCeiling } from "@/lib/cost-ceiling";
+
+const TWILIO_SMS_COST_USD = 0.05;
 import { logActivity } from "./activity-actions";
 import { DealStage } from "@prisma/client";
 
@@ -493,11 +497,15 @@ export async function evaluateAutomations(
               process.env.TWILIO_ACCOUNT_SID!,
               process.env.TWILIO_AUTH_TOKEN!
             );
-            await twilioClient.messages.create({
-              body: action.message || `Hi from ${workspace.name}`,
-              from: workspace.twilioPhoneNumber,
-              to: phone,
-            });
+            const safeTo = assertSafeRecipient("sms", phone);
+            const fromNumber = workspace.twilioPhoneNumber;
+            await withCostCeiling("twilio", TWILIO_SMS_COST_USD, () =>
+              twilioClient.messages.create({
+                body: action.message || `Hi from ${workspace.name}`,
+                from: fromNumber,
+                to: safeTo,
+              }),
+            );
             console.log(`[Automation] SMS sent: ${automation.name} → ${phone}`);
           } catch (error) {
             console.error(`[Automation] Failed to send SMS for ${automation.name}:`, error);

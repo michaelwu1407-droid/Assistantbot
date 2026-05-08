@@ -1,4 +1,9 @@
 import { twilioMasterClient } from "@/lib/twilio";
+import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
+import { withCostCeiling } from "@/lib/cost-ceiling";
+
+const TWILIO_SMS_COST_USD = 0.05;
+const RESEND_EMAIL_COST_USD = 0.001;
 
 const DEFAULT_ALERT_SMS_TO = "+61434955958";
 const DEFAULT_ALERT_EMAIL_TO = "michael.wu1407@gmail.com";
@@ -75,13 +80,16 @@ async function sendSmsNotifications(params: VoiceNotificationParams) {
 
   const body = `${params.subject}\n\n${params.message}${renderMetadata(params.metadata)}`;
   await Promise.all(
-    recipients.map((to) =>
-      client.messages.create({
-        from,
-        to,
-        body,
-      }),
-    ),
+    recipients.map((to) => {
+      const safeTo = assertSafeRecipient("sms", to);
+      return withCostCeiling("twilio", TWILIO_SMS_COST_USD, () =>
+        client.messages.create({
+          from,
+          to: safeTo,
+          body,
+        }),
+      );
+    }),
   );
 
   return { sent: true, skipped: false, recipients };
@@ -102,12 +110,15 @@ async function sendEmailNotifications(params: VoiceNotificationParams) {
 
   const { Resend } = await import("resend");
   const resend = new Resend(resendKey);
-  await resend.emails.send({
-    from: getAlertEmailFrom(),
-    to: recipients,
-    subject: params.subject,
-    text: `${params.message}${renderMetadata(params.metadata)}`,
-  });
+  const safeRecipients = recipients.map((email) => assertSafeRecipient("email", email));
+  await withCostCeiling("resend", RESEND_EMAIL_COST_USD, () =>
+    resend.emails.send({
+      from: getAlertEmailFrom(),
+      to: safeRecipients,
+      subject: params.subject,
+      text: `${params.message}${renderMetadata(params.metadata)}`,
+    }),
+  );
 
   return { sent: true, skipped: false, recipients };
 }

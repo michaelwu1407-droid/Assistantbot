@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { initiateDemoCall } from "@/lib/demo-call"
 import { dispatchDemoCallFailureAlert } from "@/lib/demo-call-failure-alert"
+import { assertSafeRecipient } from "@/lib/messaging/safe-recipient"
+import { withCostCeiling } from "@/lib/cost-ceiling"
+
+const RESEND_EMAIL_COST_USD = 0.001
 import {
   markDemoLeadFailed,
   markDemoLeadInitiated,
@@ -86,23 +90,26 @@ export async function POST(request: NextRequest) {
         const { Resend } = await import("resend")
         const resend = new Resend(resendKey)
         const fromDomain = process.env.RESEND_FROM_DOMAIN || "earlymark.ai"
-        await resend.emails.send({
-          from: `Earlymark Contact <contact@${fromDomain}>`,
-          to: ["support@earlymark.ai"],
-          replyTo: email,
-          subject: `[Contact – ${department || "general"}] ${subject}`,
-          text: [
-            `Department: ${department || "general"}`,
-            `Name: ${name}`,
-            `Email: ${email}`,
-            phone ? `Phone: ${phone}` : "",
-            callPlaced ? `Tracey callback: initiated` : callError ? `Tracey callback FAILED: ${callError}` : "",
-            "",
-            message,
-          ]
-            .filter(Boolean)
-            .join("\n"),
-        })
+        const safeSupportTo = assertSafeRecipient("email", "support@earlymark.ai")
+        await withCostCeiling("resend", RESEND_EMAIL_COST_USD, () =>
+          resend.emails.send({
+            from: `Earlymark Contact <contact@${fromDomain}>`,
+            to: [safeSupportTo],
+            replyTo: email,
+            subject: `[Contact – ${department || "general"}] ${subject}`,
+            text: [
+              `Department: ${department || "general"}`,
+              `Name: ${name}`,
+              `Email: ${email}`,
+              phone ? `Phone: ${phone}` : "",
+              callPlaced ? `Tracey callback: initiated` : callError ? `Tracey callback FAILED: ${callError}` : "",
+              "",
+              message,
+            ]
+              .filter(Boolean)
+              .join("\n"),
+          }),
+        )
       } catch (emailError) {
         console.error("Contact form email send failed:", emailError)
         // Email failure should not 500 if the callback already went through.

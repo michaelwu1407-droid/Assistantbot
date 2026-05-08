@@ -10,6 +10,11 @@ import { getWorkspaceSettingsById } from "@/actions/settings-actions";
 import { getDeals, createDeal, updateDealStage, updateDealMetadata, updateDealAssignedTo } from "./deal-actions";
 import { appendTicketNote, logActivity } from "./activity-actions";
 import { createContact, searchContacts } from "./contact-actions";
+import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
+import { withCostCeiling } from "@/lib/cost-ceiling";
+
+const TWILIO_SMS_COST_USD = 0.05;
+const RESEND_EMAIL_COST_USD = 0.001;
 import { completeTask, createTask, deleteTask, getTasks } from "./task-actions";
 import { createNotification } from "./notification-actions";
 import { generateMorningDigest, generateEveningDigest, type DailyDigest } from "@/lib/digest";
@@ -2462,11 +2467,15 @@ export async function runSendSms(
     if (!twilioClient) {
       return `Twilio is configured on this workspace, but no usable messaging client is available right now.`;
     }
-    await twilioClient.messages.create({
-      to: contact.phone,
-      from: workspace.twilioPhoneNumber,
-      body: params.message,
-    });
+    const safeSmsTo = assertSafeRecipient("sms", contact.phone);
+    const fromNumber = workspace.twilioPhoneNumber;
+    await withCostCeiling("twilio", TWILIO_SMS_COST_USD, () =>
+      twilioClient.messages.create({
+        to: safeSmsTo,
+        from: fromNumber,
+        body: params.message,
+      }),
+    );
 
     // Log the outbound message
     await db.chatMessage.create({
@@ -2595,14 +2604,17 @@ export async function runSendEmail(
         if (resendKey && fromDomain) {
           const { Resend } = await import("resend");
           const resend = new Resend(resendKey);
-          const { error } = await resend.emails.send({
-            from: fromAddress,
-            to: [contactEmail],
-            subject: params.subject,
-            text: params.body,
-            replyTo: replyToAddress,
-            bcc: bccAddress,
-          });
+          const safeEmailTo = assertSafeRecipient("email", contactEmail);
+          const { error } = await withCostCeiling("resend", RESEND_EMAIL_COST_USD, () =>
+            resend.emails.send({
+              from: fromAddress,
+              to: [safeEmailTo],
+              subject: params.subject,
+              text: params.body,
+              replyTo: replyToAddress,
+              bcc: bccAddress,
+            }),
+          );
           if (error) {
             logger.error("Resend send email failed", { component: "chat-actions", action: "runSendEmailAction", workspaceId, contactId: contact.id }, error as Error);
             return { returnMessage: `Failed to send email to ${contact.name}: ${error.message}` };
@@ -3502,25 +3514,28 @@ export async function handleSupportRequest(
     try {
       const { Resend } = await import("resend");
       const resend = new Resend(resendKey);
-      await resend.emails.send({
-        from: `Earlymark Support <${fromAddress}>`,
-        to: [supportEmail],
-        replyTo: user.email ?? undefined,
-        subject: `[Chat Support:${priority.toUpperCase()}] ${subject}`,
-        text: [
-          `Priority: ${priority}`,
-          `Ticket ID: ${supportTicket.id}`,
-          `User: ${user.name || "Unknown user"}`,
-          `Email: ${user.email || "Unknown email"}`,
-          `Phone: ${user.phone || "Not provided"}`,
-          `Workspace: ${workspace.name}`,
-          `Tracey number: ${workspace.twilioPhoneNumber || "Not configured"}`,
-          `Twilio Account: ${workspace.twilioSubaccountId ? "Active" : "Not setup"}`,
-          `Voice Agent: ${workspace.twilioSipTrunkSid ? "Active (LiveKit)" : "Not setup"}`,
-          "",
-          message,
-        ].join("\n"),
-      });
+      const safeSupportEmailTo = assertSafeRecipient("email", supportEmail);
+      await withCostCeiling("resend", RESEND_EMAIL_COST_USD, () =>
+        resend.emails.send({
+          from: `Earlymark Support <${fromAddress}>`,
+          to: [safeSupportEmailTo],
+          replyTo: user.email ?? undefined,
+          subject: `[Chat Support:${priority.toUpperCase()}] ${subject}`,
+          text: [
+            `Priority: ${priority}`,
+            `Ticket ID: ${supportTicket.id}`,
+            `User: ${user.name || "Unknown user"}`,
+            `Email: ${user.email || "Unknown email"}`,
+            `Phone: ${user.phone || "Not provided"}`,
+            `Workspace: ${workspace.name}`,
+            `Tracey number: ${workspace.twilioPhoneNumber || "Not configured"}`,
+            `Twilio Account: ${workspace.twilioSubaccountId ? "Active" : "Not setup"}`,
+            `Voice Agent: ${workspace.twilioSipTrunkSid ? "Active (LiveKit)" : "Not setup"}`,
+            "",
+            message,
+          ].join("\n"),
+        }),
+      );
     } catch (error) {
       logger.error("Failed to email chatbot support request", {
         component: "chat-actions",

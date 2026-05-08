@@ -8,6 +8,10 @@ import type { Prisma } from "@prisma/client"
 import { getSubaccountClient, twilioMasterClient } from "@/lib/twilio"
 import { buildCallForwardingSetupSmsBody, type CallForwardingCarrier } from "@/lib/call-forwarding"
 import { normalizeWeeklyHours, type WeeklyHours } from "@/lib/working-hours"
+import { assertSafeRecipient } from "@/lib/messaging/safe-recipient"
+import { withCostCeiling } from "@/lib/cost-ceiling"
+
+const TWILIO_SMS_COST_USD = 0.05
 import { normalizeAppAgentMode, normalizeAgentMode } from "@/lib/agent-mode"
 import { buildLeadCaptureEmail, resolveInboundLeadDomain, toLeadCaptureAlias } from "@/lib/lead-capture-email"
 import { getInboundLeadEmailReadiness } from "@/lib/inbound-lead-email-readiness"
@@ -517,11 +521,15 @@ export async function sendCallForwardingSetupSms(input?: {
         carrier,
     })
 
-    await client.messages.create({
-        to: owner.phone,
-        from: workspace.twilioPhoneNumber,
-        body: messageBody,
-    })
+    const safeOwnerPhone = assertSafeRecipient("sms", owner.phone)
+    const fromNumber = workspace.twilioPhoneNumber
+    await withCostCeiling("twilio", TWILIO_SMS_COST_USD, () =>
+        client.messages.create({
+            to: safeOwnerPhone,
+            from: fromNumber,
+            body: messageBody,
+        }),
+    )
 
     await db.workspace.update({
         where: { id: workspace.id },

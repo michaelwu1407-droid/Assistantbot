@@ -1,7 +1,11 @@
 import twilio from "twilio";
 import { db } from "@/lib/db";
+import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
+import { withCostCeiling } from "@/lib/cost-ceiling";
 
-const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN 
+const TWILIO_SMS_COST_USD = 0.05;
+
+const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN
   ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
   : null;
 
@@ -25,11 +29,14 @@ export async function sendVerificationSms(
     throw new Error("No master Twilio number configured for verification");
   }
 
-  const message = await twilioClient.messages.create({
-    body: `${businessName}: Your verification code is ${code}. Valid for 10 minutes.`,
-    from: fromNumber,
-    to: phoneNumber,
-  });
+  const safeTo = assertSafeRecipient("sms", phoneNumber);
+  const message = await withCostCeiling("twilio", TWILIO_SMS_COST_USD, () =>
+    twilioClient.messages.create({
+      body: `${businessName}: Your verification code is ${code}. Valid for 10 minutes.`,
+      from: fromNumber,
+      to: safeTo,
+    }),
+  );
 
   return message;
 }

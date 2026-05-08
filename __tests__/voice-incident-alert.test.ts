@@ -44,7 +44,7 @@ describe("dispatchVoiceIncidentNotifications", () => {
   });
 
   it("skips SMS alerts by default and still sends email alerts", async () => {
-    process.env.VOICE_ALERT_EMAIL_TO = "alerts@example.com";
+    process.env.VOICE_ALERT_EMAIL_TO = "alerts@earlymark.ai";
 
     const result = await dispatchVoiceIncidentNotifications({
       subject: "VOICE ALERT: fleet critical",
@@ -60,7 +60,7 @@ describe("dispatchVoiceIncidentNotifications", () => {
     expect(sendEmailMock).toHaveBeenCalledTimes(1);
     expect(sendEmailMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        to: ["alerts@example.com"],
+        to: ["alerts@earlymark.ai"],
         subject: "VOICE ALERT: fleet critical",
       }),
     );
@@ -70,7 +70,7 @@ describe("dispatchVoiceIncidentNotifications", () => {
     process.env.VOICE_ALERT_SMS_ENABLED = "true";
     process.env.VOICE_ALERT_SMS_TO = "+61411111111";
     process.env.VOICE_ALERT_SMS_FROM = "+61422222222";
-    process.env.VOICE_ALERT_EMAIL_TO = "alerts@example.com";
+    process.env.VOICE_ALERT_EMAIL_TO = "alerts@earlymark.ai";
 
     const result = await dispatchVoiceIncidentNotifications({
       subject: "VOICE RECOVERY: fleet",

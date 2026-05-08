@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
+import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
+import { withCostCeiling } from "@/lib/cost-ceiling";
+
+const RESEND_EMAIL_COST_USD = 0.001;
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,22 +59,25 @@ export async function POST(request: NextRequest) {
 
     const { Resend } = await import("resend");
     const resend = new Resend(resendKey);
-    const emailResult = await resend.emails.send({
-      from: `Earlymark Support <${fromAddress}>`,
-      to: [supportEmail],
-      replyTo: user.email,
-      subject: `[Support:${(priority || "medium").toUpperCase()}] ${subject}`,
-      text: [
-        `Priority: ${priority || "medium"}`,
-        `User: ${user.name || "Unknown user"}`,
-        `Email: ${user.email}`,
-        `Workspace: ${user.workspace?.name || "Unknown workspace"}`,
-        `Workspace type: ${user.workspace?.type || "unknown"}`,
-        `Tracey number: ${user.workspace?.twilioPhoneNumber || "Not configured"}`,
-        "",
-        message,
-      ].join("\n"),
-    });
+    const safeSupportTo = assertSafeRecipient("email", supportEmail);
+    const emailResult = await withCostCeiling("resend", RESEND_EMAIL_COST_USD, () =>
+      resend.emails.send({
+        from: `Earlymark Support <${fromAddress}>`,
+        to: [safeSupportTo],
+        replyTo: user.email,
+        subject: `[Support:${(priority || "medium").toUpperCase()}] ${subject}`,
+        text: [
+          `Priority: ${priority || "medium"}`,
+          `User: ${user.name || "Unknown user"}`,
+          `Email: ${user.email}`,
+          `Workspace: ${user.workspace?.name || "Unknown workspace"}`,
+          `Workspace type: ${user.workspace?.type || "unknown"}`,
+          `Tracey number: ${user.workspace?.twilioPhoneNumber || "Not configured"}`,
+          "",
+          message,
+        ].join("\n"),
+      }),
+    );
 
     if (emailResult.error) {
       return NextResponse.json({

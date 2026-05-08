@@ -7,6 +7,10 @@ import { runIdempotent } from "@/lib/idempotency";
 import { sendNotification } from "@/lib/messaging/send-notification";
 import { NotificationScenario } from "@/lib/messaging/channel-router";
 import { DEFAULT_WORKSPACE_TIMEZONE } from "@/lib/timezone";
+import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
+import { withCostCeiling } from "@/lib/cost-ceiling";
+
+const TWILIO_SMS_COST_USD = 0.05;
 
 // Simple phone formatting function
 function formatPhoneE164(phone: string): string {
@@ -37,11 +41,14 @@ async function sendSms(
   if (!twilioClient) {
     throw new Error("No usable Twilio messaging client is available for this workspace");
   }
-  await twilioClient.messages.create({
-    body: message,
-    from: fromNumber,
-    to: phone,
-  });
+  const safeTo = assertSafeRecipient("sms", phone);
+  await withCostCeiling("twilio", TWILIO_SMS_COST_USD, () =>
+    twilioClient.messages.create({
+      body: message,
+      from: fromNumber,
+      to: safeTo,
+    }),
+  );
 }
 
 export async function sendJobReminder(dealId: string) {
@@ -505,11 +512,15 @@ export async function sendSupportAlert(message: string, metadata?: Record<string
       return { success: false, error: "Twilio not configured" };
     }
 
-    await twilioClient.messages.create({
-      body: `🚨 Earlymark Support Alert\n\n${message}\n\n${metadata ? `Metadata: ${JSON.stringify(metadata)}` : ''}`,
-      from: process.env.TWILIO_PHONE_NUMBER || "+614283123456",
-      to: "+614283123456",
-    });
+    const supportPhone = process.env.SUPPORT_ALERT_PHONE || "+614283123456";
+    const safeTo = assertSafeRecipient("sms", supportPhone);
+    await withCostCeiling("twilio", TWILIO_SMS_COST_USD, () =>
+      twilioClient.messages.create({
+        body: `🚨 Earlymark Support Alert\n\n${message}\n\n${metadata ? `Metadata: ${JSON.stringify(metadata)}` : ''}`,
+        from: process.env.TWILIO_PHONE_NUMBER || supportPhone,
+        to: safeTo,
+      }),
+    );
 
     return { success: true, message: "Support alert sent" };
   } catch (error) {

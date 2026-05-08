@@ -6,6 +6,10 @@ import { revalidatePath } from "next/cache";
 import { UserRole } from "@prisma/client";
 import { Resend } from "resend";
 import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
+import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
+import { withCostCeiling } from "@/lib/cost-ceiling";
+
+const RESEND_EMAIL_COST_USD = 0.001;
 
 function getResendClient(): Resend | null {
   const key = process.env.RESEND_API_KEY;
@@ -68,9 +72,11 @@ export async function createInvite(params: {
 
           const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://earlymark.ai'}/invite/join?token=${invite.token}`;
 
-          await resend.emails.send({
+          const safeInviteEmailTo = assertSafeRecipient("email", params.email);
+          await withCostCeiling("resend", RESEND_EMAIL_COST_USD, () =>
+            resend.emails.send({
             from: `noreply@${process.env.RESEND_FROM_DOMAIN || 'earlymark.ai'}`,
-            to: [params.email],
+            to: [safeInviteEmailTo],
             subject: `You're invited to join ${workspace?.name || 'Earlymark'}`,
             html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f8fafc;">
@@ -94,7 +100,8 @@ export async function createInvite(params: {
               </div>
             </div>
           `,
-          });
+            }),
+          );
         } catch (emailError) {
           console.error("Failed to send invite email:", emailError);
           // Don't fail the whole operation if email fails

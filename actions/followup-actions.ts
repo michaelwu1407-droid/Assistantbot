@@ -4,6 +4,10 @@ import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { sendSMS } from "./messaging-actions";
 import { createNotification } from "./notification-actions";
+import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
+import { withCostCeiling } from "@/lib/cost-ceiling";
+
+const RESEND_EMAIL_COST_USD = 0.001;
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -179,12 +183,15 @@ export async function sendFollowUpMessage(
 
       const { Resend } = await import("resend");
       const resend = new Resend(resendKey);
-      const { error } = await resend.emails.send({
-        from: `${workspace?.name || "Earlymark"} <noreply@earlymark.ai>`,
-        to: [deal.contact.email],
-        subject: `Following up on ${deal.title}`,
-        text: message,
-      });
+      const safeEmailTo = assertSafeRecipient("email", deal.contact.email);
+      const { error } = await withCostCeiling("resend", RESEND_EMAIL_COST_USD, () =>
+        resend.emails.send({
+          from: `${workspace?.name || "Earlymark"} <noreply@earlymark.ai>`,
+          to: [safeEmailTo],
+          subject: `Following up on ${deal.title}`,
+          text: message,
+        }),
+      );
 
       if (error) {
         return { success: false, error: `Email failed: ${error.message}` };
@@ -372,12 +379,15 @@ export async function requestPaymentForDeal(dealId: string): Promise<FollowUpRes
         if (!resendKey) return { success: false, error: "No phone or email configured" };
         const { Resend } = await import("resend");
         const resend = new Resend(resendKey);
-        await resend.emails.send({
-          from: `${deal.workspace.name || "Earlymark"} <noreply@earlymark.ai>`,
-          to: [deal.contact.email],
-          subject: `Payment due: ${deal.title}`,
-          text: message,
-        });
+        const safeEmailTo = assertSafeRecipient("email", deal.contact.email);
+        await withCostCeiling("resend", RESEND_EMAIL_COST_USD, () =>
+          resend.emails.send({
+            from: `${deal.workspace.name || "Earlymark"} <noreply@earlymark.ai>`,
+            to: [safeEmailTo],
+            subject: `Payment due: ${deal.title}`,
+            text: message,
+          }),
+        );
         await db.activity.create({
           data: {
             type: "EMAIL",

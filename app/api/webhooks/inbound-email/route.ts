@@ -5,6 +5,10 @@ import { processIncomingEmailWithGemini } from "@/lib/ai/email-agent";
 import { saveTriageRecommendation, triageIncomingLead } from "@/lib/ai/triage";
 import * as Sentry from "@sentry/nextjs";
 import { isTrackableResendEvent, processResendStatusEvent } from "@/lib/resend-status-events";
+import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
+import { withCostCeiling } from "@/lib/cost-ceiling";
+
+const RESEND_EMAIL_COST_USD = 0.001;
 
 // ─── Resend Webhook Signature Verification ───────────────────────────
 // Resend signs webhook payloads using a shared secret (configured in
@@ -642,12 +646,15 @@ export async function POST(req: NextRequest) {
           // Reply from the business's subdomain address
           const fromAddress = `${workspace.name} <${toAddress.email}>`;
 
-          const { error } = await resend.emails.send({
-            from: fromAddress,
-            to: [sender.email],
-            subject: `Re: ${subject}`,
-            text: geminiResult.reply,
-          });
+          const safeReplyEmailTo = assertSafeRecipient("email", sender.email);
+          const { error } = await withCostCeiling("resend", RESEND_EMAIL_COST_USD, () =>
+            resend.emails.send({
+              from: fromAddress,
+              to: [safeReplyEmailTo],
+              subject: `Re: ${subject}`,
+              text: geminiResult.reply,
+            }),
+          );
 
           if (error) {
             console.error("[inbound-email] Resend send error:", error);

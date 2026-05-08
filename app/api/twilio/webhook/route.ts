@@ -7,6 +7,10 @@ import { generateSMSResponse } from "@/lib/ai/sms-agent"
 import { findContactByPhone, findWorkspaceByTwilioNumber } from "@/lib/workspace-routing"
 import { saveTriageRecommendation, triageIncomingLead } from "@/lib/ai/triage"
 import { isReplyableSmsAddress } from "@/lib/sms-address"
+import { assertSafeRecipient } from "@/lib/messaging/safe-recipient"
+import { withCostCeiling } from "@/lib/cost-ceiling"
+
+const TWILIO_SMS_COST_USD = 0.05
 
 export const maxDuration = 60;
 
@@ -353,11 +357,14 @@ export async function POST(req: NextRequest) {
                 // ─── Send Response via Twilio REST API ──────────────────
                 const client = getWorkspaceTwilioClient(workspace);
                 if (client && workspace.twilioPhoneNumber) {
-                    const sentMessage = await client.messages.create({
-                        from: To,
-                        to: From,
-                        body: aiResponseText,
-                    });
+                    const safeReplyTo = assertSafeRecipient("sms", From);
+                    const sentMessage = await withCostCeiling("twilio", TWILIO_SMS_COST_USD, () =>
+                        client.messages.create({
+                            from: To,
+                            to: safeReplyTo,
+                            body: aiResponseText,
+                        }),
+                    );
                     await recordSmsWebhookEvent({
                         eventType: "sms.reply",
                         status: "success",

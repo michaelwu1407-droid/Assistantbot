@@ -10,6 +10,10 @@ import { createNotification } from "./notification-actions";
 import { MonitoringService } from "@/lib/monitoring";
 import { maybeCreatePricingSuggestionFromConfirmedJob } from "@/lib/pricing-learning";
 import { createTask } from "./task-actions";
+import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
+import { withCostCeiling } from "@/lib/cost-ceiling";
+
+const RESEND_EMAIL_COST_USD = 0.001;
 import { requireCurrentWorkspaceAccess, requireDealInCurrentWorkspace } from "@/lib/workspace-access";
 import { syncGoogleCalendarEventForDeal } from "@/lib/workspace-calendar";
 import { recordWorkspaceAuditEvent } from "@/lib/workspace-audit";
@@ -1010,12 +1014,16 @@ export async function emailInvoice(invoiceId: string) {
   const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@earlymark.ai";
   const subject = `${invoice.status === "DRAFT" ? "Quote" : "Invoice"} ${invoice.number} from ${workspaceName}`;
 
-  const { error: resendError } = await resend.emails.send({
-    from: `"${workspaceName}" <${fromEmail}>`,
-    to: [contact.email],
-    subject,
-    html: pdfResult.html,
-  });
+  const safeEmailTo = assertSafeRecipient("email", contact.email);
+  const html = pdfResult.html;
+  const { error: resendError } = await withCostCeiling("resend", RESEND_EMAIL_COST_USD, () =>
+    resend.emails.send({
+      from: `"${workspaceName}" <${fromEmail}>`,
+      to: [safeEmailTo],
+      subject,
+      html,
+    }),
+  );
 
   if (resendError) {
     logger.error("Resend error while emailing invoice", { component: "tradie-actions", action: "emailInvoice", invoiceId }, resendError as Error);
