@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { formatDate } from "@/lib/format"
 
 interface AutomationListProps {
     initialAutomations: AutomationView[]
@@ -216,7 +217,7 @@ export function AutomationList({ initialAutomations, workspaceId }: AutomationLi
                                     </h4>
                                     {automation.lastFiredAt && (
                                         <Badge variant="outline" className="text-[10px] h-5">
-                                            Fired {new Date(automation.lastFiredAt).toLocaleDateString("en-AU")}
+                                            Fired {formatDate(automation.lastFiredAt)}
                                         </Badge>
                                     )}
                                 </div>

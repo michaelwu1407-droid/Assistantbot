@@ -12,6 +12,7 @@ import { CheckCircle, Star, DollarSign, Camera, ExternalLink } from "lucide-reac
 import { toast } from "sonner"
 import { sendReviewRequestSMS } from "@/actions/messaging-actions"
 import { requestPaymentForDeal } from "@/actions/followup-actions"
+import { formatCurrency } from "@/lib/format"
 
 interface JobCompletionModalProps {
   open: boolean
@@ -176,7 +177,7 @@ export function JobCompletionModal({ open, onOpenChange, deal, onComplete }: Job
                 </div>
                 <div>
                   <Label className="text-sm text-gray-500">Value</Label>
-                  <p className="font-medium text-green-600">${deal.value.toLocaleString()}</p>
+                  <p className="font-medium text-green-600">{formatCurrency(deal.value)}</p>
                 </div>
                 <div className="col-span-2">
                   <Label className="text-sm text-gray-500">Address</Label>

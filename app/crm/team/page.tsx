@@ -36,6 +36,7 @@ import { Copy, Loader2, Plus, Shield, Trash2, Users, Link2, CheckCircle, Mail } 
 import { getTeamMembers, getWorkspaceInvites, createInvite, revokeInvite, removeMember, updateMemberRole } from "@/actions/invite-actions"
 import { toast } from "sonner"
 import { useShellStore } from "@/lib/store"
+import { formatDate } from "@/lib/format"
 
 interface TeamMember {
     id: string
@@ -463,7 +464,7 @@ export default function TeamPage() {
                                                     {invite.email || "Open invite link"}
                                                 </p>
                                                 <p className="mt-1 text-xs text-muted-foreground">
-                                                    Expires {new Date(invite.expiresAt).toLocaleDateString("en-AU")}
+                                                    Expires {formatDate(invite.expiresAt)}
                                                 </p>
                                             </div>
                                         </div>

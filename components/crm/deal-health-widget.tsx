@@ -3,6 +3,7 @@
 import { TrendingUp, Clock, AlertTriangle, Activity } from "lucide-react"
 import { DealView } from "@/actions/deal-actions"
 import { cn } from "@/lib/utils"
+import { formatCurrency } from "@/lib/format"
 
 interface DealHealthWidgetProps {
     deals: DealView[]
@@ -23,7 +24,7 @@ export function DealHealthWidget({ deals }: DealHealthWidgetProps) {
                         <span className="text-[10px] font-bold text-[#64748B] tracking-tight uppercase leading-none mb-1">Pipeline</span>
                         <div className="flex items-baseline gap-1.5">
                             <span className="text-base font-extrabold text-[#0F172A] tracking-tighter leading-none">
-                                ${totalValue.toLocaleString()}
+                                {formatCurrency(totalValue)}
                             </span>
                             <span className="text-[9px] font-bold text-muted-foreground">vs last mo.</span>
                         </div>

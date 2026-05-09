@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowRight, Check, Send, DollarSign, Calendar, AlertCircle, TrendingUp, Clock, AlertTriangle, Plus } from "lucide-react"
 import Link from "next/link"
 import { useIndustry } from "@/components/providers/industry-provider"
+import { formatCurrency } from "@/lib/format"
 
 // ─── Mock Data by Industry ─────────────────────────────────────────
 
@@ -232,7 +233,7 @@ function MockDealCard({ deal, highlighted }: {
             <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center text-foreground font-bold text-[10px]">
                     <DollarSign className="w-2.5 h-2.5 text-muted-foreground mr-0.5" />
-                    {deal.value.toLocaleString()}
+                    {formatCurrency(deal.value)}
                 </div>
                 <div className="h-4 w-4 rounded-full bg-muted flex items-center justify-center text-[7px] font-medium text-muted-foreground border border-border">
                     {deal.initials}

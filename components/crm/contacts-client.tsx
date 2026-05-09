@@ -23,6 +23,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { cn } from "@/lib/utils"
+import { formatShortDate } from "@/lib/format"
 
 interface ContactsClientProps {
   contacts: ContactView[]
@@ -80,10 +81,10 @@ function formatLastContact(date: Date | null): string {
   if (days < 7) return `${days}d ago`
   if (days < 30) return `${Math.floor(days / 7)}w ago`
   if (days < 365) {
-    return contactDate.toLocaleDateString(undefined, { month: "short", day: "numeric" })
+    return formatShortDate(contactDate)
   }
 
-  return contactDate.toLocaleDateString(undefined, { month: "short", year: "2-digit" })
+  return contactDate.toLocaleDateString("en-AU", { month: "short", year: "2-digit" })
 }
 
 export function ContactsClient({ contacts, pagination }: ContactsClientProps) {

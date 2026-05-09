@@ -16,6 +16,7 @@ import { getChatHistory, saveAssistantMessage, confirmJobDraft, runUndoLastActio
 import { getTeamMembers } from '@/actions/invite-actions';
 import { toast } from 'sonner';
 import { useSpeechRecognition } from '@/hooks/use-speech-recognition';
+import { formatCurrency, formatTime as formatTimeLib } from '@/lib/format';
 import { usePathname, useRouter } from 'next/navigation';
 import { CRM_SELECTION_EVENT, CrmSelectionItem } from '@/lib/crm-selection';
 
@@ -490,7 +491,7 @@ function ChatWithHistory({
     setInput("");
   };
 
-  const formatTime = (date: Date) => date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const formatTime = (date: Date) => formatTimeLib(date);
   const isOnlyWelcomeMessage = messages.length <= 1;
 
   return (
@@ -908,7 +909,7 @@ function ChatWithHistory({
                   Summary
                 </p>
                 <p className="mt-1 text-muted-foreground dark:text-slate-300">
-                  Pipeline value: ${digestModal.digest.totalPipelineValue.toLocaleString("en-AU")} - Top actions: {digestModal.digest.topActions.slice(0, 3).join(", ")}
+                  Pipeline value: {formatCurrency(digestModal.digest.totalPipelineValue)} - Top actions: {digestModal.digest.topActions.slice(0, 3).join(", ")}
                 </p>
               </div>
               {digestModal.kind === "evening" && (

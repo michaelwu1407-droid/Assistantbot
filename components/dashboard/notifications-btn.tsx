@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { getNotifications, markAsRead, markAllAsRead, type NotificationView } from "@/actions/notification-actions"
 import { approveCompletion, approveDraft } from "@/actions/deal-actions"
 import { cn } from "@/lib/utils"
+import { formatTime } from "@/lib/format"
 import { toast } from "sonner"
 
 const ACTION_LABELS: Record<string, { label: string; icon: React.ElementType; className: string }> = {
@@ -256,7 +257,7 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
                                                     </button>
                                                 )}
                                                 <p className="text-[10px] text-muted-foreground mt-1.5">
-                                                    {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    {formatTime(n.createdAt)}
                                                 </p>
                                             </div>
                                             {!n.read && !n.actionType && (

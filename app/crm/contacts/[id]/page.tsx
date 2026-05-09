@@ -8,6 +8,7 @@ import { ChevronLeft, ChevronRight, Edit, Mail, Phone, Building, MapPin, Message
 import Link from "next/link"
 import { format } from "date-fns"
 import { PRISMA_STAGE_LABELS } from "@/lib/deal-utils"
+import { formatCurrency, formatShortDate } from "@/lib/format"
 import { getActivities } from "@/actions/activity-actions"
 
 export const dynamic = "force-dynamic"
@@ -242,7 +243,7 @@ export default async function ContactDetailPage({ params }: PageProps) {
                 })()}
                 <div>
                   <p className="text-muted-foreground text-xs">Value</p>
-                  <p className="font-medium text-emerald-600">${Number(currentDeal.value).toLocaleString("en-AU")}</p>
+                  <p className="font-medium text-emerald-600">{formatCurrency(Number(currentDeal.value))}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground text-xs">Stage</p>
@@ -369,7 +370,7 @@ export default async function ContactDetailPage({ params }: PageProps) {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-foreground dark:text-foreground truncate">{d.title}</p>
-                            <p className="text-xs text-muted-foreground">{PRISMA_STAGE_LABELS[d.stage] ?? d.stage} - ${Number(d.value).toLocaleString("en-AU")} - {format(new Date(d.updatedAt), "MMM d")}</p>
+                            <p className="text-xs text-muted-foreground">{PRISMA_STAGE_LABELS[d.stage] ?? d.stage} - {formatCurrency(Number(d.value))} - {formatShortDate(d.updatedAt)}</p>
                           </div>
                         </Link>
                       ))}

@@ -9,6 +9,7 @@ import { AlertTriangle, CheckCircle2, MessageSquare, Star } from "lucide-react";
 import { resolveFeedback } from "@/actions/feedback-actions";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { formatDate } from "@/lib/format";
 
 interface FeedbackItem {
     id: string;
@@ -141,7 +142,7 @@ function FeedbackCard({ item }: { item: FeedbackItem }) {
                 )}
 
                 {/* Timestamp */}
-                <p className="text-[11px] text-muted-foreground">{new Date(item.createdAt).toLocaleDateString("en-AU")}</p>
+                <p className="text-[11px] text-muted-foreground">{formatDate(item.createdAt)}</p>
             </CardContent>
         </Card>
     );

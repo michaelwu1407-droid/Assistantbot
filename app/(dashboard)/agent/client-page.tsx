@@ -12,6 +12,7 @@ import { SpeedToLeadWidget } from "@/components/agent/speed-to-lead"
 import { AgentLead } from "@/actions/agent-actions"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { SearchDialog } from "@/components/layout/search-dialog"
+import { formatCurrency, formatDate } from "@/lib/format"
 
 // Mock Deal Card (Updated to accept any for now)
 function DealCard({ deal }: { deal: any }) {
@@ -27,9 +28,9 @@ function DealCard({ deal }: { deal: any }) {
       </div>
       <div className="flex justify-between text-muted-foreground text-xs">
         <span>{deal.contactName}</span>
-        <span>${deal.value?.toLocaleString("en-AU")}</span>
+        <span>{formatCurrency(deal.value)}</span>
       </div>
-      <div className="mt-2 text-xs text-muted-foreground">Updated: {new Date(deal.updatedAt).toLocaleDateString("en-AU")}</div>
+      <div className="mt-2 text-xs text-muted-foreground">Updated: {formatDate(deal.updatedAt)}</div>
     </div>
   )
 }

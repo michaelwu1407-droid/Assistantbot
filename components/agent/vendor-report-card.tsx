@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileBarChart, Send, TrendingUp, TrendingDown } from "lucide-react";
+import { formatCurrency } from "@/lib/format";
 import { toast } from "sonner";
 
 export interface VendorReportData {
@@ -36,11 +37,11 @@ export function VendorReportCard({ data }: { data?: VendorReportData }) {
                 <div className="space-y-1">
                     <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Vendor Goal</span>
-                        <span className="font-semibold">${goal.toLocaleString()}</span>
+                        <span className="font-semibold">{formatCurrency(goal)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Market Feedback</span>
-                        <span className="font-semibold text-amber-600">${feedback.toLocaleString()}</span>
+                        <span className="font-semibold text-amber-600">{formatCurrency(feedback)}</span>
                     </div>
                     {/* Visual Bar */}
                     <div className="h-2 w-full bg-muted rounded-full mt-2 overflow-hidden flex relative">

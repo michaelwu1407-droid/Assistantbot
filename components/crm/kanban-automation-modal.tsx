@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { getUserFacingDealStageLabel } from "@/lib/deal-utils"
+import { formatCurrency, formatDate } from "@/lib/format"
 
 interface KanbanAutomationModalProps {
   open: boolean
@@ -109,7 +110,7 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
         )
         break
       case "escalate":
-        setCustomMessage(`This deal has been stale for ${daysSinceLastActivity} days and requires manager attention. Value: $${deal.value.toLocaleString()}`)
+        setCustomMessage(`This deal has been stale for ${daysSinceLastActivity} days and requires manager attention. Value: ${formatCurrency(deal.value)}`)
         break
       default:
         setCustomMessage("")
@@ -181,7 +182,7 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
                 <h4 className="font-medium text-gray-900">{deal.title}</h4>
                 <p className="text-sm text-gray-600">{deal.contactName}</p>
                 <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
-                  <span>Value: ${deal.value.toLocaleString()}</span>
+                  <span>Value: {formatCurrency(deal.value)}</span>
                   <span>•</span>
                   <span>Stage: {getUserFacingDealStageLabel(deal.currentStage)}</span>
                 </div>
@@ -192,7 +193,7 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
               </Badge>
             </div>
             <div className="mt-2 text-sm text-gray-600">
-              Last activity: {deal.lastActivity.toLocaleDateString("en-AU")} ({daysSinceLastActivity} days ago)
+              Last activity: {formatDate(deal.lastActivity)} ({daysSinceLastActivity} days ago)
             </div>
           </div>
 

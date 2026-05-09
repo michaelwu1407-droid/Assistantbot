@@ -13,6 +13,7 @@ import { ActivityFeed } from "@/components/crm/activity-feed"
 import { getActivities } from "@/actions/activity-actions"
 import { format } from "date-fns"
 import { PRISMA_STAGE_LABELS } from "@/lib/deal-utils"
+import { formatCurrency } from "@/lib/format"
 import { formatDateTimeInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone"
 
 export const dynamic = "force-dynamic"
@@ -117,7 +118,7 @@ export default async function DealDetailPage({ params }: PageProps) {
             <p className="text-muted-foreground text-sm mt-0.5">
               {contact?.company || "No company"} -{" "}
               <span className="text-emerald-600 font-medium">
-                ${Number(deal.invoicedAmount && Number(deal.invoicedAmount) > 0 ? deal.invoicedAmount : deal.value || 0).toLocaleString("en-AU")}
+                {formatCurrency(Number(deal.invoicedAmount && Number(deal.invoicedAmount) > 0 ? deal.invoicedAmount : deal.value || 0))}
               </span>
               {deal.invoicedAmount && Number(deal.invoicedAmount) > 0 && (
                 <span className="text-xs text-muted-foreground ml-1">invoiced</span>
@@ -229,15 +230,15 @@ export default async function DealDetailPage({ params }: PageProps) {
                 {deal.invoicedAmount && Number(deal.invoicedAmount) > 0 ? (
                   <>
                     <p className="text-muted-foreground text-xs">Invoiced</p>
-                    <p className="font-medium text-emerald-600">${Number(deal.invoicedAmount).toLocaleString("en-AU")}</p>
+                    <p className="font-medium text-emerald-600">{formatCurrency(Number(deal.invoicedAmount))}</p>
                     {Number(deal.invoicedAmount) !== Number(deal.value || 0) && (
-                      <p className="text-xs text-muted-foreground mt-0.5">Quoted: ${Number(deal.value || 0).toLocaleString("en-AU")}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Quoted: {formatCurrency(Number(deal.value || 0))}</p>
                     )}
                   </>
                 ) : (
                   <>
                     <p className="text-muted-foreground text-xs">Quoted value</p>
-                    <p className="font-medium text-emerald-600">${Number(deal.value || 0).toLocaleString("en-AU")}</p>
+                    <p className="font-medium text-emerald-600">{formatCurrency(Number(deal.value || 0))}</p>
                   </>
                 )}
               </div>
@@ -387,7 +388,7 @@ export default async function DealDetailPage({ params }: PageProps) {
                         className="block rounded-lg border border-border/50 p-2 text-sm hover:bg-muted/30"
                       >
                         <span className="font-medium text-foreground">{d.title}</span>
-                        <span className="ml-2 text-muted-foreground">${Number(d.value || 0).toLocaleString("en-AU")}</span>
+                        <span className="ml-2 text-muted-foreground">{formatCurrency(Number(d.value || 0))}</span>
                         <span className="mt-0.5 block text-xs text-muted-foreground">
                           {PRISMA_STAGE_LABELS[d.stage] ?? d.stage} - {format(new Date(d.updatedAt), "MMM d")}
                         </span>

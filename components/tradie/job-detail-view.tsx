@@ -12,6 +12,7 @@ import { JobStatusBar } from "./job-status-bar"
 import { CameraFAB } from "./camera-fab"
 import { VoiceNoteInput } from "./voice-note-input"
 import { formatJobHeaderStatus } from "@/lib/job-portal-status-labels"
+import { formatDateTime } from "@/lib/format"
 
 type JobStatus = "SCHEDULED" | "TRAVELING" | "ON_SITE" | "COMPLETED" | "CANCELLED"
 
@@ -191,8 +192,7 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                                             const colorClass = activity.type === "CALL" ? "text-blue-500 bg-blue-50"
                                                 : activity.type === "EMAIL" ? "text-purple-500 bg-purple-50"
                                                 : "text-emerald-500 bg-emerald-50"
-                                            const time = new Date(activity.createdAt)
-                                            const timeStr = time.toLocaleDateString("en-AU", { day: "numeric", month: "short" }) + " " + time.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" })
+                                            const timeStr = formatDateTime(activity.createdAt)
 
                                             return (
                                                 <Card key={activity.id} className="p-3 border-border shadow-sm">

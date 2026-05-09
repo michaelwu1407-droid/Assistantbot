@@ -12,6 +12,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { getUserFacingDealStageLabel } from "@/lib/deal-utils"
+import { formatDate } from "@/lib/format"
 import { Bot, Building2, Calendar, Edit, Home, Mail, MapPin, MessageSquare, Phone } from "lucide-react"
 import type { SVGProps } from "react"
 import Link from "next/link"
@@ -203,7 +204,7 @@ export function ContactProfile({ contact }: ContactProfileProps) {
                                     <div className="text-muted-foreground text-[10px] uppercase tracking-wider font-medium">Last Activity</div>
                                     <div className="text-foreground font-medium">
                                         {contact.lastActivityDate
-                                            ? new Date(contact.lastActivityDate).toLocaleDateString("en-AU")
+                                            ? formatDate(contact.lastActivityDate)
                                             : "Never"}
                                     </div>
                                 </div>

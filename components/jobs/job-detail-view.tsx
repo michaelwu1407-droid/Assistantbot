@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation"
 import { InvoiceGenerator } from "@/components/invoicing/invoice-generator"
 import { JobMedia } from "./job-media"
 import { formatInvoiceStatusLabel, formatJobHeaderStatus } from "@/lib/job-portal-status-labels"
+import { formatCurrency, formatDate } from "@/lib/format"
 import Link from "next/link"
 import { JobCompletionModal } from "@/components/tradie/job-completion-modal"
 
@@ -227,7 +228,7 @@ export default function JobDetailView({ job }: JobDetailViewProps) {
                                                         {formatInvoiceStatusLabel(inv.status)}
                                                     </Badge>
                                                 </p>
-                                                <p className="text-xs text-muted-foreground">${Number(inv.total).toFixed(2)} • {new Date(inv.createdAt).toLocaleDateString("en-AU")}</p>
+                                                <p className="text-xs text-muted-foreground">{formatCurrency(Number(inv.total))} • {formatDate(inv.createdAt)}</p>
                                             </div>
                                             <InvoiceGenerator invoiceId={inv.id} invoiceNumber={inv.number} />
                                         </div>

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { JobStatusBar } from "./job-status-bar"
 import { MaterialPicker } from "./material-picker"
+import { formatCurrency, formatTime } from "@/lib/format"
 
 interface TradieJob {
     id: string
@@ -45,7 +46,7 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
     }
 
     const scheduledTimeLabel = job.scheduledAt
-        ? new Date(job.scheduledAt).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true })
+        ? formatTime(job.scheduledAt)
         : "No time set"
     const secondaryHeaderLabel = job.company ? `${scheduledTimeLabel} • ${job.company}` : scheduledTimeLabel
 
@@ -247,7 +248,7 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
                                             <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
                                                 <div className="mb-4 flex items-center justify-between">
                                                     <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Current Total</h4>
-                                                    <span className="text-xl font-bold text-[#ccff00]">${job.value.toLocaleString()}</span>
+                                                    <span className="text-xl font-bold text-[#ccff00]">{formatCurrency(job.value)}</span>
                                                 </div>
                                                 <div className="space-y-3">
                                                     <div className="flex gap-2">

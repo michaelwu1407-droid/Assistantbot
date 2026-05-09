@@ -1,6 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
+import { formatCurrency } from "@/lib/format"
 
 interface PulseWidgetProps {
     className?: string
@@ -26,11 +27,11 @@ export function PulseWidget({
             className
         )}>
             <span className={cn("text-sm font-medium", isAgent ? "text-amber-600" : "text-emerald-400")}>
-                Wk: ${weeklyRevenue.toLocaleString()}
+                Wk: {formatCurrency(weeklyRevenue)}
             </span>
             <span className={cn("mx-2", isAgent ? "text-slate-300" : "text-muted-foreground")}>|</span>
             <span className={cn("text-sm font-medium", isAgent ? "text-muted-foreground" : "text-red-400")}>
-                {isAgent ? "Pipeline" : "Owe"}: ${outstandingDebt.toLocaleString()}
+                {isAgent ? "Pipeline" : "Owe"}: {formatCurrency(outstandingDebt)}
             </span>
         </div>
     )

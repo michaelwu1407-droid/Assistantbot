@@ -6,6 +6,7 @@ import L from "leaflet"
 import { useEffect, useState, useMemo, useCallback } from "react"
 import { AlertCircle, CalendarClock, CheckCircle2, ChevronRight, Clock, Compass, Layers, LocateFixed, MapPin, MessageSquare, Navigation, Route } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { formatTime, formatDate, formatShortDate } from "@/lib/format"
 import { JobCompletionModal } from "@/components/tradie/job-completion-modal"
 import { DealDetailModal } from "@/components/crm/deal-detail-modal"
 
@@ -278,7 +279,7 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
                 ) : (
                   jobsToday.map((job) => {
                     const time = job.scheduledAt
-                      ? new Date(job.scheduledAt).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true })
+                      ? formatTime(job.scheduledAt)
                       : "No time set"
                     const isSelected = job.id === effectiveSelectedJobId
                     const isStarted = job.id === startedJobId
@@ -387,7 +388,7 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
                           </div>
                           <div className="flex items-center gap-2 text-sm text-foreground">
                             <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
-                            <span>{activeTargetJob.scheduledAt ? new Date(activeTargetJob.scheduledAt).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true }) : "No time set"}</span>
+                            <span>{activeTargetJob.scheduledAt ? formatTime(activeTargetJob.scheduledAt) : "No time set"}</span>
                           </div>
                         </div>
 
@@ -429,13 +430,7 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
                           <p className="mt-1 text-xs text-muted-foreground">{nextUpcomingJob.address}</p>
                           <p className="mt-2 text-xs font-medium text-muted-foreground">
                             {nextUpcomingJob.scheduledAt
-                              ? new Date(nextUpcomingJob.scheduledAt).toLocaleDateString("en-AU", {
-                                  weekday: "short",
-                                  month: "short",
-                                  day: "numeric",
-                                  hour: "numeric",
-                                  minute: "2-digit",
-                                })
+                              ? `${formatShortDate(nextUpcomingJob.scheduledAt)} · ${formatTime(nextUpcomingJob.scheduledAt)}`
                               : "No time set"}
                           </p>
                           <div className="mt-3 flex flex-col gap-2">
@@ -521,13 +516,7 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
                     <span className="text-xs text-muted-foreground">{job.address}</span>
                     {job.scheduledAt && (
                       <p className="mt-1 text-[11px] text-muted-foreground">
-                        {new Date(job.scheduledAt).toLocaleDateString(undefined, {
-                          weekday: "short",
-                          month: "short",
-                          day: "numeric",
-                          hour: "numeric",
-                          minute: "2-digit",
-                        })}
+                        {`${formatShortDate(job.scheduledAt)} · ${formatTime(job.scheduledAt)}`}
                       </p>
                     )}
                     <div className="mt-2 flex w-full gap-2">
@@ -579,13 +568,7 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
                     <span className="text-xs text-muted-foreground">{job.address}</span>
                     {job.scheduledAt && (
                       <p className="mt-1 text-[11px] text-muted-foreground">
-                        {new Date(job.scheduledAt).toLocaleDateString(undefined, {
-                          weekday: "short",
-                          month: "short",
-                          day: "numeric",
-                          hour: "numeric",
-                          minute: "2-digit",
-                        })}
+                        {`${formatShortDate(job.scheduledAt)} · ${formatTime(job.scheduledAt)}`}
                       </p>
                     )}
                   </div>

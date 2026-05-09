@@ -11,6 +11,7 @@ import { toast } from "sonner"
 import { connectGoogleCalendar, connectXero, disconnectEmailIntegration, disconnectWorkspaceCalendarIntegration, getIntegrationConnectionReadiness, getIntegrationStatus } from "@/actions/integration-actions"
 import { EmailLeadCaptureSettings } from "@/components/settings/email-lead-capture-settings"
 import { useShellStore } from "@/lib/store"
+import { formatDateTime } from "@/lib/format"
 
 interface EmailIntegrationView {
     id: string
@@ -326,7 +327,7 @@ export default function IntegrationsPage() {
                                 </p>
                                 {calendarIntegration.connected && calendarIntegration.lastSyncAt && (
                                     <p className="text-xs text-muted-foreground">
-                                        Last sync: {new Date(calendarIntegration.lastSyncAt).toLocaleString()}
+                                        Last sync: {formatDateTime(calendarIntegration.lastSyncAt)}
                                     </p>
                                 )}
                             </div>

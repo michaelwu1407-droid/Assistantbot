@@ -5,6 +5,7 @@ import { Mail, Phone, Calendar, CheckCircle2, FileText, MessageSquare, DollarSig
 import type { ActivityView } from "@/actions/activity-actions"
 import type { DealView } from "@/actions/deal-actions"
 import { getUserFacingDealStageLabel } from "@/lib/deal-utils"
+import { formatCurrency } from "@/lib/format"
 
 interface ContactTimelineProps {
   activities: ActivityView[]
@@ -47,7 +48,7 @@ export function ContactTimeline({ activities, deals }: ContactTimelineProps) {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-foreground">${deal.value.toLocaleString()}</p>
+                    <p className="font-bold text-foreground">{formatCurrency(deal.value)}</p>
                     <p className="text-xs text-muted-foreground">{deal.daysInStage} days in stage</p>
                   </div>
                 </div>

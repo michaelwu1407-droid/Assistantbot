@@ -33,6 +33,7 @@ import {
 } from "@/lib/deal-utils"
 import { kanbanStageRequiresScheduledDate } from "@/lib/deal-stage-rules"
 import { formatDateTimeInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone"
+import { formatCurrency } from "@/lib/format"
 
 interface DealDetailModalProps {
   dealId: string | null
@@ -455,7 +456,7 @@ function DealDetailContent({
             <p className="mt-0.5 text-sm font-medium text-muted-foreground">{contact?.name ?? "—"}</p>
             <p className="mt-1 text-xs text-muted-foreground">
               {deal.source ? deal.source.charAt(0).toUpperCase() + deal.source.slice(1) : "—"} •{" "}
-              <span className="font-semibold text-emerald-600">${Number(deal.value || 0).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span className="font-semibold text-emerald-600">{formatCurrency(Number(deal.value || 0))}</span>
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -611,7 +612,7 @@ function DealDetailContent({
                   <div className="flex items-center justify-between rounded-[18px] border border-emerald-100 bg-emerald-50 p-2">
                     <span className="font-semibold text-emerald-700 text-lg">
                       {deal.invoicedAmount !== undefined && deal.invoicedAmount !== null
-                        ? `$${deal.invoicedAmount.toLocaleString()}`
+                        ? formatCurrency(deal.invoicedAmount)
                         : "Not set"
                       }
                     </span>
@@ -623,7 +624,7 @@ function DealDetailContent({
               </div>
               <div>
                 <p className="app-field-label mb-0.5">Quoted Value</p>
-                <p className="app-body-primary">${Number(deal.value || 0).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                <p className="app-body-primary">{formatCurrency(Number(deal.value || 0))}</p>
               </div>
               <div>
                 <p className="app-field-label mb-0.5">Scheduled</p>
@@ -878,7 +879,7 @@ function DealDetailContent({
                         className="block w-full rounded-[18px] border border-border/50 p-2 text-left text-sm hover:bg-muted/30"
                       >
                         <span className="font-medium text-foreground">{d.title}</span>
-                        {d.value != null && <span className="text-muted-foreground ml-2">${Number(d.value).toLocaleString()}</span>}
+                        {d.value != null && <span className="text-muted-foreground ml-2">{formatCurrency(Number(d.value))}</span>}
                         <span className="text-muted-foreground text-xs block mt-0.5">
                           {getUserFacingDealStageLabel(d.stage)} •{" "}
                           {d.updatedAt ? format(new Date(d.updatedAt as string), "MMM d") : "—"}

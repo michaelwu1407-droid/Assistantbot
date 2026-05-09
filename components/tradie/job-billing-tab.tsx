@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { formatInvoiceStatusLabel } from "@/lib/job-portal-status-labels"
+import { formatCurrency, formatDate } from "@/lib/format"
 
 const STATUS_STYLE: Record<string, string> = {
     DRAFT: "text-muted-foreground border-border bg-muted/30",
@@ -326,13 +327,13 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                                             )}
                                         </div>
                                         <p className="text-xs text-muted-foreground">
-                                            {new Date(inv.createdAt).toLocaleDateString("en-AU")}
-                                            {inv.issuedAt && ` · Issued ${new Date(inv.issuedAt).toLocaleDateString("en-AU")}`}
-                                            {inv.paidAt && ` · Paid ${new Date(inv.paidAt).toLocaleDateString("en-AU")}`}
+                                            {formatDate(inv.createdAt)}
+                                            {inv.issuedAt && ` · Issued ${formatDate(inv.issuedAt)}`}
+                                            {inv.paidAt && ` · Paid ${formatDate(inv.paidAt)}`}
                                         </p>
                                     </div>
                                     <div className="text-right shrink-0">
-                                        <span className="block font-bold text-foreground">${Number(inv.total).toLocaleString()}</span>
+                                        <span className="block font-bold text-foreground">{formatCurrency(Number(inv.total))}</span>
                                         <Badge variant="outline" className={`shadow-none ${STATUS_STYLE[inv.status] ?? ""}`}>
                                             {formatInvoiceStatusLabel(inv.status)}
                                         </Badge>

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { User, DollarSign, Bed, Phone, Mail, Loader2 } from "lucide-react"
+import { formatCurrency } from "@/lib/format"
 
 interface BuyerMatchmakerProps {
     dealId: string
@@ -60,7 +61,7 @@ export function BuyerMatchmaker({ dealId }: BuyerMatchmakerProps) {
     const { matches = [], listingPrice, listingBedrooms } = result
 
     // Fallback if price isn't set
-    const displayPrice = listingPrice ? `$${listingPrice.toLocaleString()}` : "Price TBD"
+    const displayPrice = listingPrice ? formatCurrency(listingPrice) : "Price TBD"
 
     return (
         <Card className="h-full border-border shadow-sm flex flex-col">
@@ -111,7 +112,7 @@ export function BuyerMatchmaker({ dealId }: BuyerMatchmakerProps) {
                                             {contact.budget && (
                                                 <span className="flex items-center gap-1 text-emerald-600 font-medium">
                                                     <DollarSign className="w-3 h-3" />
-                                                    Max ${contact.budget.toLocaleString()}
+                                                    Max {formatCurrency(contact.budget)}
                                                 </span>
                                             )}
                                             {contact.bedroomsReq && (

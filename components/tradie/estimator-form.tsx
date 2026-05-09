@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { generateQuote, type LineItem } from "@/actions/tradie-actions"
 import { DealView } from "@/actions/deal-actions"
 import { MaterialPicker } from "./material-picker"
+import { formatCurrency } from "@/lib/format"
 import { toast } from "sonner"
 
 interface EstimatorFormProps {
@@ -85,7 +86,7 @@ export function EstimatorForm({ deals = [], workspaceId }: EstimatorFormProps) {
                 </CardHeader>
                 <CardContent className="space-y-4 text-center">
                     <div className="text-4xl font-bold text-foreground tracking-tight">
-                        ${quoteResult.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {formatCurrency(quoteResult.total)}
                     </div>
                     <p className="text-sm text-muted-foreground">
                         Quote has been attached to the deal and invoice created in Draft status.
