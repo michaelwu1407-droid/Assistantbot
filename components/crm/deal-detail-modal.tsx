@@ -451,14 +451,11 @@ function DealDetailContent({
       <div className="shrink-0 border-b">
         <div className="flex items-start justify-between gap-4 p-4 md:p-6">
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl font-bold text-slate-900">
-              <span className="break-words">{deal.title}</span>
-              <span className="font-normal text-slate-400"> | </span>
-              <span className="font-semibold text-slate-800">{contact?.name ?? "—"}</span>
-            </h1>
-            <p className="mt-0.5 text-sm text-slate-500">
+            <h1 className="text-lg font-bold text-slate-900 break-words leading-snug">{deal.title}</h1>
+            <p className="mt-0.5 text-sm font-medium text-slate-600">{contact?.name ?? "—"}</p>
+            <p className="mt-1 text-xs text-slate-400">
               {deal.source ? deal.source.charAt(0).toUpperCase() + deal.source.slice(1) : "—"} •{" "}
-              <span className="font-medium text-emerald-600">${Number(deal.value || 0).toLocaleString()}</span>
+              <span className="font-semibold text-emerald-600">${Number(deal.value || 0).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
