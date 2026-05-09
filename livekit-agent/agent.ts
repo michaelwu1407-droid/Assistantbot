@@ -74,6 +74,13 @@ import {
   type VoiceWorkerQueuedOutboundCallRequest,
 } from "./outbound-call-control";
 import { getWorkerLivekitSipHealth } from "./livekit-sip-runtime";
+import {
+  appendTranscriptTurn,
+  consumePendingAssistantTranscript,
+  recordSpokenAssistantTranscript,
+  type PendingAssistantTranscript,
+  type TranscriptTurn,
+} from "./transcript-utils";
 
 loadEnv({ path: '.env.local' });
 assertRequiredVoiceAgentEnv();
@@ -198,12 +205,6 @@ type WorkspaceVoiceGrounding = {
   ownerPhone: string | null;
 };
 
-type TranscriptTurn = {
-  role: "user" | "assistant";
-  text: string;
-  createdAt: number;
-};
-
 type LeadCapture = {
   toolUsed: boolean;
   payloads: Array<Record<string, unknown>>;
@@ -247,11 +248,6 @@ type PendingLatencyTurn = {
   prediction: VoiceTurnPrediction;
   openerSpeechCreatedAt: number | null;
   kind: "opener" | "speculative_head";
-};
-
-type AssistantTranscriptOverride = {
-  text: string;
-  policyOutcome: CustomerFacingResponsePolicyOutcome;
 };
 
 type LlmProviderName = "groq" | "deepinfra";
@@ -1519,22 +1515,6 @@ function extractTextFromConversationItem(item: unknown): string | null {
   return text || null;
 }
 
-function appendTranscriptTurn(
-  transcriptTurns: TranscriptTurn[],
-  turn: TranscriptTurn,
-) {
-  const lastTurn = transcriptTurns[transcriptTurns.length - 1];
-  if (
-    lastTurn &&
-    lastTurn.role === turn.role &&
-    lastTurn.text === turn.text &&
-    lastTurn.createdAt === turn.createdAt
-  ) {
-    return;
-  }
-  transcriptTurns.push(turn);
-}
-
 async function persistVoiceCall(payload: {
   callId: string;
   callType: CallType;
@@ -2364,26 +2344,25 @@ export default defineAgent({
         const resolvedText = (await readableStreamToString(text)).trim();
         if (!resolvedText) return null;
 
-        if (callType !== "normal") {
-          return voice.Agent.default.ttsNode(this, stringToReadableStream(resolvedText), modelSettings);
-        }
+        const spokenText = callType === "normal"
+          ? (() => {
+            const policyOutcome = enforceCustomerFacingResponsePolicy({
+              modeRaw: normalVoiceGrounding?.customerContactMode,
+              text: resolvedText,
+              channel: "voice",
+            });
+            responsePolicyOutcomes.push(policyOutcome);
+            return policyOutcome.finalText || resolvedText;
+          })()
+          : resolvedText;
 
-        const policyOutcome = enforceCustomerFacingResponsePolicy({
-          modeRaw: normalVoiceGrounding?.customerContactMode,
-          text: resolvedText,
-          channel: "voice",
-        });
-        responsePolicyOutcomes.push(policyOutcome);
-        assistantTranscriptOverrides.push({
-          text: policyOutcome.finalText || resolvedText,
-          policyOutcome,
+        recordSpokenAssistantTranscript({
+          transcriptTurns,
+          pendingAssistantTranscripts,
+          text: spokenText,
         });
 
-        return voice.Agent.default.ttsNode(
-          this,
-          stringToReadableStream(policyOutcome.finalText || resolvedText),
-          modelSettings,
-        );
+        return voice.Agent.default.ttsNode(this, stringToReadableStream(spokenText), modelSettings);
       }
     }
 
@@ -2456,7 +2435,7 @@ export default defineAgent({
     const transcriptItemIds = new Set<string>();
     const leadCapture: LeadCapture = { toolUsed: false, payloads: [] };
     const urgentEscalation: UrgentEscalationCapture = { toolUsed: false, payloads: [] };
-    const assistantTranscriptOverrides: AssistantTranscriptOverride[] = [];
+    const pendingAssistantTranscripts: PendingAssistantTranscript[] = [];
     const responsePolicyOutcomes: CustomerFacingResponsePolicyOutcome[] = [];
     const voiceLatencyAudit: VoiceLatencyAudit = {
       classifierMs: [],
@@ -2730,13 +2709,15 @@ export default defineAgent({
 
       const role = item.role === "assistant" ? "assistant" : item.role === "user" ? "user" : null;
       let text = extractTextFromConversationItem(item);
-      if (role === "assistant" && assistantTranscriptOverrides.length > 0) {
-        const override = assistantTranscriptOverrides.shift();
-        if (override?.text) {
-          text = override.text;
-        }
+      if (role === "assistant" && pendingAssistantTranscripts[0]?.text) {
+        text = pendingAssistantTranscripts[0].text;
       }
       if (!role || !text) return;
+
+      if (role === "assistant" && consumePendingAssistantTranscript(pendingAssistantTranscripts, text)) {
+        transcriptItemIds.add(itemId);
+        return;
+      }
 
       transcriptItemIds.add(itemId);
       appendTranscriptTurn(transcriptTurns, {
