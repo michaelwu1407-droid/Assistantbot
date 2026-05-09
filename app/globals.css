@@ -417,14 +417,43 @@
     box-shadow: var(--shadow-ott-elevated);
   }
 
-  /* SECTION CONTAINER */
+  /* SECTION CONTAINER — responsive: tighter on mobile */
   .ott-section {
-    @apply py-20 px-6 md:px-8 lg:px-12;
+    @apply py-12 px-6 md:py-20 md:px-8 lg:px-12;
   }
 
   /* Layout Helper */
   .ott-layout-grid {
     @apply grid grid-cols-1 md:grid-cols-12 gap-8 max-w-[1600px] mx-auto;
+  }
+
+  /* TEXT OVERFLOW — single-line fields (email, name, job title) */
+  .ott-text-truncate {
+    @apply min-w-0 overflow-hidden truncate;
+  }
+
+  /* TEXT OVERFLOW — multi-line content (address, notes) */
+  .ott-text-wrap {
+    @apply min-w-0 break-words;
+  }
+
+  /* DIALOG — scales with viewport; content determines max-width */
+  .ott-dialog {
+    @apply w-[calc(100vw-2rem)] max-h-[90vh] overflow-hidden;
+  }
+
+  /* EMPTY STATE — centered placeholder inside a list/panel */
+  .ott-empty-state {
+    @apply flex flex-col items-center justify-center gap-3 py-12 text-center text-muted-foreground;
+  }
+  .ott-empty-state-icon {
+    @apply h-10 w-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground/50;
+  }
+  .ott-empty-state-title {
+    @apply app-panel-title text-foreground;
+  }
+  .ott-empty-state-body {
+    @apply app-body-secondary max-w-xs;
   }
 
   /* Map: custom pin icons (no default Leaflet border/background) */
