@@ -67,9 +67,9 @@ export function LossReasonModal({ open, onOpenChange, deal, onConfirm }: LossRea
 
         <div className="space-y-4">
           {/* Deal Summary */}
-          <div className="bg-gray-50 rounded-lg p-3">
-            <p className="font-medium text-gray-900">{deal.title}</p>
-            <p className="text-sm text-gray-600">{deal.contactName}</p>
+          <div className="bg-muted/30 rounded-lg p-3">
+            <p className="font-medium text-foreground">{deal.title}</p>
+            <p className="text-sm text-muted-foreground">{deal.contactName}</p>
           </div>
 
           {/* Common Reasons */}

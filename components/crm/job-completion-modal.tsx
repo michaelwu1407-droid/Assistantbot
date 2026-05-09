@@ -141,7 +141,7 @@ export function JobCompletionModal({ open, onOpenChange, deal, onComplete }: Job
           >
             <Star
               className={`h-6 w-6 ${
-                star <= rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+                star <= rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"
               }`}
             />
           </button>
@@ -172,19 +172,19 @@ export function JobCompletionModal({ open, onOpenChange, deal, onComplete }: Job
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm text-gray-500">Client</Label>
+                  <Label className="text-sm text-muted-foreground">Client</Label>
                   <p className="font-medium">{deal.contactName}</p>
                 </div>
                 <div>
-                  <Label className="text-sm text-gray-500">Value</Label>
+                  <Label className="text-sm text-muted-foreground">Value</Label>
                   <p className="font-medium text-green-600">{formatCurrency(deal.value)}</p>
                 </div>
                 <div className="col-span-2">
-                  <Label className="text-sm text-gray-500">Address</Label>
+                  <Label className="text-sm text-muted-foreground">Address</Label>
                   <p className="font-medium">{deal.address || "No address provided"}</p>
                 </div>
                 <div className="col-span-2">
-                  <Label className="text-sm text-gray-500">Description</Label>
+                  <Label className="text-sm text-muted-foreground">Description</Label>
                   <p className="text-sm">{deal.description || "No description provided"}</p>
                 </div>
               </div>
@@ -201,7 +201,7 @@ export function JobCompletionModal({ open, onOpenChange, deal, onComplete }: Job
               <div>
                 <Label>Job Quality Rating</Label>
                 {renderStars(reviewData.rating, handleRatingChange)}
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   {reviewData.rating === 0 && "Click to rate"}
                   {reviewData.rating === 1 && "Poor"}
                   {reviewData.rating === 2 && "Fair"}
@@ -213,7 +213,7 @@ export function JobCompletionModal({ open, onOpenChange, deal, onComplete }: Job
               <div>
                 <Label>Client Satisfaction</Label>
                 {renderStars(reviewData.clientSatisfaction, handleSatisfactionChange)}
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   How satisfied was the client with the work?
                 </p>
               </div>

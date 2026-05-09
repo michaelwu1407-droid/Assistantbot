@@ -456,6 +456,28 @@
     @apply app-body-secondary max-w-xs;
   }
 
+  /* STATUS PILLS — semantic deal-stage / job-status colors
+   * Use: <span className="ott-status-pill ott-status-new">New</span>
+   * Combine ott-status-pill (sizing) + one status modifier (color). */
+  .ott-status-pill {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold;
+  }
+  .ott-status-new       { @apply bg-status-new-bg      text-status-new       border border-status-new/20; }
+  .ott-status-quote     { @apply bg-status-quote-bg    text-status-quote     border border-status-quote/20; }
+  .ott-status-scheduled { @apply bg-status-scheduled-bg text-status-scheduled border border-status-scheduled/20; }
+  .ott-status-awaiting  { @apply bg-status-awaiting-bg text-status-awaiting  border border-status-awaiting/20; }
+  .ott-status-complete  { @apply bg-status-complete-bg text-status-complete  border border-status-complete/20; }
+
+  /* FORM VALIDATION ERROR STATES
+   * Apply ott-field-error to the <input>/<select> element.
+   * Place <p className="ott-field-error-msg"> directly after the field. */
+  .ott-field-error {
+    @apply border-destructive;
+  }
+  .ott-field-error-msg {
+    @apply mt-1 text-xs font-medium text-destructive;
+  }
+
   /* Map: custom pin icons (no default Leaflet border/background) */
   .leaflet-div-icon.custom-marker {
     background: none !important;

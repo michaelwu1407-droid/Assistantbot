@@ -15,12 +15,12 @@ export async function ReferralFooter({ userId, className = "" }: ReferralFooterP
   }
 
   return (
-    <div className={`text-center py-6 border-t border-gray-200 ${className}`}>
-      <p className="text-sm text-gray-600 mb-3">
+    <div className={`text-center py-6 border-t border-border ${className}`}>
+      <p className="text-sm text-muted-foreground mb-3">
         Get <span className="font-semibold text-green-600">$29</span> by referring a friend
       </p>
       <div className="flex items-center justify-center gap-2">
-        <span className="text-xs text-gray-500">Share:</span>
+        <span className="text-xs text-muted-foreground">Share:</span>
         <a
           href={referralLink}
           className="text-xs text-blue-600 hover:text-blue-800 underline"
@@ -28,7 +28,7 @@ export async function ReferralFooter({ userId, className = "" }: ReferralFooterP
           {referralLink}
         </a>
       </div>
-      <p className="text-xs text-gray-400 mt-2">
+      <p className="text-xs text-muted-foreground mt-2">
         Your friend gets $10 off their first month
       </p>
     </div>

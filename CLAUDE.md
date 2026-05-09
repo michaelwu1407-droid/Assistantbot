@@ -13,16 +13,46 @@ Use the classes defined in `app/globals.css` instead of raw Tailwind text combos
 - `app-micro-label` — tiny section labels (replaces `text-xs font-semibold uppercase tracking-wide`)
 - `app-kpi-value` — large metric numbers
 
-## Color tokens — never use hardcoded slate-* values
+## Color tokens — never use hardcoded palette values
 | Wrong | Correct |
 |-------|---------|
 | `text-slate-900` / `text-slate-800` | `text-foreground` |
 | `text-slate-500` / `text-slate-600` | `text-muted-foreground` |
-| `border-slate-200` / `border-slate-100` | `border-border` / `border-border/50` |
-| `bg-slate-50` / `bg-slate-100` | `bg-muted/30` / `bg-muted` |
+| `text-gray-900` / `text-gray-800` | `text-foreground` |
+| `text-gray-500` / `text-gray-600` | `text-muted-foreground` |
+| `border-slate-200` / `border-gray-200` | `border-border` / `border-border/50` |
+| `bg-slate-50` / `bg-gray-50` | `bg-muted/30` / `bg-muted` |
 | `bg-white` (card backgrounds) | `bg-card` |
 
-Exception: intentional dark-surface components (dark dialogs, dark badges) may keep explicit slate-900/slate-800 values.
+Note: `text-neutral-*` values (neutral-900, neutral-500 etc.) ARE the design system's own named tokens and are valid.
+
+Exception: intentional dark-surface components (dark dialogs, dark badges) may keep explicit dark values.
+
+## Border radius — always use rounded-md
+The app's standard corner radius is 18px. Use `rounded-md` everywhere — never use `rounded-[18px]` or other arbitrary pixel values.
+All `rounded-sm` through `rounded-3xl` variants also resolve to 18px (forced in globals.css), but `rounded-md` is the canonical choice.
+
+## Status / stage colors — always use ott-status-* utilities
+Never hardcode `bg-emerald-50 text-emerald-700` or `bg-amber-100 text-amber-800` for deal/job stages. Use:
+```tsx
+<span className="ott-status-pill ott-status-new">New</span>
+<span className="ott-status-pill ott-status-quote">Quote</span>
+<span className="ott-status-pill ott-status-scheduled">Scheduled</span>
+<span className="ott-status-pill ott-status-awaiting">Awaiting</span>
+<span className="ott-status-pill ott-status-complete">Complete</span>
+```
+The underlying color tokens (`bg-status-new-bg`, `text-status-new`, etc.) are also available for non-pill contexts.
+
+## Form validation errors — always use ott-field-error / ott-field-error-msg
+Never hardcode `border-red-500` or `text-red-500` for validation errors. Use:
+```tsx
+<input className={cn("...", hasError && "ott-field-error")} />
+{hasError && <p className="ott-field-error-msg">{errorMessage}</p>}
+```
+The `text-destructive` / `border-destructive` tokens are the semantic values behind these utilities.
+
+## Focus rings — rely on the global, don't override
+The global `*:focus-visible { box-shadow: var(--shadow-focus) }` handles all focus rings automatically. Do NOT add `focus-visible:ring-2` or `focus-visible:ring-ring` to individual elements — this fights the global rule. Only suppress focus styles with `focus-visible:outline-none` on elements that have custom focus handling.
 
 ## Text overflow — always guard long strings
 - Single-line fields (email, name, title): use `ott-text-truncate` or add `truncate min-w-0` to the element

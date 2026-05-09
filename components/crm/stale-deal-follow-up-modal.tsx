@@ -178,12 +178,12 @@ export function StaleDealFollowUpModal({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="rounded-lg bg-gray-50 p-4">
+          <div className="rounded-lg bg-muted/30 p-4">
             <div className="flex items-start justify-between">
               <div>
-                <h4 className="font-medium text-gray-900">{deal.title}</h4>
-                <p className="text-sm text-gray-600">{deal.contactName}</p>
-                <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
+                <h4 className="font-medium text-foreground">{deal.title}</h4>
+                <p className="text-sm text-muted-foreground">{deal.contactName}</p>
+                <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
                   <span>Value: {formatCurrency(deal.value)}</span>
                   <span>-</span>
                   <span>Stage: {getUserFacingDealStageLabel(deal.stage)}</span>
@@ -194,7 +194,7 @@ export function StaleDealFollowUpModal({
                 {getStalenessText()}
               </Badge>
             </div>
-            <div className="mt-2 text-sm text-gray-600">
+            <div className="mt-2 text-sm text-muted-foreground">
               Last activity: {formatDate(deal.lastActivity)} ({daysSinceLastActivity} days ago)
             </div>
           </div>
@@ -203,18 +203,18 @@ export function StaleDealFollowUpModal({
             <div className="space-y-2">
               <Label>Contact</Label>
               <div className="space-y-1 text-sm">
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Mail className="h-4 w-4 text-gray-400" />
-                  {deal.contactEmail || <span className="italic text-gray-400">No email</span>}
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  {deal.contactEmail || <span className="italic text-muted-foreground">No email</span>}
                   {!deal.contactEmail && deal.contactId ? (
                     <Button asChild size="sm" variant="outline" className="ml-auto h-7 text-xs">
                       <Link href={`/crm/contacts/${deal.contactId}/edit`}>Add email in CRM</Link>
                     </Button>
                   ) : null}
                 </div>
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Phone className="h-4 w-4 text-gray-400" />
-                  {deal.contactPhone || <span className="italic text-gray-400">No phone</span>}
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  {deal.contactPhone || <span className="italic text-muted-foreground">No phone</span>}
                   {!deal.contactPhone && deal.contactId ? (
                     <Button asChild size="sm" variant="outline" className="ml-auto h-7 text-xs">
                       <Link href={`/crm/contacts/${deal.contactId}/edit`}>Add phone in CRM</Link>
@@ -326,7 +326,7 @@ export function StaleDealFollowUpModal({
                   placeholder="Type your follow-up message here..."
                   rows={4}
                 />
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   {customMessage.length} characters
                   {selectedChannel === "sms" && customMessage.length > 160 && (
                     <span className="ml-2 text-amber-600">Warning: may be split into multiple SMS</span>

@@ -176,12 +176,12 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
         </DialogHeader>
 
         <div className="space-y-6">
-          <div className="rounded-lg bg-gray-50 p-4">
+          <div className="rounded-lg bg-muted/30 p-4">
             <div className="flex items-start justify-between">
               <div>
-                <h4 className="font-medium text-gray-900">{deal.title}</h4>
-                <p className="text-sm text-gray-600">{deal.contactName}</p>
-                <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
+                <h4 className="font-medium text-foreground">{deal.title}</h4>
+                <p className="text-sm text-muted-foreground">{deal.contactName}</p>
+                <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
                   <span>Value: {formatCurrency(deal.value)}</span>
                   <span>•</span>
                   <span>Stage: {getUserFacingDealStageLabel(deal.currentStage)}</span>
@@ -192,7 +192,7 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
                 {getStalenessText()}
               </Badge>
             </div>
-            <div className="mt-2 text-sm text-gray-600">
+            <div className="mt-2 text-sm text-muted-foreground">
               Last activity: {formatDate(deal.lastActivity)} ({daysSinceLastActivity} days ago)
             </div>
           </div>
@@ -207,14 +207,14 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
                     key={action.id}
                     onClick={() => handleActionSelect(action.id)}
                     className={`rounded-lg border p-3 text-left transition-all hover:shadow-md ${
-                      selectedAction === action.id ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"
+                      selectedAction === action.id ? "border-blue-500 bg-blue-50" : "border-border hover:border-border"
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <Icon className={`h-5 w-5 ${action.color}`} />
                       <div>
-                        <p className="font-medium text-gray-900">{action.name}</p>
-                        <p className="text-sm text-gray-600">{action.description}</p>
+                        <p className="font-medium text-foreground">{action.name}</p>
+                        <p className="text-sm text-muted-foreground">{action.description}</p>
                       </div>
                     </div>
                   </button>
@@ -234,7 +234,7 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
                   placeholder="Enter your message..."
                   rows={3}
                 />
-                <p className="text-xs text-gray-500">{customMessage.length} characters</p>
+                <p className="text-xs text-muted-foreground">{customMessage.length} characters</p>
               </div>
 
               {(selectedAction === "follow-up" || selectedAction === "schedule-call") && (
@@ -245,7 +245,7 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
                     type="datetime-local"
                     value={followUpDate}
                     onChange={(e) => setFollowUpDate(e.target.value)}
-                    className="w-full rounded-md border border-gray-300 p-2"
+                    className="w-full rounded-md border border-border p-2"
                   />
                 </div>
               )}
