@@ -65,11 +65,11 @@ export default async function DashboardMapPage() {
             <div className="h-[calc(100vh-4rem)] w-full flex items-center justify-center">
                 <div className="text-center">
                     <h2 className="text-xl font-semibold text-red-600 mb-2">Error Loading Map</h2>
-                    <p className="text-slate-600">{errorMessage || "Unknown error"}</p>
+                    <p className="text-muted-foreground">{errorMessage || "Unknown error"}</p>
                     <div className="mt-6">
                         <a
                             href="/crm/map"
-                            className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                            className="inline-flex items-center justify-center rounded-md border border-border bg-card px-4 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
                         >
                             Retry Loading Map
                         </a>
@@ -81,10 +81,10 @@ export default async function DashboardMapPage() {
 
     return (
         <div className="h-full flex flex-col">
-            <div className="shrink-0 flex items-center gap-4 p-3 border-b border-slate-200 bg-white/80">
+            <div className="shrink-0 flex items-center gap-4 p-3 border-b border-border bg-card/80">
                 <div className="flex items-center gap-2">
                     <Calendar className="h-5 w-5 text-primary" />
-                    <span className="font-semibold text-slate-900">
+                    <span className="font-semibold text-foreground">
                         {todayCount > 0 ? `${todayCount} job${todayCount === 1 ? "" : "s"} today` : "No jobs scheduled for today"}
                     </span>
                 </div>

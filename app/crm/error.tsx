@@ -22,8 +22,8 @@ export default function Error({
             <div className="p-4 bg-red-50 rounded-full mb-4">
                 <AlertTriangle className="h-8 w-8 text-red-500" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 tracking-tight mb-2">Something went wrong!</h2>
-            <p className="text-slate-500 mb-6 max-w-sm">
+            <h2 className="text-2xl font-bold text-foreground tracking-tight mb-2">Something went wrong!</h2>
+            <p className="text-muted-foreground mb-6 max-w-sm">
                 We encountered an error while loading your dashboard. This might be a temporary issue.
             </p>
             <div className="flex gap-4">

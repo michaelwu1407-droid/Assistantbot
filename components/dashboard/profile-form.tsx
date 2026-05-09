@@ -44,7 +44,7 @@ export function ProfileForm({ userId, initialData }: ProfileFormProps) {
   };
 
   return (
-    <Card className="rounded-[18px] border-slate-200 shadow-sm dark:border-slate-800">
+    <Card className="rounded-[18px] border-border shadow-sm dark:border-slate-800">
       <CardHeader>
         <CardTitle>Profile</CardTitle>
         <CardDescription>
@@ -73,15 +73,15 @@ export function ProfileForm({ userId, initialData }: ProfileFormProps) {
                 type="email"
                 value={initialData?.email}
                 disabled
-                className="bg-slate-50 text-slate-500 mt-1.5"
+                className="bg-muted/30 text-muted-foreground mt-1.5"
               />
-              <p className="text-xs text-slate-500 mt-1.5">
+              <p className="text-xs text-muted-foreground mt-1.5">
                 Email cannot be changed here. Contact support if needed.
               </p>
             </div>
           </div>
 
-          <Separator className="bg-slate-100 dark:bg-slate-800" />
+          <Separator className="bg-muted dark:bg-slate-800" />
 
           <Button
             type="submit"

@@ -117,7 +117,7 @@ export function AccountForm({ userId, email }: AccountFormProps) {
   return (
     <div className="space-y-6">
       {/* Password Change Section */}
-      <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+      <Card className="border-border dark:border-slate-800 shadow-sm">
         <CardHeader>
           <CardTitle>Change Password</CardTitle>
           <CardDescription>
@@ -169,10 +169,10 @@ export function AccountForm({ userId, email }: AccountFormProps) {
         </CardContent>
       </Card>
 
-      <Separator className="bg-slate-100 dark:bg-slate-800" />
+      <Separator className="bg-muted dark:bg-slate-800" />
 
       {/* Email Section */}
-      <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+      <Card className="border-border dark:border-slate-800 shadow-sm">
         <CardHeader>
           <CardTitle>Email Address</CardTitle>
           <CardDescription>
@@ -182,7 +182,7 @@ export function AccountForm({ userId, email }: AccountFormProps) {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label>Current Email</Label>
-            <Input value={email || "Not set"} disabled className="bg-slate-50 text-slate-500" />
+            <Input value={email || "Not set"} disabled className="bg-muted/30 text-muted-foreground" />
           </div>
           <form onSubmit={async (e) => {
             e.preventDefault();
@@ -219,7 +219,7 @@ export function AccountForm({ userId, email }: AccountFormProps) {
         </CardContent>
       </Card>
 
-      <Separator className="bg-slate-100 dark:bg-slate-800" />
+      <Separator className="bg-muted dark:bg-slate-800" />
 
       {/* Delete Account */}
       <div className="flex justify-end pt-4">

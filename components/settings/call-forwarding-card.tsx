@@ -156,7 +156,7 @@ export function CallForwardingCard() {
 
   return (
     <>
-      <Card className="rounded-[18px] border-slate-200 shadow-sm dark:border-slate-800">
+      <Card className="rounded-[18px] border-border shadow-sm dark:border-slate-800">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <PhoneForwarded className="h-5 w-5" />
@@ -168,14 +168,14 @@ export function CallForwardingCard() {
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-[18px] border border-slate-200 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5">
+            <div className="rounded-[18px] border border-border bg-card/70 p-4 dark:border-white/10 dark:bg-card/5">
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
                   <p className="app-micro-label">Personal mobile</p>
-                  <p className="text-sm font-medium text-slate-900 dark:text-white">
+                  <p className="text-sm font-medium text-foreground dark:text-white">
                     {personalPhone || "Not added yet"}
                   </p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     Used for verification codes and setup texts.
                   </p>
                 </div>
@@ -191,20 +191,20 @@ export function CallForwardingCard() {
               </div>
             </div>
 
-            <div className="rounded-[18px] border border-slate-200 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5">
+            <div className="rounded-[18px] border border-border bg-card/70 p-4 dark:border-white/10 dark:bg-card/5">
               <div className="space-y-1">
                 <p className="app-micro-label">Tracey number</p>
-                <p className="text-sm font-medium text-slate-900 dark:text-white">
+                <p className="text-sm font-medium text-foreground dark:text-white">
                   {traceyPhone || "Not provisioned yet"}
                 </p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     This is the number your business calls can forward to.
                   </p>
               </div>
             </div>
           </div>
 
-          <div className="rounded-[18px] border border-slate-200 p-4 dark:border-slate-700">
+          <div className="rounded-[18px] border border-border p-4 dark:border-slate-700">
             <div className="space-y-1">
               <Label className="app-section-title">How should Tracey handle calls?</Label>
               <p className="app-body-secondary">
@@ -224,7 +224,7 @@ export function CallForwardingCard() {
                     <PhoneForwarded className="h-4 w-4 shrink-0" />
                     <p className="app-section-title">Backup AI</p>
                   </div>
-                  <p className="whitespace-normal text-sm leading-6 text-slate-700 dark:text-slate-200">
+                  <p className="whitespace-normal text-sm leading-6 text-foreground dark:text-slate-200">
                     Your phone rings first. Tracey answers if you miss it.
                   </p>
                 </div>
@@ -241,7 +241,7 @@ export function CallForwardingCard() {
                     <Shield className="h-4 w-4 shrink-0" />
                     <p className="app-section-title">100% AI</p>
                   </div>
-                  <p className="whitespace-normal text-sm leading-6 text-slate-700 dark:text-slate-200">
+                  <p className="whitespace-normal text-sm leading-6 text-foreground dark:text-slate-200">
                     Tracey answers every call before your phone rings.
                   </p>
                 </div>
@@ -258,7 +258,7 @@ export function CallForwardingCard() {
                     <PhoneOff className="h-4 w-4 shrink-0" />
                     <p className="app-section-title">Forwarding off</p>
                   </div>
-                  <p className="whitespace-normal text-sm leading-6 text-slate-700 dark:text-slate-200">
+                  <p className="whitespace-normal text-sm leading-6 text-foreground dark:text-slate-200">
                     Calls stay on your phone and Tracey does not answer them.
                   </p>
                 </div>
@@ -273,7 +273,7 @@ export function CallForwardingCard() {
           </div>
 
           {active === "backup" && hasTraceyNumber ? (
-            <div className="rounded-[18px] border border-slate-200 p-4 dark:border-slate-700">
+            <div className="rounded-[18px] border border-border p-4 dark:border-slate-700">
               <div className="space-y-1">
                 <Label className="app-section-title">Backup AI pickup timing</Label>
                 <p className="app-body-secondary">
@@ -305,7 +305,7 @@ export function CallForwardingCard() {
           ) : null}
 
           {codes ? (
-            <div className="rounded-[18px] border border-slate-200 p-4 dark:border-slate-700">
+            <div className="rounded-[18px] border border-border p-4 dark:border-slate-700">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -315,7 +315,7 @@ export function CallForwardingCard() {
                   <p className="app-body-secondary">
                     {activeModeGuidance.nextStepBody}
                   </p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     {activeModeGuidance.helperNote}
                   </p>
                 </div>
@@ -334,10 +334,10 @@ export function CallForwardingCard() {
               </div>
 
               <div className="mt-4 rounded-[18px] border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/20">
-                <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                <p className="text-sm font-semibold text-foreground dark:text-white">
                   {activeModeGuidance.nextStepTitle}
                 </p>
-                <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+                <p className="mt-1 text-xs text-muted-foreground dark:text-slate-300">
                   Your phone&apos;s dialer will open with the right code ready to run.
                 </p>
                 <Button asChild className="mt-3 h-auto min-h-[56px] w-full justify-center rounded-[18px] px-3 py-3 text-center whitespace-normal">
@@ -358,7 +358,7 @@ export function CallForwardingCard() {
               </div>
 
               {!personalPhone ? (
-                <p className="mt-3 text-xs text-slate-500">
+                <p className="mt-3 text-xs text-muted-foreground">
                   You can still use the one-tap buttons above. Add your personal mobile only if you want setup texts sent there too.
                 </p>
               ) : null}

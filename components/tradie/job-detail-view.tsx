@@ -63,19 +63,19 @@ export function JobDetailView({ job }: JobDetailViewProps) {
     const crmRecoveryHref = job.contactId ? `/crm/contacts/${job.contactId}/edit` : `/crm/deals/${job.id}`
 
     return (
-        <div className="flex flex-col h-full bg-slate-50 pb-28">
+        <div className="flex flex-col h-full bg-muted/30 pb-28">
             {/* Header */}
-            <div className="bg-white border-b border-slate-200 px-4 py-4 sticky top-0 z-10">
+            <div className="bg-card border-b border-border px-4 py-4 sticky top-0 z-10">
                 <div className="flex items-center gap-3 mb-2">
-                    <Link href="/tradie" className="p-2 -ml-2 hover:bg-slate-100 rounded-full text-slate-500">
+                    <Link href="/tradie" className="p-2 -ml-2 hover:bg-muted rounded-full text-muted-foreground">
                         <ArrowLeft className="w-5 h-5" />
                     </Link>
                     <Badge variant={job.status === 'COMPLETED' ? 'secondary' : 'default'} className="uppercase">
                         {formatJobHeaderStatus(job.status)}
                     </Badge>
                 </div>
-                <h1 className="text-2xl font-bold text-slate-900 leading-tight">{job.title}</h1>
-                <p className="text-slate-500 text-sm mt-1">{job.client.name}</p>
+                <h1 className="text-2xl font-bold text-foreground leading-tight">{job.title}</h1>
+                <p className="text-muted-foreground text-sm mt-1">{job.client.name}</p>
             </div>
 
             {/* Main Content */}
@@ -83,12 +83,12 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                 <div className="p-4 space-y-6">
 
                     {/* Client Card */}
-                    <Card className="p-4 space-y-4 border-slate-200 shadow-sm">
+                    <Card className="p-4 space-y-4 border-border shadow-sm">
                         <div className="flex items-start gap-3">
-                            <MapPin className="w-5 h-5 text-slate-400 mt-0.5" />
+                            <MapPin className="w-5 h-5 text-muted-foreground mt-0.5" />
                             <div>
-                                <p className="text-sm font-medium text-slate-900">Location</p>
-                                <p className="text-sm text-slate-500">{job.client.address || "No address"}</p>
+                                <p className="text-sm font-medium text-foreground">Location</p>
+                                <p className="text-sm text-muted-foreground">{job.client.address || "No address"}</p>
                             </div>
                             {job.client.address ? (
                                 <Button
@@ -109,10 +109,10 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                             )}
                         </div>
                         <div className="flex items-center gap-3">
-                            <Phone className="w-5 h-5 text-slate-400" />
+                            <Phone className="w-5 h-5 text-muted-foreground" />
                             <div>
-                                <p className="text-sm font-medium text-slate-900">Contact</p>
-                                <p className="text-sm text-slate-500">{job.client.phone || "No phone"}</p>
+                                <p className="text-sm font-medium text-foreground">Contact</p>
+                                <p className="text-sm text-muted-foreground">{job.client.phone || "No phone"}</p>
                             </div>
                             {job.client.phone ? (
                                 <Button
@@ -136,7 +136,7 @@ export function JobDetailView({ job }: JobDetailViewProps) {
 
                     {/* Tabs */}
                     <Tabs defaultValue="details" className="w-full">
-                        <TabsList className="w-full grid grid-cols-5 bg-white border border-slate-200 p-1 h-12">
+                        <TabsList className="w-full grid grid-cols-5 bg-card border border-border p-1 h-12">
                             <TabsTrigger value="details">Details</TabsTrigger>
                             <TabsTrigger value="chat">Chat</TabsTrigger>
                             <TabsTrigger value="diary">Diary</TabsTrigger>
@@ -146,8 +146,8 @@ export function JobDetailView({ job }: JobDetailViewProps) {
 
                         <TabsContent value="details" className="mt-4 space-y-4">
                             <Card className="p-4">
-                                <h3 className="font-semibold mb-2 text-sm text-slate-900">Job Description</h3>
-                                <p className="text-sm text-slate-600 leading-relaxed">
+                                <h3 className="font-semibold mb-2 text-sm text-foreground">Job Description</h3>
+                                <p className="text-sm text-muted-foreground leading-relaxed">
                                     {job.description}
                                 </p>
                             </Card>
@@ -162,11 +162,11 @@ export function JobDetailView({ job }: JobDetailViewProps) {
 
                                 if (chatActivities.length === 0) {
                                     return (
-                                        <Card className="p-6 text-center text-slate-400 text-sm space-y-3">
+                                        <Card className="p-6 text-center text-muted-foreground text-sm space-y-3">
                                             <div>
                                                 <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
                                                 <p>No conversation history yet for this job.</p>
-                                                <p className="mt-2 text-xs text-slate-500">
+                                                <p className="mt-2 text-xs text-muted-foreground">
                                                     Open the full customer timeline to see calls, emails, texts, and system history together.
                                                 </p>
                                             </div>
@@ -195,18 +195,18 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                                             const timeStr = time.toLocaleDateString("en-AU", { day: "numeric", month: "short" }) + " " + time.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" })
 
                                             return (
-                                                <Card key={activity.id} className="p-3 border-slate-200 shadow-sm">
+                                                <Card key={activity.id} className="p-3 border-border shadow-sm">
                                                     <div className="flex gap-3">
                                                         <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${colorClass}`}>
                                                             <Icon className="w-4 h-4" />
                                                         </div>
                                                         <div className="flex-1 min-w-0">
                                                             <div className="flex items-center justify-between gap-2">
-                                                                <p className="text-sm font-medium text-slate-900 truncate">{activity.title}</p>
-                                                                <span className="text-[11px] text-slate-400 whitespace-nowrap">{timeStr}</span>
+                                                                <p className="text-sm font-medium text-foreground truncate">{activity.title}</p>
+                                                                <span className="text-[11px] text-muted-foreground whitespace-nowrap">{timeStr}</span>
                                                             </div>
                                                             {activity.content && (
-                                                                <p className="text-sm text-slate-600 mt-1 whitespace-pre-wrap">{activity.content}</p>
+                                                                <p className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{activity.content}</p>
                                                             )}
                                                         </div>
                                                     </div>
@@ -231,12 +231,12 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                             {/* Photos Grid */}
                             <div className="grid grid-cols-2 gap-3">
                                 {job.photos.map((photo) => (
-                                    <div key={photo.id} className="aspect-square rounded-lg bg-slate-200 overflow-hidden relative">
+                                    <div key={photo.id} className="aspect-square rounded-lg bg-muted overflow-hidden relative">
                                         <Image src={photo.url} alt="Job photo" fill unoptimized className="object-cover" />
                                     </div>
                                 ))}
                                 {job.photos.length === 0 && (
-                                    <div className="col-span-2 py-8 text-center text-slate-400 text-sm border-2 border-dashed border-slate-200 rounded-lg">
+                                    <div className="col-span-2 py-8 text-center text-muted-foreground text-sm border-2 border-dashed border-border rounded-lg">
                                         No photos yet. Tap the camera button to add one.
                                     </div>
                                 )}
@@ -244,7 +244,7 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                         </TabsContent>
 
                         <TabsContent value="billing" className="mt-4">
-                            <Card className="p-4 text-center text-slate-500 text-sm space-y-3">
+                            <Card className="p-4 text-center text-muted-foreground text-sm space-y-3">
                                 <p>
                                     Billing for this job lives in the full CRM panel so invoice totals, status, and customer sends stay in sync.
                                 </p>
@@ -259,24 +259,24 @@ export function JobDetailView({ job }: JobDetailViewProps) {
 
                         <TabsContent value="handover" className="mt-4 space-y-4">
                             <Card className="p-4">
-                                <h3 className="font-semibold mb-3 text-sm text-slate-900 flex items-center gap-2">
+                                <h3 className="font-semibold mb-3 text-sm text-foreground flex items-center gap-2">
                                     <FileText className="w-4 h-4" />
                                     Handover Status
                                 </h3>
                                 <div className="space-y-3">
-                                    <p className="text-sm text-slate-600 leading-relaxed">
+                                    <p className="text-sm text-muted-foreground leading-relaxed">
                                         Handover documents and customer-ready attachments are managed from the full CRM job view so files, notes, and message history stay together.
                                     </p>
-                                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Current job assets</p>
-                                        <p className="mt-1 text-sm text-slate-900">
+                                    <div className="rounded-lg border border-border bg-muted/30 p-3">
+                                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Current job assets</p>
+                                        <p className="mt-1 text-sm text-foreground">
                                             {job.photos.length > 0 ? `${job.photos.length} job photo${job.photos.length === 1 ? "" : "s"} ready to review in CRM.` : "No handover files attached yet."}
                                         </p>
                                     </div>
                                 </div>
                             </Card>
-                            <Card className="p-4 border-slate-200 shadow-sm">
-                                <p className="text-sm text-slate-600">
+                            <Card className="p-4 border-border shadow-sm">
+                                <p className="text-sm text-muted-foreground">
                                     To send handover notes or attachments today, use the full CRM job view so messaging, attachments, and customer history stay together.
                                 </p>
                                 <Button asChild className="mt-4 w-full gap-2 bg-slate-900 hover:bg-slate-800">

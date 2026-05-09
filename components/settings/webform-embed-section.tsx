@@ -78,17 +78,17 @@ export function WebformEmbedSection({ workspaceId }: WebformEmbedSectionProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="text-sm text-slate-600">
+        <div className="text-sm text-muted-foreground">
           <span className="font-medium">Your workspace ID:</span>{" "}
-          <code className="bg-slate-100 px-2 py-0.5 rounded text-xs font-mono">{workspaceId}</code>
+          <code className="bg-muted px-2 py-0.5 rounded text-xs font-mono">{workspaceId}</code>
         </div>
 
         {/* Tab switcher */}
-        <div className="flex gap-1 bg-slate-100 rounded-lg p-1 w-fit">
+        <div className="flex gap-1 bg-muted rounded-lg p-1 w-fit">
           <button
             onClick={() => setTab("html")}
             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-              tab === "html" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+              tab === "html" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             HTML Form
@@ -96,7 +96,7 @@ export function WebformEmbedSection({ workspaceId }: WebformEmbedSectionProps) {
           <button
             onClick={() => setTab("js")}
             className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-              tab === "js" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+              tab === "js" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             JavaScript
@@ -112,14 +112,14 @@ export function WebformEmbedSection({ workspaceId }: WebformEmbedSectionProps) {
             variant="ghost"
             size="sm"
             onClick={handleCopy}
-            className="absolute top-2 right-2 h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-slate-700"
+            className="absolute top-2 right-2 h-8 w-8 p-0 text-muted-foreground hover:text-white hover:bg-slate-700"
           >
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
           </Button>
         </div>
 
-        <p className="text-xs text-slate-500">
-          The HTML form uses a <code className="bg-slate-100 px-1 rounded">redirect_url</code> field
+        <p className="text-xs text-muted-foreground">
+          The HTML form uses a <code className="bg-muted px-1 rounded">redirect_url</code> field
           to send customers back to your thank-you page after submission. The JavaScript version
           works with CORS from any domain — no server-side proxy needed.
         </p>

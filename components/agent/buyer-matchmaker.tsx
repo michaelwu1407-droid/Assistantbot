@@ -33,10 +33,10 @@ export function BuyerMatchmaker({ dealId }: BuyerMatchmakerProps) {
 
     if (loading) {
         return (
-            <Card className="h-full border-slate-200 shadow-sm">
+            <Card className="h-full border-border shadow-sm">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                         Finding Buyers...
                     </CardTitle>
                 </CardHeader>
@@ -46,9 +46,9 @@ export function BuyerMatchmaker({ dealId }: BuyerMatchmakerProps) {
 
     if (!result || !result.success) {
         return (
-            <Card className="h-full border-slate-200 shadow-sm">
+            <Card className="h-full border-border shadow-sm">
                 <CardHeader>
-                    <CardTitle className="text-slate-900">Buyer Matchmaker</CardTitle>
+                    <CardTitle className="text-foreground">Buyer Matchmaker</CardTitle>
                     <CardDescription className="text-red-500">
                         {result?.error || "Unable to load matches."}
                     </CardDescription>
@@ -63,11 +63,11 @@ export function BuyerMatchmaker({ dealId }: BuyerMatchmakerProps) {
     const displayPrice = listingPrice ? `$${listingPrice.toLocaleString()}` : "Price TBD"
 
     return (
-        <Card className="h-full border-slate-200 shadow-sm flex flex-col">
-            <CardHeader className="pb-3 border-b border-slate-100">
+        <Card className="h-full border-border shadow-sm flex flex-col">
+            <CardHeader className="pb-3 border-b border-border/50">
                 <div className="flex justify-between items-start">
                     <div>
-                        <CardTitle className="text-slate-900 flex items-center gap-2">
+                        <CardTitle className="text-foreground flex items-center gap-2">
                             Buyer Matchmaker
                             <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-200">
                                 {matches.length} matches
@@ -81,7 +81,7 @@ export function BuyerMatchmaker({ dealId }: BuyerMatchmakerProps) {
             </CardHeader>
             <CardContent className="flex-1 overflow-auto pt-4 space-y-4">
                 {matches.length === 0 ? (
-                    <div className="text-center py-8 text-slate-500">
+                    <div className="text-center py-8 text-muted-foreground">
                         <User className="w-12 h-12 mx-auto text-slate-200 mb-3" />
                         <p>No matching buyers found in this workspace.</p>
                         <Button variant="link" className="text-blue-600">Convert Lead to Buyer</Button>
@@ -93,13 +93,13 @@ export function BuyerMatchmaker({ dealId }: BuyerMatchmakerProps) {
                         const isGreatMatch = budgetBuffer > 50000 // $50k buffer
 
                         return (
-                            <div key={contact.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 rounded-lg border border-slate-100 bg-slate-50/50 hover:border-blue-200 hover:bg-blue-50/50 transition-all gap-4">
+                            <div key={contact.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 rounded-lg border border-border/50 bg-muted/20 hover:border-blue-200 hover:bg-blue-50/50 transition-all gap-4">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-semibold shrink-0">
                                         {contact.name.substring(0, 2).toUpperCase()}
                                     </div>
                                     <div>
-                                        <div className="font-medium text-slate-900 flex items-center gap-2">
+                                        <div className="font-medium text-foreground flex items-center gap-2">
                                             {contact.name}
                                             {isGreatMatch && (
                                                 <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-green-200 shadow-none h-5 px-1.5 text-[10px]">
@@ -107,7 +107,7 @@ export function BuyerMatchmaker({ dealId }: BuyerMatchmakerProps) {
                                                 </Badge>
                                             )}
                                         </div>
-                                        <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
+                                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
                                             {contact.budget && (
                                                 <span className="flex items-center gap-1 text-emerald-600 font-medium">
                                                     <DollarSign className="w-3 h-3" />
@@ -125,11 +125,11 @@ export function BuyerMatchmaker({ dealId }: BuyerMatchmakerProps) {
                                 </div>
 
                                 <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-                                    <Button size="sm" variant="outline" className="h-8 w-8 p-0 border-slate-200 bg-white" title="Call">
-                                        <Phone className="w-3.5 h-3.5 text-slate-600" />
+                                    <Button size="sm" variant="outline" className="h-8 w-8 p-0 border-border bg-card" title="Call">
+                                        <Phone className="w-3.5 h-3.5 text-muted-foreground" />
                                     </Button>
-                                    <Button size="sm" variant="outline" className="h-8 w-8 p-0 border-slate-200 bg-white" title="Email Listing">
-                                        <Mail className="w-3.5 h-3.5 text-slate-600" />
+                                    <Button size="sm" variant="outline" className="h-8 w-8 p-0 border-border bg-card" title="Email Listing">
+                                        <Mail className="w-3.5 h-3.5 text-muted-foreground" />
                                     </Button>
                                     <Button size="sm" className="bg-slate-900 text-xs h-8">
                                         Match

@@ -997,17 +997,17 @@ export function TraceyOnboarding() {
   // ─── Render ────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-start p-4 pt-8">
+    <div className="min-h-screen bg-muted/30 dark:bg-slate-950 flex flex-col items-center justify-start p-4 pt-8">
       <div className="w-full max-w-3xl">
         {/* Header */}
         <div className="text-center mb-6">
           <div className="mx-auto h-14 w-14 rounded-xl flex items-center justify-center shadow-md overflow-hidden mb-3">
             <Image src="/latest-logo.png" alt="Earlymark" width={56} height={56} className="h-14 w-14 object-contain" />
           </div>
-          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-3xl font-extrabold text-foreground dark:text-white tracking-tight">
             Meet Tracey
           </h1>
-          <p className="text-slate-500 mt-1 text-sm">Your AI receptionist. Let&apos;s set her up.</p>
+          <p className="text-muted-foreground mt-1 text-sm">Your AI receptionist. Let&apos;s set her up.</p>
         </div>
 
         {/* Progress Bar */}
@@ -1034,13 +1034,13 @@ export function TraceyOnboarding() {
                           ? "bg-emerald-600 text-white scale-110 shadow-lg shadow-emerald-600/30"
                           : isDone
                             ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300"
-                            : "bg-slate-200 text-slate-400 dark:bg-slate-800"
+                            : "bg-muted text-muted-foreground dark:bg-slate-800"
                         }`}
                     >
                       {isDone ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
                     </div>
                   </div>
-                  <span className={`text-[10px] font-medium ${isActive ? "text-emerald-700 dark:text-emerald-400" : "text-slate-400"}`}>
+                  <span className={`text-[10px] font-medium ${isActive ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground"}`}>
                     {s.label}
                   </span>
                 </button>
@@ -1068,7 +1068,7 @@ export function TraceyOnboarding() {
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.2 }}
           >
-            <Card className="shadow-lg border-slate-200 dark:border-slate-800">
+            <Card className="shadow-lg border-border dark:border-slate-800">
               <CardContent className="p-6">
                 {/* ──── STEP 1: Draft Contact Card ──── */}
                 {step === 0 && (
@@ -1112,7 +1112,7 @@ export function TraceyOnboarding() {
                             scrapeTriggered.current = false // allow re-scrape on change
                           }}
                         />
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-muted-foreground">
                           Add your website to pre-fill the next step.
                         </p>
                       </div>
@@ -1136,11 +1136,11 @@ export function TraceyOnboarding() {
                             onClick={() => setAgentMode(mode)}
                             className={`flex-1 text-left p-4 rounded-xl border-2 transition-all ${isSelected
                                 ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 shadow-md"
-                                : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                                : "border-border dark:border-slate-700 hover:border-border"
                               }`}
                           >
                             <div className="flex items-center gap-3">
-                              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isSelected ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-500 dark:bg-slate-800"
+                              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isSelected ? "bg-emerald-600 text-white" : "bg-muted text-muted-foreground dark:bg-slate-800"
                                 }`}>
                                 <ModeIcon className="h-5 w-5" />
                               </div>
@@ -1148,7 +1148,7 @@ export function TraceyOnboarding() {
                                 <div className="flex items-center gap-2">
                                   <span className="font-semibold text-sm">{title}</span>
                                 </div>
-                                <p className="text-xs text-slate-500 mt-0.5">{description}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
                               </div>
                             </div>
                           </button>
@@ -1168,7 +1168,7 @@ export function TraceyOnboarding() {
                                 ? "bg-emerald-600 text-white"
                                 : i < simStep
                                   ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                                  : "bg-slate-100 text-slate-400 dark:bg-slate-800"
+                                  : "bg-muted text-muted-foreground dark:bg-slate-800"
                               }`}
                           >
                             {label}
@@ -1176,7 +1176,7 @@ export function TraceyOnboarding() {
                         ))}
                       </div>
 
-                      <div className="rounded-xl border bg-white dark:bg-slate-900 p-4 space-y-4 min-h-[200px]">
+                      <div className="rounded-xl border bg-card dark:bg-slate-900 p-4 space-y-4 min-h-[200px]">
                         <AnimatePresence mode="wait">
                           <motion.div
                             key={`${agentMode}-${simStep}-mode-step`}
@@ -1238,7 +1238,7 @@ export function TraceyOnboarding() {
 
                     {/* Business Identity */}
                     <div className="space-y-4">
-                      <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-foreground dark:text-slate-300 flex items-center gap-2">
                         <Building2 className="h-4 w-4" /> Business Identity
                       </h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1286,7 +1286,7 @@ export function TraceyOnboarding() {
                             value={googleReviewUrl}
                             onChange={(e) => setGoogleReviewUrl(e.target.value)}
                           />
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-muted-foreground">
                             Optional. If your website already links to Google reviews, we&apos;ll try to pre-fill this. Customers still go through the Earlymark feedback form first. This only adds a public review step for strong feedback.
                           </p>
                         </div>
@@ -1295,7 +1295,7 @@ export function TraceyOnboarding() {
 
                     {/* Location & Service Radius */}
                     <div className="space-y-4">
-                      <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-foreground dark:text-slate-300 flex items-center gap-2">
                         <MapPin className="h-4 w-4" /> Location & Service Area
                       </h3>
                       <div className="space-y-1.5">
@@ -1324,7 +1324,7 @@ export function TraceyOnboarding() {
 
                     {/* Working Hours */}
                     <div className="space-y-4">
-                      <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-foreground dark:text-slate-300 flex items-center gap-2">
                         <Clock className="h-4 w-4" /> Working Hours
                       </h3>
 
@@ -1340,7 +1340,7 @@ export function TraceyOnboarding() {
                           <p className="font-medium text-sm flex items-center gap-1.5">
                             <Shield className="h-4 w-4 text-amber-500" /> Emergency hours
                           </p>
-                          <p className="text-xs text-slate-500">Allow Tracey to handle emergency callouts. She will notify you for approval and not accept without your permission.</p>
+                          <p className="text-xs text-muted-foreground">Allow Tracey to handle emergency callouts. She will notify you for approval and not accept without your permission.</p>
                         </div>
                         <Switch checked={emergencyService} onCheckedChange={setEmergencyService} />
                       </div>
@@ -1349,7 +1349,7 @@ export function TraceyOnboarding() {
                         <div className="space-y-3 animate-in fade-in duration-300 pl-4 border-l-2 border-amber-300">
                           <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1.5">
-                              <Label className="text-xs text-slate-500">Emergency Start</Label>
+                              <Label className="text-xs text-muted-foreground">Emergency Start</Label>
                               <Input
                                 type="time"
                                 value={emergencyStartTime}
@@ -1357,7 +1357,7 @@ export function TraceyOnboarding() {
                               />
                             </div>
                             <div className="space-y-1.5">
-                              <Label className="text-xs text-slate-500">Emergency End</Label>
+                              <Label className="text-xs text-muted-foreground">Emergency End</Label>
                               <Input
                                 type="time"
                                 value={emergencyEndTime}
@@ -1398,12 +1398,12 @@ export function TraceyOnboarding() {
                     </div>
 
                     {/* Document Upload */}
-                    <div className="space-y-3 border rounded-lg p-4 bg-slate-50 dark:bg-slate-900">
+                    <div className="space-y-3 border rounded-lg p-4 bg-muted/30 dark:bg-slate-900">
                       <Label className="flex items-center gap-2">
                         <FileIcon className="h-4 w-4 text-emerald-500" />
                         Upload Documents (optional)
                       </Label>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-muted-foreground">
                         Upload price lists, insurance forms, or any documents Tracey should reference.
                       </p>
                       
@@ -1436,13 +1436,13 @@ export function TraceyOnboarding() {
                           {uploadedDocs.map((doc, index) => (
                             <div
                               key={index}
-                              className="flex items-center justify-between p-2 bg-white dark:bg-slate-950 rounded border"
+                              className="flex items-center justify-between p-2 bg-card dark:bg-slate-950 rounded border"
                             >
                               <div className="flex items-center gap-2 min-w-0">
-                                <FileIcon className="h-4 w-4 text-slate-400 shrink-0" />
+                                <FileIcon className="h-4 w-4 text-muted-foreground shrink-0" />
                                 <span className="text-sm truncate">{doc.name}</span>
                                 {doc.fileSize && (
-                                  <span className="text-xs text-slate-400">
+                                  <span className="text-xs text-muted-foreground">
                                     ({(doc.fileSize / 1024).toFixed(1)} KB)
                                   </span>
                                 )}
@@ -1451,7 +1451,7 @@ export function TraceyOnboarding() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => removeDocument(index)}
-                                className="h-6 w-6 text-slate-400 hover:text-red-500 shrink-0"
+                                className="h-6 w-6 text-muted-foreground hover:text-red-500 shrink-0"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -1469,11 +1469,11 @@ export function TraceyOnboarding() {
                     <TraceyBubble text="Let's set up how Tracey will handle your emails. She can monitor your inbox and automatically respond to leads!" />
 
                     {/* Email Integration Info */}
-                    <div className="bg-slate-50 dark:bg-slate-900 border rounded-lg p-4 space-y-4">
+                    <div className="bg-muted/30 dark:bg-slate-900 border rounded-lg p-4 space-y-4">
                       <h3 className="font-semibold text-sm flex items-center gap-2">
                         <Mail className="h-4 w-4 text-emerald-500" /> How Tracey Works With Your Inbox [{agentMode === "EXECUTION" ? "Execute" : agentMode === "DRAFT" ? "Review & approve" : "Info only"}]
                       </h3>
-                      <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
+                      <ul className="space-y-2 text-xs text-muted-foreground dark:text-muted-foreground">
                         <li className="flex items-start gap-2">
                           <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
                           <span>Tracey monitors and extracts from your inbox 24/7 new leads</span>
@@ -1498,11 +1498,11 @@ export function TraceyOnboarding() {
                         onClick={() => setInboxConnectionType("oauth")}
                         className={`w-full text-left p-4 rounded-xl border-2 transition-all ${inboxConnectionType === "oauth"
                             ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 shadow-md"
-                            : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                            : "border-border dark:border-slate-700 hover:border-border"
                           }`}
                       >
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${inboxConnectionType === "oauth" ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-500 dark:bg-slate-800"}`}>
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${inboxConnectionType === "oauth" ? "bg-emerald-600 text-white" : "bg-muted text-muted-foreground dark:bg-slate-800"}`}>
                             <Globe className="h-5 w-5" />
                           </div>
                           <div className="flex-1">
@@ -1510,7 +1510,7 @@ export function TraceyOnboarding() {
                               <span className="font-semibold text-sm">Connect Seamlessly</span>
                               <Badge variant="secondary" className="text-[10px]">Recommended</Badge>
                             </div>
-                            <p className="text-xs text-slate-500 mt-0.5">Connect your Gmail or Outlook directly for instant lead capture</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">Connect your Gmail or Outlook directly for instant lead capture</p>
                           </div>
                         </div>
                       </button>
@@ -1520,16 +1520,16 @@ export function TraceyOnboarding() {
                         onClick={() => setInboxConnectionType("forward")}
                         className={`w-full text-left p-4 rounded-xl border-2 transition-all ${inboxConnectionType === "forward"
                             ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 shadow-md"
-                            : "border-slate-200 dark:border-slate-700 hover:border-slate-300"
+                            : "border-border dark:border-slate-700 hover:border-border"
                           }`}
                       >
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${inboxConnectionType === "forward" ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-500 dark:bg-slate-800"}`}>
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${inboxConnectionType === "forward" ? "bg-emerald-600 text-white" : "bg-muted text-muted-foreground dark:bg-slate-800"}`}>
                             <Mail className="h-5 w-5" />
                           </div>
                           <div className="flex-1">
                             <span className="font-semibold text-sm">Auto-Forward</span>
-                            <p className="text-xs text-slate-500 mt-0.5">
+                            <p className="text-xs text-muted-foreground mt-0.5">
                               Set up a forwarding rule from your email to: <strong className="text-emerald-600">{preGenLeadsEmail || "Loading..."}</strong>
                             </p>
                             {leadCaptureEmailReadiness && !leadCaptureEmailReadiness.ready && (
@@ -1548,8 +1548,8 @@ export function TraceyOnboarding() {
                     </div>
 
                     {inboxConnectionType === "oauth" && (
-                      <div className="bg-slate-50 dark:bg-slate-900 border rounded-lg p-4 space-y-3">
-                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                      <div className="bg-muted/30 dark:bg-slate-900 border rounded-lg p-4 space-y-3">
+                        <p className="text-sm text-muted-foreground dark:text-muted-foreground">
                           Connect your email account so Tracey can start monitoring for new leads immediately.
                         </p>
                         <div className="flex gap-2">
@@ -1595,7 +1595,7 @@ export function TraceyOnboarding() {
                           <strong>{leadCaptureStatusCopy.title}</strong>
                         </p>
                         <div className="flex items-center gap-2">
-                          <code className={`flex-1 bg-white dark:bg-slate-900 px-3 py-2 rounded text-sm font-mono select-all ${leadCaptureStatusCopy.tone === "blocked" ? "text-red-700 dark:text-red-300" : leadCaptureStatusCopy.tone === "verified" ? "text-amber-700 dark:text-amber-300" : "text-emerald-700 dark:text-emerald-400"}`}>
+                          <code className={`flex-1 bg-card dark:bg-slate-900 px-3 py-2 rounded text-sm font-mono select-all ${leadCaptureStatusCopy.tone === "blocked" ? "text-red-700 dark:text-red-300" : leadCaptureStatusCopy.tone === "verified" ? "text-amber-700 dark:text-amber-300" : "text-emerald-700 dark:text-emerald-400"}`}>
                             {preGenLeadsEmail}
                           </code>
                           <Button 
@@ -1632,10 +1632,10 @@ export function TraceyOnboarding() {
                     <TraceyBubble text={`I${scrapeData?.services?.length ? "'ve pre-filled a few services for you. " : "'ll need your services here so I can "}quote accurately and handle enquiries. Tweak, add, or delete anything below.`} />
 
                     {/* Global Call-Out Fee */}
-                    <div className="flex items-center gap-4 p-4 rounded-lg border bg-slate-50 dark:bg-slate-900">
+                    <div className="flex items-center gap-4 p-4 rounded-lg border bg-muted/30 dark:bg-slate-900">
                       <div className="flex-1">
                         <Label className="text-sm font-medium">Call-out fee</Label>
-                        <p className="text-xs text-slate-500">Applied to all services unless overridden per service.</p>
+                        <p className="text-xs text-muted-foreground">Applied to all services unless overridden per service.</p>
                       </div>
                       <Input
                         type="number"
@@ -1648,7 +1648,7 @@ export function TraceyOnboarding() {
 
                     {/* Services Table */}
                     <div className="space-y-3">
-                      <div className="hidden sm:grid sm:grid-cols-[minmax(0,1.55fr)_96px_96px_minmax(0,1.75fr)_40px] gap-2 px-1 text-xs font-semibold text-slate-500 uppercase">
+                      <div className="hidden sm:grid sm:grid-cols-[minmax(0,1.55fr)_96px_96px_minmax(0,1.75fr)_40px] gap-2 px-1 text-xs font-semibold text-muted-foreground uppercase">
                         <span>Service</span>
                         <span>Min ($)</span>
                         <span>Max ($)</span>
@@ -1670,10 +1670,10 @@ export function TraceyOnboarding() {
                       {services.map((svc, i) => (
                         <div
                           key={i}
-                          className="grid grid-cols-1 gap-2 rounded-[18px] border bg-white p-3 dark:bg-slate-900 sm:grid-cols-[minmax(0,1.55fr)_96px_96px_minmax(0,1.75fr)_40px]"
+                          className="grid grid-cols-1 gap-2 rounded-[18px] border bg-card p-3 dark:bg-slate-900 sm:grid-cols-[minmax(0,1.55fr)_96px_96px_minmax(0,1.75fr)_40px]"
                         >
                           <div>
-                            <Label className="sm:hidden text-xs text-slate-500 mb-1">Service Name</Label>
+                            <Label className="sm:hidden text-xs text-muted-foreground mb-1">Service Name</Label>
                             <Input
                               placeholder="e.g. Tap Replacement"
                               value={svc.serviceName}
@@ -1682,7 +1682,7 @@ export function TraceyOnboarding() {
                             />
                           </div>
                           <div>
-                            <Label className="sm:hidden text-xs text-slate-500 mb-1">Min ($)</Label>
+                            <Label className="sm:hidden text-xs text-muted-foreground mb-1">Min ($)</Label>
                             <Input
                               type="number"
                               placeholder="$"
@@ -1692,7 +1692,7 @@ export function TraceyOnboarding() {
                             />
                           </div>
                           <div>
-                            <Label className="sm:hidden text-xs text-slate-500 mb-1">Max ($)</Label>
+                            <Label className="sm:hidden text-xs text-muted-foreground mb-1">Max ($)</Label>
                             <Input
                               type="number"
                               placeholder="$"
@@ -1702,7 +1702,7 @@ export function TraceyOnboarding() {
                             />
                           </div>
                           <div>
-                            <Label className="sm:hidden text-xs text-slate-500 mb-1">Teach Tracey</Label>
+                            <Label className="sm:hidden text-xs text-muted-foreground mb-1">Teach Tracey</Label>
                             <Textarea
                               placeholder="e.g. Ask if gas or electric"
                               value={svc.traceyNotes}
@@ -1716,7 +1716,7 @@ export function TraceyOnboarding() {
                               variant="ghost"
                               size="icon"
                               onClick={() => removeService(i)}
-                              className="text-slate-400 hover:text-red-500 h-8 w-8"
+                              className="text-muted-foreground hover:text-red-500 h-8 w-8"
                               disabled={services.length <= 1}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -1731,12 +1731,12 @@ export function TraceyOnboarding() {
                     </div>
 
                     {/* Multilingual Support */}
-                    <div className="flex items-center justify-between rounded-lg border p-4 bg-slate-50 dark:bg-slate-900">
+                    <div className="flex items-center justify-between rounded-lg border p-4 bg-muted/30 dark:bg-slate-900">
                       <div>
                         <p className="font-medium text-sm flex items-center gap-1.5">
                           <Globe className="h-4 w-4 text-emerald-500" /> Multilingual Jobs
                         </p>
-                        <p className="text-xs text-slate-500">Can Tracey accept jobs from customers who speak languages other than English?</p>
+                        <p className="text-xs text-muted-foreground">Can Tracey accept jobs from customers who speak languages other than English?</p>
                       </div>
                       <Switch checked={acceptsMultilingual} onCheckedChange={setAcceptsMultilingual} />
                     </div>
@@ -1768,9 +1768,9 @@ export function TraceyOnboarding() {
                           </Select>
                         </div>
 
-                        <div className="bg-slate-50 dark:bg-slate-900 border rounded-lg p-4 space-y-3">
+                        <div className="bg-muted/30 dark:bg-slate-900 border rounded-lg p-4 space-y-3">
                           <h3 className="font-semibold text-sm">Your activation checklist</h3>
-                          <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
+                          <ul className="space-y-2 text-sm text-muted-foreground dark:text-muted-foreground">
                             <li className="flex items-start gap-2">
                               <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
                               <span>
@@ -1779,7 +1779,7 @@ export function TraceyOnboarding() {
                                     Your dedicated AU phone number: <strong className="text-emerald-600 font-mono">{resolvedPhoneNumber}</strong>
                                   </span>
                                 ) : (
-                                  <span className={provisioningStatus === "failed" || provisioningStatus === "blocked_duplicate" ? "text-red-600 dark:text-red-400" : provisioningStatus === "not_requested" ? "text-amber-600 dark:text-amber-400" : "text-slate-600 dark:text-slate-300"}>
+                                  <span className={provisioningStatus === "failed" || provisioningStatus === "blocked_duplicate" ? "text-red-600 dark:text-red-400" : provisioningStatus === "not_requested" ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground dark:text-slate-300"}>
                                     {provisioningStatus === "provisioning" ? (
                                       <span className="flex items-center gap-2">
                                         <Loader2 className="h-3 w-3 animate-spin" />
@@ -1823,10 +1823,10 @@ export function TraceyOnboarding() {
                           )}
                         </div>
 
-                        <div className="bg-slate-50 dark:bg-slate-900 border rounded-lg p-4 space-y-4">
+                        <div className="bg-muted/30 dark:bg-slate-900 border rounded-lg p-4 space-y-4">
                           <div>
                             <h3 className="font-semibold text-sm">Invite your team</h3>
-                            <p className="text-xs text-slate-500 mt-1">
+                            <p className="text-xs text-muted-foreground mt-1">
                               Optional. Invite managers or team members now, or skip and do it later from the dashboard.
                             </p>
                           </div>
@@ -1937,15 +1937,15 @@ export function TraceyOnboarding() {
                         <TraceyBubble text={provisionResult.phoneNumber ? "Welcome aboard! I'm live and ready to take calls. You'll get a text from me shortly to confirm the connection." : "Welcome aboard! Your onboarding is complete. You can provision a dedicated number later from billing or settings."} animate={false} />
 
                         {provisionResult.leadsEmail && (
-                          <div className="bg-slate-50 dark:bg-slate-900 border rounded-lg p-4 text-left">
-                            <p className="text-xs font-semibold text-slate-500 uppercase mb-1">Your Leads Email</p>
+                          <div className="bg-muted/30 dark:bg-slate-900 border rounded-lg p-4 text-left">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Your Leads Email</p>
                             <p className="font-mono text-emerald-600 text-sm select-all">{provisionResult.leadsEmail}</p>
                           </div>
                         )}
 
                         {provisionResult.phoneNumber && (
-                          <div className="bg-slate-50 dark:bg-slate-900 border rounded-lg p-4 text-left">
-                            <p className="text-xs font-semibold text-slate-500 uppercase mb-1">Tracey&apos;s Phone Number</p>
+                          <div className="bg-muted/30 dark:bg-slate-900 border rounded-lg p-4 text-left">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Tracey&apos;s Phone Number</p>
                             <p className="font-mono text-emerald-600 text-lg select-all">{provisionResult.phoneNumber}</p>
                           </div>
                         )}

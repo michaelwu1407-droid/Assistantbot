@@ -64,7 +64,7 @@ export function Header({ pageTitle, userName, userId, workspaceId, userRole, onO
         if (c.includes("rain") || c.includes("drizzle")) return <CloudRain className="h-4 w-4 text-primary" />
         if (c.includes("snow")) return <CloudSnow className="h-4 w-4 text-slate-300" />
         if (c.includes("thunder")) return <CloudLightning className="h-4 w-4 text-amber-400" />
-        if (c.includes("cloud") || c.includes("fog")) return <Cloud className="h-4 w-4 text-slate-400" />
+        if (c.includes("cloud") || c.includes("fog")) return <Cloud className="h-4 w-4 text-muted-foreground" />
         return <Sun className="h-4 w-4 text-amber-500" />
     }
 
@@ -86,7 +86,7 @@ export function Header({ pageTitle, userName, userId, workspaceId, userRole, onO
                 size="icon"
                 className={cn(
                     "md:hidden -ml-2 shrink-0",
-                    isBrand ? "text-white/90 hover:bg-white/10 hover:text-white" : "text-muted-foreground"
+                    isBrand ? "text-white/90 hover:bg-card/10 hover:text-white" : "text-muted-foreground"
                 )}
                 onClick={() => useShellStore.getState().setMobileMenuOpen(true)}
             >
@@ -99,7 +99,7 @@ export function Header({ pageTitle, userName, userId, workspaceId, userRole, onO
                         <p
                             className={cn(
                                 "truncate text-sm font-semibold tracking-tight",
-                                isBrand ? "text-white" : "text-slate-950"
+                                isBrand ? "text-white" : "text-foreground"
                             )}
                             title={pageTitle}
                         >
@@ -125,7 +125,7 @@ export function Header({ pageTitle, userName, userId, workspaceId, userRole, onO
                             "flex items-center gap-1 shrink-0",
                             isBrand &&
                                 /* Moderate emphasis on green bar — not full white pills */
-                                "[&_#new-deal-btn]:border [&_#new-deal-btn]:border-white/25 [&_#new-deal-btn]:bg-emerald-950/45 [&_#new-deal-btn]:text-white [&_#new-deal-btn]:shadow-none [&_#new-deal-btn]:hover:bg-emerald-950/65 [&_#new-deal-btn]:hover:border-white/35 [&_#pipeline-filter-trigger]:!border [&_#pipeline-filter-trigger]:!border-white/25 [&_#pipeline-filter-trigger]:!bg-white/10 [&_#pipeline-filter-trigger]:!text-white [&_#pipeline-filter-trigger]:shadow-none [&_#pipeline-filter-trigger]:hover:!bg-white/18"
+                                "[&_#new-deal-btn]:border [&_#new-deal-btn]:border-white/25 [&_#new-deal-btn]:bg-emerald-950/45 [&_#new-deal-btn]:text-white [&_#new-deal-btn]:shadow-none [&_#new-deal-btn]:hover:bg-emerald-950/65 [&_#new-deal-btn]:hover:border-white/35 [&_#pipeline-filter-trigger]:!border [&_#pipeline-filter-trigger]:!border-white/25 [&_#pipeline-filter-trigger]:!bg-card/10 [&_#pipeline-filter-trigger]:!text-white [&_#pipeline-filter-trigger]:shadow-none [&_#pipeline-filter-trigger]:hover:!bg-card/18"
                         )}
                     >
                         {headerActions}
@@ -138,7 +138,7 @@ export function Header({ pageTitle, userName, userId, workspaceId, userRole, onO
                 size="icon"
                 className={cn(
                     "shrink-0 md:hidden",
-                    isBrand ? "text-white/90 hover:bg-white/10 hover:text-white" : "text-muted-foreground"
+                    isBrand ? "text-white/90 hover:bg-card/10 hover:text-white" : "text-muted-foreground"
                 )}
                 onClick={() => document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }))}
             >
@@ -154,7 +154,7 @@ export function Header({ pageTitle, userName, userId, workspaceId, userRole, onO
                             className={cn(
                                 "flex h-9 items-center gap-1.5 px-2.5 rounded-full border",
                                 isBrand
-                                    ? "bg-white/10 border-white/20"
+                                    ? "bg-card/10 border-white/20"
                                     : "bg-primary/5 border border-primary/10"
                             )}
                         >
@@ -174,7 +174,7 @@ export function Header({ pageTitle, userName, userId, workspaceId, userRole, onO
                         className={cn(
                             "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition-colors",
                             isBrand
-                                ? "text-white/90 hover:bg-white/10"
+                                ? "text-white/90 hover:bg-card/10"
                                 : "text-muted-foreground hover:bg-muted/80 hover:opacity-100"
                         )}
                         onClick={onOpenActivity}
@@ -185,7 +185,7 @@ export function Header({ pageTitle, userName, userId, workspaceId, userRole, onO
                     <NotificationsBtn userId={userId} tone={isBrand ? "onDark" : "default"} />
                 </div>
                 {/* Divider */}
-                <div className={cn("h-6 w-px", isBrand ? "bg-white/25" : "bg-border/20")} />
+                <div className={cn("h-6 w-px", isBrand ? "bg-card/25" : "bg-border/20")} />
                 {/* User identity */}
                 <div className="flex items-center gap-2 pl-1">
                     <div className="text-right hidden sm:block">
@@ -203,7 +203,7 @@ export function Header({ pageTitle, userName, userId, workspaceId, userRole, onO
                         className={cn(
                             "w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold",
                             isBrand
-                                ? "bg-white/15 border-white/30 text-white"
+                                ? "bg-card/15 border-white/30 text-white"
                                 : "bg-primary/10 border-muted text-primary"
                         )}
                     >

@@ -99,19 +99,19 @@ function SidebarNav({ className, ...props }: { className?: string } & React.HTML
         >
             <div className="hidden lg:block mb-2 px-1">
                 <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                     <Input
                         placeholder="Filter settings..."
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        className="h-9 pl-8 app-body-secondary bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700"
+                        className="h-9 pl-8 app-body-secondary bg-muted/30 dark:bg-slate-900 border-border dark:border-slate-700"
                     />
                 </div>
             </div>
             {visibleSections.map((section, si) => (
                 <div key={si} className="lg:space-y-1">
                     {section.label && (
-                        <p className="app-field-label hidden lg:block px-4 py-2 dark:text-slate-400">
+                        <p className="app-field-label hidden lg:block px-4 py-2 dark:text-muted-foreground">
                             {section.label}
                         </p>
                     )}
@@ -123,7 +123,7 @@ function SidebarNav({ className, ...props }: { className?: string } & React.HTML
                                 "justify-start text-left whitespace-nowrap",
                                 pathname === item.href
                                     ? "bg-mint-50 font-medium text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400"
-                                    : "hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-50 text-slate-500",
+                                    : "hover:bg-muted hover:text-foreground dark:hover:bg-slate-800 dark:hover:text-slate-50 text-muted-foreground",
                                 "inline-flex h-10 items-center rounded-xl px-4 py-2 app-body-primary transition-colors"
                             )}
                         >
@@ -145,12 +145,12 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
                     Manage your account, business, assistant, and app settings.
                 </p>
             </div>
-            <div className="my-6 border-t border-slate-200 dark:border-slate-800" />
+            <div className="my-6 border-t border-border dark:border-slate-800" />
             <div className="flex flex-col space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0">
                 <aside className="w-full lg:w-[260px] shrink-0">
                     <SidebarNav />
                 </aside>
-                <div className="flex-1 min-w-0 max-w-full lg:max-w-3xl border-slate-100 dark:border-slate-800 lg:border-l lg:pl-10">
+                <div className="flex-1 min-w-0 max-w-full lg:max-w-3xl border-border/50 dark:border-slate-800 lg:border-l lg:pl-10">
                     {children}
                 </div>
             </div>

@@ -61,13 +61,13 @@ export function KioskForm({ dealId, dealTitle }: KioskFormProps) {
 
     if (success) {
         return (
-            <Card className="w-full max-w-md mx-auto mt-10 border-none shadow-xl bg-white/90 backdrop-blur">
+            <Card className="w-full max-w-md mx-auto mt-10 border-none shadow-xl bg-card/90 backdrop-blur">
                 <CardContent className="pt-10 pb-10 flex flex-col items-center text-center space-y-4">
                     <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4">
                         <CheckCircle2 className="w-10 h-10 text-green-600" />
                     </div>
-                    <h2 className="text-2xl font-bold text-slate-900">Thank You!</h2>
-                    <p className="text-slate-500 max-w-xs">
+                    <h2 className="text-2xl font-bold text-foreground">Thank You!</h2>
+                    <p className="text-muted-foreground max-w-xs">
                         Your details have been registered. The agent has been notified of your visit.
                     </p>
                     <Button onClick={handleReset} className="mt-6 w-full max-w-xs" size="lg">
@@ -79,24 +79,24 @@ export function KioskForm({ dealId, dealTitle }: KioskFormProps) {
     }
 
     return (
-        <Card className="w-full max-w-lg mx-auto border-slate-200 shadow-xl bg-white/95">
-            <CardHeader className="text-center border-b border-slate-100 pb-6 bg-slate-50/50 rounded-t-xl">
-                <CardTitle className="text-2xl font-bold tracking-tight text-slate-900">
+        <Card className="w-full max-w-lg mx-auto border-border shadow-xl bg-card/95">
+            <CardHeader className="text-center border-b border-border/50 pb-6 bg-muted/20 rounded-t-xl">
+                <CardTitle className="text-2xl font-bold tracking-tight text-foreground">
                     Welcome to the Open House
                 </CardTitle>
-                <CardDescription className="text-base text-slate-500 mt-2">
+                <CardDescription className="text-base text-muted-foreground mt-2">
                     Please sign in to view {dealTitle}
                 </CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="space-y-2">
-                        <Label htmlFor="name" className="text-sm font-medium text-slate-700">Full Name</Label>
+                        <Label htmlFor="name" className="text-sm font-medium text-foreground">Full Name</Label>
                         <div className="relative">
-                            <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                            <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                             <Input
                                 id="name"
-                                className="pl-10 h-12 bg-slate-50 border-slate-200 focus:bg-white transition-all"
+                                className="pl-10 h-12 bg-muted/30 border-border focus:bg-card transition-all"
                                 placeholder="Jane Doe"
                                 required
                                 value={formData.name}
@@ -106,13 +106,13 @@ export function KioskForm({ dealId, dealTitle }: KioskFormProps) {
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="email" className="text-sm font-medium text-slate-700">Email Address</Label>
+                        <Label htmlFor="email" className="text-sm font-medium text-foreground">Email Address</Label>
                         <div className="relative">
-                            <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                            <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                             <Input
                                 id="email"
                                 type="email"
-                                className="pl-10 h-12 bg-slate-50 border-slate-200 focus:bg-white transition-all"
+                                className="pl-10 h-12 bg-muted/30 border-border focus:bg-card transition-all"
                                 placeholder="jane@example.com"
                                 value={formData.email}
                                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -121,13 +121,13 @@ export function KioskForm({ dealId, dealTitle }: KioskFormProps) {
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="phone" className="text-sm font-medium text-slate-700">Phone Number</Label>
+                        <Label htmlFor="phone" className="text-sm font-medium text-foreground">Phone Number</Label>
                         <div className="relative">
-                            <Phone className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                            <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                             <Input
                                 id="phone"
                                 type="tel"
-                                className="pl-10 h-12 bg-slate-50 border-slate-200 focus:bg-white transition-all"
+                                className="pl-10 h-12 bg-muted/30 border-border focus:bg-card transition-all"
                                 placeholder="0412 345 678"
                                 value={formData.phone}
                                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
@@ -136,7 +136,7 @@ export function KioskForm({ dealId, dealTitle }: KioskFormProps) {
                     </div>
 
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium text-slate-700 mb-2 block">I am a...</Label>
+                        <Label className="text-sm font-medium text-foreground mb-2 block">I am a...</Label>
                         <div className="grid grid-cols-3 gap-3">
                             {['Buying', 'Renting', 'Just Looking'].map((level, i) => (
                                 <button
@@ -147,7 +147,7 @@ export function KioskForm({ dealId, dealTitle }: KioskFormProps) {
                                         h-12 rounded-lg border text-sm font-medium transition-all
                                         ${(i === 2 && formData.interestedLevel === 1) || (i !== 2 && formData.interestedLevel === 5 - i * 2)
                                             ? "bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900 ring-offset-2"
-                                            : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50"}
+                                            : "bg-card text-muted-foreground border-border hover:border-border hover:bg-muted/30"}
                                     `}
                                 >
                                     {level}
@@ -157,10 +157,10 @@ export function KioskForm({ dealId, dealTitle }: KioskFormProps) {
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="notes" className="text-sm font-medium text-slate-700">Notes / Feedback (Optional)</Label>
+                        <Label htmlFor="notes" className="text-sm font-medium text-foreground">Notes / Feedback (Optional)</Label>
                         <Textarea
                             id="notes"
-                            className="bg-slate-50 border-slate-200 focus:bg-white min-h-[80px]"
+                            className="bg-muted/30 border-border focus:bg-card min-h-[80px]"
                             placeholder="What are you looking for?"
                             value={formData.notes}
                             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, notes: e.target.value })}

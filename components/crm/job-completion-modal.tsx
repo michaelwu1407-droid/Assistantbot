@@ -318,12 +318,12 @@ export function JobCompletionModal({ open, onOpenChange, deal, onComplete }: Job
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <div className="rounded border border-slate-200 bg-slate-50 px-3 py-3 w-full">
-                    <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <div className="rounded border border-border bg-muted/30 px-3 py-3 w-full">
+                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                       <Camera className="h-4 w-4" />
                       Include job photos in customer follow-up
                     </div>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       Attach and send photos from the full CRM job view so customer history, files, and messaging stay together.
                     </p>
                     <Button asChild variant="outline" size="sm" className="mt-3">

@@ -32,7 +32,7 @@ const COLOR_MAP: Record<string, string> = {
     call: "text-amber-500 bg-amber-500/10",
     meeting: "text-purple-500 bg-purple-500/10",
     task: "text-emerald-500 bg-emerald-500/10",
-    note: "text-slate-500 bg-slate-500/10"
+    note: "text-muted-foreground bg-muted/10"
 }
 
 export function ActivityFeed({ contactId, dealId, limit = 20, className, activities: initialData, workspaceId, compact = false }: ActivityFeedProps) {
@@ -102,12 +102,12 @@ export function ActivityFeed({ contactId, dealId, limit = 20, className, activit
                 <div className="space-y-1">
                     {activities.map((activity) => {
                         const Icon = ICON_MAP[activity.type] || MessageSquare
-                        const colorClass = COLOR_MAP[activity.type] || "text-slate-500 bg-slate-500/10"
+                        const colorClass = COLOR_MAP[activity.type] || "text-muted-foreground bg-muted/10"
 
                         return (
                             <div
                                 key={activity.id}
-                                className="flex gap-3 items-start group cursor-pointer hover:bg-white/5 p-2 rounded-xl transition-all duration-200 border border-transparent hover:border-border/50"
+                                className="flex gap-3 items-start group cursor-pointer hover:bg-card/5 p-2 rounded-xl transition-all duration-200 border border-transparent hover:border-border/50"
                                 onClick={() => {
                                     if (activity.dealId) setSelectedDealId(activity.dealId)
                                     else if (activity.contactId) router.push(`/crm/contacts/${activity.contactId}`)
@@ -153,7 +153,7 @@ export function ActivityFeed({ contactId, dealId, limit = 20, className, activit
 
     return (
         <div className={cn("glass-card flex flex-col h-full rounded-2xl overflow-hidden", className)}>
-            <div className="pb-3 pt-4 px-5 border-b border-border/10 bg-white/5 shrink-0 flex items-center justify-between">
+            <div className="pb-3 pt-4 px-5 border-b border-border/10 bg-card/5 shrink-0 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                     {contactId || dealId ? 'History' : 'Activity Feed'}
                 </h3>

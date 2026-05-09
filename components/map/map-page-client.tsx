@@ -10,7 +10,7 @@ import type { Job } from "@/components/map/map-view"
 const LeafletMapView = dynamic(() => import("@/components/map/map-view"), {
   ssr: false,
   loading: () => (
-    <div className="flex h-full w-full items-center justify-center bg-slate-100 text-slate-500">
+    <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
       Loading map...
     </div>
   ),
@@ -23,14 +23,14 @@ export function MapPageClient({ jobs }: { jobs: Job[] }) {
 
   if (jobs.length === 0) {
     return (
-      <div className="h-full w-full bg-slate-50 px-6 py-10">
+      <div className="h-full w-full bg-muted/30 px-6 py-10">
         <div className="mx-auto flex h-full max-w-3xl items-center justify-center">
-          <div className="w-full rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100">
-              <MapPinned className="h-7 w-7 text-slate-600" />
+          <div className="w-full rounded-3xl border border-border bg-card p-8 text-center shadow-sm">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
+              <MapPinned className="h-7 w-7 text-muted-foreground" />
             </div>
-            <h2 className="text-2xl font-semibold text-slate-900">No scheduled jobs to map yet</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-600">
+            <h2 className="text-2xl font-semibold text-foreground">No scheduled jobs to map yet</h2>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">
               The map appears once jobs have both a scheduled time and an address. Book or schedule a job first, then return here to plan the route.
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
@@ -42,7 +42,7 @@ export function MapPageClient({ jobs }: { jobs: Job[] }) {
               </Link>
               <Link
                 href="/crm/schedule"
-                className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                className="inline-flex items-center justify-center rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/30"
               >
                 Go to schedule
               </Link>

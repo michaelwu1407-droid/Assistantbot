@@ -133,7 +133,7 @@ export function PlacesAutocomplete({ value, onChange, placeholder = "Enter addre
   return (
     <div className="relative">
       <div className="relative">
-        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           ref={inputRef}
           value={value}
@@ -145,21 +145,21 @@ export function PlacesAutocomplete({ value, onChange, placeholder = "Enter addre
           className="pl-10"
         />
         {isLoading && (
-          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 animate-spin" />
+          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground animate-spin" />
         )}
       </div>
       
       {showSuggestions && suggestions.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-slate-900 border rounded-md shadow-lg max-h-60 overflow-auto">
+        <div className="absolute z-50 w-full mt-1 bg-card dark:bg-slate-900 border rounded-md shadow-lg max-h-60 overflow-auto">
           {suggestions.map((suggestion) => (
             <button
               key={suggestion.place_id}
               onClick={() => handleSelectSuggestion(suggestion)}
-              className="w-full text-left px-3 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-800 focus:bg-slate-100 dark:focus:bg-slate-800"
+              className="w-full text-left px-3 py-2 text-sm hover:bg-muted dark:hover:bg-slate-800 focus:bg-muted dark:focus:bg-slate-800"
             >
               <div className="font-medium">{suggestion.structured_formatting?.main_text || suggestion.description}</div>
               {suggestion.structured_formatting?.secondary_text && (
-                <div className="text-xs text-slate-500">{suggestion.structured_formatting.secondary_text}</div>
+                <div className="text-xs text-muted-foreground">{suggestion.structured_formatting.secondary_text}</div>
               )}
             </button>
           ))}

@@ -158,7 +158,7 @@ export function StaleJobReconciliationModal({
               </SelectContent>
             </Select>
             {actualOutcome && (
-              <p className="text-xs text-slate-500">{getOutcomeNextStep(actualOutcome)}</p>
+              <p className="text-xs text-muted-foreground">{getOutcomeNextStep(actualOutcome)}</p>
             )}
           </div>
 

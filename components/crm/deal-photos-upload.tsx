@@ -52,15 +52,15 @@ export function DealPhotosUpload({ dealId, initialPhotos }: DealPhotosUploadProp
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 p-4 border border-slate-200 rounded-xl bg-slate-50/50">
+      <div className="flex flex-col gap-3 p-4 border border-border rounded-xl bg-muted/20">
         <div className="space-y-1.5">
-          <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Add a note for this photo (optional)</label>
+          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Add a note for this photo (optional)</label>
           <input
             type="text"
             placeholder="e.g. Installed new kitchen tap"
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
-            className="w-full text-sm p-2 rounded-lg border border-slate-200 bg-white focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+            className="w-full text-sm p-2 rounded-lg border border-border bg-card focus:ring-2 focus:ring-primary/20 outline-none transition-all"
             disabled={uploading}
           />
         </div>
@@ -89,13 +89,13 @@ export function DealPhotosUpload({ dealId, initialPhotos }: DealPhotosUploadProp
       {initialPhotos.length > 0 ? (
         <div className="flex gap-2 overflow-x-auto pb-2">
           {initialPhotos.map((photo) => (
-            <div key={photo.id} className="relative w-24 h-24 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
+            <div key={photo.id} className="relative w-24 h-24 rounded-lg overflow-hidden bg-muted border border-border shrink-0">
               <Image src={photo.url} alt={photo.caption || "Job"} fill unoptimized className="object-cover" />
             </div>
           ))}
         </div>
       ) : (
-        <p className="text-slate-500 text-sm flex items-center gap-2">
+        <p className="text-muted-foreground text-sm flex items-center gap-2">
           <ImageIcon className="w-4 h-4" />
           No photos yet. Use the button above to upload one.
         </p>

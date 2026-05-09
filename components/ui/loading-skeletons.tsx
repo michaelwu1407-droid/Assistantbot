@@ -2,13 +2,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export function ChatSkeleton() {
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-card">
       {/* Messages skeleton */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {/* Assistant message skeleton */}
         <div className="flex gap-3 max-w-3xl mx-auto">
           <Skeleton className="w-8 h-8 rounded-full" />
-          <div className="bg-slate-100 rounded-lg px-4 py-2 max-w-[80%]">
+          <div className="bg-muted rounded-lg px-4 py-2 max-w-[80%]">
             <Skeleton className="h-4 w-48 mb-2" />
             <Skeleton className="h-4 w-32" />
           </div>
@@ -24,7 +24,7 @@ export function ChatSkeleton() {
       </div>
 
       {/* Input skeleton */}
-      <div className="border-t border-slate-200 p-4">
+      <div className="border-t border-border p-4">
         <div className="flex gap-2 max-w-3xl mx-auto">
           <Skeleton className="flex-1 h-10" />
           <Skeleton className="w-10 h-10" />

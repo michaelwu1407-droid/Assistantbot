@@ -58,26 +58,26 @@ export default async function BillingPaywallPage() {
                     Sign up today to get yourself an early mark
                 </p>
 
-                <div className="bg-slate-50 dark:bg-slate-900 ring-1 ring-slate-200 dark:ring-slate-800 rounded-xl p-6 text-left mb-8 space-y-4">
+                <div className="bg-muted/30 dark:bg-slate-900 ring-1 ring-slate-200 dark:ring-slate-800 rounded-xl p-6 text-left mb-8 space-y-4">
                     <div className="flex items-center gap-3">
                         <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">AI Agent — handles calls, SMS & scheduling</span>
+                        <span className="text-sm font-semibold text-foreground dark:text-slate-300">AI Agent — handles calls, SMS & scheduling</span>
                     </div>
                     <div className="flex items-center gap-3">
                         <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Smart CRM with Pipeline & Contacts</span>
+                        <span className="text-sm font-semibold text-foreground dark:text-slate-300">Smart CRM with Pipeline & Contacts</span>
                     </div>
                     <div className="flex items-center gap-3">
                         <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Automated Quoting & Invoicing</span>
+                        <span className="text-sm font-semibold text-foreground dark:text-slate-300">Automated Quoting & Invoicing</span>
                     </div>
                     <div className="flex items-center gap-3">
                         <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Real-time Map & Route Optimization</span>
+                        <span className="text-sm font-semibold text-foreground dark:text-slate-300">Real-time Map & Route Optimization</span>
                     </div>
                     <div className="flex items-center gap-3">
                         <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
-                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Reports, Analytics & Team Management</span>
+                        <span className="text-sm font-semibold text-foreground dark:text-slate-300">Reports, Analytics & Team Management</span>
                     </div>
                 </div>
 

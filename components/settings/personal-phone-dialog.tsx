@@ -144,7 +144,7 @@ export function PersonalPhoneDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[min(calc(100vw-1.5rem),34rem)] p-0">
-        <div className="border-b border-slate-200/80 px-6 py-5 dark:border-white/10">
+        <div className="border-b border-border/80 px-6 py-5 dark:border-white/10">
           <DialogHeader className="space-y-2">
             <DialogTitle className="flex items-center gap-2">
               <Smartphone className="h-5 w-5 text-emerald-600" />
@@ -171,7 +171,7 @@ export function PersonalPhoneDialog({
             </Alert>
           ) : null}
 
-          <div className="rounded-[18px] border border-slate-200 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5">
+          <div className="rounded-[18px] border border-border bg-card/70 p-4 dark:border-white/10 dark:bg-card/5">
             <Label htmlFor="personal-phone-input">Personal mobile</Label>
             <Input
               id="personal-phone-input"
@@ -182,13 +182,13 @@ export function PersonalPhoneDialog({
               className="mt-2"
               disabled={step === "verify" || isBusy}
             />
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-2 text-xs text-muted-foreground">
               Use international format so texts and verification work reliably.
             </p>
           </div>
 
           {step === "verify" ? (
-            <div className="rounded-[18px] border border-slate-200 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5">
+            <div className="rounded-[18px] border border-border bg-card/70 p-4 dark:border-white/10 dark:bg-card/5">
               <Label htmlFor="personal-phone-code">Verification code</Label>
               <Input
                 id="personal-phone-code"
@@ -201,14 +201,14 @@ export function PersonalPhoneDialog({
                 className="mt-2"
                 disabled={isBusy}
               />
-              <p className="mt-2 text-xs text-slate-500">
+              <p className="mt-2 text-xs text-muted-foreground">
                 Enter the 6-digit code sent to {newPhoneNumber.trim()}.
               </p>
             </div>
           ) : null}
         </div>
 
-        <DialogFooter className="border-t border-slate-200/80 px-6 py-4 dark:border-white/10">
+        <DialogFooter className="border-t border-border/80 px-6 py-4 dark:border-white/10">
           {step === "verify" ? (
             <>
               <Button variant="outline" onClick={() => setStep("enter")} disabled={isBusy}>

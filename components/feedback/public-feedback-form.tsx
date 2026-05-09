@@ -91,15 +91,15 @@ export function PublicFeedbackForm({
     const showReviewCta = submitted.promptPublicReview && submitted.googleReviewUrl
 
     return (
-      <Card className="rounded-[18px] border-slate-200 shadow-sm">
+      <Card className="rounded-[18px] border-border shadow-sm">
         <CardContent className="space-y-5 p-6 sm:p-8">
           <div className="flex items-start gap-3">
             <div className="rounded-full bg-emerald-100 p-2 text-emerald-700">
               <CheckCircle2 className="h-5 w-5" />
             </div>
             <div className="space-y-1">
-              <h2 className="text-xl font-semibold text-slate-950">Thanks for the feedback</h2>
-              <p className="text-sm leading-6 text-slate-600">
+              <h2 className="text-xl font-semibold text-foreground">Thanks for the feedback</h2>
+              <p className="text-sm leading-6 text-muted-foreground">
                 Your response has been sent to {businessName}. It helps them improve future jobs and follow up
                 when something needs attention.
               </p>
@@ -135,7 +135,7 @@ export function PublicFeedbackForm({
   }
 
   return (
-    <Card className="rounded-[18px] border-slate-200 shadow-sm">
+    <Card className="rounded-[18px] border-border shadow-sm">
       <CardHeader className="space-y-2 p-6 sm:p-8">
         <div className="flex items-center gap-2 text-amber-500">
           <Star className="h-5 w-5 fill-current" />
@@ -144,9 +144,9 @@ export function PublicFeedbackForm({
           <Star className="h-5 w-5 fill-current" />
           <Star className="h-5 w-5 fill-current" />
         </div>
-        <CardTitle className="text-2xl font-semibold text-slate-950">How did we do?</CardTitle>
-        <CardDescription className="text-sm leading-6 text-slate-600">
-          Hi {customerName}. Please rate your experience with {businessName} for <span className="font-medium text-slate-900">{dealTitle}</span>.
+        <CardTitle className="text-2xl font-semibold text-foreground">How did we do?</CardTitle>
+        <CardDescription className="text-sm leading-6 text-muted-foreground">
+          Hi {customerName}. Please rate your experience with {businessName} for <span className="font-medium text-foreground">{dealTitle}</span>.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6 p-6 pt-0 sm:p-8 sm:pt-0">
@@ -164,7 +164,7 @@ export function PublicFeedbackForm({
                     "flex h-11 w-11 items-center justify-center rounded-full border text-sm font-semibold transition-colors",
                     selected
                       ? "border-emerald-600 bg-emerald-600 text-white"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50",
+                      : "border-border bg-card text-foreground hover:border-border hover:bg-muted/30",
                   ].join(" ")}
                   aria-pressed={selected}
                 >
@@ -173,12 +173,12 @@ export function PublicFeedbackForm({
               )
             })}
           </div>
-          <p className="text-sm text-slate-600">{score ? `${score}/10 · ${scoreLabel}` : "1 = poor, 10 = excellent"}</p>
+          <p className="text-sm text-muted-foreground">{score ? `${score}/10 · ${scoreLabel}` : "1 = poor, 10 = excellent"}</p>
         </div>
 
         <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-medium text-slate-900">
-            <MessageSquareText className="h-4 w-4 text-slate-500" />
+          <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <MessageSquareText className="h-4 w-4 text-muted-foreground" />
             Anything you want them to know?
           </label>
           <Textarea
@@ -186,7 +186,7 @@ export function PublicFeedbackForm({
             onChange={(event) => setComment(event.target.value)}
             placeholder="Optional comment"
             rows={4}
-            className="min-h-[120px] rounded-[18px] border-slate-200 bg-slate-50 px-4 py-3"
+            className="min-h-[120px] rounded-[18px] border-border bg-muted/30 px-4 py-3"
           />
         </div>
 

@@ -112,15 +112,15 @@ export function ContactForm({ mode, workspaceId, contact }: ContactFormProps) {
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-6 md:px-6">
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-950">{pageTitle}</h1>
-        <p className="text-sm text-slate-500">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">{pageTitle}</h1>
+        <p className="text-sm text-muted-foreground">
           {mode === "create"
             ? "Add a person or business contact to the CRM."
             : "Update the core contact details used across the CRM."}
         </p>
       </div>
 
-      <div className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="rounded-[20px] border border-border bg-card p-5 shadow-sm">
         {redirectNotice && (
           <div className="mb-5 rounded-[18px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
             {redirectNotice}

@@ -120,7 +120,7 @@ export function ReferralSuccessModal({ isOpen, onClose, trigger, userId }: Refer
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md bg-white">
+      <Card className="w-full max-w-md bg-card">
         <CardHeader className="relative">
           <button
             onClick={onClose}
@@ -153,7 +153,7 @@ export function ReferralSuccessModal({ isOpen, onClose, trigger, userId }: Refer
                 type="text"
                 value={referralLink}
                 readOnly
-                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md bg-white"
+                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md bg-card"
               />
               <Button
                 onClick={copyToClipboard}

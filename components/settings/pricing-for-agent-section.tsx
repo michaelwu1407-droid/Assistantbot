@@ -172,7 +172,7 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
   }
 
   return (
-    <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+    <Card className="border-border dark:border-slate-800 shadow-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <DollarSign className="h-5 w-5" />
@@ -203,13 +203,13 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
 
         <div className="space-y-2">
           <Label>Service pricing table</Label>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             Add your common services and fee range. Use comments to explain how Tracey should answer price questions.
           </p>
-          <div className="rounded-[18px] border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="rounded-[18px] border border-border dark:border-slate-700 overflow-hidden">
             <div className="overflow-x-auto">
               <div className={servicePricingTableMinWidthClass}>
-                <div className={`bg-slate-50 px-3 py-2 dark:bg-slate-900 ${servicePricingGridClass}`}>
+                <div className={`bg-muted/30 px-3 py-2 dark:bg-slate-900 ${servicePricingGridClass}`}>
                   <span className="app-micro-label">Service</span>
                   <span className="app-micro-label">Min fee</span>
                   <span className="app-micro-label">Max fee</span>
@@ -232,7 +232,7 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
                   })}
 
                   {isAddingService ? (
-                    <div className="bg-slate-50/60 p-3 dark:bg-slate-900/40">
+                    <div className="bg-muted/30 p-3 dark:bg-slate-900/40">
                       <div className={servicePricingGridClass}>
                         <FieldShell label="Service">
                           <Input
@@ -297,7 +297,7 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
                   ) : null}
 
                   {!loading && services.length === 0 && !isAddingService ? (
-                    <div className="px-4 py-6 text-sm text-slate-500">
+                    <div className="px-4 py-6 text-sm text-muted-foreground">
                       No services added yet. Add your first service so Tracey can quote consistently.
                     </div>
                   ) : null}
@@ -317,16 +317,16 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
                 Add service
               </Button>
             ) : (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 Add the service details above, then press `Add`.
               </p>
             )}
           </div>
         </div>
 
-        <div className="space-y-2 border-t border-slate-200 dark:border-slate-700 pt-4">
+        <div className="space-y-2 border-t border-border dark:border-slate-700 pt-4">
           <Label>Refusal rules</Label>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             Don&apos;t let Tracey quote these prices and focus on booking times only for these request types.
           </p>
           <div className="flex gap-2">
@@ -356,7 +356,7 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
               </div>
             ))}
             {!loading && refusalRules.length === 0 && (
-              <p className="text-sm text-slate-500">No refusal rules configured.</p>
+              <p className="text-sm text-muted-foreground">No refusal rules configured.</p>
             )}
           </div>
         </div>

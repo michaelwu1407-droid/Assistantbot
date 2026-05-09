@@ -25,7 +25,7 @@ export function DisplaySettingsClient() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+      <Card className="border-border dark:border-slate-800 shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Globe className="h-5 w-5" />
@@ -76,7 +76,7 @@ export function DisplaySettingsClient() {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+      <Card className="border-border dark:border-slate-800 shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Accessibility className="h-5 w-5" />
@@ -105,7 +105,7 @@ export function DisplaySettingsClient() {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+      <Card className="border-border dark:border-slate-800 shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Smartphone className="h-5 w-5" />

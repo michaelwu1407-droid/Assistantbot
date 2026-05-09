@@ -87,13 +87,13 @@ export function SearchCommand() {
     <>
       <div
         onClick={() => setOpen(true)}
-        className="hidden md:flex items-center w-64 px-3 py-1.5 text-sm text-slate-500 border border-slate-200 rounded-full cursor-text hover:border-slate-300 hover:bg-white transition-all bg-white/60 shadow-sm"
+        className="hidden md:flex items-center w-64 px-3 py-1.5 text-sm text-muted-foreground border border-border rounded-full cursor-text hover:border-border hover:bg-card transition-all bg-card/60 shadow-sm"
       >
         <Search className="mr-2 h-4 w-4 opacity-50" />
         <span className="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
           Search (Cmd+K)...
         </span>
-        <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-slate-100 px-1.5 font-mono text-[10px] font-medium text-slate-500 opacity-100">
+        <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
           <span className="text-xs">⌘</span>K
         </kbd>
       </div>
@@ -116,7 +116,7 @@ export function SearchCommand() {
                 >
                   <User className="mr-2 h-4 w-4" />
                   <span>{contact.name}</span>
-                  {contact.company && <span className="ml-2 text-slate-400 text-xs">({contact.company})</span>}
+                  {contact.company && <span className="ml-2 text-muted-foreground text-xs">({contact.company})</span>}
                 </CommandItem>
               ))}
             </CommandGroup>

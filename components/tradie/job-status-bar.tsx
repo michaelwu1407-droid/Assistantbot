@@ -104,7 +104,7 @@ export function JobStatusBar({ dealId, currentStatus, contactName, safetyCheckCo
                         <Button
                             onClick={() => setCompletionModalOpen(true)}
                             disabled={loading}
-                            className="w-full h-16 text-xl font-black uppercase tracking-widest bg-white hover:bg-slate-200 text-black shadow-[0_0_20px_rgba(255,255,255,0.4)] transition-all active:scale-95"
+                            className="w-full h-16 text-xl font-black uppercase tracking-widest bg-card hover:bg-muted text-black shadow-[0_0_20px_rgba(255,255,255,0.4)] transition-all active:scale-95"
                         >
                             <CheckCircle2 className="mr-3 h-6 w-6" />
                             COMPLETE JOB

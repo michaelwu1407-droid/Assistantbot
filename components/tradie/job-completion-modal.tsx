@@ -189,14 +189,14 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                             </DialogHeader>
 
                             {job && (
-                                <div className="px-4 py-2 mt-2 bg-slate-50 border border-slate-100 rounded-xl mb-2">
+                                <div className="px-4 py-2 mt-2 bg-muted/30 border border-border/50 rounded-xl mb-2">
                                     <div className="flex items-start gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-slate-200 shrink-0 flex items-center justify-center border border-slate-300">
-                                            <User className="h-4 w-4 text-slate-500" />
+                                        <div className="w-8 h-8 rounded-full bg-muted shrink-0 flex items-center justify-center border border-border">
+                                            <User className="h-4 w-4 text-muted-foreground" />
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <h4 className="font-bold text-slate-900 leading-tight truncate">{job.clientName}</h4>
-                                            <p className="text-slate-600 text-xs mt-0.5 truncate font-medium">{job.title}</p>
+                                            <h4 className="font-bold text-foreground leading-tight truncate">{job.clientName}</h4>
+                                            <p className="text-muted-foreground text-xs mt-0.5 truncate font-medium">{job.title}</p>
                                         </div>
                                         {job.value > 0 && (
                                             <div className="text-right">
@@ -217,7 +217,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
 
                                     {/* Labor Hours */}
                                     <div className="space-y-2">
-                                        <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                                        <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                                             <Clock className="h-3.5 w-3.5 text-blue-500" /> Labour Hours
                                         </label>
                                         <div className="flex gap-2">
@@ -227,35 +227,35 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                                 step={0.25}
                                                 value={laborHours}
                                                 onChange={(e) => setLaborHours(Math.max(0, parseFloat(e.target.value) || 0))}
-                                                className="w-24 border-2 border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-blue-500"
+                                                className="w-24 border-2 border-border rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-blue-500"
                                             />
-                                            <span className="text-xs text-slate-500 self-center">hrs @</span>
+                                            <span className="text-xs text-muted-foreground self-center">hrs @</span>
                                             <input
                                                 type="number"
                                                 min={0}
                                                 step={5}
                                                 value={laborRate}
                                                 onChange={(e) => setLaborRate(Math.max(0, parseFloat(e.target.value) || 0))}
-                                                className="w-24 border-2 border-slate-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-blue-500"
+                                                className="w-24 border-2 border-border rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-blue-500"
                                                 placeholder="$/hr"
                                             />
-                                            <span className="text-xs text-slate-500 self-center">= <b className="text-slate-900">${laborTotal.toFixed(2)}</b></span>
+                                            <span className="text-xs text-muted-foreground self-center">= <b className="text-foreground">${laborTotal.toFixed(2)}</b></span>
                                         </div>
                                     </div>
 
                                     {/* Materials */}
                                     <div className="space-y-2">
-                                        <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                                        <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                                             <Wrench className="h-3.5 w-3.5 text-blue-500" /> Materials Used
                                         </label>
 
                                         {materials.length > 0 && (
                                             <div className="space-y-1.5">
                                                 {materials.map((mat, i) => (
-                                                    <div key={i} className="flex items-center justify-between bg-white border border-slate-200 rounded-lg px-3 py-2">
-                                                        <span className="text-xs text-slate-700 truncate flex-1 mr-2">{mat.description}</span>
-                                                        <span className="text-xs font-bold text-slate-900 mr-2">${mat.price.toFixed(2)}</span>
-                                                        <button type="button" onClick={() => handleRemoveMaterial(i)} className="p-1 rounded hover:bg-red-50 text-slate-400 hover:text-red-500">
+                                                    <div key={i} className="flex items-center justify-between bg-card border border-border rounded-lg px-3 py-2">
+                                                        <span className="text-xs text-foreground truncate flex-1 mr-2">{mat.description}</span>
+                                                        <span className="text-xs font-bold text-foreground mr-2">${mat.price.toFixed(2)}</span>
+                                                        <button type="button" onClick={() => handleRemoveMaterial(i)} className="p-1 rounded hover:bg-red-50 text-muted-foreground hover:text-red-500">
                                                             <Trash2 className="h-3.5 w-3.5" />
                                                         </button>
                                                     </div>
@@ -283,7 +283,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
 
                                 {/* Payment Toggle */}
                                 <div className="space-y-3">
-                                    <label className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                    <label className="text-sm font-bold text-foreground flex items-center gap-2">
                                         <Receipt className="h-4 w-4 text-blue-500" /> Payment Status
                                     </label>
                                     <div className="grid grid-cols-2 gap-3">
@@ -292,7 +292,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                             onClick={() => setIsPaid(true)}
                                             className={cn(
                                                 "flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200",
-                                                isPaid ? "border-blue-600 bg-blue-50 text-blue-700" : "border-slate-200 bg-white text-slate-500"
+                                                isPaid ? "border-blue-600 bg-blue-50 text-blue-700" : "border-border bg-card text-muted-foreground"
                                             )}
                                         >
                                             <CreditCard className={cn("h-5 w-5 mb-1", isPaid && "text-blue-600")} />
@@ -303,7 +303,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                             onClick={() => setIsPaid(false)}
                                             className={cn(
                                                 "flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200",
-                                                !isPaid ? "border-amber-500 bg-amber-50 text-amber-700" : "border-slate-200 bg-white text-slate-500"
+                                                !isPaid ? "border-amber-500 bg-amber-50 text-amber-700" : "border-border bg-card text-muted-foreground"
                                             )}
                                         >
                                             <Receipt className={cn("h-5 w-5 mb-1", !isPaid && "text-amber-500")} />
@@ -314,31 +314,31 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
 
                                 {/* Notes Textarea */}
                                 <div className="space-y-3">
-                                    <label className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                    <label className="text-sm font-bold text-foreground flex items-center gap-2">
                                         <PenLine className="h-4 w-4 text-purple-500" />
-                                        Field Notes <span className="text-slate-400 font-normal text-xs">(Optional)</span>
+                                        Field Notes <span className="text-muted-foreground font-normal text-xs">(Optional)</span>
                                     </label>
                                     <textarea
                                         value={notes}
                                         onChange={(e) => setNotes(e.target.value)}
                                         placeholder="Add context e.g. 'Found a separate leak...'"
-                                        className="w-full min-h-[80px] border-2 border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500 resize-none"
+                                        className="w-full min-h-[80px] border-2 border-border rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500 resize-none"
                                     />
                                 </div>
 
-                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+                                <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
                                     <div>
-                                        <label className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-2">
-                                            <FileText className="h-4 w-4 text-slate-500" />
+                                        <label className="text-sm font-bold text-foreground flex items-center gap-2 mb-2">
+                                            <FileText className="h-4 w-4 text-muted-foreground" />
                                             Job Photos
                                         </label>
-                                        <p className="text-sm text-slate-600 leading-relaxed">
+                                        <p className="text-sm text-muted-foreground leading-relaxed">
                                             Capture site photos from full job mode so they save against the right job before billing and office follow-up.
                                         </p>
                                     </div>
                                     <Link
                                         href={`/tradie/jobs/${dealId}`}
-                                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition-colors hover:bg-slate-100"
+                                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
                                     >
                                         Open Full Job Mode
                                         <ExternalLink className="h-4 w-4" />
@@ -347,9 +347,9 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
 
                                 {/* Customer Signature */}
                                 <div className="space-y-3">
-                                    <label className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                                    <label className="text-sm font-bold text-foreground flex items-center gap-2">
                                         <PenLine className="h-4 w-4 text-indigo-500" />
-                                        Customer Signature {!signature && <span className="text-xs text-slate-400 font-normal">(Optional)</span>}
+                                        Customer Signature {!signature && <span className="text-xs text-muted-foreground font-normal">(Optional)</span>}
                                     </label>
                                     {signature ? (
                                         <div className="space-y-2">
@@ -367,7 +367,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                             </div>
 
                             {/* Dual-Action Footer */}
-                            <DialogFooter className="flex-col gap-2 mt-4 pt-4 border-t border-slate-100">
+                            <DialogFooter className="flex-col gap-2 mt-4 pt-4 border-t border-border/50">
                                 <Button
                                     onClick={handleConfirmAndGenerate}
                                     disabled={loading}
@@ -379,7 +379,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                     onClick={handleSaveForLater}
                                     disabled={loading}
                                     variant="outline"
-                                    className="w-full h-10 border-slate-300"
+                                    className="w-full h-10 border-border"
                                 >
                                     {loading ? "Saving..." : "Save for Later"}
                                 </Button>
@@ -387,7 +387,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                     variant="ghost"
                                     onClick={() => onOpenChange(false)}
                                     disabled={loading}
-                                    className="w-full text-slate-500"
+                                    className="w-full text-muted-foreground"
                                 >
                                     Cancel
                                 </Button>
@@ -416,7 +416,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                 <Button
                                     variant="ghost"
                                     onClick={handleSkipReview}
-                                    className="w-full text-slate-500"
+                                    className="w-full text-muted-foreground"
                                 >
                                     I&apos;ll do this later
                                 </Button>

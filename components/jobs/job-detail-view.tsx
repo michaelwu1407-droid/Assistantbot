@@ -68,9 +68,9 @@ export default function JobDetailView({ job }: JobDetailViewProps) {
     }
 
     return (
-        <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950">
+        <div className="flex flex-col h-full bg-muted/30 dark:bg-slate-950">
             {/* Header */}
-            <header className="p-4 bg-white dark:bg-slate-900 border-b flex justify-between items-start sticky top-0 z-10">
+            <header className="p-4 bg-card dark:bg-slate-900 border-b flex justify-between items-start sticky top-0 z-10">
                 <div>
                     <h1 className="text-2xl font-bold">{job.client.name}</h1>
                     <p className="text-muted-foreground text-sm">{job.title}</p>
@@ -129,8 +129,8 @@ export default function JobDetailView({ job }: JobDetailViewProps) {
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
-                                        <Phone className="h-5 w-5 text-slate-600" />
+                                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                                        <Phone className="h-5 w-5 text-muted-foreground" />
                                     </div>
                                 <div className="flex-1">
                                     <p className="font-medium">Call Mobile</p>
@@ -154,8 +154,8 @@ export default function JobDetailView({ job }: JobDetailViewProps) {
                                 </div>
                                 <Separator />
                                 <div className="flex items-center gap-3">
-                                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
-                                        <MapPin className="h-5 w-5 text-slate-600" />
+                                    <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                                        <MapPin className="h-5 w-5 text-muted-foreground" />
                                     </div>
                                     <div className="flex-1">
                                         <p className="font-medium">Address</p>
@@ -219,7 +219,7 @@ export default function JobDetailView({ job }: JobDetailViewProps) {
                                     </div>
                                 ) : (
                                     job.invoices.map(inv => (
-                                        <div key={inv.id} className="flex justify-between items-center p-2 border rounded bg-white">
+                                        <div key={inv.id} className="flex justify-between items-center p-2 border rounded bg-card">
                                             <div>
                                                 <p className="font-medium flex items-center gap-2">
                                                     {inv.number}

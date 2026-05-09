@@ -118,7 +118,7 @@ export function DealEditForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 p-4 border border-slate-200 rounded-xl bg-white shadow-sm">
+    <form onSubmit={handleSubmit} className="space-y-6 p-4 border border-border rounded-xl bg-card shadow-sm">
       <div className="space-y-2">
         <Label htmlFor="title">Title <span className="text-red-500">*</span></Label>
         <Input
@@ -164,7 +164,7 @@ export function DealEditForm({
       </div>
 
       {/* Recurrence */}
-      <div className="space-y-3 rounded-lg border border-slate-200 dark:border-slate-700 p-4 max-w-md">
+      <div className="space-y-3 rounded-lg border border-border dark:border-slate-700 p-4 max-w-md">
         <div className="flex items-center justify-between">
           <div>
             <Label className="font-medium">Repeat this job</Label>
@@ -175,7 +175,7 @@ export function DealEditForm({
         {isRecurring && (
           <div className="space-y-3 pt-1">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-slate-600 dark:text-slate-400 shrink-0">Every</span>
+              <span className="text-sm text-muted-foreground dark:text-muted-foreground shrink-0">Every</span>
               <Input
                 type="number"
                 min={1}
@@ -197,7 +197,7 @@ export function DealEditForm({
               </Select>
             </div>
             <div className="space-y-1">
-              <Label htmlFor="recurrence-end" className="text-xs text-slate-600 dark:text-slate-400">End date (optional)</Label>
+              <Label htmlFor="recurrence-end" className="text-xs text-muted-foreground dark:text-muted-foreground">End date (optional)</Label>
               <Input
                 id="recurrence-end"
                 type="date"

@@ -115,7 +115,7 @@ export function DealDetailModal({ dealId, open, onOpenChange, currentUserRole = 
         <DialogTitle className="sr-only">Deal details</DialogTitle>
         {loading && (
           <div className="flex items-center justify-center flex-1 min-h-[200px]">
-            <p className="text-slate-500">Loading...</p>
+            <p className="text-muted-foreground">Loading...</p>
           </div>
         )}
         {error && !loading && (
@@ -385,7 +385,7 @@ function DealDetailContent({
               type="button"
               size="sm"
               variant="secondary"
-              className="h-8 bg-white/20 text-white hover:bg-white/30"
+              className="h-8 bg-card/20 text-white hover:bg-card/30"
               onClick={() => setShowReconcile(true)}
             >
               Reconcile
@@ -394,7 +394,7 @@ function DealDetailContent({
               type="button"
               size="icon"
               variant="ghost"
-              className="h-8 w-8 text-white hover:bg-white/20"
+              className="h-8 w-8 text-white hover:bg-card/20"
               aria-label="Dismiss overdue warning"
               onClick={() => setOverdueDismissed(true)}
             >
@@ -451,9 +451,9 @@ function DealDetailContent({
       <div className="shrink-0 border-b">
         <div className="flex items-start justify-between gap-4 p-4 md:p-6">
           <div className="min-w-0 flex-1">
-            <h1 className="text-lg font-bold text-slate-900 break-words leading-snug">{deal.title}</h1>
-            <p className="mt-0.5 text-sm font-medium text-slate-600">{contact?.name ?? "—"}</p>
-            <p className="mt-1 text-xs text-slate-400">
+            <h1 className="text-lg font-bold text-foreground break-words leading-snug">{deal.title}</h1>
+            <p className="mt-0.5 text-sm font-medium text-muted-foreground">{contact?.name ?? "—"}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
               {deal.source ? deal.source.charAt(0).toUpperCase() + deal.source.slice(1) : "—"} •{" "}
               <span className="font-semibold text-emerald-600">${Number(deal.value || 0).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </p>
@@ -564,11 +564,11 @@ function DealDetailContent({
                   </div>
                 )}
                 {!contact.phone && !contact.email && !contact.company && !deal.address && !(typeof metadata.address === "string" && metadata.address) && (
-                  <p className="text-sm text-slate-500">Add phone, email, or address via Edit.</p>
+                  <p className="text-sm text-muted-foreground">Add phone, email, or address via Edit.</p>
                 )}
               </div>
             ) : (
-              <p className="text-sm text-slate-500">No contact associated.</p>
+              <p className="text-sm text-muted-foreground">No contact associated.</p>
             )}
           </div>
 
@@ -638,15 +638,15 @@ function DealDetailContent({
             </div>
 
             {/* ─── Follow-up Reminder ─────────────────────────────── */}
-            <div className="mt-3 rounded-[14px] border border-slate-100 bg-slate-50/60 p-3">
+            <div className="mt-3 rounded-[14px] border border-border/50 bg-muted/30 p-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 uppercase tracking-wide">
+                <span className="app-micro-label flex items-center gap-1.5">
                   <Bell className="w-3.5 h-3.5 text-amber-500" />
                   Follow-up
                 </span>
                 {followUpAt && !followUpCompletedAt && (
                   <button
-                    className="text-[10px] text-slate-400 hover:text-red-500 transition-colors"
+                    className="text-[10px] text-muted-foreground hover:text-red-500 transition-colors"
                     onClick={async () => {
                       await cancelFollowUp(deal.id)
                       setDeal((d) => ({ ...d!, followUpAt: null, followUpNote: null, followUpChannel: null } as DealDetail))
@@ -667,14 +667,14 @@ function DealDetailContent({
                   <div className="flex items-center gap-2">
                     <span className={cn(
                       "text-sm font-medium",
-                      new Date(followUpAt) < new Date() ? "text-red-600" : "text-slate-900"
+                      new Date(followUpAt) < new Date() ? "text-red-600" : "text-foreground"
                     )}>
                       {new Date(followUpAt) < new Date() ? "⚠ Overdue — " : ""}
                       {format(new Date(followUpAt), "EEE MMM d, h:mm a")}
                     </span>
                   </div>
                   {followUpNoteSaved && (
-                    <p className="text-xs text-slate-500">{followUpNoteSaved}</p>
+                    <p className="text-xs text-muted-foreground">{followUpNoteSaved}</p>
                   )}
                   <div className="flex gap-2 mt-2">
                     <Button
@@ -712,7 +712,7 @@ function DealDetailContent({
               {followUpCompletedAt && (
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-muted-foreground">
                     Completed {format(new Date(followUpCompletedAt), "MMM d")}
                   </span>
                   <button
@@ -741,7 +741,7 @@ function DealDetailContent({
               {showFollowUpForm && (
                 <div className="space-y-2 mt-1">
                   <div>
-                    <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">When</label>
+                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">When</label>
                     <input
                       type="datetime-local"
                       value={followUpDate}
@@ -750,7 +750,7 @@ function DealDetailContent({
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Note (optional)</label>
+                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Note (optional)</label>
                     <Input
                       value={followUpNote}
                       onChange={(e) => setFollowUpNoteState(e.target.value)}
@@ -759,7 +759,7 @@ function DealDetailContent({
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Channel</label>
+                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Channel</label>
                     <select
                       value={followUpChannel}
                       onChange={(e) => setFollowUpChannel(e.target.value)}
@@ -841,10 +841,10 @@ function DealDetailContent({
                 </Button>
               )}
             </div>
-            <div className="border-b border-slate-100 bg-white px-3 py-2 text-xs text-slate-500">
+            <div className="border-b border-border/50 bg-card px-3 py-2 text-xs text-muted-foreground">
               Recent activity stays here. Open the customer timeline for the full SMS, email, and call correspondence.
             </div>
-            <div className="flex bg-slate-100/50 p-1 border-b border-slate-100 shrink-0" role="tablist" aria-label="Deal detail sections">
+            <div className="flex bg-muted/30 p-1 border-b border-border/50 shrink-0" role="tablist" aria-label="Deal detail sections">
               {(["activities", "jobs", "notes"] as const).map((t) => (
                 <button
                   key={t}
@@ -855,7 +855,7 @@ function DealDetailContent({
                   id={`deal-tab-btn-${t}`}
                   className={cn(
                     "flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all",
-                    activeDetailTab === t ? "bg-white text-primary shadow-sm" : "text-slate-400 hover:text-slate-600"
+                    activeDetailTab === t ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-muted-foreground"
                   )}
                 >
                   {t === "activities" ? "Communications" : t}
@@ -866,7 +866,7 @@ function DealDetailContent({
               {activeDetailTab === "jobs" && (
                 <div id="deal-tab-jobs" role="tabpanel" aria-labelledby="deal-tab-btn-jobs" className="h-full overflow-y-auto p-3 space-y-2">
                   {contactDeals.length === 0 ? (
-                    <p className="text-slate-500 text-sm">No other jobs with this customer.</p>
+                    <p className="text-muted-foreground text-sm">No other jobs with this customer.</p>
                   ) : (
                     contactDeals.map((d: ContactDeal) => (
                       <button
@@ -875,11 +875,11 @@ function DealDetailContent({
                           onOpenChange(false)
                           router.push(`/crm/deals/${d.id}`)
                         }}
-                        className="block w-full rounded-[18px] border border-slate-100 p-2 text-left text-sm hover:bg-slate-50"
+                        className="block w-full rounded-[18px] border border-border/50 p-2 text-left text-sm hover:bg-muted/30"
                       >
-                        <span className="font-medium text-slate-900">{d.title}</span>
-                        {d.value != null && <span className="text-slate-500 ml-2">${Number(d.value).toLocaleString()}</span>}
-                        <span className="text-slate-400 text-xs block mt-0.5">
+                        <span className="font-medium text-foreground">{d.title}</span>
+                        {d.value != null && <span className="text-muted-foreground ml-2">${Number(d.value).toLocaleString()}</span>}
+                        <span className="text-muted-foreground text-xs block mt-0.5">
                           {getUserFacingDealStageLabel(d.stage)} •{" "}
                           {d.updatedAt ? format(new Date(d.updatedAt as string), "MMM d") : "—"}
                         </span>
@@ -897,16 +897,16 @@ function DealDetailContent({
                 <div id="deal-tab-activities" role="tabpanel" aria-labelledby="deal-tab-btn-activities" className="h-full overflow-hidden flex flex-col min-h-0">
                   <ActivityFeed contactId={deal.contactId} compact className="flex-1" />
                   {/* Direct message mini-box */}
-                  <div className="p-3 border-t bg-slate-50/50 shrink-0">
+                  <div className="p-3 border-t bg-muted/20 shrink-0">
                     <div className="mb-2 flex items-center justify-between gap-3">
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-muted-foreground">
                         Send a direct SMS from your workspace number. Open customer timeline for the full thread.
                       </p>
                     </div>
                     <div className="flex gap-2">
                       <Input
                         placeholder="Send a direct SMS..."
-                        className="bg-white h-9 text-xs"
+                        className="bg-card h-9 text-xs"
                         value={quickMessage}
                         onChange={(e) => setQuickMessage(e.target.value)}
                         onKeyDown={async (e) => {
@@ -957,7 +957,7 @@ function DealDetailContent({
         <div className="shrink-0 p-4 border-t">
           <div className="flex gap-2 overflow-x-auto pb-2">
             {deal.jobPhotos.map((photo) => (
-              <div key={photo.id} className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[18px] border border-slate-200 bg-slate-100">
+              <div key={photo.id} className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[18px] border border-border bg-muted">
                 <Image
                   src={photo.url ?? photo.fileUrl ?? ""}
                   alt={photo.caption || "Job"}

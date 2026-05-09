@@ -314,12 +314,12 @@ export default function IntegrationsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="flex items-center gap-4">
-                            <div className="bg-slate-100 p-4 rounded-full">
+                            <div className="bg-muted p-4 rounded-full">
                                 <Calendar className="h-8 w-8 text-blue-500" />
                             </div>
                             <div className="space-y-1">
                                 <h4 className="font-medium">Calendar Sync</h4>
-                                <p className="text-sm text-slate-500">
+                                <p className="text-sm text-muted-foreground">
                                     {calendarIntegration.connected
                                         ? `Connected${calendarIntegration.emailAddress ? ` as ${calendarIntegration.emailAddress}` : ""}. Tracey will use Google Calendar availability and sync scheduled jobs.`
                                         : "Not connected. Until you connect Google Calendar, Earlymark will only see jobs stored inside the app."}
@@ -332,8 +332,8 @@ export default function IntegrationsPage() {
                             </div>
                         </div>
                     </CardContent>
-                    <CardFooter className="bg-slate-50 border-t flex justify-between items-center px-6 py-4">
-                        <div className="text-xs text-slate-500">
+                    <CardFooter className="bg-muted/30 border-t flex justify-between items-center px-6 py-4">
+                        <div className="text-xs text-muted-foreground">
                             Keep your calendar and scheduled jobs in sync.
                         </div>
                         {calendarIntegration.connected ? (
@@ -376,12 +376,12 @@ export default function IntegrationsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="flex items-center gap-4">
-                            <div className="bg-slate-100 p-4 rounded-full">
+                            <div className="bg-muted p-4 rounded-full">
                                 <FileText className="h-8 w-8 text-[#13B5EA]" />
                             </div>
                             <div className="space-y-1">
                                 <h4 className="font-medium">Invoice Sync</h4>
-                                <p className="text-sm text-slate-500">
+                                <p className="text-sm text-muted-foreground">
                                     {xeroStatus === "connected"
                                         ? "Connected. The job-completion flow can create Xero draft invoices for review."
                                         : "Connect Xero to create draft invoices from the completion workflow."}
@@ -389,14 +389,14 @@ export default function IntegrationsPage() {
                             </div>
                         </div>
                     </CardContent>
-                    <CardFooter className="bg-slate-50 border-t flex justify-between items-center px-6 py-4">
+                    <CardFooter className="bg-muted/30 border-t flex justify-between items-center px-6 py-4">
                         {xeroStatus === "connected" ? (
                             <div className="flex items-center text-sm text-emerald-600 font-medium">
                                 <Check className="h-4 w-4 mr-2" />
                                 Xero Connected
                             </div>
                         ) : (
-                            <div className="text-xs text-slate-500">
+                            <div className="text-xs text-muted-foreground">
                                 Xero draft invoices can be created from completed jobs for review.
                             </div>
                         )}

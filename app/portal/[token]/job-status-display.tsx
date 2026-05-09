@@ -60,20 +60,20 @@ export function JobStatusDisplay({
   return (
     <div className="space-y-6">
       {/* Job details */}
-      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Job</p>
-        <p className="mt-1 text-xl font-semibold text-slate-900">{data.title}</p>
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Job</p>
+        <p className="mt-1 text-xl font-semibold text-foreground">{data.title}</p>
         {data.scheduledAt && (
-          <p className="mt-1 text-sm text-slate-500">{data.scheduledAt}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{data.scheduledAt}</p>
         )}
       </div>
 
       {/* Status timeline */}
-      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-slate-400">
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           Status
         </p>
-        <ol className="relative space-y-4 border-l-2 border-slate-200 pl-6">
+        <ol className="relative space-y-4 border-l-2 border-border pl-6">
           {STATUS_STEPS.map((step, idx) => {
             const isDone = idx < currentStep
             const isCurrent = idx === currentStep
@@ -87,7 +87,7 @@ export function JobStatusDisplay({
                       ? "border-emerald-500 bg-emerald-500"
                       : isCurrent
                         ? "border-blue-500 bg-blue-500"
-                        : "border-slate-300 bg-white",
+                        : "border-border bg-card",
                   ].join(" ")}
                 >
                   {isDone && (
@@ -109,7 +109,7 @@ export function JobStatusDisplay({
                       ? "font-medium text-emerald-700"
                       : isCurrent
                         ? "font-semibold text-blue-700"
-                        : "text-slate-400",
+                        : "text-muted-foreground",
                   ].join(" ")}
                 >
                   {step.label}
@@ -141,9 +141,9 @@ export function JobStatusDisplay({
 
       {/* Contact number */}
       {data.businessPhone && !data.isComplete && (
-        <p className="text-center text-sm text-slate-500">
+        <p className="text-center text-sm text-muted-foreground">
           Questions?{" "}
-          <a href={`tel:${data.businessPhone}`} className="font-medium text-slate-700 underline">
+          <a href={`tel:${data.businessPhone}`} className="font-medium text-foreground underline">
             Call {data.businessName}
           </a>
         </p>

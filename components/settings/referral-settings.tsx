@@ -152,7 +152,7 @@ export function ReferralSettings({ userId }: { userId: string }) {
                 type="text"
                 value={referralLink}
                 readOnly
-                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md bg-white"
+                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md bg-card"
               />
               <Button
                 onClick={copyToClipboard}

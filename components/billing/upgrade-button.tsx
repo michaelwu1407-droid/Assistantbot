@@ -33,12 +33,12 @@ export function UpgradeButton({
 
     return (
         <div className="space-y-4">
-            <div className="flex items-center justify-center gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+            <div className="flex items-center justify-center gap-2 p-1 bg-muted dark:bg-slate-800 rounded-xl">
                 <button
                     type="button"
                     onClick={() => setBillingPeriod("monthly")}
                     className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all ${billingPeriod === "monthly"
-                        ? "bg-white dark:bg-slate-700 shadow-sm text-foreground"
+                        ? "bg-card dark:bg-slate-700 shadow-sm text-foreground"
                         : "text-muted-foreground hover:text-foreground"
                         }`}
                 >
@@ -48,7 +48,7 @@ export function UpgradeButton({
                     type="button"
                     onClick={() => setBillingPeriod("yearly")}
                     className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all relative ${billingPeriod === "yearly"
-                        ? "bg-white dark:bg-slate-700 shadow-sm text-foreground"
+                        ? "bg-card dark:bg-slate-700 shadow-sm text-foreground"
                         : "text-muted-foreground hover:text-foreground"
                         }`}
                 >
@@ -72,7 +72,7 @@ export function UpgradeButton({
                         <div className="text-xs text-muted-foreground">billed {yearlyTotal}/year — save 20%</div>
                     </>
                 )}
-                <div className="text-sm text-slate-500 font-medium mt-0.5">+ 10¢ per call minute or text</div>
+                <div className="text-sm text-muted-foreground font-medium mt-0.5">+ 10¢ per call minute or text</div>
             </div>
 
             <p className="text-center text-xs text-muted-foreground">
@@ -81,7 +81,7 @@ export function UpgradeButton({
                     : "Billed A$288/year. Cancel anytime. Promo codes accepted at checkout."}
             </p>
 
-            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-4 text-left">
+            <div className="rounded-xl border border-border dark:border-slate-800 bg-muted/30 dark:bg-slate-900 p-4 text-left">
                 <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1">
                         <p className="text-sm font-semibold text-foreground">Provision mobile business number</p>

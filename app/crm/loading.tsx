@@ -26,17 +26,17 @@ export default function DashboardLoading() {
             </div>
 
             {/* Kanban Board Skeleton */}
-            <div className="flex-1 min-h-0 overflow-hidden flex flex-col pt-1 rounded-t-xl bg-slate-200/40">
-                <div className="h-full w-full bg-white/95 rounded-xl border border-slate-200/70 shadow-sm p-4 flex gap-6 overflow-x-hidden">
+            <div className="flex-1 min-h-0 overflow-hidden flex flex-col pt-1 rounded-t-xl bg-muted/40">
+                <div className="h-full w-full bg-card/95 rounded-xl border border-border/70 shadow-sm p-4 flex gap-6 overflow-x-hidden">
                     {[...Array(6)].map((_, i) => (
-                        <div key={i} className="w-72 flex-shrink-0 flex flex-col h-full border-l-4 border-slate-200 ml-2 pl-2">
+                        <div key={i} className="w-72 flex-shrink-0 flex flex-col h-full border-l-4 border-border ml-2 pl-2">
                             <div className="flex items-center justify-between mb-4 mt-2">
                                 <Skeleton className="h-5 w-24" />
                                 <Skeleton className="h-5 w-8 rounded-full" />
                             </div>
-                            <div className="flex-1 bg-slate-50 rounded-xl border border-slate-200 p-3 space-y-3">
-                                <Skeleton className="h-32 w-full rounded-xl bg-white shadow-sm" />
-                                <Skeleton className="h-24 w-full rounded-xl bg-white shadow-sm" />
+                            <div className="flex-1 bg-muted/30 rounded-xl border border-border p-3 space-y-3">
+                                <Skeleton className="h-32 w-full rounded-xl bg-card shadow-sm" />
+                                <Skeleton className="h-24 w-full rounded-xl bg-card shadow-sm" />
                             </div>
                         </div>
                     ))}

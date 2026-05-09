@@ -119,7 +119,7 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
         </div>
       </KpiCardFrame>
 
-      <KpiCardFrame borderClass="border-l-slate-600" bgClass="bg-slate-200 dark:bg-slate-900/50">
+      <KpiCardFrame borderClass="border-l-slate-600" bgClass="bg-muted dark:bg-slate-900/50">
         <p className={kpiLabelClass}>Upcoming Jobs ({monthLabel})</p>
         <div className="flex min-w-0 items-end justify-between gap-2">
           <KpiMetric>{upcomingCount}</KpiMetric>

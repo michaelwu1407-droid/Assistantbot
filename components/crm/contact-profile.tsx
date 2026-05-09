@@ -68,7 +68,7 @@ export function ContactProfile({ contact }: ContactProfileProps) {
                         </div>
 
                         <div className="flex gap-3 w-full md:w-auto mt-4 md:mt-0">
-                            <Button variant="outline" className="flex-1 md:flex-none hover:bg-white/5 hover:text-foreground" asChild>
+                            <Button variant="outline" className="flex-1 md:flex-none hover:bg-card/5 hover:text-foreground" asChild>
                                 <Link href={`/crm/contacts/${contact.id}/edit`}>
                                     <Edit className="w-4 h-4 mr-2" />
                                     Edit

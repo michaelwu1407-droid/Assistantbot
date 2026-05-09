@@ -21,15 +21,15 @@ export function PulseWidget({
         <div className={cn(
             "px-4 py-2 rounded-full border shadow-lg flex items-center justify-center backdrop-blur-md transition-colors",
             isAgent
-                ? "bg-white/90 border-amber-200/50 text-slate-900"
+                ? "bg-card/90 border-amber-200/50 text-foreground"
                 : "bg-black/60 border-white/10 text-white",
             className
         )}>
             <span className={cn("text-sm font-medium", isAgent ? "text-amber-600" : "text-emerald-400")}>
                 Wk: ${weeklyRevenue.toLocaleString()}
             </span>
-            <span className={cn("mx-2", isAgent ? "text-slate-300" : "text-slate-600")}>|</span>
-            <span className={cn("text-sm font-medium", isAgent ? "text-slate-500" : "text-red-400")}>
+            <span className={cn("mx-2", isAgent ? "text-slate-300" : "text-muted-foreground")}>|</span>
+            <span className={cn("text-sm font-medium", isAgent ? "text-muted-foreground" : "text-red-400")}>
                 {isAgent ? "Pipeline" : "Owe"}: ${outstandingDebt.toLocaleString()}
             </span>
         </div>

@@ -104,7 +104,7 @@ export function CommandPalette() {
         return {
           icon: <Search className="h-4 w-4" />,
           badge: "Result",
-          colorClass: "bg-slate-100 text-slate-600",
+          colorClass: "bg-muted text-muted-foreground",
         }
     }
   }
@@ -115,33 +115,33 @@ export function CommandPalette() {
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-slate-900/20 backdrop-blur-sm transition-all">
       <div
         ref={containerRef}
-        className="w-full max-w-lg bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100"
+        className="w-full max-w-lg bg-card rounded-xl shadow-2xl border border-border overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100"
       >
-        <div className="flex items-center border-b border-slate-100 px-4 py-3">
-            <Search className="h-5 w-5 text-slate-400 mr-3" />
+        <div className="flex items-center border-b border-border/50 px-4 py-3">
+            <Search className="h-5 w-5 text-muted-foreground mr-3" />
             <input
               ref={inputRef}
-              className="flex-1 bg-transparent outline-none text-slate-900 placeholder:text-slate-400 text-base"
+              className="flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground text-base"
             placeholder="Search contacts, deals, tasks, activity, calls..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
           {loading ? (
-            <Loader2 className="h-4 w-4 text-slate-400 animate-spin" />
+            <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
           ) : (
-            <div className="text-xs text-slate-400 font-medium border border-slate-200 rounded px-1.5 py-0.5">ESC</div>
+            <div className="text-xs text-muted-foreground font-medium border border-border rounded px-1.5 py-0.5">ESC</div>
           )}
         </div>
 
         <div className="max-h-[300px] overflow-y-auto p-2">
           {results.length === 0 && query && !loading && (
-            <div className="py-8 text-center text-sm text-slate-500">
+            <div className="py-8 text-center text-sm text-muted-foreground">
               No results found for &quot;{query}&quot;
             </div>
           )}
 
           {results.length === 0 && !query && (
-            <div className="py-8 text-center text-sm text-slate-400">
+            <div className="py-8 text-center text-sm text-muted-foreground">
               Type to search across your workspace...
             </div>
           )}
@@ -153,20 +153,20 @@ export function CommandPalette() {
                 <button
                   key={`${item.type}-${item.id}`}
                   onClick={() => handleSelect(item)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-100 transition-colors text-left group"
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted transition-colors text-left group"
                 >
                   <div className={cn("h-8 w-8 rounded-full flex items-center justify-center shrink-0", chrome.colorClass)}>
                     {chrome.icon}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <div className="font-medium text-slate-900 truncate">{item.title}</div>
-                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-500">
+                      <div className="font-medium text-foreground truncate">{item.title}</div>
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                         {chrome.badge}
                       </span>
                     </div>
                     {item.subtitle && (
-                      <div className="text-xs text-slate-500 truncate">{item.subtitle}</div>
+                      <div className="text-xs text-muted-foreground truncate">{item.subtitle}</div>
                     )}
                   </div>
                   <ArrowRight className="h-4 w-4 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />

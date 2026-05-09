@@ -670,15 +670,15 @@ export default function AnalyticsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
             <div>
               <p className="text-2xl font-bold text-neutral-900">{data.jobs.completed}</p>
-              <p className="text-xs text-slate-600 mt-1">Completed</p>
+              <p className="text-xs text-muted-foreground mt-1">Completed</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-neutral-900">{scheduledCount}</p>
-              <p className="text-xs text-slate-600 mt-1">Scheduled</p>
+              <p className="text-xs text-muted-foreground mt-1">Scheduled</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-neutral-900">{pipelineCount}</p>
-              <p className="text-xs text-slate-600 mt-1">New requests</p>
+              <p className="text-xs text-muted-foreground mt-1">New requests</p>
             </div>
           </div>
         </CardContent>

@@ -38,8 +38,8 @@ export default async function AgentPage() {
                 financialStats={financialStats}
                 vendorReport={null}
             /> */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-slate-600 shadow-sm">
-                <h2 className="text-lg font-semibold text-slate-900">Agent pipeline workspace</h2>
+            <div className="rounded-2xl border border-border bg-card p-6 text-center text-muted-foreground shadow-sm">
+                <h2 className="text-lg font-semibold text-foreground">Agent pipeline workspace</h2>
                 <p className="mt-2 text-sm">
                     The legacy agent dashboard is not the primary workflow right now. Use the CRM dashboard for day-to-day pipeline work while the dedicated agent canvas is being rebuilt.
                 </p>

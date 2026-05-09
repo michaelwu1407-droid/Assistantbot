@@ -77,8 +77,8 @@ export function DraggableJobCard({ job, isOverlay }: DraggableJobCardProps) {
             default: // SCHEDULED, PENDING, etc.
                 return {
                     borderColor: 'border-l-slate-400',
-                    bgColor: 'bg-white',
-                    icon: <Clock className="h-3 w-3 text-slate-400" />
+                    bgColor: 'bg-card',
+                    icon: <Clock className="h-3 w-3 text-muted-foreground" />
                 };
         }
     };
@@ -110,10 +110,10 @@ export function DraggableJobCard({ job, isOverlay }: DraggableJobCardProps) {
                     <p className="text-[10px] text-muted-foreground truncate leading-tight mb-1">{job.clientName}</p>
 
                     <div className="flex items-center gap-1">
-                        <Badge variant="outline" className="text-[9px] h-4 px-1 py-0 border-slate-300 bg-white/50">
+                        <Badge variant="outline" className="text-[9px] h-4 px-1 py-0 border-border bg-card/50">
                             {job.duration}h
                         </Badge>
-                        <span className="text-[9px] font-semibold text-slate-500 tracking-wide">
+                        <span className="text-[9px] font-semibold text-muted-foreground tracking-wide">
                             {formatJobHeaderStatus(job.status || job.stage || "")}
                         </span>
                     </div>

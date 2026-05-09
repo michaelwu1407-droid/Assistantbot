@@ -85,7 +85,7 @@ export function InvoiceGenerator({ invoiceId, invoiceNumber }: InvoiceGeneratorP
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="flex-1 bg-slate-100 rounded-md border p-4 overflow-hidden relative">
+                <div className="flex-1 bg-muted rounded-md border p-4 overflow-hidden relative">
                     {isLoading ? (
                         <div className="flex items-center justify-center h-full">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
@@ -93,11 +93,11 @@ export function InvoiceGenerator({ invoiceId, invoiceNumber }: InvoiceGeneratorP
                     ) : htmlContent ? (
                         <iframe
                             srcDoc={htmlContent}
-                            className="w-full h-full bg-white shadow-sm"
+                            className="w-full h-full bg-card shadow-sm"
                             title="Invoice Preview"
                         />
                     ) : (
-                        <div className="flex items-center justify-center h-full text-slate-400">
+                        <div className="flex items-center justify-center h-full text-muted-foreground">
                             Failed to load preview
                         </div>
                     )}

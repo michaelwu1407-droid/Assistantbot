@@ -26,27 +26,27 @@ export function VendorReportCard({ data }: { data?: VendorReportData }) {
     const percentage = goal > 0 ? Math.min((feedback / goal) * 100, 100) : 0;
 
     return (
-        <Card className="h-full flex flex-col border-slate-200 shadow-sm">
+        <Card className="h-full flex flex-col border-border shadow-sm">
             <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-slate-500 uppercase flex items-center gap-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground uppercase flex items-center gap-2">
                     <FileBarChart className="h-4 w-4" /> Vendor Feedback
                 </CardTitle>
             </CardHeader>
             <CardContent className="flex-1 space-y-4">
                 <div className="space-y-1">
                     <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">Vendor Goal</span>
+                        <span className="text-muted-foreground">Vendor Goal</span>
                         <span className="font-semibold">${goal.toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">Market Feedback</span>
+                        <span className="text-muted-foreground">Market Feedback</span>
                         <span className="font-semibold text-amber-600">${feedback.toLocaleString()}</span>
                     </div>
                     {/* Visual Bar */}
-                    <div className="h-2 w-full bg-slate-100 rounded-full mt-2 overflow-hidden flex relative">
+                    <div className="h-2 w-full bg-muted rounded-full mt-2 overflow-hidden flex relative">
                         <div className="h-full bg-amber-500 transition-all duration-500" style={{ width: `${percentage}%` }} title="Market Feedback" />
                         {percentage < 100 && (
-                            <div className="h-full bg-slate-200" style={{ width: `${100 - percentage}%` }} />
+                            <div className="h-full bg-muted" style={{ width: `${100 - percentage}%` }} />
                         )}
                         <div className="absolute right-0 top-0 bottom-0 w-[2px] bg-slate-400" title="Goal" />
                     </div>

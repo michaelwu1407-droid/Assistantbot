@@ -45,7 +45,7 @@ export function Navbar() {
     }, [])
 
     return (
-        <nav className="fixed top-5 left-1/2 z-50 flex h-16 w-[95%] max-w-[1200px] -translate-x-1/2 items-center justify-between rounded-full border border-white/20 bg-white/70 px-6 shadow-lg backdrop-blur-md transition-all lg:px-8">
+        <nav className="fixed top-5 left-1/2 z-50 flex h-16 w-[95%] max-w-[1200px] -translate-x-1/2 items-center justify-between rounded-full border border-white/20 bg-card/70 px-6 shadow-lg backdrop-blur-md transition-all lg:px-8">
             <Link href="/" className="flex items-center gap-2.5">
                 <div className="flex h-9 w-9 items-center justify-center">
                     <Image src="/latest-logo.png" alt="Earlymark Logo" width={32} height={32} className="rounded-lg" unoptimized />
@@ -76,10 +76,10 @@ export function Navbar() {
                     <div
                         className={`absolute left-1/2 top-full z-50 pt-3 transition-all duration-200 ${isSolutionsOpen ? "pointer-events-auto visible translate-y-0 opacity-100" : "pointer-events-none invisible -translate-y-1 opacity-0"}`}
                     >
-                        <div className="w-[640px] -translate-x-1/2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)]">
+                        <div className="w-[640px] -translate-x-1/2 overflow-hidden rounded-2xl border border-border bg-card shadow-[0_24px_60px_rgba(15,23,42,0.18)]">
                             <div className="px-5 pt-5 pb-2">
                                 <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-600">Trade services</p>
-                                <p className="mt-1 text-sm text-slate-500">Earlymark workflows tuned for your trade.</p>
+                                <p className="mt-1 text-sm text-muted-foreground">Earlymark workflows tuned for your trade.</p>
                             </div>
                             <div className="grid grid-cols-2 gap-1 p-3">
                                 {TRADE_SERVICES.map((service) => {
@@ -96,7 +96,7 @@ export function Navbar() {
                                             </span>
                                             <span className="flex flex-col gap-0.5">
                                                 <span className="text-[14px] font-semibold text-midnight">{service.navLabel}</span>
-                                                <span className="text-[12px] leading-snug text-slate-500 line-clamp-2">{service.summaryTeaser}</span>
+                                                <span className="text-[12px] leading-snug text-muted-foreground line-clamp-2">{service.summaryTeaser}</span>
                                             </span>
                                         </Link>
                                     )
@@ -105,7 +105,7 @@ export function Navbar() {
                             <Link
                                 href="/solutions"
                                 onClick={() => setIsSolutionsOpen(false)}
-                                className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-5 py-3 text-[13px] font-semibold text-midnight transition-colors hover:bg-emerald-50/60"
+                                className="flex items-center justify-between border-t border-border/50 bg-muted/20 px-5 py-3 text-[13px] font-semibold text-midnight transition-colors hover:bg-emerald-50/60"
                             >
                                 <span>View all trade services</span>
                                 <ArrowRight className="h-4 w-4 text-emerald-600" />
@@ -139,7 +139,7 @@ export function Navbar() {
             </div>
 
             {isOpen && (
-                <div className="animate-in fade-in slide-in-from-top-2 absolute left-0 right-0 top-16 z-50 mx-4 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-xl md:hidden">
+                <div className="animate-in fade-in slide-in-from-top-2 absolute left-0 right-0 top-16 z-50 mx-4 flex flex-col gap-4 rounded-2xl border border-border bg-card p-5 shadow-xl md:hidden">
                     <Link href="/" className="text-[15px] font-medium text-slate-body" onClick={() => setIsOpen(false)}>Home</Link>
                     <Link href="/features" className="text-[15px] font-medium text-slate-body" onClick={() => setIsOpen(false)}>Product</Link>
                     <div className="flex flex-col gap-2">
@@ -151,7 +151,7 @@ export function Navbar() {
                                     <Link
                                         key={service.slug}
                                         href={`/solutions/${service.slug}`}
-                                        className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5"
+                                        className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2.5"
                                         onClick={() => setIsOpen(false)}
                                     >
                                         <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
@@ -172,7 +172,7 @@ export function Navbar() {
                         </Link>
                     </div>
                     <Link href="/pricing" className="text-[15px] font-medium text-slate-body" onClick={() => setIsOpen(false)}>Pricing</Link>
-                    <hr className="border-slate-100" />
+                    <hr className="border-border/50" />
                     <Link href="/contact" className="text-[15px] font-medium text-slate-body" onClick={() => setIsOpen(false)}>Contact us</Link>
                     <Link href="/auth" className="text-[15px] font-bold text-primary" onClick={() => setIsOpen(false)}>Log in / Get started</Link>
                 </div>

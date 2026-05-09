@@ -86,29 +86,29 @@ export function DealNotes({ dealId, initialNotes }: DealNotesProps) {
   }
 
   return (
-    <div className="flex flex-col h-full bg-slate-50/50 rounded-lg border border-slate-100 overflow-hidden relative">
+    <div className="flex flex-col h-full bg-muted/20 rounded-lg border border-border/50 overflow-hidden relative">
       {/* Scrollable History inside the bubble area */}
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto p-2 space-y-2 custom-scrollbar min-h-[60px] pb-16"
       >
         {notesList.length === 0 ? (
-          <p className="text-slate-400 text-xs italic text-center mt-4">No notes yet. Add one below.</p>
+          <p className="text-muted-foreground text-xs italic text-center mt-4">No notes yet. Add one below.</p>
         ) : (
           notesList.map((note) => (
-            <div key={note.id} className="group relative bg-white border border-slate-100 p-2.5 rounded-md shadow-sm">
+            <div key={note.id} className="group relative bg-card border border-border/50 p-2.5 rounded-md shadow-sm">
               <div className="flex justify-between items-start mb-1">
-                <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                <span className="text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded uppercase tracking-wider">
                   *{format(new Date(note.date), "MMM d, h:mm a")}*
                 </span>
                 <button
                   onClick={() => startEdit(note)}
-                  className="text-slate-400 hover:text-primary transition-colors opacity-0 group-hover:opacity-100"
+                  className="text-muted-foreground hover:text-primary transition-colors opacity-0 group-hover:opacity-100"
                 >
                   <Edit2 className="w-3 h-3" />
                 </button>
               </div>
-              <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+              <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
                 {note.text}
               </p>
             </div>
@@ -117,7 +117,7 @@ export function DealNotes({ dealId, initialNotes }: DealNotesProps) {
       </div>
 
       {/* Floating Bottom RHS Input Bubble */}
-      <div className="absolute bottom-2 right-2 left-2 bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden flex flex-col transition-all">
+      <div className="absolute bottom-2 right-2 left-2 bg-card rounded-xl shadow-lg border border-border overflow-hidden flex flex-col transition-all">
         {editingId && (
           <div className="bg-amber-50 px-3 py-1.5 flex justify-between items-center border-b border-amber-100">
             <span className="text-[10px] font-bold text-amber-700 uppercase">Editing Note</span>

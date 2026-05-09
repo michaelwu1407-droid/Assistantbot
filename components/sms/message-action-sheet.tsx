@@ -95,12 +95,12 @@ export function MessageActionSheet({
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : preview ? (
           <div className="space-y-4 py-4">
             {/* Channel badge */}
-            <div className="flex items-center gap-2 text-sm text-slate-500">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <ChannelIcon className="h-4 w-4" />
               <span>
                 Sending via <strong>{preview.channel === "sms" ? "SMS" : "Email"}</strong> to{" "}
@@ -113,7 +113,7 @@ export function MessageActionSheet({
             </div>
 
             {/* Message preview bubble */}
-            <div className="bg-slate-100 dark:bg-slate-800 rounded-2xl rounded-tl-sm p-4">
+            <div className="bg-muted dark:bg-slate-800 rounded-2xl rounded-tl-sm p-4">
               <p className="text-sm leading-relaxed whitespace-pre-wrap">
                 {preview.messageBody}
               </p>
@@ -131,7 +131,7 @@ export function MessageActionSheet({
             )}
           </div>
         ) : (
-          <div className="py-8 text-center text-sm text-slate-500">
+          <div className="py-8 text-center text-sm text-muted-foreground">
             Could not load message preview.
           </div>
         )}

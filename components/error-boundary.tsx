@@ -76,7 +76,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
               </p>
               
               {process.env.NODE_ENV === 'development' && this.state.error && (
-                <details className="text-left text-xs bg-slate-100 p-3 rounded">
+                <details className="text-left text-xs bg-muted p-3 rounded">
                   <summary className="cursor-pointer font-mono mb-2">Error Details</summary>
                   <pre className="whitespace-pre-wrap">
                     {this.state.error.toString()}

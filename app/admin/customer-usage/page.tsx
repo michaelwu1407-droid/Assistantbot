@@ -133,19 +133,19 @@ function buildQuery(filters: CustomerUsageFilters, overrides: Partial<Record<key
 
 function DetailItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-slate-100 py-2 text-sm last:border-b-0">
-      <div className="text-slate-500">{label}</div>
-      <div className="max-w-[60%] text-right font-medium text-slate-900">{value}</div>
+    <div className="flex items-start justify-between gap-4 border-b border-border/50 py-2 text-sm last:border-b-0">
+      <div className="text-muted-foreground">{label}</div>
+      <div className="max-w-[60%] text-right font-medium text-foreground">{value}</div>
     </div>
   );
 }
 
 function SectionNote({ children }: { children: ReactNode }) {
-  return <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-700">{children}</div>;
+  return <div className="rounded-xl border border-border bg-muted/30 px-3 py-2 text-xs leading-5 text-foreground">{children}</div>;
 }
 
 function EmptyState({ children }: { children: ReactNode }) {
-  return <div className="text-sm text-slate-500">{children}</div>;
+  return <div className="text-sm text-muted-foreground">{children}</div>;
 }
 
 function SectionCard({
@@ -164,8 +164,8 @@ function SectionCard({
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <CardTitle className="text-base text-slate-950">{title}</CardTitle>
-            {description ? <CardDescription className="mt-1 text-xs text-slate-600">{description}</CardDescription> : null}
+            <CardTitle className="text-base text-foreground">{title}</CardTitle>
+            {description ? <CardDescription className="mt-1 text-xs text-muted-foreground">{description}</CardDescription> : null}
           </div>
           {aside}
         </div>
@@ -192,13 +192,13 @@ function FeatureVerificationTable({ items }: { items: FeatureVerificationItem[] 
           <TableRow key={item.key}>
             <TableCell className="align-top">
               <div className="space-y-2">
-                <div className="font-medium text-slate-900">{item.feature}</div>
-                <div className="text-xs leading-5 text-slate-600">{item.promise}</div>
+                <div className="font-medium text-foreground">{item.feature}</div>
+                <div className="text-xs leading-5 text-muted-foreground">{item.promise}</div>
                 <div className="flex flex-wrap gap-2">
                   <Badge variant={releaseTruthVariant(item.releaseTruth)}>{item.releaseTruth}</Badge>
                   <Badge variant={statusVariant(item.overallStatus)}>{item.overallStatus}</Badge>
                 </div>
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-muted-foreground">
                   Audience: {item.audience}
                   <br />
                   Owner: {item.owner}
@@ -206,28 +206,28 @@ function FeatureVerificationTable({ items }: { items: FeatureVerificationItem[] 
               </div>
             </TableCell>
             <TableCell className="align-top">
-              <div className="space-y-2 text-xs leading-5 text-slate-600">
+              <div className="space-y-2 text-xs leading-5 text-muted-foreground">
                 {item.blockers.length ? (
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                  <div className="rounded-xl border border-border bg-muted/30 px-3 py-2">
                     {item.blockers.join(" ")}
                   </div>
                 ) : (
-                  <span className="text-slate-400">No blockers noted.</span>
+                  <span className="text-muted-foreground">No blockers noted.</span>
                 )}
               </div>
             </TableCell>
-            <TableCell className="max-w-[320px] align-top text-xs leading-5 text-slate-600">
+            <TableCell className="max-w-[320px] align-top text-xs leading-5 text-muted-foreground">
               <div>
-                <div className="font-medium text-slate-900">Trigger</div>
+                <div className="font-medium text-foreground">Trigger</div>
                 <div>{item.trigger}</div>
               </div>
               <div className="mt-3">
-                <div className="font-medium text-slate-900">Destination</div>
+                <div className="font-medium text-foreground">Destination</div>
                 <div>{item.destination}</div>
               </div>
             </TableCell>
             <TableCell className="max-w-[360px] align-top">
-              <div className="space-y-3 text-xs leading-5 text-slate-600">
+              <div className="space-y-3 text-xs leading-5 text-muted-foreground">
                 {([
                   ["Behavior", item.behavior],
                   ["Delivery", item.delivery],
@@ -236,18 +236,18 @@ function FeatureVerificationTable({ items }: { items: FeatureVerificationItem[] 
                 ] as const).map(([label, proof]) => (
                   <div key={label}>
                     <div className="mb-1 flex items-center gap-2">
-                      <span className="font-medium text-slate-900">{label}</span>
+                      <span className="font-medium text-foreground">{label}</span>
                       <Badge variant={evidenceVariant(proof.status)}>{proof.status}</Badge>
                     </div>
                     <div>{proof.summary}</div>
                     {proof.lastVerifiedAt ? (
-                      <div className="mt-1 text-slate-500">Last signal: {formatDate(proof.lastVerifiedAt)}</div>
+                      <div className="mt-1 text-muted-foreground">Last signal: {formatDate(proof.lastVerifiedAt)}</div>
                     ) : null}
                   </div>
                 ))}
               </div>
             </TableCell>
-            <TableCell className="max-w-[250px] align-top text-xs leading-5 text-slate-600">
+            <TableCell className="max-w-[250px] align-top text-xs leading-5 text-muted-foreground">
               {item.nextReinforcement}
             </TableCell>
           </TableRow>
@@ -328,10 +328,10 @@ function MetricSummaryTable({ data }: { data: CustomerUsageDashboardData }) {
       <TableBody>
         {rows.map((row) => (
           <TableRow key={row.metric}>
-            <TableCell className="font-medium text-slate-900">{row.metric}</TableCell>
+            <TableCell className="font-medium text-foreground">{row.metric}</TableCell>
             <TableCell>{truthBadge(row.type)}</TableCell>
-            <TableCell className="font-medium text-slate-900">{row.value}</TableCell>
-            <TableCell className="max-w-[560px] text-xs leading-5 text-slate-600">{row.method}</TableCell>
+            <TableCell className="font-medium text-foreground">{row.value}</TableCell>
+            <TableCell className="max-w-[560px] text-xs leading-5 text-muted-foreground">{row.method}</TableCell>
           </TableRow>
         ))}
       </TableBody>
@@ -352,18 +352,18 @@ function TruthLegendTable({ data }: { data: CustomerUsageDashboardData }) {
       <TableBody>
         <TableRow>
           <TableCell>{truthBadge("exact")}</TableCell>
-          <TableCell className="font-medium text-slate-900">Exact numbers</TableCell>
-          <TableCell className="text-sm text-slate-600">{data.truthModel.exact}</TableCell>
+          <TableCell className="font-medium text-foreground">Exact numbers</TableCell>
+          <TableCell className="text-sm text-muted-foreground">{data.truthModel.exact}</TableCell>
         </TableRow>
         <TableRow>
           <TableCell>{truthBadge("rollup")}</TableCell>
-          <TableCell className="font-medium text-slate-900">Status rollups</TableCell>
-          <TableCell className="text-sm text-slate-600">{data.truthModel.rollup}</TableCell>
+          <TableCell className="font-medium text-foreground">Status rollups</TableCell>
+          <TableCell className="text-sm text-muted-foreground">{data.truthModel.rollup}</TableCell>
         </TableRow>
         <TableRow>
           <TableCell>{truthBadge("estimate")}</TableCell>
-          <TableCell className="font-medium text-slate-900">Voice AI estimate</TableCell>
-          <TableCell className="text-sm text-slate-600">{data.truthModel.estimate}</TableCell>
+          <TableCell className="font-medium text-foreground">Voice AI estimate</TableCell>
+          <TableCell className="text-sm text-muted-foreground">{data.truthModel.estimate}</TableCell>
         </TableRow>
       </TableBody>
     </Table>
@@ -383,19 +383,19 @@ function CoverageTable({ data }: { data: CustomerUsageDashboardData }) {
       </TableHeader>
       <TableBody>
         <TableRow>
-          <TableCell className="font-medium text-slate-900">Stripe</TableCell>
+          <TableCell className="font-medium text-foreground">Stripe</TableCell>
           <TableCell>{data.overview.coverage.stripe.live}</TableCell>
           <TableCell>{data.overview.coverage.stripe.degraded}</TableCell>
           <TableCell>{data.overview.coverage.stripe.missing}</TableCell>
         </TableRow>
         <TableRow>
-          <TableCell className="font-medium text-slate-900">Twilio</TableCell>
+          <TableCell className="font-medium text-foreground">Twilio</TableCell>
           <TableCell>{data.overview.coverage.twilio.live}</TableCell>
           <TableCell>{data.overview.coverage.twilio.degraded}</TableCell>
           <TableCell>{data.overview.coverage.twilio.missing}</TableCell>
         </TableRow>
         <TableRow>
-          <TableCell className="font-medium text-slate-900">Voice AI estimate</TableCell>
+          <TableCell className="font-medium text-foreground">Voice AI estimate</TableCell>
           <TableCell>{data.overview.coverage.aiEstimate.live}</TableCell>
           <TableCell>{data.overview.coverage.aiEstimate.degraded}</TableCell>
           <TableCell>{data.overview.coverage.aiEstimate.missing}</TableCell>
@@ -442,38 +442,38 @@ function CustomerTable({
         </TableHeader>
         <TableBody>
           {displayRows.map(({ row, user }) => (
-            <TableRow key={`${row.workspaceId}:${user?.id || "nouser"}`} className={selectedWorkspaceId === row.workspaceId ? "bg-slate-50" : undefined}>
+            <TableRow key={`${row.workspaceId}:${user?.id || "nouser"}`} className={selectedWorkspaceId === row.workspaceId ? "bg-muted/30" : undefined}>
               <TableCell className="min-w-[240px] align-top">
                 <Link className="underline-offset-4 hover:underline" href={buildQuery(filters, { tab: "customers", workspace: row.workspaceId })}>
                   {row.workspaceName}
                 </Link>
-                <div className="mt-1 text-xs text-slate-500">{row.industryType}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{row.industryType}</div>
               </TableCell>
               <TableCell className="min-w-[220px] align-top">
-                <div className="font-medium text-slate-900">{user?.name || "--"}</div>
-                <div className="mt-1 text-xs text-slate-500">{user?.email || row.ownerEmail}</div>
+                <div className="font-medium text-foreground">{user?.name || "--"}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{user?.email || row.ownerEmail}</div>
               </TableCell>
               <TableCell className="min-w-[130px] align-top">
-                <div className="font-medium text-slate-900">{formatShortDate(row.createdAt)}</div>
-                <div className="mt-1 text-xs text-slate-500">Customer created</div>
+                <div className="font-medium text-foreground">{formatShortDate(row.createdAt)}</div>
+                <div className="mt-1 text-xs text-muted-foreground">Customer created</div>
               </TableCell>
               <TableCell className="min-w-[150px] align-top">
-                <div className="font-medium text-slate-900">{row.twilioPhoneNumber || "--"}</div>
-                <div className="mt-1 text-xs text-slate-500">{row.twilioPhoneNumber ? "Provisioned" : "Not provisioned"}</div>
+                <div className="font-medium text-foreground">{row.twilioPhoneNumber || "--"}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{row.twilioPhoneNumber ? "Provisioned" : "Not provisioned"}</div>
               </TableCell>
               <TableCell className="min-w-[140px] align-top">
-                <div className="font-medium text-slate-900">{formatMoney(row.subscriptionRevenue, row.subscriptionRevenueCurrency)}</div>
-                <div className="mt-1 text-xs text-slate-500">{row.subscriptionStatus}</div>
+                <div className="font-medium text-foreground">{formatMoney(row.subscriptionRevenue, row.subscriptionRevenueCurrency)}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{row.subscriptionStatus}</div>
               </TableCell>
               <TableCell className="min-w-[150px] align-top">
-                <div className="font-medium text-slate-900">{formatMoney(row.twilioMonthSpend, row.twilioMonthSpendCurrency)}</div>
+                <div className="font-medium text-foreground">{formatMoney(row.twilioMonthSpend, row.twilioMonthSpendCurrency)}</div>
                 <div className="mt-1">
                   <Badge variant={coverageVariant(row.coverage.twilio)}>Twilio {row.coverage.twilio}</Badge>
                 </div>
               </TableCell>
               <TableCell className="min-w-[160px] align-top">
-                <div className="font-medium text-slate-900">{formatMoney(row.subRevenueMinusTwilio, row.subRevenueMinusTwilioCurrency)}</div>
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="font-medium text-foreground">{formatMoney(row.subRevenueMinusTwilio, row.subRevenueMinusTwilioCurrency)}</div>
+                <div className="mt-1 text-xs text-muted-foreground">
                   {row.subRevenueMinusTwilio == null
                     ? describeExactMarginCoverageGap({
                         subscriptionRevenue: row.subscriptionRevenue,
@@ -487,18 +487,18 @@ function CustomerTable({
                 </div>
               </TableCell>
               <TableCell className="min-w-[170px] align-top">
-                <div className="font-medium text-slate-900">{formatMoney(row.paidInvoiceRevenueInRange)}</div>
-                <div className="mt-1 text-xs text-slate-500">{formatNumber(row.jobsWonWithTracey)} jobs won</div>
+                <div className="font-medium text-foreground">{formatMoney(row.paidInvoiceRevenueInRange)}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{formatNumber(row.jobsWonWithTracey)} jobs won</div>
               </TableCell>
               <TableCell className="min-w-[150px] align-top">
-                <div className="font-medium text-slate-900">{formatNumber(row.voiceCallsInRange)}</div>
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="font-medium text-foreground">{formatNumber(row.voiceCallsInRange)}</div>
+                <div className="mt-1 text-xs text-muted-foreground">
                   {row.lastVoiceCallAt ? `Last call ${formatShortDate(row.lastVoiceCallAt)}` : "No calls yet"}
                 </div>
               </TableCell>
               <TableCell className="min-w-[170px] align-top">
-                <div className="font-medium text-slate-900">{formatShortDate(row.lastActivityAt)}</div>
-                <div className="mt-1 text-xs text-slate-500">{row.lastActivityAt ? formatDate(row.lastActivityAt) : "No recent activity"}</div>
+                <div className="font-medium text-foreground">{formatShortDate(row.lastActivityAt)}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{row.lastActivityAt ? formatDate(row.lastActivityAt) : "No recent activity"}</div>
               </TableCell>
               <TableCell className="min-w-[260px] align-top">
                 <div className="flex flex-wrap items-center gap-2">
@@ -506,7 +506,7 @@ function CustomerTable({
                   {row.coverage.stripe !== "live" ? <Badge variant={coverageVariant(row.coverage.stripe)}>Stripe {row.coverage.stripe}</Badge> : null}
                   {row.coverage.aiEstimate !== "live" ? <Badge variant={coverageVariant(row.coverage.aiEstimate)}>AI {row.coverage.aiEstimate}</Badge> : null}
                 </div>
-                <div className="mt-2 text-xs leading-5 text-slate-600">
+                <div className="mt-2 text-xs leading-5 text-muted-foreground">
                   {primaryHealthSummary(row)}
                 </div>
               </TableCell>
@@ -522,7 +522,7 @@ function ActionQueues({ data, filters }: { data: CustomerUsageDashboardData; fil
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-sm font-semibold text-slate-900">Customers needing immediate attention</h3>
+        <h3 className="text-sm font-semibold text-foreground">Customers needing immediate attention</h3>
         <div className="mt-3 overflow-x-auto">
           {data.overview.lists.immediateAttentionCustomers.length === 0 ? (
             <EmptyState>No customers currently need action.</EmptyState>
@@ -546,7 +546,7 @@ function ActionQueues({ data, filters }: { data: CustomerUsageDashboardData; fil
                     <TableCell>
                       <Badge variant={statusVariant(item.level)}>{item.level}</Badge>
                     </TableCell>
-                    <TableCell className="text-xs text-slate-600">{item.reasons.join(" | ")}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{item.reasons.join(" | ")}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -556,7 +556,7 @@ function ActionQueues({ data, filters }: { data: CustomerUsageDashboardData; fil
       </div>
 
       <div>
-        <h3 className="text-sm font-semibold text-slate-900">Newest provisioning failures</h3>
+        <h3 className="text-sm font-semibold text-foreground">Newest provisioning failures</h3>
         <div className="mt-3 overflow-x-auto">
           {data.overview.lists.newestProvisioningFailures.length === 0 ? (
             <EmptyState>No open provisioning blockers.</EmptyState>
@@ -573,14 +573,14 @@ function ActionQueues({ data, filters }: { data: CustomerUsageDashboardData; fil
               <TableBody>
                 {data.overview.lists.newestProvisioningFailures.map((item) => (
                   <TableRow key={`${item.workspaceId}:${item.updatedAt}`}>
-                    <TableCell className="font-medium text-slate-900">{item.workspaceName}</TableCell>
+                    <TableCell className="font-medium text-foreground">{item.workspaceName}</TableCell>
                     <TableCell>
                       <Badge variant={statusVariant(item.provisioningStatus === "failed" ? "critical" : "warning")}>
                         {item.provisioningStatus}
                       </Badge>
                     </TableCell>
                     <TableCell>{formatDate(item.updatedAt)}</TableCell>
-                    <TableCell className="text-xs text-slate-600">{item.error || "--"}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{item.error || "--"}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -590,7 +590,7 @@ function ActionQueues({ data, filters }: { data: CustomerUsageDashboardData; fil
       </div>
 
       <div>
-        <h3 className="text-sm font-semibold text-slate-900">Stale customers</h3>
+        <h3 className="text-sm font-semibold text-foreground">Stale customers</h3>
         <div className="mt-3 overflow-x-auto">
           {data.overview.lists.staleCustomers.length === 0 ? (
             <EmptyState>No stale customers right now.</EmptyState>
@@ -612,7 +612,7 @@ function ActionQueues({ data, filters }: { data: CustomerUsageDashboardData; fil
                       </Link>
                     </TableCell>
                     <TableCell>{formatDate(item.lastActivityAt)}</TableCell>
-                    <TableCell className="text-xs text-slate-600">{item.reasons.join(" | ") || "No meaningful activity in the last 30 days"}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{item.reasons.join(" | ") || "No meaningful activity in the last 30 days"}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -622,7 +622,7 @@ function ActionQueues({ data, filters }: { data: CustomerUsageDashboardData; fil
       </div>
 
       <div>
-        <h3 className="text-sm font-semibold text-slate-900">Webhook and provider failures</h3>
+        <h3 className="text-sm font-semibold text-foreground">Webhook and provider failures</h3>
         <div className="mt-3 overflow-x-auto">
           {data.overview.lists.providerFailures.length === 0 ? (
             <EmptyState>No active provider issues.</EmptyState>
@@ -639,11 +639,11 @@ function ActionQueues({ data, filters }: { data: CustomerUsageDashboardData; fil
               <TableBody>
                 {data.overview.lists.providerFailures.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell className="font-medium text-slate-900">{item.label}</TableCell>
+                    <TableCell className="font-medium text-foreground">{item.label}</TableCell>
                     <TableCell>
                       <Badge variant={statusVariant(item.status)}>{item.source}</Badge>
                     </TableCell>
-                    <TableCell className="text-xs text-slate-600">{item.summary}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{item.summary}</TableCell>
                     <TableCell>{formatDate(item.lastSeenAt)}</TableCell>
                   </TableRow>
                 ))}
@@ -709,12 +709,12 @@ function OpsRollupTable({ data }: { data: CustomerUsageDashboardData }) {
       <TableBody>
         {rows.map((row) => (
           <TableRow key={row.section}>
-            <TableCell className="font-medium text-slate-900">{row.section}</TableCell>
+            <TableCell className="font-medium text-foreground">{row.section}</TableCell>
             <TableCell>
               <Badge variant={statusVariant(row.status)}>{row.status}</Badge>
             </TableCell>
-            <TableCell className="text-sm text-slate-700">{row.summary}</TableCell>
-            <TableCell className="text-xs text-slate-600">{row.details}</TableCell>
+            <TableCell className="text-sm text-foreground">{row.summary}</TableCell>
+            <TableCell className="text-xs text-muted-foreground">{row.details}</TableCell>
           </TableRow>
         ))}
       </TableBody>
@@ -729,14 +729,14 @@ function SelectedWorkspacePanel({ selected }: { selected: NonNullable<CustomerUs
         <div className="flex items-center justify-between gap-3">
           <div>
             <CardTitle className="text-base">{selected.identity.workspaceName}</CardTitle>
-            <CardDescription className="text-xs text-slate-600">{selected.identity.workspaceId}</CardDescription>
+            <CardDescription className="text-xs text-muted-foreground">{selected.identity.workspaceId}</CardDescription>
           </div>
           <Badge variant={statusVariant(selected.row.attentionLevel)}>{selected.row.attentionLevel}</Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
         <section>
-          <div className="mb-2 text-sm font-semibold text-slate-900">Identity</div>
+          <div className="mb-2 text-sm font-semibold text-foreground">Identity</div>
           <DetailItem label="Owner" value={selected.identity.ownerEmail} />
           <DetailItem label="Type" value={`${selected.identity.workspaceType} / ${selected.identity.industryType}`} />
           <DetailItem label="Tracey number" value={selected.identity.twilioPhoneNumber || "--"} />
@@ -745,7 +745,7 @@ function SelectedWorkspacePanel({ selected }: { selected: NonNullable<CustomerUs
         </section>
 
         <section>
-          <div className="mb-2 text-sm font-semibold text-slate-900">Billing</div>
+          <div className="mb-2 text-sm font-semibold text-foreground">Billing</div>
           <DetailItem label="Status" value={selected.billing.subscriptionStatus} />
           <DetailItem label="Plan" value={`${selected.billing.planLabel} (${selected.billing.billingInterval})`} />
           <DetailItem label="Sub revenue" value={formatMoney(selected.billing.subscriptionRevenue, selected.billing.subscriptionRevenueCurrency)} />
@@ -755,7 +755,7 @@ function SelectedWorkspacePanel({ selected }: { selected: NonNullable<CustomerUs
         </section>
 
         <section>
-          <div className="mb-2 text-sm font-semibold text-slate-900">Funnel</div>
+          <div className="mb-2 text-sm font-semibold text-foreground">Funnel</div>
           <DetailItem label="Contacts" value={formatNumber(selected.funnel.contactsTotal)} />
           <DetailItem label="Deals won / lost / open" value={`${selected.funnel.dealsWon} / ${selected.funnel.dealsLost} / ${selected.funnel.dealsOpen}`} />
           <DetailItem label="Win rate" value={`${formatNumber(selected.funnel.winRatePercent)}%`} />
@@ -765,7 +765,7 @@ function SelectedWorkspacePanel({ selected }: { selected: NonNullable<CustomerUs
         </section>
 
         <section>
-          <div className="mb-2 text-sm font-semibold text-slate-900">Voice</div>
+          <div className="mb-2 text-sm font-semibold text-foreground">Voice</div>
           <DetailItem label="Calls in range" value={formatNumber(selected.voice.totalCallsInRange)} />
           <DetailItem label="Inbound / outbound" value={`${selected.voice.inboundCallsInRange} / ${selected.voice.outboundCallsInRange}`} />
           <DetailItem label="Minutes in range" value={formatNumber(selected.voice.totalMinutesInRange)} />
@@ -774,7 +774,7 @@ function SelectedWorkspacePanel({ selected }: { selected: NonNullable<CustomerUs
         </section>
 
         <section>
-          <div className="mb-2 text-sm font-semibold text-slate-900">Costs</div>
+          <div className="mb-2 text-sm font-semibold text-foreground">Costs</div>
           <DetailItem label="Twilio month spend" value={formatMoney(selected.costs.twilioMonthSpend, selected.costs.twilioCurrency)} />
           <DetailItem label="Sub rev - Twilio" value={formatMoney(selected.costs.subRevenueMinusTwilio, selected.costs.subRevenueMinusTwilioCurrency)} />
           <DetailItem label="Cost per won job" value={formatMoney(selected.costs.costPerWonJob, selected.costs.costPerWonJobCurrency)} />
@@ -785,7 +785,7 @@ function SelectedWorkspacePanel({ selected }: { selected: NonNullable<CustomerUs
         </section>
 
         <section>
-          <div className="mb-2 text-sm font-semibold text-slate-900">Activity</div>
+          <div className="mb-2 text-sm font-semibold text-foreground">Activity</div>
           <DetailItem label="Last activity" value={formatDate(selected.activity.lastWorkspaceActivityAt)} />
           <DetailItem label="Last voice call" value={formatDate(selected.activity.lastVoiceCallAt)} />
           <DetailItem label="Last invoice paid" value={formatDate(selected.activity.lastInvoicePaidAt)} />
@@ -803,7 +803,7 @@ function SelectedWorkspacePanel({ selected }: { selected: NonNullable<CustomerUs
         </section>
 
         <section>
-          <div className="mb-2 text-sm font-semibold text-slate-900">Feedback</div>
+          <div className="mb-2 text-sm font-semibold text-foreground">Feedback</div>
           <DetailItem label="Ratings in range" value={formatNumber(selected.feedback.feedbackCountInRange)} />
           <DetailItem label="Average score" value={selected.feedback.averageScoreInRange == null ? "--" : `${selected.feedback.averageScoreInRange}/10`} />
           <DetailItem label="Low scores in range" value={formatNumber(selected.feedback.lowScoresInRange)} />
@@ -813,13 +813,13 @@ function SelectedWorkspacePanel({ selected }: { selected: NonNullable<CustomerUs
               <EmptyState>No customer feedback stored yet.</EmptyState>
             ) : (
               selected.feedback.recentFeedback.map((item) => (
-                <div key={item.id} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
+                <div key={item.id} className="rounded-xl border border-border bg-muted/30 px-3 py-2 text-xs">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="font-medium text-slate-900">{item.contactName}</span>
-                    <span className="text-slate-600">{item.score}/10</span>
+                    <span className="font-medium text-foreground">{item.contactName}</span>
+                    <span className="text-muted-foreground">{item.score}/10</span>
                   </div>
-                  <div className="mt-1 text-slate-500">{item.dealTitle} | {formatShortDate(item.createdAt)}</div>
-                  {item.comment ? <div className="mt-1 text-slate-700">{item.comment}</div> : null}
+                  <div className="mt-1 text-muted-foreground">{item.dealTitle} | {formatShortDate(item.createdAt)}</div>
+                  {item.comment ? <div className="mt-1 text-foreground">{item.comment}</div> : null}
                 </div>
               ))
             )}
@@ -850,14 +850,14 @@ export default async function CustomerUsagePage({
     <div className="mx-auto max-w-[1800px] space-y-6 px-4 py-6 sm:px-6 lg:px-8">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div className="space-y-1">
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-950">Customer observability</h1>
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">Customer observability</h1>
         </div>
         <div className="flex flex-wrap gap-2">
           {(["1d", "7d", "30d", "90d"] as const).map((range) => (
             <Link
               key={range}
               href={buildQuery(filters, { range, workspace: filters.workspace || "" })}
-              className={`inline-flex h-10 items-center rounded-full px-4 text-sm font-medium ${filters.range === range ? "bg-slate-900 text-white" : "border border-slate-200 text-slate-700"}`}
+              className={`inline-flex h-10 items-center rounded-full px-4 text-sm font-medium ${filters.range === range ? "bg-slate-900 text-white" : "border border-border text-foreground"}`}
             >
               {range}
             </Link>
@@ -874,7 +874,7 @@ export default async function CustomerUsagePage({
           <Link
             key={tab}
             href={buildQuery(filters, { tab })}
-            className={`inline-flex h-10 items-center rounded-full px-4 text-sm font-medium ${filters.tab === tab ? "bg-slate-900 text-white" : "border border-slate-200 text-slate-700"}`}
+            className={`inline-flex h-10 items-center rounded-full px-4 text-sm font-medium ${filters.tab === tab ? "bg-slate-900 text-white" : "border border-border text-foreground"}`}
           >
             {label}
           </Link>
@@ -910,7 +910,7 @@ export default async function CustomerUsagePage({
             aside={
               <Link
                 href={buildQuery(filters, { tab: "customers" })}
-                className="inline-flex h-9 items-center rounded-full border border-slate-200 px-4 text-sm font-medium text-slate-700"
+                className="inline-flex h-9 items-center rounded-full border border-border px-4 text-sm font-medium text-foreground"
               >
                 Open detailed customer view
               </Link>
@@ -935,8 +935,8 @@ export default async function CustomerUsagePage({
               <input type="hidden" name="tab" value="customers" />
               <input type="hidden" name="range" value={filters.range} />
               {filters.workspace ? <input type="hidden" name="workspace" value={filters.workspace} /> : null}
-              <input className="h-11 flex-1 rounded-full border border-slate-200 px-4 text-sm" defaultValue={filters.q} name="q" placeholder="Search customer, user, or provisioned number" />
-              <select className="h-11 rounded-full border border-slate-200 px-4 text-sm" defaultValue={filters.sort} name="sort">
+              <input className="h-11 flex-1 rounded-full border border-border px-4 text-sm" defaultValue={filters.q} name="q" placeholder="Search customer, user, or provisioned number" />
+              <select className="h-11 rounded-full border border-border px-4 text-sm" defaultValue={filters.sort} name="sort">
                 <option value="attention">Sort: attention</option>
                 <option value="subRevenue">Sort: sub revenue</option>
                 <option value="twilioSpend">Sort: Twilio spend</option>
@@ -960,7 +960,7 @@ export default async function CustomerUsagePage({
               <SelectedWorkspacePanel selected={selected} />
             ) : (
               <Card className="rounded-[18px]">
-                <CardContent className="pt-6 text-sm text-slate-500">No workspace selected.</CardContent>
+                <CardContent className="pt-6 text-sm text-muted-foreground">No workspace selected.</CardContent>
               </Card>
             )}
           </div>
@@ -974,7 +974,7 @@ export default async function CustomerUsagePage({
             description={data.ops.launch.summary}
             aside={<Badge variant={statusVariant(data.ops.launch.status)}>{data.ops.launch.status}</Badge>}
           >
-            <div className="text-xs text-slate-500">Checked {formatDate(data.ops.launch.checkedAt)}</div>
+            <div className="text-xs text-muted-foreground">Checked {formatDate(data.ops.launch.checkedAt)}</div>
           </SectionCard>
 
           <SectionCard
@@ -1026,7 +1026,7 @@ export default async function CustomerUsagePage({
                 <TableBody>
                   {data.ops.webhookDiagnostics.map((provider) => (
                     <TableRow key={provider.provider}>
-                      <TableCell className="font-medium capitalize text-slate-900">{provider.provider}</TableCell>
+                      <TableCell className="font-medium capitalize text-foreground">{provider.provider}</TableCell>
                       <TableCell>
                         <Badge variant={statusVariant(provider.errorCount > 0 ? "warning" : "healthy")}>
                           {provider.successCount} ok / {provider.errorCount} err

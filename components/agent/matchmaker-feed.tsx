@@ -27,9 +27,9 @@ export function MatchmakerFeed({ workspaceId }: { workspaceId: string }) {
 
     if (loading) {
         return (
-            <Card className="h-full border-slate-200 shadow-sm">
+            <Card className="h-full border-border shadow-sm">
                 <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-slate-500 flex items-center gap-2">
+                    <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                         <Users className="w-4 h-4" />
                         Matchmaker Feed
                     </CardTitle>
@@ -42,9 +42,9 @@ export function MatchmakerFeed({ workspaceId }: { workspaceId: string }) {
     }
 
     return (
-        <Card className="h-full border-slate-200 shadow-sm flex flex-col">
-            <CardHeader className="pb-3 border-b border-slate-100">
-                <CardTitle className="text-sm font-medium text-slate-900 flex items-center justify-between">
+        <Card className="h-full border-border shadow-sm flex flex-col">
+            <CardHeader className="pb-3 border-b border-border/50">
+                <CardTitle className="text-sm font-medium text-foreground flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <Users className="w-4 h-4 text-blue-600" />
                         Matchmaker
@@ -56,7 +56,7 @@ export function MatchmakerFeed({ workspaceId }: { workspaceId: string }) {
             </CardHeader>
             <CardContent className="flex-1 overflow-y-auto p-0">
                 {feed.length === 0 ? (
-                    <div className="p-6 text-center text-slate-500 text-xs">
+                    <div className="p-6 text-center text-muted-foreground text-xs">
                         No matches found. Add more contacts with preferences.
                     </div>
                 ) : (
@@ -65,19 +65,19 @@ export function MatchmakerFeed({ workspaceId }: { workspaceId: string }) {
                             <Link 
                                 key={item.dealId} 
                                 href={`/crm/deals/${item.dealId}`}
-                                className="block p-4 hover:bg-slate-50 transition-colors group"
+                                className="block p-4 hover:bg-muted/30 transition-colors group"
                             >
                                 <div className="flex justify-between items-start mb-1">
-                                    <span className="font-medium text-slate-900 text-sm line-clamp-1">{item.dealTitle}</span>
+                                    <span className="font-medium text-foreground text-sm line-clamp-1">{item.dealTitle}</span>
                                     <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-emerald-200 shadow-none text-[10px] h-5 px-1.5">
                                         {item.matchCount}
                                     </Badge>
                                 </div>
-                                <div className="flex items-center justify-between text-xs text-slate-500">
+                                <div className="flex items-center justify-between text-xs text-muted-foreground">
                                     <span>
                                         {item.topMatchName ? `Top match: ${item.topMatchName}` : 'View matches'}
                                     </span>
-                                    <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400" />
+                                    <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground" />
                                 </div>
                             </Link>
                         ))}

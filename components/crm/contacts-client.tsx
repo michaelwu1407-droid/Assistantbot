@@ -244,9 +244,9 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
       case "Quote sent":
         return "border-violet-200 bg-violet-50 text-violet-700"
       case "New request":
-        return "border-slate-200 bg-slate-100 text-slate-700"
+        return "border-border bg-muted text-foreground"
       default:
-        return "border-slate-200 bg-slate-100 text-slate-600"
+        return "border-border bg-muted text-muted-foreground"
     }
   }
 

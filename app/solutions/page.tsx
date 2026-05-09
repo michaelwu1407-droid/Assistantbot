@@ -33,7 +33,7 @@ const INCLUDED = [
 
 export default function SolutionsPage() {
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-900">
+    <div className="min-h-screen bg-[#F8FAFC] text-foreground">
       <Navbar />
       <main className="mx-auto flex max-w-7xl flex-col gap-20 px-6 pb-24 pt-36">
 
@@ -46,7 +46,7 @@ export default function SolutionsPage() {
             <h1 className="mt-4 text-4xl font-extrabold tracking-[-0.03em] text-midnight md:text-6xl">
               {TRADE_SERVICES_SUMMARY.title}
             </h1>
-            <p className="mt-4 text-lg leading-8 text-slate-600">
+            <p className="mt-4 text-lg leading-8 text-muted-foreground">
               {TRADE_SERVICES_SUMMARY.description}
             </p>
           </div>
@@ -68,7 +68,7 @@ export default function SolutionsPage() {
           {/* What's included in every solution */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-8 pt-2">
             {INCLUDED.map(({ icon: Icon, label }) => (
-              <div key={label} className="flex items-center gap-2 text-sm text-slate-600">
+              <div key={label} className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Icon className="h-4 w-4 text-primary shrink-0" />
                 <span>{label}</span>
               </div>
@@ -84,7 +84,7 @@ export default function SolutionsPage() {
             return (
               <article
                 key={service.slug}
-                className="grid gap-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.06)] transition-shadow hover:shadow-[0_12px_40px_rgba(15,23,42,0.10)] md:grid-cols-[1.1fr_1fr]"
+                className="grid gap-0 overflow-hidden rounded-2xl border border-border bg-card shadow-[0_8px_30px_rgba(15,23,42,0.06)] transition-shadow hover:shadow-[0_12px_40px_rgba(15,23,42,0.10)] md:grid-cols-[1.1fr_1fr]"
               >
                 {/* Text side */}
                 <div className={`flex flex-col justify-center gap-5 p-8 md:p-10 ${reverse ? "md:order-2" : ""}`}>
@@ -99,7 +99,7 @@ export default function SolutionsPage() {
                   <h2 className="text-2xl font-extrabold tracking-[-0.02em] text-midnight md:text-3xl">
                     {service.summaryTeaser}
                   </h2>
-                  <p className="text-base leading-7 text-slate-600">
+                  <p className="text-base leading-7 text-muted-foreground">
                     {service.summaryAngle}
                   </p>
                   <div>
@@ -122,7 +122,7 @@ export default function SolutionsPage() {
                     {service.workflows.slice(0, 3).map((workflow) => (
                       <li
                         key={workflow.title}
-                        className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-3.5 backdrop-blur-sm"
+                        className="flex items-start gap-3 rounded-xl border border-white/10 bg-card/5 p-3.5 backdrop-blur-sm"
                       >
                         <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
                         <div className="flex flex-col gap-0.5">
@@ -153,7 +153,7 @@ export default function SolutionsPage() {
               </Button>
             </Link>
             <Link href="/contact#contact-form">
-              <Button size="lg" variant="ghost" className="text-white border-white/30 hover:bg-white/10">
+              <Button size="lg" variant="ghost" className="text-white border-white/30 hover:bg-card/10">
                 Get a demo
               </Button>
             </Link>

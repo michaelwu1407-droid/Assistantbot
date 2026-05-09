@@ -73,7 +73,7 @@ export function Sidebar({ className, expanded }: SidebarProps) {
                 className={cn(
                     "flex h-full flex-col items-center z-20 transition-all duration-300 shrink-0",
                     /* No light border-r — it read as a white seam against the green header; use shadow only */
-                    "border-r-0 bg-white shadow-[2px_0_20px_-8px_rgba(15,23,42,0.1)] dark:bg-slate-950 dark:shadow-none",
+                    "border-r-0 bg-card shadow-[2px_0_20px_-8px_rgba(15,23,42,0.1)] dark:bg-slate-950 dark:shadow-none",
                     className
                 )}
                 style={expanded ? undefined : { width: SIDEBAR_WIDTH }}
@@ -85,7 +85,7 @@ export function Sidebar({ className, expanded }: SidebarProps) {
                             <button
                                 type="button"
                                 onClick={goToBasic}
-                                className="flex h-9 w-9 items-center justify-center rounded-lg transition-colors duration-150 hover:bg-white/10"
+                                className="flex h-9 w-9 items-center justify-center rounded-lg transition-colors duration-150 hover:bg-card/10"
                                 aria-label="Open chat mode"
                                 title="Open chat mode"
                             >
@@ -119,7 +119,7 @@ export function Sidebar({ className, expanded }: SidebarProps) {
                                                 "flex h-10 w-full items-center justify-center rounded-lg transition-colors duration-150",
                                                 isActive
                                                     ? "bg-emerald-50 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-200"
-                                                    : "text-slate-500 hover:text-slate-800 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-slate-100"
+                                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/30 dark:text-muted-foreground dark:hover:bg-slate-900 dark:hover:text-slate-100"
                                             )}
                                         >
                                             <item.icon size={20} strokeWidth={1.75} />
@@ -136,7 +136,7 @@ export function Sidebar({ className, expanded }: SidebarProps) {
 
                 {/* Bottom Actions */}
                 <div className="mt-auto flex flex-col gap-1.5 px-1.5 w-full pb-3">
-                    <div className="border-t border-slate-100 my-2 dark:border-slate-800" />
+                    <div className="border-t border-border/50 my-2 dark:border-slate-800" />
 
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -148,7 +148,7 @@ export function Sidebar({ className, expanded }: SidebarProps) {
                                         "flex h-10 w-full items-center justify-center rounded-lg transition-colors duration-150",
                                         pathname.startsWith("/crm/settings")
                                             ? "bg-emerald-700/25 text-emerald-950 dark:bg-emerald-500/25 dark:text-emerald-100"
-                                            : "text-slate-700 hover:text-slate-900 hover:bg-slate-400/45 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+                                            : "text-foreground hover:text-foreground hover:bg-slate-400/45 dark:text-muted-foreground dark:hover:bg-slate-800 dark:hover:text-slate-100"
                                     )}
                                 >
                                     <Settings2 size={20} strokeWidth={1.75} />
@@ -163,7 +163,7 @@ export function Sidebar({ className, expanded }: SidebarProps) {
                             <button
                                 id="logout-btn"
                                 onClick={handleSignOut}
-                                className="flex h-10 w-full items-center justify-center rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 dark:text-slate-400 dark:hover:bg-red-950/40 dark:hover:text-red-400 transition-colors duration-150"
+                                className="flex h-10 w-full items-center justify-center rounded-lg text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:text-muted-foreground dark:hover:bg-red-950/40 dark:hover:text-red-400 transition-colors duration-150"
                             >
                                 <LogOut size={20} strokeWidth={1.75} />
                             </button>

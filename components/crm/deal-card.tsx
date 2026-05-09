@@ -592,7 +592,7 @@ export function DealCard({
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="h-6 border-amber-200 bg-white/95 px-2.5 text-[10px] font-semibold text-amber-900 hover:bg-amber-50"
+                      className="h-6 border-amber-200 bg-card/95 px-2.5 text-[10px] font-semibold text-amber-900 hover:bg-amber-50"
                       disabled={approvalBusy}
                       onClick={(e) => {
                         e.stopPropagation()

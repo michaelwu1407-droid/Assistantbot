@@ -18,7 +18,7 @@ export function ActivityModal({ isOpen, onClose, workspaceId }: ActivityModalPro
                         Dashboard Activity
                     </p>
                     <DialogTitle className="mt-1">Recent activity</DialogTitle>
-                    <p className="text-[13px] leading-6 text-slate-500 dark:text-slate-400">
+                    <p className="text-[13px] leading-6 text-muted-foreground dark:text-muted-foreground">
                         Calls, messages, automations, and workflow updates across the workspace.
                     </p>
                 </DialogHeader>

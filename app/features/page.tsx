@@ -189,7 +189,7 @@ function MockupSidebar({ active }: { active: "chat" | "dashboard" | "inbox" | "m
     { id: "calendar", icon: Calendar },
   ] as const
   return (
-    <div className="w-10 shrink-0 flex flex-col items-center gap-1 py-3 bg-white border-r border-[#E5E7EB]">
+    <div className="w-10 shrink-0 flex flex-col items-center gap-1 py-3 bg-card border-r border-[#E5E7EB]">
       {items.map(({ id, icon: Icon }) => (
         <div key={id} className="w-7 h-7 flex items-center justify-center rounded"
           style={id === active ? { backgroundColor: "#E0FAF2" } : undefined}>
@@ -206,13 +206,13 @@ function MockupComms() {
     <div className="h-full flex flex-row overflow-hidden">
       <MockupSidebar active="chat" />
       <div className="flex-1 flex flex-col bg-[#F7F8FA] p-2">
-        <div className="flex-1 flex flex-col rounded overflow-hidden bg-white/70 backdrop-blur border border-white/50 shadow">
-          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-slate-200/60 bg-white/70">
+        <div className="flex-1 flex flex-col rounded overflow-hidden bg-card/70 backdrop-blur border border-white/50 shadow">
+          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border/60 bg-card/70">
             <div className="w-6 h-6 rounded flex items-center justify-center" style={{ backgroundColor: "#E0FAF2" }}>
               <Bot className="w-3.5 h-3.5" style={{ color: "#00D28B" }} />
             </div>
             <div>
-              <p className="text-[11px] font-semibold text-slate-900 leading-none">Ask Tracey</p>
+              <p className="text-[11px] font-semibold text-foreground leading-none">Ask Tracey</p>
               <p className="text-[9px] mt-0.5 flex items-center gap-1" style={{ color: "#00D28B" }}>
                 <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ backgroundColor: "#00D28B" }} />
                 Online
@@ -235,7 +235,7 @@ function MockupComms() {
                 <div className={`px-2.5 py-1.5 text-[10px] leading-relaxed max-w-[82%] rounded-full ${
                   m.from === "customer" ? "text-white rounded-br-sm"
                   : m.from === "system" ? "bg-blue-50 text-blue-600 text-center w-full rounded"
-                  : "text-slate-900 border border-slate-200/50 bg-white/90 rounded-bl-sm"
+                  : "text-foreground border border-border/50 bg-card/90 rounded-bl-sm"
                 }`}
                   style={m.from === "customer" ? { backgroundColor: "#00D28B" } : undefined}>
                   {m.text}
@@ -244,8 +244,8 @@ function MockupComms() {
             ))}
           </div>
           <div className="px-3 pb-2.5">
-            <div className="flex items-center gap-1.5 bg-white border border-slate-200/60 rounded-full px-3 py-1.5">
-              <span className="text-[10px] text-slate-400 flex-1">Message Tracey…</span>
+            <div className="flex items-center gap-1.5 bg-card border border-border/60 rounded-full px-3 py-1.5">
+              <span className="text-[10px] text-muted-foreground flex-1">Message Tracey…</span>
               <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ backgroundColor: "#00D28B" }}>
                 <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
               </div>
@@ -273,7 +273,7 @@ function MockupCRM() {
         <div className="relative z-10 flex flex-col h-full p-2 gap-2">
           <div className="grid grid-cols-3 gap-1.5">
             {[{ label: "March Revenue", value: "$14,280" }, { label: "Won with Tracey", value: "$8,400" }, { label: "Upcoming", value: "6 jobs" }].map(k => (
-              <div key={k.label} className="bg-white rounded border border-[#E5E7EB] px-2 py-1.5">
+              <div key={k.label} className="bg-card rounded border border-[#E5E7EB] px-2 py-1.5">
                 <span className="text-[8px] text-neutral-500 uppercase tracking-wide block">{k.label}</span>
                 <span className="text-sm font-bold text-neutral-900">{k.value}</span>
               </div>
@@ -281,7 +281,7 @@ function MockupCRM() {
           </div>
           <div className="flex-1 grid grid-cols-3 gap-1.5 min-h-0">
             {cols.map(col => (
-              <div key={col.label} className="bg-white rounded border border-[#E5E7EB] p-2 flex flex-col gap-1.5 overflow-hidden">
+              <div key={col.label} className="bg-card rounded border border-[#E5E7EB] p-2 flex flex-col gap-1.5 overflow-hidden">
                 <div className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: col.dot }} />
                   <span className="text-[10px] font-semibold text-neutral-700 truncate">{col.label}</span>
@@ -318,11 +318,11 @@ function MockupCalendar() {
   return (
     <div className="h-full flex flex-row overflow-hidden">
       <MockupSidebar active="calendar" />
-      <div className="flex-1 flex flex-col bg-white overflow-hidden">
+      <div className="flex-1 flex flex-col bg-card overflow-hidden">
         <div className="flex border-b border-[#E5E7EB]">
           <div className="w-10 shrink-0" />
           {days.map(d => (
-            <div key={d} className="flex-1 text-center py-2.5 text-[10px] font-semibold text-slate-500 border-l border-neutral-100">{d}</div>
+            <div key={d} className="flex-1 text-center py-2.5 text-[10px] font-semibold text-muted-foreground border-l border-neutral-100">{d}</div>
           ))}
         </div>
         <div className="flex flex-1 overflow-hidden">
@@ -366,11 +366,11 @@ function MockupInbox() {
   return (
     <div className="h-full flex flex-row overflow-hidden">
       <MockupSidebar active="inbox" />
-      <div className="flex-1 flex flex-col bg-white overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#E5E7EB] flex items-center justify-between bg-white">
+      <div className="flex-1 flex flex-col bg-card overflow-hidden">
+        <div className="px-4 py-3 border-b border-[#E5E7EB] flex items-center justify-between bg-card">
           <div>
-            <p className="text-xs font-bold text-slate-800">Activity Inbox</p>
-            <p className="text-[10px] text-slate-500">All Tracey actions · today</p>
+            <p className="text-xs font-bold text-foreground">Activity Inbox</p>
+            <p className="text-[10px] text-muted-foreground">All Tracey actions · today</p>
           </div>
           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: "#E0FAF2", color: "#065F46" }}>● Live</span>
         </div>
@@ -383,8 +383,8 @@ function MockupInbox() {
                   <Icon className="w-3.5 h-3.5" style={{ color: item.color }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-semibold text-slate-800">{item.label}</p>
-                  <p className="text-[9px] text-slate-500 truncate mt-0.5">{item.detail}</p>
+                  <p className="text-[10px] font-semibold text-foreground">{item.label}</p>
+                  <p className="text-[9px] text-muted-foreground truncate mt-0.5">{item.detail}</p>
                 </div>
                 <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0"
                   style={{ color: item.color, backgroundColor: item.bg }}>{item.badge}</span>
@@ -420,19 +420,19 @@ function MockupMap() {
           <div key={p.num} className="absolute" style={{ left: p.x, top: p.y, transform: "translate(-50%,-50%)" }}>
             <div className="flex flex-col items-center">
               <div className="w-7 h-7 rounded-full border-2 border-white shadow flex items-center justify-center text-white text-[9px] font-bold" style={{ backgroundColor: p.color }}>{p.num}</div>
-              <div className="mt-0.5 bg-white text-[8px] font-semibold text-slate-700 px-1.5 py-0.5 rounded-full shadow-sm border border-neutral-200 whitespace-nowrap">{p.label}</div>
+              <div className="mt-0.5 bg-card text-[8px] font-semibold text-foreground px-1.5 py-0.5 rounded-full shadow-sm border border-neutral-200 whitespace-nowrap">{p.label}</div>
             </div>
           </div>
         ))}
-        <div className="absolute top-2 left-2 bg-white/95 rounded border border-neutral-200 shadow-sm px-2.5 py-1.5">
-          <p className="text-[9px] font-semibold text-slate-500 uppercase tracking-wide">Today</p>
-          <p className="text-sm font-bold text-slate-900 leading-none mt-0.5">3 jobs</p>
+        <div className="absolute top-2 left-2 bg-card/95 rounded border border-neutral-200 shadow-sm px-2.5 py-1.5">
+          <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wide">Today</p>
+          <p className="text-sm font-bold text-foreground leading-none mt-0.5">3 jobs</p>
         </div>
-        <div className="absolute bottom-2 right-2 bg-white/95 rounded border border-neutral-200 shadow-sm px-2.5 py-1.5 flex flex-col gap-1">
+        <div className="absolute bottom-2 right-2 bg-card/95 rounded border border-neutral-200 shadow-sm px-2.5 py-1.5 flex flex-col gap-1">
           {[{ color: "#3B82F6", label: "New" }, { color: "#00D28B", label: "Scheduled" }, { color: "#6B7280", label: "Done" }].map(l => (
             <div key={l.label} className="flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: l.color }} />
-              <span className="text-[8px] text-slate-600">{l.label}</span>
+              <span className="text-[8px] text-muted-foreground">{l.label}</span>
             </div>
           ))}
         </div>
@@ -454,14 +454,14 @@ function MockupControl() {
       <MockupSidebar active="contacts" />
       <div className="flex-1 flex flex-col bg-[#F7F8FA] p-4 gap-3 overflow-hidden">
         <div className="mb-1">
-          <p className="text-xs font-bold text-slate-800">Tracey permissions</p>
-          <p className="text-[10px] text-slate-500 mt-0.5">Control exactly what Tracey can do</p>
+          <p className="text-xs font-bold text-foreground">Tracey permissions</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">Control exactly what Tracey can do</p>
         </div>
         {settings.map((s, i) => (
-          <div key={i} className="flex items-center justify-between bg-white border border-[#E5E7EB] rounded px-3 py-2.5 shadow-sm">
-            <span className="text-[11px] font-medium text-slate-700 pr-3 leading-snug">{s.label}</span>
+          <div key={i} className="flex items-center justify-between bg-card border border-[#E5E7EB] rounded px-3 py-2.5 shadow-sm">
+            <span className="text-[11px] font-medium text-foreground pr-3 leading-snug">{s.label}</span>
             <div className={`w-9 h-5 rounded-full flex items-center px-0.5 shrink-0 ${s.on ? "bg-emerald-500 justify-end" : "bg-neutral-300 justify-start"}`}>
-              <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+              <div className="w-4 h-4 rounded-full bg-card shadow-sm" />
             </div>
           </div>
         ))}
@@ -482,7 +482,7 @@ const FEATURE_MOCKUPS = [MockupComms, MockupCRM, MockupCalendar, MockupInbox, Mo
 
 export default function FeaturesPage() {
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-900">
+    <div className="min-h-screen bg-[#F8FAFC] text-foreground">
       <Navbar />
       <main>
 
@@ -498,7 +498,7 @@ export default function FeaturesPage() {
             <motion.h1 {...fadeUp(0.04)} className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.07] text-midnight text-balance">
               An AI assistant.<br />A CRM that runs itself.
             </motion.h1>
-            <motion.p {...fadeUp(0.08)} className="text-lg leading-8 text-slate-600 max-w-xl text-balance">
+            <motion.p {...fadeUp(0.08)} className="text-lg leading-8 text-muted-foreground max-w-xl text-balance">
               One platform with two halves: an AI voice assistant that picks up every call and text, and a full CRM that fills itself in as she works.
             </motion.p>
             <motion.div {...fadeUp(0.12)} className="flex flex-col sm:flex-row gap-3">
@@ -521,12 +521,12 @@ export default function FeaturesPage() {
         </section>
 
         {/* ── 1.5 Platform diagram ── */}
-        <section className="py-10 md:py-20 px-6 bg-white border-y border-slate-200/70">
+        <section className="py-10 md:py-20 px-6 bg-card border-y border-border/70">
           <div className="mx-auto max-w-7xl">
             <motion.div {...fadeUp()} className="mx-auto mb-12 max-w-3xl text-center">
               <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-emerald-600 mb-3">The platform</p>
               <h2 className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-midnight">One comprehensive platform.</h2>
-              <p className="mt-4 text-lg text-slate-600">
+              <p className="mt-4 text-lg text-muted-foreground">
                 An AI assistant and a CRM that runs itself, so you don&apos;t have to.
               </p>
             </motion.div>
@@ -537,7 +537,7 @@ export default function FeaturesPage() {
         </section>
 
         {/* ── 2. Core jobs ── */}
-        <section className="py-10 md:py-20 px-6 bg-[#F8FAFC] border-y border-slate-200/70">
+        <section className="py-10 md:py-20 px-6 bg-[#F8FAFC] border-y border-border/70">
           <div className="mx-auto max-w-5xl">
             <motion.p {...fadeUp()} className="text-center text-[11px] font-semibold uppercase tracking-[0.28em] text-primary mb-10">
               What Tracey does for you
@@ -547,7 +547,7 @@ export default function FeaturesPage() {
                 const Icon = job.icon
                 return (
                   <motion.div key={job.num} {...fadeUp(i * 0.07)}
-                    className="rounded border border-slate-200 bg-slate-50/60 p-6 flex flex-col gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+                    className="rounded border border-border bg-muted/30 p-6 flex flex-col gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
                     <div className="flex items-center gap-3">
                       <span className="text-[11px] font-bold text-primary/60 tracking-wider">{job.num}</span>
                       <div className="w-10 h-10 rounded bg-emerald-50 flex items-center justify-center">
@@ -556,7 +556,7 @@ export default function FeaturesPage() {
                     </div>
                     <div>
                       <h3 className="text-base font-bold text-midnight">{job.title}</h3>
-                      <p className="mt-2 text-sm leading-6 text-slate-600">{job.desc}</p>
+                      <p className="mt-2 text-sm leading-6 text-muted-foreground">{job.desc}</p>
                     </div>
                   </motion.div>
                 )
@@ -583,7 +583,7 @@ export default function FeaturesPage() {
           },
         ] as const).map((group, groupIdx) => (
           <div key={group.key}>
-            <section className={`px-6 pt-20 pb-6 ${groupIdx === 0 ? "bg-white" : "bg-[#F8FAFC]"} border-b border-slate-200/60`}>
+            <section className={`px-6 pt-20 pb-6 ${groupIdx === 0 ? "bg-card" : "bg-[#F8FAFC]"} border-b border-border/60`}>
               <div className="mx-auto max-w-6xl text-center">
                 <motion.p {...fadeUp()} className="text-[11px] font-bold uppercase tracking-[0.28em] text-emerald-600">
                   {group.kicker}
@@ -591,7 +591,7 @@ export default function FeaturesPage() {
                 <motion.h2 {...fadeUp(0.04)} className="mt-3 text-3xl md:text-5xl font-extrabold tracking-[-0.03em] text-midnight">
                   {group.heading}
                 </motion.h2>
-                <motion.p {...fadeUp(0.08)} className="mx-auto mt-3 max-w-2xl text-base leading-7 text-slate-600">
+                <motion.p {...fadeUp(0.08)} className="mx-auto mt-3 max-w-2xl text-base leading-7 text-muted-foreground">
                   {group.blurb}
                 </motion.p>
               </div>
@@ -601,18 +601,18 @@ export default function FeaturesPage() {
               const Mockup = FEATURE_MOCKUPS[i]
               const isEven = localIdx % 2 === 0
               const bg = groupIdx === 0
-                ? (isEven ? "bg-white" : "bg-[#F8FAFC]")
-                : (isEven ? "bg-[#F8FAFC]" : "bg-white")
+                ? (isEven ? "bg-card" : "bg-[#F8FAFC]")
+                : (isEven ? "bg-[#F8FAFC]" : "bg-card")
               return (
-                <section key={feat.eyebrow} className={`py-16 px-6 ${bg} border-b border-slate-200/60`}>
+                <section key={feat.eyebrow} className={`py-16 px-6 ${bg} border-b border-border/60`}>
                   <div className="mx-auto max-w-6xl grid md:grid-cols-2 gap-10 lg:gap-16 items-center">
                     <motion.div {...fadeUp()} className={!isEven ? "md:order-2" : ""}>
                       <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">{feat.eyebrow}</span>
                       <h3 className="mt-3 text-3xl md:text-4xl font-extrabold tracking-[-0.03em] text-midnight leading-tight">{feat.title}</h3>
-                      <p className="mt-4 text-base leading-7 text-slate-600">{feat.body}</p>
+                      <p className="mt-4 text-base leading-7 text-muted-foreground">{feat.body}</p>
                       <ul className="mt-6 space-y-3">
                         {feat.bullets.map(b => (
-                          <li key={b} className="flex items-start gap-3 text-sm leading-6 text-slate-700">
+                          <li key={b} className="flex items-start gap-3 text-sm leading-6 text-foreground">
                             <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                             <span>{b}</span>
                           </li>
@@ -630,7 +630,7 @@ export default function FeaturesPage() {
         ))}
 
         {/* ── 4. How it works ── */}
-        <section className="py-20 px-6 bg-white border-b border-slate-200/60">
+        <section className="py-20 px-6 bg-card border-b border-border/60">
           <div className="mx-auto max-w-5xl">
             <motion.div {...fadeUp()} className="text-center mb-14">
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">How it works</p>
@@ -643,13 +643,13 @@ export default function FeaturesPage() {
                 const Icon = step.icon
                 return (
                   <motion.div key={step.num} {...fadeUp(i * 0.1)}
-                    className="relative flex flex-col items-center text-center p-7 rounded bg-slate-50/60 border border-slate-200">
-                    <div className="w-14 h-14 rounded bg-white border border-emerald-200 shadow-sm flex items-center justify-center mb-5 relative z-10">
+                    className="relative flex flex-col items-center text-center p-7 rounded bg-muted/30 border border-border">
+                    <div className="w-14 h-14 rounded bg-card border border-emerald-200 shadow-sm flex items-center justify-center mb-5 relative z-10">
                       <Icon className="w-6 h-6 text-primary" />
                     </div>
                     <span className="text-[11px] font-bold text-primary/60 tracking-widest mb-2">{step.num}</span>
                     <h3 className="text-base font-bold text-midnight">{step.title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">{step.desc}</p>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{step.desc}</p>
                   </motion.div>
                 )
               })}
@@ -658,15 +658,15 @@ export default function FeaturesPage() {
         </section>
 
         {/* ── 5. Comparison table ── */}
-        <section className="py-20 px-6 bg-[#F8FAFC] border-b border-slate-200/60">
+        <section className="py-20 px-6 bg-[#F8FAFC] border-b border-border/60">
           <div className="mx-auto max-w-4xl">
             <motion.div {...fadeUp()} className="text-center mb-12">
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">Why switch</p>
               <h2 className="mt-3 text-4xl font-extrabold tracking-[-0.03em] text-midnight">Earlymark vs. the traditional setup</h2>
-              <p className="mt-3 text-base text-slate-600">Phone + paper + spreadsheet + late-night follow-ups, vs. one AI that handles it all.</p>
+              <p className="mt-3 text-base text-muted-foreground">Phone + paper + spreadsheet + late-night follow-ups, vs. one AI that handles it all.</p>
             </motion.div>
 
-            <motion.div {...fadeUp(0.06)} className="rounded overflow-hidden border border-slate-200 shadow-sm">
+            <motion.div {...fadeUp(0.06)} className="rounded overflow-hidden border border-border shadow-sm">
               {/* Header row */}
               <div className="grid grid-cols-3 bg-midnight text-white">
                 <div className="px-5 py-4 text-sm font-semibold text-white/60">Task</div>
@@ -675,15 +675,15 @@ export default function FeaturesPage() {
               </div>
               {/* Data rows */}
               {COMPARISON_ROWS.map((row, i) => (
-                <div key={row.task} className={`grid grid-cols-3 ${i % 2 === 0 ? "bg-white" : "bg-slate-50/60"} border-t border-slate-200`}>
+                <div key={row.task} className={`grid grid-cols-3 ${i % 2 === 0 ? "bg-card" : "bg-muted/30"} border-t border-border`}>
                   <div className="px-5 py-4 text-sm font-semibold text-midnight">{row.task}</div>
-                  <div className="px-5 py-4 border-l border-slate-200 flex items-start gap-2">
+                  <div className="px-5 py-4 border-l border-border flex items-start gap-2">
                     <Check className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
-                    <span className="text-sm text-slate-700">{row.earlymark}</span>
+                    <span className="text-sm text-foreground">{row.earlymark}</span>
                   </div>
-                  <div className="px-5 py-4 border-l border-slate-200 flex items-start gap-2">
+                  <div className="px-5 py-4 border-l border-border flex items-start gap-2">
                     <X className="w-4 h-4 text-rose-400 mt-0.5 shrink-0" />
-                    <span className="text-sm text-slate-500">{row.traditional}</span>
+                    <span className="text-sm text-muted-foreground">{row.traditional}</span>
                   </div>
                 </div>
               ))}
@@ -692,7 +692,7 @@ export default function FeaturesPage() {
         </section>
 
         {/* ── 6. Testimonials ── */}
-        <section className="py-20 px-6 bg-white border-b border-slate-200/60">
+        <section className="py-20 px-6 bg-card border-b border-border/60">
           <div className="mx-auto max-w-4xl">
             <motion.div {...fadeUp()} className="text-center mb-12">
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">What customers say</p>
@@ -701,7 +701,7 @@ export default function FeaturesPage() {
             <div className="grid md:grid-cols-2 gap-6">
               {TESTIMONIALS.map((t, i) => (
                 <motion.div key={i} {...fadeUp(i * 0.08)}
-                  className="rounded border border-slate-200 bg-slate-50/60 p-8 flex flex-col gap-6">
+                  className="rounded border border-border bg-muted/30 p-8 flex flex-col gap-6">
                   <div className="flex gap-1">
                     {[1,2,3,4,5].map(s => (
                       <svg key={s} className="w-4 h-4 text-amber-400 fill-current" viewBox="0 0 20 20">
@@ -709,10 +709,10 @@ export default function FeaturesPage() {
                       </svg>
                     ))}
                   </div>
-                  <p className="text-[15px] leading-7 text-slate-700 italic flex-1">&ldquo;{t.quote}&rdquo;</p>
+                  <p className="text-[15px] leading-7 text-foreground italic flex-1">&ldquo;{t.quote}&rdquo;</p>
                   <div>
                     <p className="text-sm font-bold text-midnight">{t.author}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{t.role}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{t.role}</p>
                   </div>
                 </motion.div>
               ))}
@@ -739,7 +739,7 @@ export default function FeaturesPage() {
                 </Button>
               </Link>
               <Link href="/contact#contact-form">
-                <Button size="lg" variant="ghost" className="text-white border-white/30 hover:bg-white/10">
+                <Button size="lg" variant="ghost" className="text-white border-white/30 hover:bg-card/10">
                   Get a demo
                 </Button>
               </Link>

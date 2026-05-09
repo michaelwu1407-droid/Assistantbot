@@ -19,7 +19,7 @@ const HeroDashboardReel = dynamic(
     () => import("@/components/home/hero-dashboard-reel").then((mod) => mod.HeroDashboardReel),
     {
         loading: () => (
-            <div className="relative mx-auto w-full max-w-[1120px] overflow-hidden rounded border border-white/55 bg-white/55 shadow-[0_28px_90px_rgba(15,23,42,0.16)] backdrop-blur-xl">
+            <div className="relative mx-auto w-full max-w-[1120px] overflow-hidden rounded border border-white/55 bg-card/55 shadow-[0_28px_90px_rgba(15,23,42,0.16)] backdrop-blur-xl">
                 <div className="aspect-[16/10] bg-[linear-gradient(180deg,#e2e8f0_0%,#cbd5e1_100%)] sm:aspect-[16/9]" />
             </div>
         ),
@@ -30,7 +30,7 @@ const PulsingLogo = dynamic(
     () => import("@/components/home/PulsingLogo").then((mod) => mod.PulsingLogo),
     {
         loading: () => (
-            <div className="w-[220px] sm:w-[280px] lg:w-[320px] aspect-[3/4] rounded-[2.5rem] bg-slate-200/50 animate-pulse" />
+            <div className="w-[220px] sm:w-[280px] lg:w-[320px] aspect-[3/4] rounded-[2.5rem] bg-muted/50 animate-pulse" />
         ),
     },
 );
@@ -39,7 +39,7 @@ const AutonomyModeTabs = dynamic(
     () => import("@/components/home/autonomy-mode-tabs").then((mod) => mod.AutonomyModeTabs),
     {
         loading: () => (
-            <div className="mx-auto w-full max-w-4xl h-56 rounded-2xl bg-slate-100 animate-pulse" />
+            <div className="mx-auto w-full max-w-4xl h-56 rounded-2xl bg-muted animate-pulse" />
         ),
     },
 );
@@ -48,7 +48,7 @@ const PlatformDiagram = dynamic(
     () => import("@/components/home/platform-diagram").then((mod) => mod.PlatformDiagram),
     {
         loading: () => (
-            <div className="mx-auto h-72 w-full max-w-5xl animate-pulse rounded-2xl bg-slate-100" />
+            <div className="mx-auto h-72 w-full max-w-5xl animate-pulse rounded-2xl bg-muted" />
         ),
     },
 );
@@ -121,9 +121,9 @@ function HireMockup1() {
         { from: "tracey", text: "$8,450 across 4 completed jobs. Up 12% vs last week 📈" },
     ];
     return (
-        <div className="h-full flex flex-col bg-white">
+        <div className="h-full flex flex-col bg-card">
             <div className="flex items-center gap-2 px-4 py-3 border-b border-neutral-200">
-                <div className="w-6 h-6 rounded-full bg-white border border-neutral-200 flex items-center justify-center shadow-sm">
+                <div className="w-6 h-6 rounded-full bg-card border border-neutral-200 flex items-center justify-center shadow-sm">
                     <Image src="/latest-logo.png" alt="" width={14} height={14} className="w-3.5 h-3.5 object-contain" unoptimized />
                 </div>
                 <span className="text-xs font-semibold text-neutral-900">Tracey Chat</span>
@@ -133,14 +133,14 @@ function HireMockup1() {
                 {messages.map((m, i) => (
                     <div key={i} className={`flex gap-2 items-end ${m.from === "user" ? "flex-row-reverse" : ""}`}>
                         {m.from === "tracey" && (
-                            <div className="w-5 h-5 rounded-full bg-white border border-neutral-200 flex items-center justify-center shrink-0 shadow-sm">
+                            <div className="w-5 h-5 rounded-full bg-card border border-neutral-200 flex items-center justify-center shrink-0 shadow-sm">
                                 <Image src="/latest-logo.png" alt="" width={12} height={12} className="w-3 h-3 object-contain" unoptimized />
                             </div>
                         )}
                         <div className={`rounded px-3 py-2 text-xs leading-relaxed max-w-[80%] ${
                             m.from === "user"
                                 ? "bg-primary text-white rounded-tr-sm"
-                                : "bg-white border border-neutral-200 text-neutral-800 rounded-bl-sm shadow-sm"
+                                : "bg-card border border-neutral-200 text-neutral-800 rounded-bl-sm shadow-sm"
                         }`}>
                             {m.text}
                         </div>
@@ -154,7 +154,7 @@ function HireMockup1() {
 // ─── Interview Form ───────────────────────────────────────────────────────────
 
 const INPUT_CLASS =
-    "w-full px-4 py-2.5 rounded border border-border text-sm text-midnight placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 bg-white transition";
+    "w-full px-4 py-2.5 rounded border border-border text-sm text-midnight placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 bg-card transition";
 
 const DEMO_CALL_TIMEOUT_MS = 30_000;
 
@@ -263,7 +263,7 @@ const TESTIMONIALS = [
 function TestimonialsCarousel() {
     const slides = [...TESTIMONIALS, ...TESTIMONIALS];
     const Card = ({ t }: { t: typeof TESTIMONIALS[0] }) => (
-        <div className="bg-white rounded p-8 shadow-sm border border-border flex flex-col justify-between">
+        <div className="bg-card rounded p-8 shadow-sm border border-border flex flex-col justify-between">
             <div>
                 <div className="flex gap-1 mb-4">
                     {[1,2,3,4,5].map(s => (
@@ -276,7 +276,7 @@ function TestimonialsCarousel() {
             </div>
             <div>
                 <p className="font-bold text-midnight text-sm">{t.author}</p>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">{t.role}</p>
+                <p className="text-xs text-muted-foreground font-medium mt-0.5">{t.role}</p>
             </div>
         </div>
     );
@@ -316,7 +316,7 @@ function FaqSection() {
     const toggle = (idx: number) =>
         setOpenIndices((prev) => prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx]);
     return (
-        <section className="py-10 md:py-20 px-4 bg-white">
+        <section className="py-10 md:py-20 px-4 bg-card">
             <div className="max-w-3xl mx-auto">
                 <h2 className="text-3xl font-bold text-center text-midnight mb-10">Frequently Asked Questions</h2>
                 <div className="space-y-3">
@@ -325,12 +325,12 @@ function FaqSection() {
                         return (
                             <div key={idx} className="border border-border rounded overflow-hidden">
                                 <button onClick={() => toggle(idx)}
-                                    className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-50 transition-colors">
+                                    className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-muted/30 transition-colors">
                                     <span className="font-semibold text-midnight text-sm pr-4">{item.q}</span>
-                                    <ChevronDown className={`w-5 h-5 text-slate-400 shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+                                    <ChevronDown className={`w-5 h-5 text-muted-foreground shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
                                 </button>
                                 <div className={`transition-all duration-200 overflow-hidden ${isOpen ? "max-h-60" : "max-h-0"}`}>
-                                    <p className="px-5 pb-4 text-sm text-slate-600 leading-relaxed">{item.a}</p>
+                                    <p className="px-5 pb-4 text-sm text-muted-foreground leading-relaxed">{item.a}</p>
                                 </div>
                             </div>
                         );
@@ -345,7 +345,7 @@ function FaqSection() {
 
 export default function Home() {
     return (
-        <div className="min-h-screen bg-white">
+        <div className="min-h-screen bg-card">
             <Navbar />
 
             {/* Hero */}
@@ -372,7 +372,7 @@ export default function Home() {
             </section>
 
             {/* Testimonials */}
-            <section className="bg-slate-50 px-6 py-12 md:py-24 overflow-hidden">
+            <section className="bg-muted/30 px-6 py-12 md:py-24 overflow-hidden">
                 <div className="container mx-auto max-w-7xl">
                     <motion.div {...fadeUp()} className="text-center mb-8 md:mb-12">
                         <h2 className="text-2xl sm:text-3xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em]">Loved by service businesses with non-stop calls</h2>
@@ -390,7 +390,7 @@ export default function Home() {
                                 Interview your assistant now. She will contact customers and run your CRM so you don&apos;t have to.
                             </motion.h2>
                         </div>
-                        <motion.div {...fadeUp(0.1)} className="bg-white/95 backdrop-blur-md rounded border border-white/40 p-7 shadow-xl">
+                        <motion.div {...fadeUp(0.1)} className="bg-card/95 backdrop-blur-md rounded border border-white/40 p-7 shadow-xl">
                             <h3 className="font-bold text-midnight text-lg mb-1">Interview Tracey for free</h3>
                             <p className="text-slate-body text-sm mb-6 leading-relaxed">Tracey will call you and answer questions, explain her capabilities, or roleplay as your very own AI receptionist.</p>
                             <InterviewForm />
@@ -400,7 +400,7 @@ export default function Home() {
             </section>
 
             {/* Platform diagram — voice agent + CRM */}
-            <section id="platform" className="bg-white px-6 py-12 md:py-24">
+            <section id="platform" className="bg-card px-6 py-12 md:py-24">
                 <div className="container mx-auto max-w-7xl">
                     <motion.div {...fadeUp()} className="mx-auto mb-12 max-w-3xl text-center">
                         <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600 mb-3">The platform</p>
@@ -431,7 +431,7 @@ export default function Home() {
                                 <div key={label} className="flex flex-col gap-5 sm:px-8 first:pl-0 last:pr-0 py-8 sm:py-0 first:pt-0 last:pb-0">
                                     <div className="flex items-center gap-3">
                                         <span className="text-xs font-bold tabular-nums text-white/30 tracking-widest">0{i + 1}</span>
-                                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10">
+                                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-card/10">
                                             <Icon className="h-4 w-4 text-white" />
                                         </div>
                                         <h4 className="text-base font-bold text-white">{label}</h4>
@@ -456,7 +456,7 @@ export default function Home() {
                 </div>
             </section>
             {/* Section 2 — A CRM that fills itself in */}
-            <section id="product" className="py-12 md:py-24 px-6 bg-white">
+            <section id="product" className="py-12 md:py-24 px-6 bg-card">
                 <div className="container mx-auto max-w-7xl flex flex-col gap-16">
                     <motion.div {...fadeUp()} className="text-center max-w-2xl mx-auto">
                         <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600 mb-3">The CRM</p>
@@ -484,7 +484,7 @@ export default function Home() {
                                 ))}
                             </ul>
                         </div>
-                        <div className="relative min-h-[380px] overflow-hidden rounded border border-slate-200 shadow-[0_8px_40px_rgba(15,23,42,0.10)]">
+                        <div className="relative min-h-[380px] overflow-hidden rounded border border-border shadow-[0_8px_40px_rgba(15,23,42,0.10)]">
                             <HireMockup1 />
                         </div>
                     </motion.div>
@@ -496,13 +496,13 @@ export default function Home() {
                         </div>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             {FEATURE_CARDS.map(({ icon: Icon, title, desc }) => (
-                                <div key={title} className="group flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-[0_12px_36px_rgba(15,23,42,0.08)]">
+                                <div key={title} className="group flex items-start gap-3 rounded-2xl border border-border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-[0_12px_36px_rgba(15,23,42,0.08)]">
                                     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-100 group-hover:bg-emerald-100">
                                         <Icon className="h-5 w-5 text-emerald-600" />
                                     </div>
                                     <div className="flex flex-col gap-1">
                                         <span className="text-sm font-semibold text-midnight">{title}</span>
-                                        <span className="text-xs leading-relaxed text-slate-500">{desc}</span>
+                                        <span className="text-xs leading-relaxed text-muted-foreground">{desc}</span>
                                     </div>
                                 </div>
                             ))}
@@ -520,7 +520,7 @@ export default function Home() {
                     <motion.p {...fadeUp(0.04)} className="text-lg text-white/65 leading-7 max-w-xl">Focus on the job, not the admin.</motion.p>
                     <motion.div {...fadeUp(0.12)} className="flex flex-col sm:flex-row gap-3">
                         <Link href="/auth"><Button size="lg" variant="mint">Get started <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
-                        <Link href="/contact#contact-form"><Button size="lg" variant="ghost" className="text-white border-white/30 hover:bg-white/10">Get a demo</Button></Link>
+                        <Link href="/contact#contact-form"><Button size="lg" variant="ghost" className="text-white border-white/30 hover:bg-card/10">Get a demo</Button></Link>
                     </motion.div>
                 </div>
             </section>

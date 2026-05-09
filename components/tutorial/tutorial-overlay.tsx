@@ -132,14 +132,14 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
 
             {/* Chat example as bubble mockup */}
             {step.chatExample && (
-                <div className="rounded-xl bg-white/60 dark:bg-black/20 border border-sky-200 dark:border-sky-800 p-3 mb-3 space-y-2">
+                <div className="rounded-xl bg-card/60 dark:bg-black/20 border border-sky-200 dark:border-sky-800 p-3 mb-3 space-y-2">
                     <div className="flex justify-end">
                         <span className="inline-block bg-primary/15 text-foreground text-xs px-3 py-1.5 rounded-2xl rounded-br-sm max-w-[85%]">
                             {step.chatExample.input}
                         </span>
                     </div>
                     <div className="flex justify-start">
-                        <span className="inline-block bg-white dark:bg-slate-800 text-foreground/80 text-xs px-3 py-1.5 rounded-2xl rounded-bl-sm max-w-[85%] border border-slate-200 dark:border-slate-700">
+                        <span className="inline-block bg-card dark:bg-slate-800 text-foreground/80 text-xs px-3 py-1.5 rounded-2xl rounded-bl-sm max-w-[85%] border border-border dark:border-slate-700">
                             {step.chatExample.output}
                         </span>
                     </div>

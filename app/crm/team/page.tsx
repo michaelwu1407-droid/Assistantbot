@@ -182,7 +182,7 @@ export default function TeamPage() {
             case "MANAGER":
                 return "bg-blue-50 text-blue-700 border-blue-200 rounded-full"
             default:
-                return "bg-slate-100 text-slate-600 border-slate-200 rounded-full"
+                return "bg-muted text-muted-foreground border-border rounded-full"
         }
     }
 
@@ -209,7 +209,7 @@ export default function TeamPage() {
         <div className="mx-auto w-full max-w-6xl space-y-8 px-6 py-8">
             <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
                 <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-muted-foreground">
-                        <span className="rounded-full border border-slate-200 bg-white px-3 py-1">{displayMembers.length} member{displayMembers.length === 1 ? "" : "s"}</span>
+                        <span className="rounded-full border border-border bg-card px-3 py-1">{displayMembers.length} member{displayMembers.length === 1 ? "" : "s"}</span>
                         <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-700">{pendingInviteCount} pending invite{pendingInviteCount === 1 ? "" : "s"}</span>
                 </div>
 
@@ -237,11 +237,11 @@ export default function TeamPage() {
                                 Send an invitation email or generate a shareable link. They&apos;ll sign up and join your workspace with the role you choose below.
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="space-y-4 rounded-[18px] border border-slate-200/60 bg-white/80 py-2 shadow-lg backdrop-blur">
+                        <div className="space-y-4 rounded-[18px] border border-border/60 bg-card/80 py-2 shadow-lg backdrop-blur">
                             <div className="space-y-2">
                                 <Label className="text-sm font-medium text-neutral-900">They&apos;ll join as</Label>
                                 <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as "TEAM_MEMBER" | "MANAGER")}>
-                                    <SelectTrigger className="border-slate-300">
+                                    <SelectTrigger className="border-border">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -307,12 +307,12 @@ export default function TeamPage() {
                                             <CheckCircle className="w-6 h-6 text-green-600" />
                                         </div>
                                         <div>
-                                            <h3 className="text-lg font-semibold text-slate-900">
+                                            <h3 className="text-lg font-semibold text-foreground">
                                                 {inviteSuccessView?.channel === "email"
                                                     ? `Invite sent to ${inviteSuccessView.email}!`
                                                     : "Invite link ready"}
                                             </h3>
-                                            <p className="text-sm text-slate-600 mt-1">
+                                            <p className="text-sm text-muted-foreground mt-1">
                                                 {inviteSuccessView?.channel === "email"
                                                     ? "They can join your workspace using the link below."
                                                     : "Share this link with your teammate so they can join your workspace."}
@@ -320,8 +320,8 @@ export default function TeamPage() {
                                         </div>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label className="text-sm font-medium text-slate-700">Share this link</Label>
-                                        <p className="text-xs text-slate-600">
+                                        <Label className="text-sm font-medium text-foreground">Share this link</Label>
+                                        <p className="text-xs text-muted-foreground">
                                             Anyone who opens this link will join as <strong>{inviteRole === "MANAGER" ? "Manager" : "Team Member"}</strong>. Copy and send it (e.g. by message or email).
                                         </p>
                                         <div className="flex gap-2">
@@ -352,7 +352,7 @@ export default function TeamPage() {
                     </DialogContent>
                 </Dialog>
                 ) : (
-                    <div className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-medium text-slate-500">
+                    <div className="rounded-full border border-border bg-muted/30 px-4 py-2 text-xs font-medium text-muted-foreground">
                         Team members can view the roster but can&apos;t manage invites or roles.
                     </div>
                 )}
@@ -362,7 +362,7 @@ export default function TeamPage() {
                 <Card className="rounded-[18px]">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-base font-semibold text-neutral-900">
-                            <Users className="w-5 h-5 text-slate-500" />
+                            <Users className="w-5 h-5 text-muted-foreground" />
                             Members ({displayMembers.length})
                         </CardTitle>
                     </CardHeader>
@@ -371,8 +371,8 @@ export default function TeamPage() {
                             {displayMembers.map((member) => (
                                 <div key={member.id} className="grid gap-4 rounded-[18px] border border-border/50 bg-[#F8FAFC] p-4 md:grid-cols-[minmax(0,1.6fr)_minmax(160px,0.8fr)_auto] md:items-center">
                                     <div className="flex min-w-0 items-center gap-4">
-                                        <Avatar className="h-12 w-12 border border-slate-200 bg-slate-50">
-                                            <AvatarFallback className="text-base text-slate-600">{(member.name || member.email)[0]?.toUpperCase()}</AvatarFallback>
+                                        <Avatar className="h-12 w-12 border border-border bg-muted/30">
+                                            <AvatarFallback className="text-base text-muted-foreground">{(member.name || member.email)[0]?.toUpperCase()}</AvatarFallback>
                                         </Avatar>
                                         <div className="min-w-0">
                                             <p className="truncate text-base font-semibold text-neutral-900">{member.name || "Unnamed"}</p>
@@ -392,7 +392,7 @@ export default function TeamPage() {
                                                 value={member.role}
                                                 onValueChange={(val) => handleRoleUpdate(member.id, val as "MANAGER" | "TEAM_MEMBER")}
                                             >
-                                                <SelectTrigger className="h-9 w-full rounded-[18px] bg-white text-sm">
+                                                <SelectTrigger className="h-9 w-full rounded-[18px] bg-card text-sm">
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
@@ -446,7 +446,7 @@ export default function TeamPage() {
                     <Card className="rounded-[18px]">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-base font-semibold text-neutral-900">
-                                <Link2 className="w-5 h-5 text-slate-500" />
+                                <Link2 className="w-5 h-5 text-muted-foreground" />
                                 Pending Invites ({pendingInviteCount})
                             </CardTitle>
                         </CardHeader>
@@ -486,7 +486,7 @@ export default function TeamPage() {
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="h-9 w-9 rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                                                    className="h-9 w-9 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
                                                     onClick={() => {
                                                         navigator.clipboard.writeText(`${window.location.origin}/invite/join?token=${invite.token}`)
                                                         toast.success("Invite link copied")

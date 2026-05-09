@@ -47,7 +47,7 @@ export function VoiceNoteInput({ dealId }: VoiceNoteInputProps) {
     }
 
     return (
-        <div className="bg-white rounded-lg border border-slate-200 p-3 space-y-2 mb-4">
+        <div className="bg-card rounded-lg border border-border p-3 space-y-2 mb-4">
             <div className="flex items-center gap-2 mb-2">
                 <Button
                     variant={isListening ? "destructive" : "outline"}
@@ -58,7 +58,7 @@ export function VoiceNoteInput({ dealId }: VoiceNoteInputProps) {
                     {isListening ? <MicOff className="h-4 w-4 mr-2" /> : <Mic className="h-4 w-4 mr-2" />}
                     {isListening ? "Stop Recording" : "Dictate Note"}
                 </Button>
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-muted-foreground">
                     {isListening ? "Listening..." : "Tap mic to start"}
                 </span>
             </div>

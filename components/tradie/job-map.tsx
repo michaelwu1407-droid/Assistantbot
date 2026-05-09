@@ -7,7 +7,7 @@ import { RefreshCw } from "lucide-react"
 const LeafletMap = dynamic(() => import("@/components/crm/leaflet-map"), {
     ssr: false,
     loading: () => (
-        <div className="h-full w-full flex items-center justify-center bg-slate-900 text-slate-500">
+        <div className="h-full w-full flex items-center justify-center bg-slate-900 text-muted-foreground">
             <div className="flex flex-col items-center gap-2">
                 <RefreshCw className="h-6 w-6 animate-spin" />
                 <span className="text-sm">Loading Map...</span>

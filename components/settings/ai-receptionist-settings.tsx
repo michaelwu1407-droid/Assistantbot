@@ -126,7 +126,7 @@ export function AIReceptionistSettings() {
               Backup AI Receptionist
             </a>
           </Button>
-          <Button asChild variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800">
+          <Button asChild variant="outline" className="border-border text-foreground hover:bg-muted dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800">
             <a href={`tel:##002${HASH}`} title="Disable call forwarding">
               Turn Off AI
             </a>

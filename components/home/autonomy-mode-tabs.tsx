@@ -59,11 +59,11 @@ export function AutonomyModeTabs() {
                             onClick={() => setActive(mode.id)}
                             className={`relative flex items-center gap-2 rounded-t-xl border border-b-0 px-4 py-3 text-sm font-semibold transition-all ${
                                 isActive
-                                    ? "z-10 -mb-px border-emerald-200 bg-white text-midnight shadow-[0_-4px_12px_rgba(15,23,42,0.05)]"
-                                    : "border-transparent bg-emerald-50/60 text-slate-500 hover:bg-emerald-50 hover:text-midnight"
+                                    ? "z-10 -mb-px border-emerald-200 bg-card text-midnight shadow-[0_-4px_12px_rgba(15,23,42,0.05)]"
+                                    : "border-transparent bg-emerald-50/60 text-muted-foreground hover:bg-emerald-50 hover:text-midnight"
                             }`}
                         >
-                            <Icon className={`h-4 w-4 ${isActive ? "text-emerald-600" : "text-slate-400"}`} />
+                            <Icon className={`h-4 w-4 ${isActive ? "text-emerald-600" : "text-muted-foreground"}`} />
                             {mode.label}
                         </button>
                     );
@@ -71,7 +71,7 @@ export function AutonomyModeTabs() {
             </div>
 
             {/* Tab panel */}
-            <div role="tabpanel" className="rounded-b-2xl rounded-tr-2xl border border-emerald-200 bg-white p-7 md:p-8 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+            <div role="tabpanel" className="rounded-b-2xl rounded-tr-2xl border border-emerald-200 bg-card p-7 md:p-8 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={current.id}
@@ -86,7 +86,7 @@ export function AutonomyModeTabs() {
                             {current.permissions.map((perm) => (
                                 <li key={perm} className="flex items-start gap-2.5 rounded-xl bg-emerald-50/40 px-4 py-3 ring-1 ring-emerald-100">
                                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-                                    <span className="text-sm leading-relaxed text-slate-700">{perm}</span>
+                                    <span className="text-sm leading-relaxed text-foreground">{perm}</span>
                                 </li>
                             ))}
                         </ul>

@@ -38,7 +38,7 @@ export function AgentDashboardClient({
   void _userName
   void _userId
   return (
-    <div className="h-full flex flex-col space-y-4 p-6 bg-slate-50/50">
+    <div className="h-full flex flex-col space-y-4 p-6 bg-muted/20">
       {/* Speed to Lead Widget and Pulse Widget Row */}
       <div className="shrink-0 flex gap-4 overflow-x-auto pb-2">
         <SpeedToLead leads={leads} />
@@ -55,7 +55,7 @@ export function AgentDashboardClient({
 
         {/* Left: Pipeline (2/3 width) */}
         <div className="lg:col-span-2 flex flex-col min-h-0">
-          <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3 px-1">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-1">
             Active Listings
           </h3>
           <div className="flex-1 min-h-0 overflow-hidden">

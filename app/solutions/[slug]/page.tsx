@@ -57,7 +57,7 @@ export default async function SolutionDetailPage({
   const TradeIcon = TRADE_ICONS[solution.slug] ?? Sparkles;
 
   return (
-    <div className="min-h-screen bg-white text-slate-900">
+    <div className="min-h-screen bg-card text-foreground">
       <Navbar />
       <main className="flex flex-col">
 
@@ -85,7 +85,7 @@ export default async function SolutionDetailPage({
               {jobTypes.map((type) => (
                 <span
                   key={type}
-                  className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium text-white/80"
+                  className="rounded-full border border-white/20 bg-card/10 px-3 py-1 text-xs font-medium text-white/80"
                 >
                   {type}
                 </span>
@@ -100,7 +100,7 @@ export default async function SolutionDetailPage({
                 </Button>
               </Link>
               <Link href="/contact#contact-form">
-                <Button size="lg" variant="ghost" className="border-white/30 text-white hover:bg-white/10">
+                <Button size="lg" variant="ghost" className="border-white/30 text-white hover:bg-card/10">
                   Get a demo
                 </Button>
               </Link>
@@ -109,7 +109,7 @@ export default async function SolutionDetailPage({
         </section>
 
         {/* ── 3 outcomes ── */}
-        <section className="border-b border-slate-200 bg-[#F8FAFC] px-6 py-10">
+        <section className="border-b border-border bg-[#F8FAFC] px-6 py-10">
           <div className="mx-auto max-w-4xl grid grid-cols-1 sm:grid-cols-3 gap-6">
             {[
               { icon: Phone, label: "Every call answered", desc: "Tracey picks up 24/7 so no lead goes to voicemail." },
@@ -123,7 +123,7 @@ export default async function SolutionDetailPage({
                   </div>
                   <p className="text-sm font-semibold text-midnight">{label}</p>
                 </div>
-                <p className="text-sm text-slate-600 leading-6">{desc}</p>
+                <p className="text-sm text-muted-foreground leading-6">{desc}</p>
               </div>
             ))}
           </div>
@@ -145,7 +145,7 @@ export default async function SolutionDetailPage({
               {solution.workflows.map((workflow, index) => (
                 <article
                   key={workflow.title}
-                  className="group relative flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-7 transition-all hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-[0_12px_36px_rgba(15,23,42,0.08)]"
+                  className="group relative flex flex-col gap-4 rounded-2xl border border-border bg-card p-7 transition-all hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-[0_12px_36px_rgba(15,23,42,0.08)]"
                 >
                   <div className="flex items-center gap-3">
                     <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-sm font-bold text-emerald-700 ring-1 ring-emerald-100">
@@ -155,7 +155,7 @@ export default async function SolutionDetailPage({
                       {workflow.title}
                     </h3>
                   </div>
-                  <p className="text-sm leading-7 text-slate-600">
+                  <p className="text-sm leading-7 text-muted-foreground">
                     {workflow.body}
                   </p>
                 </article>
@@ -165,7 +165,7 @@ export default async function SolutionDetailPage({
         </section>
 
         {/* ── FAQ ── */}
-        <section className="border-t border-slate-200 bg-[#F8FAFC] px-6 py-20">
+        <section className="border-t border-border bg-[#F8FAFC] px-6 py-20">
           <div className="mx-auto max-w-3xl flex flex-col gap-8">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">
@@ -180,15 +180,15 @@ export default async function SolutionDetailPage({
               {solution.faqs.map((faq) => (
                 <details
                   key={faq.question}
-                  className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.04)] transition-all open:border-emerald-200 open:bg-emerald-50/40 open:shadow-[0_8px_24px_rgba(15,23,42,0.06)]"
+                  className="group overflow-hidden rounded-2xl border border-border bg-card shadow-[0_2px_8px_rgba(15,23,42,0.04)] transition-all open:border-emerald-200 open:bg-emerald-50/40 open:shadow-[0_8px_24px_rgba(15,23,42,0.06)]"
                 >
                   <summary className="flex cursor-pointer list-none items-start justify-between gap-4 px-6 py-5 [&::-webkit-details-marker]:hidden">
                     <span className="text-base font-semibold text-midnight">{faq.question}</span>
-                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition-all group-open:rotate-45 group-open:bg-emerald-600 group-open:text-white">
+                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-all group-open:rotate-45 group-open:bg-emerald-600 group-open:text-white">
                       <Plus className="h-4 w-4" />
                     </span>
                   </summary>
-                  <div className="border-t border-emerald-100/60 px-6 pb-6 pt-4 text-sm leading-7 text-slate-600">
+                  <div className="border-t border-emerald-100/60 px-6 pb-6 pt-4 text-sm leading-7 text-muted-foreground">
                     {faq.answer}
                   </div>
                 </details>
@@ -210,7 +210,7 @@ export default async function SolutionDetailPage({
             </div>
             <div className="flex flex-wrap gap-3 shrink-0">
               <Link href="/solutions">
-                <Button variant="ghost" className="border-white/30 text-white hover:bg-white/10">
+                <Button variant="ghost" className="border-white/30 text-white hover:bg-card/10">
                   Back to Trade services
                 </Button>
               </Link>

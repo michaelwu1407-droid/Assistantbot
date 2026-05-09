@@ -163,8 +163,8 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
     const shouldHighlightBusinessName = attemptedSubmit && mode === "create" && newContactType === "BUSINESS" && !newContactCompany.trim()
 
     return (
-        <Card className="w-full max-w-2xl overflow-visible bg-white shadow-xl border-slate-200">
-            <CardHeader className="border-b bg-slate-50/50 rounded-t-xl">
+        <Card className="w-full max-w-2xl overflow-visible bg-card shadow-xl border-border">
+            <CardHeader className="border-b bg-muted/20 rounded-t-xl">
                 <div className="flex items-center gap-2 mb-2">
                     <Button variant="ghost" size="icon" onClick={() => router.push('/crm/dashboard')} className="h-8 w-8 -ml-2">
                         <ChevronLeft className="h-4 w-4" />
@@ -178,7 +178,7 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                 <CardContent className="space-y-6 pt-6 mr-1">
                     <div className="grid gap-4">
                         <div className="space-y-2">
-                            <Label htmlFor="title" className="text-xs font-bold uppercase tracking-wider text-slate-500">Job Description *</Label>
+                            <Label htmlFor="title" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Job Description *</Label>
                             <Input
                                 id="title"
                                 placeholder="e.g. Toilet Repair, Kitchen Reno..."
@@ -191,7 +191,7 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="value" className="text-xs font-bold uppercase tracking-wider text-slate-500">Value ($)</Label>
+                                <Label htmlFor="value" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Value ($)</Label>
                                 <Input
                                     id="value"
                                     type="number"
@@ -202,7 +202,7 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="stage" className="text-xs font-bold uppercase tracking-wider text-slate-500">Stage</Label>
+                                <Label htmlFor="stage" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Stage</Label>
                                 <Select value={stage} onValueChange={setStage}>
                                     <SelectTrigger id="stage" className="h-11">
                                         <SelectValue />
@@ -220,9 +220,9 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="scheduledAt" className="text-xs font-bold uppercase tracking-wider text-slate-500">Schedule Time</Label>
+                                <Label htmlFor="scheduledAt" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Schedule Time</Label>
                                 <div className="relative">
-                                    <CalendarClock className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
+                                    <CalendarClock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
                                     <Input
                                         id="scheduledAt"
                                         type="datetime-local"
@@ -233,7 +233,7 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                                 </div>
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="assignedTo" className="text-xs font-bold uppercase tracking-wider text-slate-500">Assign To {stage === "scheduled" ? "*" : ""}</Label>
+                                <Label htmlFor="assignedTo" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Assign To {stage === "scheduled" ? "*" : ""}</Label>
                                 <Select value={assignedToId || "__unassigned__"} onValueChange={(v) => setAssignedToId(v === "__unassigned__" ? "" : v)}>
                                     <SelectTrigger id="assignedTo" className="h-11">
                                         <SelectValue placeholder="Optional" />
@@ -249,7 +249,7 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="address" className="text-xs font-bold uppercase tracking-wider text-slate-500">Location / Address</Label>
+                            <Label htmlFor="address" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Location / Address</Label>
                             <AddressAutocomplete
                                 id="address"
                                 value={address}
@@ -266,15 +266,15 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                                 className="h-11 shadow-none"
                                 placeholder="Search for address..."
                             />
-                            <p className="text-xs text-slate-500">
+                            <p className="text-xs text-muted-foreground">
                                 Typed addresses are saved as written. Select a suggestion only if you want Tracey to lock in the map pin.
                             </p>
                         </div>
                     </div>
 
-                    <div className="border-t border-slate-100 pt-6">
+                    <div className="border-t border-border/50 pt-6">
                         <div className="flex items-center justify-between mb-4">
-                            <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">Client *</Label>
+                            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Client *</Label>
                             <Tabs
                                 value={mode}
                                 onValueChange={(v) => {
@@ -302,49 +302,49 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                                         {contacts.map(c => (
                                             <SelectItem key={c.id} value={c.id}>{c.name} {c.company && `(${c.company})`}</SelectItem>
                                         ))}
-                                        {contacts.length === 0 && !isFetchingContacts && <div className="p-2 text-sm text-center text-slate-400">No customers found</div>}
+                                        {contacts.length === 0 && !isFetchingContacts && <div className="p-2 text-sm text-center text-muted-foreground">No customers found</div>}
                                     </SelectContent>
                                 </Select>
                             </div>
                         ) : (
-                            <div className="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-100 shadow-inner">
+                            <div className="space-y-3 bg-muted/30 p-4 rounded-xl border border-border/50 shadow-inner">
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="new-name" className="text-[10px] font-bold text-slate-400 ml-1">NAME *</Label>
+                                    <Label htmlFor="new-name" className="text-[10px] font-bold text-muted-foreground ml-1">NAME *</Label>
                                     <div className="relative">
-                                        <User className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-                                        <Input id="new-name" placeholder="Full Name" className={`h-11 pl-10 bg-white ${attemptedSubmit && !newContactName.trim() ? "border-red-500 focus-visible:ring-red-500" : ""}`} value={newContactName} onChange={e => setNewContactName(e.target.value)} required />
+                                        <User className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                                        <Input id="new-name" placeholder="Full Name" className={`h-11 pl-10 bg-card ${attemptedSubmit && !newContactName.trim() ? "border-red-500 focus-visible:ring-red-500" : ""}`} value={newContactName} onChange={e => setNewContactName(e.target.value)} required />
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="space-y-1.5">
-                                        <Label htmlFor="new-email" className="text-[10px] font-bold text-slate-400 ml-1">EMAIL</Label>
+                                        <Label htmlFor="new-email" className="text-[10px] font-bold text-muted-foreground ml-1">EMAIL</Label>
                                         <div className="relative">
-                                            <Mail className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-                                            <Input id="new-email" type="email" placeholder="email@address.com" className={`h-11 pl-10 bg-white ${shouldHighlightContactMethod ? "border-red-500 focus-visible:ring-red-500" : ""}`} value={newContactEmail} onChange={e => setNewContactEmail(e.target.value)} />
+                                            <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                                            <Input id="new-email" type="email" placeholder="email@address.com" className={`h-11 pl-10 bg-card ${shouldHighlightContactMethod ? "border-red-500 focus-visible:ring-red-500" : ""}`} value={newContactEmail} onChange={e => setNewContactEmail(e.target.value)} />
                                         </div>
                                     </div>
                                     <div className="space-y-1.5">
-                                        <Label htmlFor="new-phone" className="text-[10px] font-bold text-slate-400 ml-1">PHONE</Label>
+                                        <Label htmlFor="new-phone" className="text-[10px] font-bold text-muted-foreground ml-1">PHONE</Label>
                                         <div className="relative">
-                                            <Phone className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-                                            <Input id="new-phone" type="tel" placeholder="0400 000 000" className={`h-11 pl-10 bg-white ${shouldHighlightContactMethod ? "border-red-500 focus-visible:ring-red-500" : ""}`} value={newContactPhone} onChange={e => setNewContactPhone(e.target.value)} />
+                                            <Phone className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                                            <Input id="new-phone" type="tel" placeholder="0400 000 000" className={`h-11 pl-10 bg-card ${shouldHighlightContactMethod ? "border-red-500 focus-visible:ring-red-500" : ""}`} value={newContactPhone} onChange={e => setNewContactPhone(e.target.value)} />
                                         </div>
                                     </div>
                                 </div>
                                 {newContactType === "BUSINESS" && (
                                     <div className="space-y-1.5">
-                                        <Label htmlFor="new-company" className="text-[10px] font-bold text-slate-400 ml-1">BUSINESS NAME *</Label>
+                                        <Label htmlFor="new-company" className="text-[10px] font-bold text-muted-foreground ml-1">BUSINESS NAME *</Label>
                                         <Input
                                             id="new-company"
                                             placeholder="Business name"
-                                            className={`h-11 bg-white ${shouldHighlightBusinessName ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                                            className={`h-11 bg-card ${shouldHighlightBusinessName ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                                             value={newContactCompany}
                                             onChange={e => setNewContactCompany(e.target.value)}
                                         />
                                     </div>
                                 )}
                                 <div className="space-y-1.5">
-                                    <Label className="text-[10px] font-bold text-slate-400 ml-1">CLIENT TYPE *</Label>
+                                    <Label className="text-[10px] font-bold text-muted-foreground ml-1">CLIENT TYPE *</Label>
                                     <Tabs value={newContactType} onValueChange={(v) => setNewContactType(v as "PERSON" | "BUSINESS")} className="w-full">
                                         <TabsList className="grid w-full grid-cols-2 h-8">
                                             <TabsTrigger value="PERSON" className="text-[10px] font-bold">PERSON</TabsTrigger>
@@ -352,14 +352,14 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                                         </TabsList>
                                     </Tabs>
                                 </div>
-                                <p className="text-[11px] text-slate-500 text-right"><span className="text-red-500">*</span> Name required. Email or phone required.</p>
+                                <p className="text-[11px] text-muted-foreground text-right"><span className="text-red-500">*</span> Name required. Email or phone required.</p>
                                 {contactError && <div className="flex items-center gap-1.5 text-red-500 text-xs mt-1 font-medium"><AlertCircle className="h-3 w-3" />{contactError}</div>}
                             </div>
                         )}
                     </div>
                 </CardContent>
 
-                <CardFooter className="border-t bg-slate-50/50 rounded-b-xl flex justify-between py-4">
+                <CardFooter className="border-t bg-muted/20 rounded-b-xl flex justify-between py-4">
                     <Button type="button" variant="ghost" onClick={() => router.push('/crm/dashboard')} disabled={isLoading}>Cancel</Button>
                     <Button type="submit" size="lg" disabled={isCreateDisabled} className="shadow-lg px-8">
                         {isLoading ? "Saving..." : "Save Job & Close"}
