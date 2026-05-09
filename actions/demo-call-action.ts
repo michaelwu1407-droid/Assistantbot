@@ -117,7 +117,11 @@ export async function requestDemoCall(data: DemoCallData): Promise<DemoCallResul
             warnings: result.warnings,
         });
 
-        return { success: true, message: "Tracey is calling you now!", leadId };
+        const message = result.connectionVerified
+            ? "Tracey is calling you now!"
+            : "We've started your callback attempt. If your phone does not ring within 30 seconds, please try again.";
+
+        return { success: true, message, leadId };
     } catch (err) {
         console.error("[Demo Call] Failed:", err);
         await markDemoLeadFailed(leadId, err);

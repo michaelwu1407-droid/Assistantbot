@@ -1,16 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { createRoom, createSipParticipant, listSipOutboundTrunk, listSipInboundTrunk, createTwilioCall } = vi.hoisted(() => ({
+const { createRoom, createSipParticipant, listSipOutboundTrunk, listSipInboundTrunk, createTwilioCall, getParticipant, deleteRoom } = vi.hoisted(() => ({
   createRoom: vi.fn(),
   createSipParticipant: vi.fn(),
   listSipOutboundTrunk: vi.fn(),
   listSipInboundTrunk: vi.fn(),
   createTwilioCall: vi.fn(),
+  getParticipant: vi.fn(),
+  deleteRoom: vi.fn(),
 }));
 
 vi.mock("livekit-server-sdk", () => ({
   RoomServiceClient: class {
     createRoom = createRoom;
+    getParticipant = getParticipant;
+    deleteRoom = deleteRoom;
   },
   SipClient: class {
     createSipParticipant = createSipParticipant;
@@ -42,7 +46,15 @@ describe("demo-call outbound routing", () => {
     process.env.EARLYMARK_INBOUND_PHONE_NUMBER = "+61485010634";
     process.env.TWILIO_PHONE_NUMBER = "+61485010634";
     process.env.LIVEKIT_SIP_TRUNK_ID = "ST_stale";
+    process.env.DEMO_CALL_CONNECTION_TIMEOUT_MS = "5";
+    process.env.DEMO_CALL_CONNECTION_POLL_MS = "1";
     createTwilioCall.mockResolvedValue({ sid: "CA_demo" });
+    getParticipant.mockResolvedValue({
+      attributes: {
+        "sip.callStatus": "active",
+      },
+    });
+    deleteRoom.mockResolvedValue(undefined);
     listSipInboundTrunk.mockResolvedValue([
       {
         sipTrunkId: "ST_inbound",
@@ -102,6 +114,8 @@ describe("demo-call outbound routing", () => {
     expect(result.callerNumber).toBe("+61485010634");
     expect(result.transport).toBe("livekit_control");
     expect(result.callSid).toBeNull();
+    expect(result.connectionVerified).toBe(true);
+    expect(result.sipCallStatus).toBe("active");
   });
 
   it("rejects malformed phone numbers before contacting LiveKit", async () => {
@@ -212,9 +226,39 @@ describe("demo-call outbound routing", () => {
     expect(result.resolvedTrunkId).toBe("twilio-sip-bridge:+61485010634");
     expect(result.transport).toBe("twilio_sip_bridge");
     expect(result.callSid).toBe("CA_demo");
+    expect(result.connectionVerified).toBe(false);
+    expect(result.sipCallStatus).toBeNull();
     expect(result.warnings).toEqual(
       expect.arrayContaining([expect.stringMatching(/Twilio SIP bridge fallback/i)]),
     );
+  });
+
+  it("falls back when the outbound leg never reaches a connected SIP state", async () => {
+    listSipOutboundTrunk.mockResolvedValue([
+      {
+        sipTrunkId: "ST_real",
+        name: "Earlymark outbound",
+        numbers: ["+61485010634"],
+        address: "earlymark-outbound.pstn.sydney.twilio.com",
+      },
+    ]);
+    createRoom.mockResolvedValue({});
+    createSipParticipant.mockResolvedValue({ participantId: "PA_demo" });
+    getParticipant.mockResolvedValue({
+      attributes: {
+        "sip.callStatus": "dialing",
+      },
+    });
+
+    const result = await initiateDemoCall({
+      phone: "0434 955 958",
+      firstName: "Michael",
+      businessName: "Alexandria Automotive Services",
+    });
+
+    expect(deleteRoom).toHaveBeenCalledTimes(1);
+    expect(createTwilioCall).toHaveBeenCalledTimes(1);
+    expect(result.transport).toBe("twilio_sip_bridge");
   });
 
   it("validates E.164 phone numbers", () => {

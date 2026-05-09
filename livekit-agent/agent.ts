@@ -81,6 +81,12 @@ import {
   type PendingAssistantTranscript,
   type TranscriptTurn,
 } from "./transcript-utils";
+import {
+  isSipCallConnectedStatus,
+  isSipCallPendingStatus,
+  isSipCallTerminalFailureStatus,
+  readSipCallStatus,
+} from "../lib/sip-call-status";
 
 loadEnv({ path: '.env.local' });
 assertRequiredVoiceAgentEnv();
@@ -114,6 +120,7 @@ const NORMAL_HARD_CUT_MS = 10 * 60 * 1000;
 const DEMO_WRAP_UP_MS = 3 * 60 * 1000;
 const DEMO_HARD_CUT_MS = 5 * 60 * 1000;
 const GOODBYE_DISCONNECT_BUFFER_MS = 5000;
+const DEMO_OUTBOUND_GREETING_CONNECT_TIMEOUT_MS = 20_000;
 
 const WRAP_UP_SCRIPT =
   "This is taking a bit longer than expected, and I want to get it resolved for you as quickly as possible. Tell the caller that you are going to pass this straight to your manager so they can address it as soon as possible, then ask: is there anything else I should know before I pass it on? Keep it brief, natural, and in the caller's language.";
@@ -1504,6 +1511,94 @@ function getGoodbyeLine(callType: CallType): string {
     return "Thanks for your time. Head to earlymark.ai to find out more. Bye for now.";
   }
   return "No worries. Thanks for calling. Bye for now.";
+}
+
+function getParticipantSipStatus(participant: RemoteParticipant) {
+  return readSipCallStatus((participant.attributes || {}) as Record<string, string>);
+}
+
+async function waitForDemoOutboundLegReady(params: {
+  room: {
+    on: (event: string, listener: (...args: any[]) => void) => void;
+    off: (event: string, listener: (...args: any[]) => void) => void;
+  };
+  participant: RemoteParticipant;
+  callId: string;
+  logPrefix: string;
+  timeoutMs?: number;
+}) {
+  const initialStatus = getParticipantSipStatus(params.participant);
+  if (isSipCallConnectedStatus(initialStatus)) {
+    return true;
+  }
+  if (isSipCallTerminalFailureStatus(initialStatus)) {
+    return false;
+  }
+
+  const timeoutMs = params.timeoutMs ?? DEMO_OUTBOUND_GREETING_CONNECT_TIMEOUT_MS;
+
+  return await new Promise<boolean>((resolve) => {
+    let settled = false;
+    const timeout = setTimeout(() => finish(false, "timeout"), timeoutMs);
+
+    const cleanup = () => {
+      clearTimeout(timeout);
+      params.room.off("participantAttributesChanged", onParticipantAttributesChanged);
+      params.room.off("participantDisconnected", onParticipantDisconnected);
+      params.room.off("trackSubscribed", onTrackSubscribed);
+    };
+
+    const finish = (ready: boolean, reason: string) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      console.log(
+        `[voice-demo-connect] ${JSON.stringify({
+          callId: params.callId,
+          participant: params.participant.identity,
+          ready,
+          reason,
+          sipCallStatus: getParticipantSipStatus(params.participant),
+        })}`,
+      );
+      resolve(ready);
+    };
+
+    const onParticipantAttributesChanged = (_changed: Record<string, string>, participant: RemoteParticipant) => {
+      if (participant.identity !== params.participant.identity) return;
+
+      const status = getParticipantSipStatus(participant);
+      if (isSipCallConnectedStatus(status)) {
+        finish(true, status || "connected");
+        return;
+      }
+      if (isSipCallTerminalFailureStatus(status)) {
+        finish(false, status || "failed");
+      }
+    };
+
+    const onParticipantDisconnected = (participant: RemoteParticipant) => {
+      if (participant.identity !== params.participant.identity) return;
+      finish(false, "participant_disconnected");
+    };
+
+    const onTrackSubscribed = (
+      _track: RemoteTrack,
+      _publication: RemoteTrackPublication,
+      participant: RemoteParticipant,
+    ) => {
+      if (participant.identity !== params.participant.identity) return;
+      finish(true, getParticipantSipStatus(participant) || "track_subscribed");
+    };
+
+    params.room.on("participantAttributesChanged", onParticipantAttributesChanged);
+    params.room.on("participantDisconnected", onParticipantDisconnected);
+    params.room.on("trackSubscribed", onTrackSubscribed);
+
+    if (!isSipCallPendingStatus(initialStatus)) {
+      finish(false, initialStatus || "not_pending");
+    }
+  });
 }
 
 function extractTextFromConversationItem(item: unknown): string | null {
@@ -3054,6 +3149,23 @@ export default defineAgent({
     const greetingFrame = greetingClipId
       ? await getCachedOpenerAudioFrame(fixedLineAudioCache, greetingClipId, 50)
       : null;
+
+    if (callType === "demo") {
+      const readyForGreeting = await waitForDemoOutboundLegReady({
+        room: ctx.room,
+        participant,
+        callId,
+        logPrefix,
+      });
+      if (!readyForGreeting) {
+        console.warn(
+          `${logPrefix} [DEMO_CONNECT] Outbound demo leg never reached a connected state before greeting; disconnecting room.`,
+        );
+        isDisconnecting = true;
+        ctx.room.disconnect().catch(() => {});
+        return;
+      }
+    }
 
     await session.say(greeting, {
       ...(greetingFrame ? { audio: audioFrameToReadableStream(greetingFrame) } : {}),

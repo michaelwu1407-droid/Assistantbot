@@ -2,6 +2,12 @@ import { RoomServiceClient, SipClient } from "livekit-server-sdk";
 import { getKnownEarlymarkInboundNumbers } from "@/lib/earlymark-inbound-config";
 import { getEarlymarkInboundSipUri } from "@/lib/livekit-sip-config";
 import { phoneMatches } from "@/lib/phone-utils";
+import {
+  isSipCallConnectedStatus,
+  isSipCallPendingStatus,
+  isSipCallTerminalFailureStatus,
+  readSipCallStatus,
+} from "@/lib/sip-call-status";
 import { twilioMasterClient } from "@/lib/twilio";
 
 type OutboundTrunkInfo = {
@@ -40,7 +46,25 @@ export type DemoCallResult = {
   warnings: string[];
   transport: "livekit_control" | "twilio_sip_bridge";
   callSid: string | null;
+  connectionVerified: boolean;
+  sipCallStatus: string | null;
 };
+
+const DEMO_CALL_CONNECTION_TIMEOUT_MS = 20_000;
+const DEMO_CALL_CONNECTION_POLL_MS = 1_000;
+
+function parsePositiveInt(rawValue: string | undefined, fallback: number) {
+  const parsed = Number.parseInt((rawValue || "").trim(), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function getDemoCallConnectionTimeoutMs() {
+  return parsePositiveInt(process.env.DEMO_CALL_CONNECTION_TIMEOUT_MS, DEMO_CALL_CONNECTION_TIMEOUT_MS);
+}
+
+function getDemoCallConnectionPollMs() {
+  return parsePositiveInt(process.env.DEMO_CALL_CONNECTION_POLL_MS, DEMO_CALL_CONNECTION_POLL_MS);
+}
 
 function getLivekitApiBaseUrl() {
   const raw = (process.env.LIVEKIT_URL || "").trim();
@@ -96,6 +120,10 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error || "Unknown error");
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function getTwilioBridgeCallerNumber(preferred?: string | null) {
   return [process.env.VOICE_MONITOR_PROBE_CALLER_NUMBER, preferred, ...getKnownCallerNumbers()]
     .map((value) => normalizePhone(value))
@@ -148,6 +176,45 @@ async function initiateDemoCallViaTwilioSipBridge(params: {
     ],
     transport: "twilio_sip_bridge",
     callSid: createdCall.sid,
+    connectionVerified: false,
+    sipCallStatus: null,
+  };
+}
+
+async function waitForLivekitSipParticipantConnection(params: {
+  roomClient: Pick<RoomServiceClient, "getParticipant">;
+  roomName: string;
+  participantIdentity: string;
+  timeoutMs?: number;
+  pollMs?: number;
+}) {
+  const timeoutMs = params.timeoutMs ?? getDemoCallConnectionTimeoutMs();
+  const pollMs = params.pollMs ?? getDemoCallConnectionPollMs();
+  const deadline = Date.now() + timeoutMs;
+  let lastStatus: string | null = null;
+
+  while (Date.now() < deadline) {
+    try {
+      const participant = await params.roomClient.getParticipant(params.roomName, params.participantIdentity);
+      const status = readSipCallStatus((participant.attributes || {}) as Record<string, string>);
+      lastStatus = status;
+
+      if (isSipCallConnectedStatus(status)) {
+        return { connectionVerified: true, sipCallStatus: status };
+      }
+      if (isSipCallTerminalFailureStatus(status)) {
+        return { connectionVerified: false, sipCallStatus: status };
+      }
+    } catch {
+      // The participant can take a moment to become queryable after creation.
+    }
+
+    await sleep(Math.min(pollMs, Math.max(1, deadline - Date.now())));
+  }
+
+  return {
+    connectionVerified: false,
+    sipCallStatus: lastStatus,
   };
 }
 
@@ -352,6 +419,21 @@ export async function initiateDemoCall(input: DemoCallInput): Promise<DemoCallRe
       participantIdentity: `demo-caller-${normalizedPhone}`,
     });
 
+    const participantIdentity = `demo-caller-${normalizedPhone}`;
+    const connectionCheck = await waitForLivekitSipParticipantConnection({
+      roomClient,
+      roomName,
+      participantIdentity,
+    });
+    if (!connectionCheck.connectionVerified) {
+      await roomClient.deleteRoom(roomName).catch(() => undefined);
+      const statusMessage =
+        connectionCheck.sipCallStatus && !isSipCallPendingStatus(connectionCheck.sipCallStatus)
+          ? `last SIP status: ${connectionCheck.sipCallStatus}`
+          : "the outbound leg never reached a connected state";
+      throw new Error(`LiveKit outbound demo call did not connect (${statusMessage}).`);
+    }
+
     return {
       roomName,
       normalizedPhone,
@@ -360,6 +442,8 @@ export async function initiateDemoCall(input: DemoCallInput): Promise<DemoCallRe
       warnings,
       transport: "livekit_control",
       callSid: null,
+      connectionVerified: true,
+      sipCallStatus: connectionCheck.sipCallStatus,
     };
   } catch (directError) {
     try {

@@ -73,6 +73,10 @@ describe("requestDemoCall server action", () => {
       resolvedTrunkId: "ST_real",
       callerNumber: "+61485010634",
       warnings: [],
+      transport: "livekit_control",
+      callSid: null,
+      connectionVerified: true,
+      sipCallStatus: "active",
     });
 
     const result = await requestDemoCall(validForm);
@@ -151,6 +155,10 @@ describe("requestDemoCall server action", () => {
       resolvedTrunkId: "ST_real",
       callerNumber: "+61485010634",
       warnings: [],
+      transport: "livekit_control",
+      callSid: null,
+      connectionVerified: true,
+      sipCallStatus: "active",
     });
 
     const result = await requestDemoCall(validForm);
