@@ -54,7 +54,7 @@ export function ContactsList({ contacts, workspaceId }: ContactsListProps) {
         <div className="space-y-4">
             <div className="flex items-center gap-4">
                 <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                         placeholder="Search contacts..."
                         value={search}
@@ -72,25 +72,25 @@ export function ContactsList({ contacts, workspaceId }: ContactsListProps) {
 
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 {filteredContacts.length === 0 ? (
-                    <div className="text-center py-12 text-slate-500 col-span-full">
+                    <div className="text-center py-12 text-muted-foreground col-span-full">
                         No contacts found. Add your first contact to get started.
                     </div>
                 ) : (
                     filteredContacts.map((contact) => (
                         <Card 
                             key={contact.id} 
-                            className="hover:border-slate-400 transition-colors cursor-pointer hover:shadow-md"
+                            className="hover:border-foreground/30 transition-colors cursor-pointer hover:shadow-md"
                             onClick={() => handleContactClick(contact.id)}
                         >
                             <CardContent className="p-4">
                                 <div className="flex items-start gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
-                                        <User className="h-5 w-5 text-slate-500" />
+                                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                                        <User className="h-5 w-5 text-muted-foreground" />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <h3 className="font-semibold text-slate-900 truncate">{contact.name}</h3>
+                                        <h3 className="font-semibold text-foreground truncate">{contact.name}</h3>
                                         {contact.company && (
-                                            <p className="text-sm text-slate-500 flex items-center gap-1 mt-0.5">
+                                            <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">
                                                 <Building2 className="h-3 w-3 flex-shrink-0" />
                                                 <span className="truncate">{contact.company}</span>
                                             </p>
@@ -98,20 +98,20 @@ export function ContactsList({ contacts, workspaceId }: ContactsListProps) {
                                         
                                         <div className="mt-2 space-y-1">
                                             {contact.phone && (
-                                                <p className="text-sm text-slate-600 flex items-center gap-1.5">
-                                                    <Phone className="h-3 w-3 text-slate-400 flex-shrink-0" />
+                                                <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                                                    <Phone className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                                                     {contact.phone}
                                                 </p>
                                             )}
                                             {contact.email && (
-                                                <p className="text-sm text-slate-600 flex items-center gap-1.5">
-                                                    <Mail className="h-3 w-3 text-slate-400 flex-shrink-0" />
+                                                <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                                                    <Mail className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                                                     <span className="truncate">{contact.email}</span>
                                                 </p>
                                             )}
                                             {formatAddress(contact) && (
-                                                <p className="text-sm text-slate-600 flex items-center gap-1.5">
-                                                    <MapPin className="h-3 w-3 text-slate-400 flex-shrink-0" />
+                                                <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+                                                    <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0" />
                                                     <span className="truncate">{formatAddress(contact)}</span>
                                                 </p>
                                             )}

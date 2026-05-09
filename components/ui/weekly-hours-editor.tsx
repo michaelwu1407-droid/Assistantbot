@@ -85,8 +85,8 @@ export function WeeklyHoursEditor({
                 className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-all ${
                   isSelected
                     ? "border-emerald-200 bg-emerald-100 text-emerald-700"
-                    : "border-slate-200 bg-slate-100 text-slate-600"
-                } ${uniform ? "hover:bg-slate-200" : "cursor-default"}`}
+                    : "border-border bg-muted text-muted-foreground"
+                } ${uniform ? "hover:bg-muted" : "cursor-default"}`}
               >
                 {day}
               </button>
@@ -94,7 +94,7 @@ export function WeeklyHoursEditor({
           })}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500">Same hours all week</span>
+          <span className="text-xs text-muted-foreground">Same hours all week</span>
           <Switch checked={uniform} onCheckedChange={onUniformChange} aria-label="Toggle same working hours all week" />
         </div>
       </div>
@@ -103,11 +103,11 @@ export function WeeklyHoursEditor({
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <div className="text-xs text-slate-500">Start time</div>
+              <div className="text-xs text-muted-foreground">Start time</div>
               <Input type="time" value={uniformStart} onChange={(e) => updateUniformTimes("start", e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <div className="text-xs text-slate-500">End time</div>
+              <div className="text-xs text-muted-foreground">End time</div>
               <Input type="time" value={uniformEnd} onChange={(e) => updateUniformTimes("end", e.target.value)} />
             </div>
           </div>

@@ -59,7 +59,7 @@ export function ServiceAreasSection() {
   }
 
   return (
-    <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+    <Card className="border-border dark:border-slate-800 shadow-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <MapPin className="h-5 w-5" />

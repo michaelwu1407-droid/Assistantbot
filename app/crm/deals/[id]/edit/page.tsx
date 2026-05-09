@@ -49,28 +49,28 @@ export default async function DealEditPage({ params }: PageProps) {
 
   return (
     <div className="flex flex-col max-w-2xl mx-auto p-4 md:p-6 gap-6">
-      <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm text-slate-500">
-        <Link href="/crm/dashboard" className="inline-flex items-center gap-1 hover:text-slate-900 transition-colors">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm text-muted-foreground">
+        <Link href="/crm/dashboard" className="inline-flex items-center gap-1 hover:text-foreground transition-colors">
           <Home className="h-4 w-4" />
           Dashboard
         </Link>
-        <ChevronRight className="h-4 w-4 text-slate-400" />
-        <Link href={`/crm/deals/${id}`} className="hover:text-slate-900 transition-colors">
+        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        <Link href={`/crm/deals/${id}`} className="hover:text-foreground transition-colors">
           Job
         </Link>
-        <ChevronRight className="h-4 w-4 text-slate-400" />
-        <span className="font-medium text-slate-900">Edit</span>
+        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        <span className="font-medium text-foreground">Edit</span>
       </nav>
 
       <div className="flex items-center gap-4">
         <Link
           href={`/crm/deals/${id}`}
-          className="h-10 w-10 inline-flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-900 transition-colors"
+          className="h-10 w-10 inline-flex items-center justify-center rounded-lg hover:bg-muted text-foreground transition-colors"
           aria-label="Back to job details"
         >
           <ChevronLeft className="w-5 h-5" />
         </Link>
-        <h1 className="text-xl font-bold text-slate-900">Edit deal</h1>
+        <h1 className="text-xl font-bold text-foreground">Edit deal</h1>
       </div>
 
       <DealEditForm

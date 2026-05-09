@@ -3,6 +3,7 @@
 import { TrendingUp, Clock, AlertTriangle, Activity } from "lucide-react"
 import { DealView } from "@/actions/deal-actions"
 import { cn } from "@/lib/utils"
+import { formatCurrency } from "@/lib/format"
 
 interface DealHealthWidgetProps {
     deals: DealView[]
@@ -23,7 +24,7 @@ export function DealHealthWidget({ deals }: DealHealthWidgetProps) {
                         <span className="text-[10px] font-bold text-[#64748B] tracking-tight uppercase leading-none mb-1">Pipeline</span>
                         <div className="flex items-baseline gap-1.5">
                             <span className="text-base font-extrabold text-[#0F172A] tracking-tighter leading-none">
-                                ${totalValue.toLocaleString()}
+                                {formatCurrency(totalValue)}
                             </span>
                             <span className="text-[9px] font-bold text-muted-foreground">vs last mo.</span>
                         </div>
@@ -76,13 +77,13 @@ export function DealHealthWidget({ deals }: DealHealthWidgetProps) {
                     <div className="flex flex-col">
                         <span className="text-[10px] font-bold text-[#64748B] tracking-tight uppercase leading-none mb-1">Rotting</span>
                         <div className="flex items-baseline gap-1.5">
-                            <span className={cn("text-base font-extrabold tracking-tighter leading-none", rottingDeals.length > 0 ? "text-red-500" : "text-[#0F172A]")}>
+                            <span className={cn("text-base font-extrabold tracking-tighter leading-none", rottingDeals.length > 0 ? "text-destructive" : "text-[#0F172A]")}>
                                 {rottingDeals.length}
                             </span>
-                            <span className="text-[9px] font-bold text-red-500">Crit</span>
+                            <span className="text-[9px] font-bold text-destructive">Crit</span>
                         </div>
                     </div>
-                    <div className="w-6 h-6 rounded-full bg-[#FEF2F2] flex items-center justify-center text-red-600">
+                    <div className="w-6 h-6 rounded-full bg-[#FEF2F2] flex items-center justify-center text-destructive">
                         <AlertTriangle className="w-3.5 h-3.5" />
                     </div>
                 </div>

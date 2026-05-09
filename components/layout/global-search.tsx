@@ -110,7 +110,7 @@ export function GlobalSearch({
                     className={cn(
                         "relative w-full justify-start font-normal shadow-none",
                         variant === "bar" && tone === "onDark" &&
-                            "toolbar-pill h-10 min-h-10 w-full border border-slate-200/90 bg-white text-sm font-semibold text-slate-600 min-w-0 hover:bg-white hover:text-slate-800 focus-visible:shadow-none",
+                            "toolbar-pill h-10 min-h-10 w-full border border-border/90 bg-card text-sm font-semibold text-muted-foreground min-w-0 hover:bg-card hover:text-foreground focus-visible:shadow-none",
                         variant === "bar" && tone === "onDark" && showShortcutHint && "sm:pr-12",
                         variant === "bar" && tone !== "onDark" &&
                             "toolbar-pill h-10 min-h-10 border-border/40 bg-muted/40 text-sm font-semibold text-muted-foreground sm:pr-12 md:w-full md:min-w-0",

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowRight, Check, Send, DollarSign, Calendar, AlertCircle, TrendingUp, Clock, AlertTriangle, Plus } from "lucide-react"
 import Link from "next/link"
 import { useIndustry } from "@/components/providers/industry-provider"
+import { formatCurrency } from "@/lib/format"
 
 // ─── Mock Data by Industry ─────────────────────────────────────────
 
@@ -206,39 +207,39 @@ function MockDealCard({ deal, highlighted }: {
     highlighted?: boolean;
 }) {
     const borderClass = deal.status === "rotting"
-        ? "border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.15)]"
+        ? "border-destructive shadow-[0_0_8px_rgba(239,68,68,0.15)]"
         : deal.status === "stale"
             ? "border-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.15)]"
-            : "border-slate-200"
+            : "border-border"
 
     return (
-        <div className={`relative rounded-lg border bg-white p-2.5 mb-2 transition-all ${borderClass} ${highlighted ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}>
+        <div className={`relative rounded-lg border bg-card p-2.5 mb-2 transition-all ${borderClass} ${highlighted ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}>
             {deal.status === "rotting" && (
                 <div className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded-full flex items-center z-10">
                     <AlertCircle className="w-2 h-2 mr-0.5" />Rotting
                 </div>
             )}
             {deal.status === "stale" && (
-                <div className="absolute -top-1.5 -right-1.5 bg-amber-400 text-slate-900 text-[8px] px-1.5 py-0.5 rounded-full flex items-center font-bold z-10">
+                <div className="absolute -top-1.5 -right-1.5 bg-amber-400 text-foreground text-[8px] px-1.5 py-0.5 rounded-full flex items-center font-bold z-10">
                     <AlertCircle className="w-2 h-2 mr-0.5" />Stale
                 </div>
             )}
             <div className="flex justify-between items-start mb-1">
                 <div>
-                    <p className="font-semibold text-slate-900 text-[10px] leading-tight">{deal.title}</p>
-                    <p className="text-[8px] text-slate-500">{deal.company}</p>
+                    <p className="font-semibold text-foreground text-[10px] leading-tight">{deal.title}</p>
+                    <p className="text-[8px] text-muted-foreground">{deal.company}</p>
                 </div>
             </div>
             <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center text-slate-900 font-bold text-[10px]">
-                    <DollarSign className="w-2.5 h-2.5 text-slate-400 mr-0.5" />
-                    {deal.value.toLocaleString()}
+                <div className="flex items-center text-foreground font-bold text-[10px]">
+                    <DollarSign className="w-2.5 h-2.5 text-muted-foreground mr-0.5" />
+                    {formatCurrency(deal.value)}
                 </div>
-                <div className="h-4 w-4 rounded-full bg-slate-100 flex items-center justify-center text-[7px] font-medium text-slate-600 border border-slate-200">
+                <div className="h-4 w-4 rounded-full bg-muted flex items-center justify-center text-[7px] font-medium text-muted-foreground border border-border">
                     {deal.initials}
                 </div>
             </div>
-            <div className={`flex items-center text-[8px] pt-1 border-t border-slate-100 ${deal.status !== "healthy" ? "text-amber-600" : "text-slate-400"}`}>
+            <div className={`flex items-center text-[8px] pt-1 border-t border-border/50 ${deal.status !== "healthy" ? "text-amber-600" : "text-muted-foreground"}`}>
                 <Calendar className="w-2 h-2 mr-1" />
                 {deal.days === 0 ? "Today" : `${deal.days}d ago`}
             </div>
@@ -256,12 +257,12 @@ function MockPipelinePreview({ data, highlightType }: {
     const highlightAdd = highlightType === "add"
 
     return (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden h-full flex flex-col">
+        <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden h-full flex flex-col">
             {/* Mock Header */}
-            <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+            <div className="px-4 py-3 border-b border-border/50 flex items-center justify-between">
                 <div>
-                    <h2 className="text-sm font-bold text-slate-900">Pipeline</h2>
-                    <p className="text-[10px] text-slate-500">Manage your deals and activity</p>
+                    <h2 className="text-sm font-bold text-foreground">Pipeline</h2>
+                    <p className="text-[10px] text-muted-foreground">Manage your deals and activity</p>
                 </div>
                 <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-medium border transition-all ${highlightAdd ? "bg-blue-50 border-blue-500 text-blue-700 ring-2 ring-blue-300" : "bg-slate-900 border-slate-900 text-white"}`}>
                     <Plus className="w-3 h-3" />
@@ -270,15 +271,15 @@ function MockPipelinePreview({ data, highlightType }: {
             </div>
 
             {/* Mock Stats Row */}
-            <div className="px-4 py-2 grid grid-cols-4 gap-2 border-b border-slate-100">
+            <div className="px-4 py-2 grid grid-cols-4 gap-2 border-b border-border/50">
                 <div className="text-center">
-                    <div className="flex items-center justify-center gap-1 text-[9px] text-slate-500 mb-0.5">
+                    <div className="flex items-center justify-center gap-1 text-[9px] text-muted-foreground mb-0.5">
                         <TrendingUp className="w-2.5 h-2.5" />Pipeline
                     </div>
-                    <p className="text-xs font-bold text-slate-900">{data.stats.total}</p>
+                    <p className="text-xs font-bold text-foreground">{data.stats.total}</p>
                 </div>
                 <div className="text-center">
-                    <div className="flex items-center justify-center gap-1 text-[9px] text-slate-500 mb-0.5">
+                    <div className="flex items-center justify-center gap-1 text-[9px] text-muted-foreground mb-0.5">
                         <Clock className="w-2.5 h-2.5 text-emerald-500" />Healthy
                     </div>
                     <p className="text-xs font-bold text-emerald-600">{data.stats.healthy}</p>
@@ -294,7 +295,7 @@ function MockPipelinePreview({ data, highlightType }: {
                 {data.stats.rotting > 0 && (
                     <div className={`text-center rounded px-1 ${highlightStale ? "bg-red-50 ring-1 ring-red-400" : ""}`}>
                         <div className="flex items-center justify-center gap-1 text-[9px] text-red-800 mb-0.5">
-                            <AlertCircle className="w-2.5 h-2.5 text-red-600" />Rotting
+                            <AlertCircle className="w-2.5 h-2.5 text-destructive" />Rotting
                         </div>
                         <p className="text-xs font-bold text-red-900">{data.stats.rotting}</p>
                     </div>
@@ -307,10 +308,10 @@ function MockPipelinePreview({ data, highlightType }: {
                     <div key={col.title} className="flex-1 min-w-0 flex flex-col">
                         <div className="flex items-center gap-1 mb-1.5 px-0.5">
                             <div className={`w-1.5 h-1.5 rounded-full ${col.color}`} />
-                            <span className="font-semibold text-slate-700 text-[9px] truncate">{col.title}</span>
-                            <span className="text-[8px] text-slate-400 bg-slate-100 px-1 rounded-full">{col.deals.length}</span>
+                            <span className="font-semibold text-foreground text-[9px] truncate">{col.title}</span>
+                            <span className="text-[8px] text-muted-foreground bg-muted px-1 rounded-full">{col.deals.length}</span>
                         </div>
-                        <div className="flex-1 bg-slate-50/50 rounded-lg border border-slate-200/60 p-1 overflow-hidden">
+                        <div className="flex-1 bg-muted/20 rounded-lg border border-border/60 p-1 overflow-hidden">
                             {col.deals.length > 0 ? (
                                 col.deals.map((deal) => (
                                     <MockDealCard
@@ -320,7 +321,7 @@ function MockPipelinePreview({ data, highlightType }: {
                                     />
                                 ))
                             ) : (
-                                <div className="h-12 border border-dashed border-slate-200 rounded flex items-center justify-center text-slate-300 text-[8px]">
+                                <div className="h-12 border border-dashed border-border rounded flex items-center justify-center text-slate-300 text-[8px]">
                                     Empty
                                 </div>
                             )}
@@ -338,10 +339,10 @@ function MockChatPane({ messages }: {
     messages: { role: "user" | "assistant"; text: string }[];
 }) {
     return (
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm h-full flex flex-col">
+        <div className="bg-card rounded-xl border border-border shadow-sm h-full flex flex-col">
             {/* Chat Header */}
-            <div className="px-3 py-2 border-b border-slate-100">
-                <p className="text-[10px] font-bold text-slate-900">Tracey Assistant</p>
+            <div className="px-3 py-2 border-b border-border/50">
+                <p className="text-[10px] font-bold text-foreground">Tracey Assistant</p>
                 <p className="text-[8px] text-emerald-600">Online</p>
             </div>
 
@@ -358,7 +359,7 @@ function MockChatPane({ messages }: {
                         >
                             <div className={`max-w-[90%] rounded-xl px-3 py-2 ${msg.role === "user"
                                 ? "bg-slate-900 text-white"
-                                : "bg-slate-50 border border-slate-200 text-slate-800"
+                                : "bg-muted/30 border border-border text-foreground"
                                 }`}>
                                 <p className="text-[10px] leading-relaxed whitespace-pre-line">{msg.text}</p>
                             </div>
@@ -368,10 +369,10 @@ function MockChatPane({ messages }: {
             </div>
 
             {/* Chat Input */}
-            <div className="p-2 border-t border-slate-100">
-                <div className="flex items-center gap-1.5 bg-slate-50 rounded-lg px-2.5 py-1.5 border border-slate-200">
-                    <p className="text-[9px] text-slate-400 flex-1">Type a command...</p>
-                    <Send className="w-3 h-3 text-slate-400" />
+            <div className="p-2 border-t border-border/50">
+                <div className="flex items-center gap-1.5 bg-muted/30 rounded-lg px-2.5 py-1.5 border border-border">
+                    <p className="text-[9px] text-muted-foreground flex-1">Type a command...</p>
+                    <Send className="w-3 h-3 text-muted-foreground" />
                 </div>
             </div>
         </div>
@@ -388,15 +389,15 @@ export function TutorialView() {
     const isLastStep = step === data.steps.length - 1
 
     return (
-        <div className="flex flex-col h-screen w-full bg-slate-100">
+        <div className="flex flex-col h-screen w-full bg-muted">
             {/* Top Bar */}
-            <div className="flex items-center justify-between px-6 py-3 bg-white border-b border-slate-200 shrink-0">
+            <div className="flex items-center justify-between px-6 py-3 bg-card border-b border-border shrink-0">
                 <div>
                     <motion.h2
                         key={step}
                         initial={{ opacity: 0, y: -5 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="text-lg font-bold text-slate-900"
+                        className="text-lg font-bold text-foreground"
                     >
                         {currentStep.title}
                     </motion.h2>
@@ -404,7 +405,7 @@ export function TutorialView() {
                         key={`sub-${step}`}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="text-sm text-slate-500"
+                        className="text-sm text-muted-foreground"
                     >
                         {currentStep.subtitle}
                     </motion.p>
@@ -415,11 +416,11 @@ export function TutorialView() {
                         {data.steps.map((_, i) => (
                             <div
                                 key={i}
-                                className={`h-2 rounded-full transition-all duration-300 ${i === step ? "w-6 bg-slate-900" : i < step ? "w-2 bg-slate-400" : "w-2 bg-slate-200"}`}
+                                className={`h-2 rounded-full transition-all duration-300 ${i === step ? "w-6 bg-slate-900" : i < step ? "w-2 bg-slate-400" : "w-2 bg-muted"}`}
                             />
                         ))}
                     </div>
-                    <span className="text-xs text-slate-400">{step + 1}/{data.steps.length}</span>
+                    <span className="text-xs text-muted-foreground">{step + 1}/{data.steps.length}</span>
                 </div>
             </div>
 
@@ -469,7 +470,7 @@ export function TutorialView() {
                         )}
                     </div>
                     <Link href="/crm/dashboard" className="text-center">
-                        <span className="text-xs text-slate-400 hover:text-slate-600 transition-colors cursor-pointer">Skip tutorial</span>
+                        <span className="text-xs text-muted-foreground hover:text-muted-foreground transition-colors cursor-pointer">Skip tutorial</span>
                     </Link>
                 </motion.div>
             </div>

@@ -14,7 +14,7 @@ import { getUserFacingDealStageLabel } from "@/lib/deal-utils";
 const LeafletMap = dynamic(() => import("./leaflet-map"), {
   ssr: false,
   loading: () => (
-    <div className="h-full w-full flex items-center justify-center bg-slate-100 text-slate-400">
+    <div className="h-full w-full flex items-center justify-center bg-muted text-muted-foreground">
       <div className="flex flex-col items-center gap-2">
         <RefreshCw className="h-6 w-6 animate-spin" />
         <span className="text-sm">Loading Map...</span>

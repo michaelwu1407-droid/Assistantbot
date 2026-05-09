@@ -46,7 +46,7 @@ export function PlatformDiagram() {
                     className="relative flex flex-col gap-5 rounded-2xl border border-emerald-900/10 bg-[linear-gradient(145deg,#103126_0%,#1B4637_52%,#2B5F4D_100%)] p-7 md:p-8 shadow-[0_18px_60px_rgba(15,23,42,0.14)]"
                 >
                     <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-card/10">
                             <Phone className="h-5 w-5 text-emerald-300" />
                         </div>
                         <div>
@@ -73,10 +73,10 @@ export function PlatformDiagram() {
                     className="flex flex-row md:flex-col items-center justify-center gap-4 py-4 md:py-0"
                     aria-hidden="true"
                 >
-                    <div className="flex h-20 w-20 md:h-24 md:w-24 items-center justify-center rounded-full border-2 border-emerald-200 bg-white shadow-[0_10px_28px_rgba(16,185,129,0.30)]">
+                    <div className="flex h-20 w-20 md:h-24 md:w-24 items-center justify-center rounded-full border-2 border-emerald-200 bg-card shadow-[0_10px_28px_rgba(16,185,129,0.30)]">
                         <ArrowRight className="h-9 w-9 md:h-11 md:w-11 text-emerald-600 rotate-90 md:rotate-0" strokeWidth={2.5} />
                     </div>
-                    <div className="flex h-20 w-20 md:h-24 md:w-24 items-center justify-center rounded-full border-2 border-emerald-200 bg-white shadow-[0_10px_28px_rgba(16,185,129,0.30)]">
+                    <div className="flex h-20 w-20 md:h-24 md:w-24 items-center justify-center rounded-full border-2 border-emerald-200 bg-card shadow-[0_10px_28px_rgba(16,185,129,0.30)]">
                         <ArrowLeft className="h-9 w-9 md:h-11 md:w-11 text-emerald-600 rotate-90 md:rotate-0" strokeWidth={2.5} />
                     </div>
                 </motion.div>
@@ -87,14 +87,14 @@ export function PlatformDiagram() {
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true, margin: "-60px" }}
                     transition={{ duration: 0.6, delay: 0.1, ease: EASE }}
-                    className="relative flex flex-col gap-5 rounded-2xl border border-slate-200 bg-white p-7 md:p-8 shadow-[0_18px_60px_rgba(15,23,42,0.10)]"
+                    className="relative flex flex-col gap-5 rounded-2xl border border-border bg-card p-7 md:p-8 shadow-[0_18px_60px_rgba(15,23,42,0.10)]"
                 >
                     <div className="flex items-center gap-3">
                         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50">
                             <Database className="h-5 w-5 text-emerald-600" />
                         </div>
                         <div>
-                            <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">CRM</p>
+                            <p className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">CRM</p>
                             <h3 className="text-xl font-bold text-midnight">A CRM that runs itself</h3>
                         </div>
                     </div>
@@ -103,12 +103,12 @@ export function PlatformDiagram() {
                         <span className="text-sm font-semibold leading-relaxed text-midnight">Auto-logs every job and customer interaction</span>
                     </div>
                     <div className="flex flex-col gap-2.5">
-                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Traditional CRM features</p>
+                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Traditional CRM features</p>
                         <div className="grid grid-cols-2 gap-x-3 gap-y-2">
                             {CRM_FEATURES.map(({ icon: Icon, label }) => (
                                 <div key={label} className="flex items-center gap-2">
                                     <Icon className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
-                                    <span className="text-xs leading-snug text-slate-600">{label}</span>
+                                    <span className="text-xs leading-snug text-muted-foreground">{label}</span>
                                 </div>
                             ))}
                         </div>
@@ -123,10 +123,10 @@ export function PlatformDiagram() {
                 transition={{ duration: 0.5, delay: 0.3, ease: EASE }}
                 className="mt-10 flex flex-col items-center gap-4"
             >
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Reach Tracey &amp; the CRM on any channel</p>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Reach Tracey &amp; the CRM on any channel</p>
                 <div className="flex flex-wrap items-center justify-center gap-2">
                     {CHANNELS.map(({ label, icon: Icon }) => (
-                        <span key={label} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-medium text-slate-700 shadow-sm">
+                        <span key={label} className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-sm font-medium text-foreground shadow-sm">
                             <Icon className="h-4 w-4 text-emerald-600" />
                             {label}
                         </span>

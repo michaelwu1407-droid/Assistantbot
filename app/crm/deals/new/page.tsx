@@ -13,12 +13,12 @@ export default async function NewDealPage() {
   }
 
   return (
-    <div className="h-full overflow-y-auto bg-slate-50 px-4 py-6 pb-24 md:px-6">
+    <div className="h-full overflow-y-auto bg-muted/30 px-4 py-6 pb-24 md:px-6">
       <div className="mx-auto max-w-3xl space-y-4">
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">CRM Jobs</p>
-          <h1 className="text-3xl font-bold text-slate-900">New Booking</h1>
-          <p className="max-w-2xl text-sm text-slate-600">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">CRM Jobs</p>
+          <h1 className="text-3xl font-bold text-foreground">New Booking</h1>
+          <p className="max-w-2xl text-sm text-muted-foreground">
             Create a real job record with customer details, schedule info, and address context in one place instead of bouncing back to the kanban board.
           </p>
         </div>

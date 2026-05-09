@@ -45,7 +45,7 @@ export function AddressAutocomplete({
   if (!apiKey) {
     return (
       <div className={cn("relative", className)}>
-        <MapPin className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+        <MapPin className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           id={id}
           placeholder={placeholder}
@@ -254,7 +254,7 @@ function AddressAutocompleteWithGoogle({
   if (hasMapsFailure) {
     return (
       <div className={cn("relative", className)}>
-        <MapPin className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+        <MapPin className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           ref={inputRef}
           id={id}
@@ -279,7 +279,7 @@ function AddressAutocompleteWithGoogle({
       `}</style>
       <MapPin className={cn(
         "absolute left-2.5 top-2.5 h-4 w-4 transition-colors z-10",
-        isResolved ? "text-emerald-500" : isFocused ? "text-primary" : "text-slate-400"
+        isResolved ? "text-emerald-500" : isFocused ? "text-primary" : "text-muted-foreground"
       )} />
       <Input
         ref={inputRef}

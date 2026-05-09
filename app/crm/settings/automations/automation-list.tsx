@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { formatDate } from "@/lib/format"
 
 interface AutomationListProps {
     initialAutomations: AutomationView[]
@@ -109,7 +110,7 @@ export function AutomationList({ initialAutomations, workspaceId }: AutomationLi
 
     const getActionIcon = (type: string) => {
         switch (type) {
-            case "notify": return <Bell className="h-4 w-4 text-slate-500" />
+            case "notify": return <Bell className="h-4 w-4 text-muted-foreground" />
             case "create_task": return <CheckSquare className="h-4 w-4 text-blue-500" />
             case "email": return <Mail className="h-4 w-4 text-purple-500" />
             case "send_sms": return <MessageSquare className="h-4 w-4 text-green-500" />
@@ -200,27 +201,27 @@ export function AutomationList({ initialAutomations, workspaceId }: AutomationLi
                 {automations.length === 0 ? (
                     <div className="text-center py-12 border-2 border-dashed rounded-lg">
                         <Zap className="h-8 w-8 mx-auto text-slate-300 mb-2" />
-                        <h3 className="font-medium text-slate-900">No automations yet</h3>
-                        <p className="text-sm text-slate-500">Create your first rule to save time.</p>
+                        <h3 className="font-medium text-foreground">No automations yet</h3>
+                        <p className="text-sm text-muted-foreground">Create your first rule to save time.</p>
                     </div>
                 ) : (
                     automations.map(automation => (
                         <Card key={automation.id} className="flex flex-row items-center p-4 gap-4">
-                            <div className={`h-10 w-10 rounded-full flex items-center justify-center bg-slate-100 ${automation.enabled ? 'opacity-100' : 'opacity-50 grayscale'}`}>
+                            <div className={`h-10 w-10 rounded-full flex items-center justify-center bg-muted ${automation.enabled ? 'opacity-100' : 'opacity-50 grayscale'}`}>
                                 {getTriggerIcon(automation.trigger.event)}
                             </div>
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                    <h4 className={`font-medium truncate ${automation.enabled ? 'text-slate-900' : 'text-slate-500'}`}>
+                                    <h4 className={`font-medium truncate ${automation.enabled ? 'text-foreground' : 'text-muted-foreground'}`}>
                                         {automation.name}
                                     </h4>
                                     {automation.lastFiredAt && (
                                         <Badge variant="outline" className="text-[10px] h-5">
-                                            Fired {new Date(automation.lastFiredAt).toLocaleDateString("en-AU")}
+                                            Fired {formatDate(automation.lastFiredAt)}
                                         </Badge>
                                     )}
                                 </div>
-                                <div className="flex items-center text-xs text-slate-500 gap-2 mt-0.5">
+                                <div className="flex items-center text-xs text-muted-foreground gap-2 mt-0.5">
                                     <span className="flex items-center gap-1">
                                         If {automation.trigger.event.replace('_', ' ')}
                                     </span>

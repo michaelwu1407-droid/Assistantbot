@@ -180,11 +180,11 @@ export function ScheduleCalendar({ deals, teamMembers, workspaceTimezone, initia
 
   const renderEmptyState = (scope: string) => (
     <div className="flex h-full items-center justify-center p-6">
-      <div className="max-w-lg rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-        <h3 className="text-lg font-semibold text-slate-900">
+      <div className="max-w-lg rounded-2xl border border-border bg-card p-6 text-center shadow-sm">
+        <h3 className="text-lg font-semibold text-foreground">
           {hasUnscheduledDeals ? `No jobs are scheduled for this ${scope}` : `Nothing is booked for this ${scope}`}
         </h3>
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-2 text-sm text-muted-foreground">
           {hasUnscheduledDeals
             ? "You already have jobs in the CRM, but they need a scheduled date before they appear on the calendar."
             : "Once a job has a scheduled time, it will show up here so the team can plan and move it around."}
@@ -212,7 +212,7 @@ export function ScheduleCalendar({ deals, teamMembers, workspaceTimezone, initia
     return (
       <div className="grid grid-cols-7 flex-1 min-h-0">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-          <div key={d} className="p-1.5 border-b border-r border-slate-100 font-medium text-slate-500 bg-slate-50/50">{d}</div>
+          <div key={d} className="p-1.5 border-b border-r border-border/50 font-medium text-muted-foreground bg-muted/20">{d}</div>
         ))}
         {days.map((day) => {
           const key = toDateKeyInTimezone(day, resolvedTimezone)
@@ -227,8 +227,8 @@ export function ScheduleCalendar({ deals, teamMembers, workspaceTimezone, initia
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => handleDrop(e, day)}
               className={cn(
-                "p-1.5 border-b border-r border-slate-100 flex flex-col min-h-[100px] overflow-auto hover:bg-slate-50/80 transition-colors",
-                !isCurrentMonth && "bg-slate-50/40 text-slate-400"
+                "p-1.5 border-b border-r border-border/50 flex flex-col min-h-[100px] overflow-auto hover:bg-muted/20 transition-colors",
+                !isCurrentMonth && "bg-muted/20 text-muted-foreground"
               )}
             >
               <div
@@ -237,11 +237,11 @@ export function ScheduleCalendar({ deals, teamMembers, workspaceTimezone, initia
               >
                 <span className={cn(
                   "font-medium w-6 h-6 flex items-center justify-center rounded-full text-sm",
-                  isToday ? "bg-primary text-white shadow-sm" : "text-slate-600"
+                  isToday ? "bg-primary text-white shadow-sm" : "text-muted-foreground"
                 )}>
                   {dayParts.day}
                 </span>
-                {dayDeals.length > 0 && <span className="app-body-secondary text-xs font-bold text-slate-400">{dayDeals.length}</span>}
+                {dayDeals.length > 0 && <span className="app-body-secondary text-xs font-bold text-muted-foreground">{dayDeals.length}</span>}
               </div>
               <div className="space-y-1">{dayDeals.map(renderDealChip)}</div>
             </div>
@@ -269,16 +269,16 @@ export function ScheduleCalendar({ deals, teamMembers, workspaceTimezone, initia
               key={key}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => handleDrop(e, day)}
-              className="border-r border-slate-100 flex flex-col min-h-[400px] bg-white"
+              className="border-r border-border/50 flex flex-col min-h-[400px] bg-card"
             >
               <div
-                className={cn("p-2 border-b border-slate-100 text-center cursor-pointer hover:bg-slate-50", isToday && "bg-primary/5")}
+                className={cn("p-2 border-b border-border/50 text-center cursor-pointer hover:bg-muted/30", isToday && "bg-primary/5")}
                 onClick={() => { setCurrent(day); setView("day") }}
               >
                 <p className="app-field-label tracking-[0.08em]">{formatShortWeekdayInTimezone(day, resolvedTimezone)}</p>
-                <p className={cn("text-lg font-bold", isToday ? "text-primary" : "text-slate-700")}>{dayParts.day}</p>
+                <p className={cn("text-lg font-bold", isToday ? "text-primary" : "text-foreground")}>{dayParts.day}</p>
               </div>
-              <div className="flex-1 overflow-y-auto p-1.5 space-y-1 bg-slate-50/20">{dayDeals.map(renderDealChip)}</div>
+              <div className="flex-1 overflow-y-auto p-1.5 space-y-1 bg-muted/10">{dayDeals.map(renderDealChip)}</div>
             </div>
           )
         })}
@@ -316,12 +316,12 @@ export function ScheduleCalendar({ deals, teamMembers, workspaceTimezone, initia
       return (
         <div
           key={`${memberId ?? "unassigned"}-${hour}`}
-          className="min-h-[96px] border-r border-slate-100 p-2 bg-white/70"
+          className="min-h-[96px] border-r border-border/50 p-2 bg-card/70"
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => handleDrop(e, buildSlotDate(hour), memberId ?? "")}
         >
           {hourDeals.length === 0 ? (
-            <div className="h-full min-h-[80px] rounded-lg border border-dashed border-slate-200 bg-white/40" />
+            <div className="h-full min-h-[80px] rounded-lg border border-dashed border-border bg-card/40" />
           ) : (
             <div className="space-y-2">
               {hourDeals.map((deal) => (
@@ -332,11 +332,11 @@ export function ScheduleCalendar({ deals, teamMembers, workspaceTimezone, initia
                   onClick={() => setSelectedDealId(deal.id)}
                   className="shadow-sm"
                 >
-                  <div className="p-3 rounded-lg bg-white border border-slate-200 hover:border-primary/50 hover:shadow-md transition-all cursor-grab active:cursor-grabbing group">
+                  <div className="p-3 rounded-lg bg-card border border-border hover:border-primary/50 hover:shadow-md transition-all cursor-grab active:cursor-grabbing group">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className={cn(
                         "app-field-label rounded px-1.5 py-0.5 tracking-[0.08em]",
-                      memberId ? "text-primary bg-primary/5" : "text-slate-400 bg-slate-100"
+                      memberId ? "text-primary bg-primary/5" : "text-muted-foreground bg-muted"
                     )}>
                         {deal.scheduledAt ? formatTimeInTimezone(deal.scheduledAt, resolvedTimezone) : "TBD"}
                       </span>
@@ -344,7 +344,7 @@ export function ScheduleCalendar({ deals, teamMembers, workspaceTimezone, initia
                     </div>
                     <p className={cn(
                       "app-panel-title line-clamp-1",
-                      memberId ? "text-slate-900 group-hover:text-primary transition-colors" : "text-slate-600"
+                      memberId ? "text-foreground group-hover:text-primary transition-colors" : "text-muted-foreground"
                     )}>
                       {deal.title}
                     </p>
@@ -361,21 +361,21 @@ export function ScheduleCalendar({ deals, teamMembers, workspaceTimezone, initia
     }
 
     return (
-      <div className="flex-1 min-h-0 bg-slate-50/30 overflow-hidden">
+      <div className="flex-1 min-h-0 bg-muted/10 overflow-hidden">
         <div className="h-full overflow-auto">
           <div className="grid min-w-[1560px]" style={gridStyle}>
-            <div className="app-field-label sticky top-0 left-0 z-30 border-b border-r border-slate-200 bg-slate-50/95 px-4 py-3 backdrop-blur">
+            <div className="app-field-label sticky top-0 left-0 z-30 border-b border-r border-border bg-background/95 px-4 py-3 backdrop-blur">
               Team
             </div>
             {DAY_HOURS.map((hour) => (
               <div
                 key={`day-hour-${hour}`}
-                className="sticky top-0 z-20 border-b border-r border-slate-200 bg-slate-50/95 px-2 py-3 text-center backdrop-blur"
+                className="sticky top-0 z-20 border-b border-r border-border bg-background/95 px-2 py-3 text-center backdrop-blur"
               >
                 <p className="app-field-label">
                   {hour < 12 ? "AM" : "PM"}
                 </p>
-                <p className="app-panel-title text-slate-700">
+                <p className="app-panel-title text-foreground">
                   {hour <= 12 ? hour : hour - 12}:00
                 </p>
               </div>
@@ -383,7 +383,7 @@ export function ScheduleCalendar({ deals, teamMembers, workspaceTimezone, initia
 
             {teamMembers.map((member) => (
               <div key={member.id} className="contents">
-                <div className="sticky left-0 z-10 flex min-h-[96px] flex-col justify-center border-b border-r border-slate-200 bg-white px-4">
+                <div className="sticky left-0 z-10 flex min-h-[96px] flex-col justify-center border-b border-r border-border bg-card px-4">
                   <p className="app-panel-title truncate">{member.name}</p>
                   <p className="app-field-label tracking-[0.08em]">{member.role.replace('_', ' ')}</p>
                 </div>
@@ -393,7 +393,7 @@ export function ScheduleCalendar({ deals, teamMembers, workspaceTimezone, initia
 
             {showUnassignedRow ? (
               <>
-                <div className="sticky left-0 z-10 flex min-h-[96px] flex-col justify-center border-b border-r border-slate-200 bg-slate-100/60 px-4">
+                <div className="sticky left-0 z-10 flex min-h-[96px] flex-col justify-center border-b border-r border-border bg-muted/60 px-4">
                   <p className="app-panel-title text-neutral-400">Unassigned</p>
                 </div>
                 {DAY_HOURS.map((hour) => renderHourCell(null, hour))}
@@ -438,24 +438,24 @@ export function ScheduleCalendar({ deals, teamMembers, workspaceTimezone, initia
           <div
             key={deal.id}
             onClick={() => setSelectedDealId(deal.id)}
-            className="p-3 bg-white border border-slate-200 rounded-xl shadow-sm active:bg-slate-50 relative cursor-pointer"
+            className="p-3 bg-card border border-border rounded-xl shadow-sm active:bg-muted/30 relative cursor-pointer"
           >
             <div className="flex justify-between items-start mb-1.5">
               <div className="flex items-center gap-2">
                 <span className="app-body-primary rounded-md bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">
                   {formatMonthDayInTimezone(deal.scheduledAt!, resolvedTimezone)}
                 </span>
-                <span className="app-body-primary rounded-md bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600">
+                <span className="app-body-primary rounded-md bg-muted px-2 py-0.5 text-xs font-bold text-muted-foreground">
                   {formatTimeInTimezone(deal.scheduledAt!, resolvedTimezone)}
                 </span>
               </div>
               {deal.assignedToId && (
-                <span className="app-field-label tracking-[0.08em] text-slate-400">
+                <span className="app-field-label tracking-[0.08em] text-muted-foreground">
                   {teamMembers.find(m => m.id === deal.assignedToId)?.name || 'Assigned'}
                 </span>
               )}
             </div>
-            <p className="app-panel-title mt-1 text-slate-800">{deal.title}</p>
+            <p className="app-panel-title mt-1 text-foreground">{deal.title}</p>
             <p className="app-body-secondary truncate mt-0.5 text-xs">
               {deal.address || deal.contactName || "No location details"}
             </p>
@@ -466,17 +466,17 @@ export function ScheduleCalendar({ deals, teamMembers, workspaceTimezone, initia
   }
 
   return (
-    <div className="h-full flex flex-col bg-white rounded-lg border border-neutral-200 shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between p-3.5 border-b border-slate-100 bg-slate-50/50 shrink-0">
+    <div className="h-full flex flex-col bg-card rounded-lg border border-neutral-200 shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between p-3.5 border-b border-border/50 bg-muted/20 shrink-0">
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => nav(-1)} className="rounded-md h-8 w-8 hover:bg-white shadow-sm">
+          <Button variant="outline" size="icon" onClick={() => nav(-1)} className="rounded-md h-8 w-8 hover:bg-card shadow-sm">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setCurrent(new Date())} className="h-8 hover:bg-white shadow-sm font-medium">
+          <Button variant="outline" size="sm" onClick={() => setCurrent(new Date())} className="h-8 hover:bg-card shadow-sm font-medium">
             Today
           </Button>
           <h2 className="app-panel-title min-w-[150px] text-center">{headerLabel()}</h2>
-          <Button variant="outline" size="icon" onClick={() => nav(1)} className="rounded-md h-8 w-8 hover:bg-white shadow-sm">
+          <Button variant="outline" size="icon" onClick={() => nav(1)} className="rounded-md h-8 w-8 hover:bg-card shadow-sm">
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
@@ -484,7 +484,7 @@ export function ScheduleCalendar({ deals, teamMembers, workspaceTimezone, initia
         <div className="flex items-center gap-3">
           {/* Team Member Filter */}
           {showTeamFilter ? (
-            <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 bg-white border border-neutral-200 rounded-md shadow-sm">
+            <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 bg-card border border-neutral-200 rounded-md shadow-sm">
               <span className="app-field-label ml-1 tracking-[0.08em]">Team</span>
               <select
                 value={filterMemberId || ""}
@@ -506,7 +506,7 @@ export function ScheduleCalendar({ deals, teamMembers, workspaceTimezone, initia
                 onClick={() => setView(v)}
                 className={cn(
                   "px-4 py-1.5 text-sm font-semibold rounded-md transition-all capitalize",
-                  view === v ? "bg-white text-neutral-900 shadow-xs" : "text-neutral-500 hover:text-neutral-700"
+                  view === v ? "bg-card text-neutral-900 shadow-xs" : "text-neutral-500 hover:text-neutral-700"
                 )}
               >
                 {v}
@@ -527,7 +527,7 @@ export function ScheduleCalendar({ deals, teamMembers, workspaceTimezone, initia
           renderEmptyState(view)
         )}
       </div>
-      <div className="flex-1 overflow-y-auto min-h-0 md:hidden bg-slate-50/50">
+      <div className="flex-1 overflow-y-auto min-h-0 md:hidden bg-muted/20">
         {renderMobileList()}
       </div>
 

@@ -226,7 +226,7 @@ export function CallSettingsClient() {
 
   if (loading || !settings) {
     return (
-      <div className="flex items-center gap-2 text-slate-500">
+      <div className="flex items-center gap-2 text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
         Loading...
       </div>
@@ -235,7 +235,7 @@ export function CallSettingsClient() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-slate-200 shadow-sm dark:border-slate-800">
+      <Card className="border-border shadow-sm dark:border-slate-800">
         <CardHeader>
           <CardTitle>Customer contact hours</CardTitle>
           <CardDescription>
@@ -316,7 +316,7 @@ export function CallSettingsClient() {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-200 shadow-sm dark:border-slate-800">
+      <Card className="border-border shadow-sm dark:border-slate-800">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
@@ -328,7 +328,7 @@ export function CallSettingsClient() {
         </CardHeader>
         <CardContent className="space-y-4">
           {!phoneStatus.hasPhoneNumber || !phoneStatus.hasSubaccount ? (
-            <div className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300">
+            <div className="rounded-[18px] border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300">
               Automated text messages start sending after your Tracey number is provisioned in Account.
             </div>
           ) : null}
@@ -338,16 +338,16 @@ export function CallSettingsClient() {
               {rulesError}
             </div>
           ) : rules.length === 0 ? (
-            <div className="rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300">
+            <div className="rounded-[18px] border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300">
               No automated text messages have been set up yet.
             </div>
           ) : (
             rules.map((rule) => (
-              <div key={rule.id} className="space-y-3 rounded-[18px] border border-slate-200 p-4 dark:border-slate-700">
+              <div key={rule.id} className="space-y-3 rounded-[18px] border border-border p-4 dark:border-slate-700">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1">
-                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{getRuleDisplayName(rule)}</p>
-                    <p className="text-xs text-slate-500">{getRuleDescription(rule)}</p>
+                    <p className="text-sm font-semibold text-foreground dark:text-slate-100">{getRuleDisplayName(rule)}</p>
+                    <p className="text-xs text-muted-foreground">{getRuleDescription(rule)}</p>
                   </div>
                   <Switch
                     checked={rule.enabled}
@@ -405,7 +405,7 @@ export function CallSettingsClient() {
                     }
                     rows={3}
                   />
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     Sign-off is fixed and automatically appended: Kind regards, Tracey (AI assistant for {businessName}).
                   </p>
                 </div>

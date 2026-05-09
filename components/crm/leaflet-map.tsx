@@ -12,6 +12,7 @@ import { format } from "date-fns"
 import { Button } from "@/components/ui/button"
 import { renderToStaticMarkup } from "react-dom/server"
 import { getUserFacingDealStageLabel } from "@/lib/deal-utils"
+import { formatCurrency } from "@/lib/format"
 
 // Custom Marker Icon Generator
 const createCustomIcon = (stage: string) => {
@@ -148,7 +149,7 @@ export default function LeafletMap({ deals }: LeafletMapProps) {
                       {deal.value > 0 && (
                         <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                           <DollarSign className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <span>${deal.value.toLocaleString()}</span>
+                          <span>{formatCurrency(deal.value)}</span>
                         </div>
                       )}
                     </div>

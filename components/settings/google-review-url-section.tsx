@@ -73,7 +73,7 @@ export function GoogleReviewUrlSection({ initialUrl }: GoogleReviewUrlSectionPro
           </div>
           <p className="text-xs text-muted-foreground">
             This does not replace the internal feedback form. It only appears after a strong score, so the{" "}
-            <code className="rounded bg-slate-100 px-1 dark:bg-slate-800">[ReviewRequest]</code> flow can offer a public review at the end.
+            <code className="rounded bg-muted px-1 dark:bg-slate-800">[ReviewRequest]</code> flow can offer a public review at the end.
           </p>
         </div>
         <div className="flex justify-end">

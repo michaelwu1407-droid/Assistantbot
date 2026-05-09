@@ -44,8 +44,8 @@ export function OnboardingModal() {
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
-                    <div className="bg-slate-50 p-4 rounded-lg text-sm text-slate-600 border border-slate-100">
-                        <p className="font-medium text-slate-900 mb-1">Getting Started:</p>
+                    <div className="bg-muted/30 p-4 rounded-lg text-sm text-muted-foreground border border-border/50">
+                        <p className="font-medium text-foreground mb-1">Getting Started:</p>
                         <ul className="list-disc pl-4 space-y-1">
                             <li>Switch between <strong>Tradie</strong> and <strong>Agent</strong> modes.</li>
                             <li>Use <strong>Ctrl+K</strong> to jump anywhere fast.</li>

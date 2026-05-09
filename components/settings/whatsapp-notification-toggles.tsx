@@ -79,7 +79,7 @@ export function WhatsAppNotificationToggles() {
       </CardHeader>
       <CardContent className="space-y-5">
         {/* Phone / connect hint */}
-        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-900">
           {noPhone ? (
             <p className="text-muted-foreground">
               No phone number saved.{" "}
@@ -94,7 +94,7 @@ export function WhatsAppNotificationToggles() {
           ) : (
             <div className="flex items-center justify-between gap-4">
               <span className="text-muted-foreground">
-                Sending to <span className="font-mono font-medium text-slate-800 dark:text-slate-200">{maskPhone(phone)}</span>
+                Sending to <span className="font-mono font-medium text-foreground dark:text-slate-200">{maskPhone(phone)}</span>
               </span>
               <a
                 href={connectUrl}

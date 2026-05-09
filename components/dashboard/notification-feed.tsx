@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
+import { formatTime } from "@/lib/format"
 // import { getNotifications, markAsRead, markAllAsRead } from "@/actions/notification-actions"
 
 // For now, these imports would likely break on client-side if they use 'use server' inside without being wrapped or called correctly.
@@ -149,7 +150,7 @@ export function NotificationFeed() {
                                                 {notification.message}
                                             </p>
                                             <p className="text-[10px] text-muted-foreground/70 mt-2 font-mono">
-                                                {new Date(notification.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                {formatTime(notification.createdAt)}
                                             </p>
                                         </div>
                                         {!notification.read && (

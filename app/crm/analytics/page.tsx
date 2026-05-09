@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { useShellStore } from "@/lib/store"
+import { formatCurrency, formatShortDate, formatDate as formatLongDate } from "@/lib/format"
 import {
   getReportsData,
   getMonthlyRevenueBreakdown,
@@ -29,17 +30,6 @@ const COMPARISON_LABELS: Record<ReportRange, string> = {
   "1y": "vs prior 12 months",
 }
 
-function formatCurrency(value: number) {
-  return `$${value.toLocaleString("en-AU")}`
-}
-
-function formatShortDate(value: string) {
-  return new Date(value).toLocaleDateString("en-AU", { day: "numeric", month: "short" })
-}
-
-function formatLongDate(value: string) {
-  return new Date(value).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })
-}
 
 function escapeHtml(value: string) {
   return value
@@ -626,7 +616,7 @@ export default function AnalyticsPage() {
                       <div key={feedback.id} className="rounded-[18px] bg-secondary/30 p-3">
                         <div className="flex items-center justify-between gap-3">
                           <p className="text-xs font-medium text-neutral-900">{feedback.contactName}</p>
-                          <p className="text-xs text-muted-foreground">{new Date(feedback.createdAt).toLocaleDateString("en-AU")}</p>
+                          <p className="text-xs text-muted-foreground">{formatLongDate(feedback.createdAt)}</p>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">Score {feedback.score}/10</p>
                         <p className="text-sm text-neutral-800 mt-2">{feedback.comment ? feedback.comment : "No comment provided"}</p>
@@ -670,15 +660,15 @@ export default function AnalyticsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
             <div>
               <p className="text-2xl font-bold text-neutral-900">{data.jobs.completed}</p>
-              <p className="text-xs text-slate-600 mt-1">Completed</p>
+              <p className="text-xs text-muted-foreground mt-1">Completed</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-neutral-900">{scheduledCount}</p>
-              <p className="text-xs text-slate-600 mt-1">Scheduled</p>
+              <p className="text-xs text-muted-foreground mt-1">Scheduled</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-neutral-900">{pipelineCount}</p>
-              <p className="text-xs text-slate-600 mt-1">New requests</p>
+              <p className="text-xs text-muted-foreground mt-1">New requests</p>
             </div>
           </div>
         </CardContent>

@@ -298,15 +298,15 @@ export default function AgentSettingsPage() {
           <div className="rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-100">
             Workspace users can message this number from the personal mobile saved on their Earlymark user account. End customers are not authorized on this channel.
           </div>
-          <div className="relative overflow-hidden rounded-[18px] border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900">
-            <div className="pointer-events-none absolute inset-0 bg-white/58 backdrop-blur-[1px] dark:bg-slate-950/48" />
+          <div className="relative overflow-hidden rounded-[18px] border border-border bg-muted/30 p-4 dark:border-slate-700 dark:bg-slate-900">
+            <div className="pointer-events-none absolute inset-0 bg-card/58 backdrop-blur-[1px] dark:bg-slate-950/48" />
             <div className="pointer-events-none absolute right-4 top-4 rounded-full border border-amber-300 bg-amber-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-900 dark:border-amber-800 dark:bg-amber-950/70 dark:text-amber-100">
               Beta
             </div>
-            <div className="relative flex items-center justify-between rounded-[16px] border border-slate-200 p-4 dark:border-slate-700">
+            <div className="relative flex items-center justify-between rounded-[16px] border border-border p-4 dark:border-slate-700">
             <div>
               <p className="font-medium text-sm">Assistant Number</p>
-              <p className="text-lg font-mono text-slate-700 dark:text-slate-300 select-all">
+              <p className="text-lg font-mono text-foreground dark:text-slate-300 select-all">
                 {whatsappNumber}
               </p>
             </div>

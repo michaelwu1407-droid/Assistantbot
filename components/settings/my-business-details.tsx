@@ -10,7 +10,7 @@ interface MyBusinessDetailsProps {
 
 export function MyBusinessDetails({ workspaceId, initialData }: MyBusinessDetailsProps) {
   return (
-    <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+    <Card className="border-border dark:border-slate-800 shadow-sm">
       <CardHeader>
         <CardTitle>Business name and service area</CardTitle>
         <CardDescription>

@@ -27,14 +27,14 @@ export function CommissionCalculator() {
     };
 
     return (
-        <Card className="h-full border-slate-200 shadow-sm overflow-hidden">
+        <Card className="h-full border-border shadow-sm overflow-hidden">
             <div className="bg-slate-900 p-4 border-b border-slate-800">
                 <div className="flex items-center justify-between">
                     <h3 className="text-white font-semibold flex items-center gap-2">
                         <Calculator className="h-4 w-4 text-emerald-400" />
                         Commission Calculator
                     </h3>
-                    <TrendingUp className="h-4 w-4 text-slate-400" />
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </div>
             </div>
 
@@ -42,17 +42,17 @@ export function CommissionCalculator() {
                 {/* Sale Price Input */}
                 <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                        <Label className="text-slate-600 font-medium">Sale Price</Label>
-                        <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full font-mono">
+                        <Label className="text-muted-foreground font-medium">Sale Price</Label>
+                        <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full font-mono">
                             {formatCurrency(salePrice)}
                         </span>
                     </div>
                     <div className="relative">
-                        <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                        <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
                             value={salePrice.toLocaleString()}
                             onChange={handlePriceChange}
-                            className="pl-9 font-bold text-lg border-slate-200 focus:ring-emerald-500/20 focus:border-emerald-500"
+                            className="pl-9 font-bold text-lg border-border focus:ring-emerald-500/20 focus:border-emerald-500"
                         />
                     </div>
                     <Slider
@@ -69,7 +69,7 @@ export function CommissionCalculator() {
                     {/* Commission Rate */}
                     <div className="space-y-4">
                         <div className="flex justify-between items-center">
-                            <Label className="text-slate-600">Rate</Label>
+                            <Label className="text-muted-foreground">Rate</Label>
                             <span className="text-sm font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded">
                                 {commissionRate.toFixed(1)}%
                             </span>
@@ -87,7 +87,7 @@ export function CommissionCalculator() {
                     {/* Agency Split */}
                     <div className="space-y-4">
                         <div className="flex justify-between items-center">
-                            <Label className="text-slate-600">Your Split</Label>
+                            <Label className="text-muted-foreground">Your Split</Label>
                             <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">
                                 {agencySplit}%
                             </span>
@@ -104,25 +104,25 @@ export function CommissionCalculator() {
                 </div>
 
                 {/* Results Section */}
-                <div className="bg-slate-50 rounded-xl p-6 border border-slate-100 space-y-4">
-                    <div className="flex justify-between items-center pb-4 border-b border-slate-100">
-                        <span className="text-sm text-slate-500">Total Commission</span>
-                        <span className="font-semibold text-slate-700">{formatCurrency(grossCommission)}</span>
+                <div className="bg-muted/30 rounded-xl p-6 border border-border/50 space-y-4">
+                    <div className="flex justify-between items-center pb-4 border-b border-border/50">
+                        <span className="text-sm text-muted-foreground">Total Commission</span>
+                        <span className="font-semibold text-foreground">{formatCurrency(grossCommission)}</span>
                     </div>
 
-                    <div className="flex justify-between items-center pb-4 border-b border-slate-100">
-                        <span className="text-sm text-slate-500">Agency Cut ({100 - agencySplit}%)</span>
-                        <span className="font-medium text-slate-400">{formatCurrency(agencyKeep)}</span>
+                    <div className="flex justify-between items-center pb-4 border-b border-border/50">
+                        <span className="text-sm text-muted-foreground">Agency Cut ({100 - agencySplit}%)</span>
+                        <span className="font-medium text-muted-foreground">{formatCurrency(agencyKeep)}</span>
                     </div>
 
                     <div className="pt-2">
                         <div className="flex justify-between items-baseline mb-1">
-                            <span className="text-sm font-bold text-slate-700 uppercase tracking-wide">Your Take Home</span>
+                            <span className="text-sm font-bold text-foreground uppercase tracking-wide">Your Take Home</span>
                             <span className="text-2xl font-black text-emerald-600 tracking-tight">
                                 {formatCurrency(agentTakeHome)}
                             </span>
                         </div>
-                        <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden flex">
+                        <div className="w-full h-2 bg-muted rounded-full overflow-hidden flex">
                             <div
                                 className="h-full bg-emerald-500 transition-all duration-500 ease-out"
                                 style={{ width: `${agencySplit}%` }}

@@ -88,7 +88,7 @@ export function MaterialPicker({ onSelect, trigger, workspaceId: propWorkspaceId
     <>
       <div onClick={() => setOpen(true)} className="cursor-pointer inline-block">
         {trigger || (
-          <Button variant="outline" size="sm" className="gap-2 bg-slate-900 border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-white">
+          <Button variant="outline" size="sm" className="gap-2 bg-slate-900 border-slate-800 hover:bg-slate-800 text-muted-foreground hover:text-white">
             <Search className="h-4 w-4" />
             Search
           </Button>
@@ -105,18 +105,18 @@ export function MaterialPicker({ onSelect, trigger, workspaceId: propWorkspaceId
               placeholder="Search database..."
               value={search}
               onValueChange={setSearch}
-              className="border-none focus:ring-0 text-slate-50 placeholder:text-slate-500"
+              className="border-none focus:ring-0 text-slate-50 placeholder:text-muted-foreground"
             />
             <CommandList>
               {loading && (
-                <div className="py-6 text-center text-sm text-slate-500">
+                <div className="py-6 text-center text-sm text-muted-foreground">
                   Searching...
                 </div>
               )}
 
               {!loading && results.length === 0 && (
                 <CommandEmpty className="py-6 text-center">
-                  <p className="text-sm text-slate-500 mb-2">No materials found.</p>
+                  <p className="text-sm text-muted-foreground mb-2">No materials found.</p>
                   <Button
                     variant="outline"
                     size="sm"
@@ -156,7 +156,7 @@ export function MaterialPicker({ onSelect, trigger, workspaceId: propWorkspaceId
                         </span>
                       </div>
                       {material.description && (
-                        <p className="text-xs text-slate-500 line-clamp-1">{material.description}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-1">{material.description}</p>
                       )}
                     </CommandItem>
                   ))}

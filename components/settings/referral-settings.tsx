@@ -54,9 +54,9 @@ export function ReferralSettings({ userId }: { userId: string }) {
       <Card>
         <CardContent className="p-6">
           <div className="animate-pulse space-y-4">
-            <div className="h-4 bg-gray-200 rounded w-1/3"></div>
-            <div className="h-8 bg-gray-200 rounded w-full"></div>
-            <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+            <div className="h-4 bg-muted rounded w-1/3"></div>
+            <div className="h-8 bg-muted rounded w-full"></div>
+            <div className="h-4 bg-muted rounded w-2/3"></div>
           </div>
         </CardContent>
       </Card>
@@ -96,7 +96,7 @@ export function ReferralSettings({ userId }: { userId: string }) {
               </div>
             </div>
           ) : (
-            <div className="py-4 text-center text-gray-500">
+            <div className="py-4 text-center text-muted-foreground">
               {isReferralUnavailable ? "Referral program unavailable in this environment" : "No active referral program"}
             </div>
           )}
@@ -115,19 +115,19 @@ export function ReferralSettings({ userId }: { userId: string }) {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-blue-900">{stats.totalClicks}</div>
-                <div className="text-xs text-gray-600">Total Clicks</div>
+                <div className="text-xs text-muted-foreground">Total Clicks</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-blue-900">{stats.totalSignups}</div>
-                <div className="text-xs text-gray-600">Signups</div>
+                <div className="text-xs text-muted-foreground">Signups</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-900">{stats.totalConversions}</div>
-                <div className="text-xs text-gray-600">Conversions</div>
+                <div className="text-xs text-muted-foreground">Conversions</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-900">{stats.totalConversions}</div>
-                <div className="text-xs text-gray-600">Months at 50% off</div>
+                <div className="text-xs text-muted-foreground">Months at 50% off</div>
               </div>
             </div>
           </CardContent>
@@ -142,7 +142,7 @@ export function ReferralSettings({ userId }: { userId: string }) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="bg-gray-50 rounded-lg p-4">
+          <div className="bg-muted/30 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium">Share this link:</span>
               <Badge variant="secondary">{stats?.totalReferrals || 0} referrals</Badge>
@@ -152,7 +152,7 @@ export function ReferralSettings({ userId }: { userId: string }) {
                 type="text"
                 value={referralLink}
                 readOnly
-                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md bg-white"
+                className="flex-1 px-3 py-2 text-sm border border-border rounded-md bg-card"
               />
               <Button
                 onClick={copyToClipboard}
@@ -176,7 +176,7 @@ export function ReferralSettings({ userId }: { userId: string }) {
             </div>
           </div>
 
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-muted-foreground">
             {referralLink
               ? "Share this link with friends. Each successful referral adds one more month at 50% off your subscription."
               : "Referral links are unavailable until the database-backed referral program is configured."}

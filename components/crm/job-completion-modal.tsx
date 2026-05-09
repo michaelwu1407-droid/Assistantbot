@@ -12,6 +12,7 @@ import { CheckCircle, Star, DollarSign, Camera, ExternalLink } from "lucide-reac
 import { toast } from "sonner"
 import { sendReviewRequestSMS } from "@/actions/messaging-actions"
 import { requestPaymentForDeal } from "@/actions/followup-actions"
+import { formatCurrency } from "@/lib/format"
 
 interface JobCompletionModalProps {
   open: boolean
@@ -140,7 +141,7 @@ export function JobCompletionModal({ open, onOpenChange, deal, onComplete }: Job
           >
             <Star
               className={`h-6 w-6 ${
-                star <= rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+                star <= rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"
               }`}
             />
           </button>
@@ -171,19 +172,19 @@ export function JobCompletionModal({ open, onOpenChange, deal, onComplete }: Job
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm text-gray-500">Client</Label>
+                  <Label className="text-sm text-muted-foreground">Client</Label>
                   <p className="font-medium">{deal.contactName}</p>
                 </div>
                 <div>
-                  <Label className="text-sm text-gray-500">Value</Label>
-                  <p className="font-medium text-green-600">${deal.value.toLocaleString()}</p>
+                  <Label className="text-sm text-muted-foreground">Value</Label>
+                  <p className="font-medium text-green-600">{formatCurrency(deal.value)}</p>
                 </div>
                 <div className="col-span-2">
-                  <Label className="text-sm text-gray-500">Address</Label>
+                  <Label className="text-sm text-muted-foreground">Address</Label>
                   <p className="font-medium">{deal.address || "No address provided"}</p>
                 </div>
                 <div className="col-span-2">
-                  <Label className="text-sm text-gray-500">Description</Label>
+                  <Label className="text-sm text-muted-foreground">Description</Label>
                   <p className="text-sm">{deal.description || "No description provided"}</p>
                 </div>
               </div>
@@ -200,7 +201,7 @@ export function JobCompletionModal({ open, onOpenChange, deal, onComplete }: Job
               <div>
                 <Label>Job Quality Rating</Label>
                 {renderStars(reviewData.rating, handleRatingChange)}
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   {reviewData.rating === 0 && "Click to rate"}
                   {reviewData.rating === 1 && "Poor"}
                   {reviewData.rating === 2 && "Fair"}
@@ -212,7 +213,7 @@ export function JobCompletionModal({ open, onOpenChange, deal, onComplete }: Job
               <div>
                 <Label>Client Satisfaction</Label>
                 {renderStars(reviewData.clientSatisfaction, handleSatisfactionChange)}
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   How satisfied was the client with the work?
                 </p>
               </div>
@@ -318,12 +319,12 @@ export function JobCompletionModal({ open, onOpenChange, deal, onComplete }: Job
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <div className="rounded border border-slate-200 bg-slate-50 px-3 py-3 w-full">
-                    <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <div className="rounded border border-border bg-muted/30 px-3 py-3 w-full">
+                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                       <Camera className="h-4 w-4" />
                       Include job photos in customer follow-up
                     </div>
-                    <p className="mt-1 text-xs text-slate-500">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       Attach and send photos from the full CRM job view so customer history, files, and messaging stay together.
                     </p>
                     <Button asChild variant="outline" size="sm" className="mt-3">

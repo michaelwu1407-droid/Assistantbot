@@ -33,10 +33,10 @@ export function BillingSuccessState({
           <CheckCircle2 className="h-8 w-8 text-primary" />
         </div>
         <h1 className="text-3xl font-extrabold tracking-tight text-midnight">{title}</h1>
-        <p className="mt-3 text-sm leading-6 text-slate-600">{description}</p>
+        <p className="mt-3 text-sm leading-6 text-muted-foreground">{description}</p>
 
         {detail ? (
-          <div className="mt-5 rounded-[20px] border border-primary/15 bg-primary/5 px-4 py-3 text-sm text-slate-700">
+          <div className="mt-5 rounded-[20px] border border-primary/15 bg-primary/5 px-4 py-3 text-sm text-foreground">
             <div className="flex items-center justify-center gap-2">
               <Phone className="h-4 w-4 text-primary" />
               <span>{detail}</span>
@@ -44,7 +44,7 @@ export function BillingSuccessState({
           </div>
         ) : null}
 
-        <div className="mt-6 flex items-center justify-center gap-2 text-sm text-slate-500">
+        <div className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span>Taking you to the next step…</span>
         </div>

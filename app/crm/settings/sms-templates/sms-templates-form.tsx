@@ -70,17 +70,17 @@ export function SmsTemplatesForm({ initialTemplates }: SmsTemplatesFormProps) {
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-slate-500">
-        Use <code className="bg-slate-100 px-1 py-0.5 rounded text-[11px]">[Name]</code> to insert the client&apos;s name and{" "}
-        <code className="bg-slate-100 px-1 py-0.5 rounded text-[11px]">[ReviewRequest]</code> for the feedback ask with link.{" "}
-        <code className="bg-slate-100 px-1 py-0.5 rounded text-[11px]">[Link]</code> inserts the raw feedback link only.
+      <p className="text-xs text-muted-foreground">
+        Use <code className="bg-muted px-1 py-0.5 rounded text-[11px]">[Name]</code> to insert the client&apos;s name and{" "}
+        <code className="bg-muted px-1 py-0.5 rounded text-[11px]">[ReviewRequest]</code> for the feedback ask with link.{" "}
+        <code className="bg-muted px-1 py-0.5 rounded text-[11px]">[Link]</code> inserts the raw feedback link only.
       </p>
 
       {templates.map((tpl) => {
         const meta = TRIGGER_META[tpl.triggerEvent];
         const Icon = meta.icon;
         return (
-          <Card key={tpl.triggerEvent} className="border-slate-200 dark:border-slate-800">
+          <Card key={tpl.triggerEvent} className="border-border dark:border-slate-800">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">

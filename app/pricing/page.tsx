@@ -107,20 +107,20 @@ function FaqSection() {
       {FAQ_ITEMS.map((item, idx) => {
         const isOpen = openIndices.includes(idx)
         return (
-          <div key={idx} className="border border-border rounded-[18px] overflow-hidden bg-white">
+          <div key={idx} className="border border-border rounded-[18px] overflow-hidden bg-card">
             <button
               onClick={() => toggle(idx)}
-              className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-50 transition-colors"
+              className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-muted/30 transition-colors"
             >
               <span className="font-semibold text-midnight text-sm pr-4">{item.q}</span>
               <ChevronDown
-                className={`w-5 h-5 text-slate-400 shrink-0 transition-transform duration-200 ${
+                className={`w-5 h-5 text-muted-foreground shrink-0 transition-transform duration-200 ${
                   isOpen ? "rotate-180" : ""
                 }`}
               />
             </button>
             <div className={`transition-all duration-200 overflow-hidden ${isOpen ? "max-h-60" : "max-h-0"}`}>
-              <p className="px-5 pb-4 text-sm text-slate-600 leading-relaxed">{item.a}</p>
+              <p className="px-5 pb-4 text-sm text-muted-foreground leading-relaxed">{item.a}</p>
             </div>
           </div>
         )
@@ -181,7 +181,7 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-slate-900">
+    <div className="min-h-screen bg-background text-foreground">
       <Navbar />
 
       <main>
@@ -204,7 +204,7 @@ export default function PricingPage() {
             >
               One plan. Everything included.
             </motion.h1>
-            <motion.p {...fadeUp(0.08)} className="text-lg leading-8 text-slate-600 max-w-xl text-balance">
+            <motion.p {...fadeUp(0.08)} className="text-lg leading-8 text-muted-foreground max-w-xl text-balance">
               A$30/month platform. 10¢ per call minute or text. That&apos;s it.
             </motion.p>
           </div>
@@ -215,14 +215,14 @@ export default function PricingPage() {
           <div className="max-w-5xl mx-auto">
             {/* Toggle */}
             <motion.div {...fadeUp(0.12)} className="flex justify-center mb-12">
-              <div className="flex items-center gap-2 p-1.5 bg-slate-100 rounded-[18px]">
+              <div className="flex items-center gap-2 p-1.5 bg-muted rounded-[18px]">
                 <button
                   type="button"
                   onClick={() => setBillingPeriod("monthly")}
                   className={`py-2.5 px-6 rounded-[18px] text-sm font-semibold transition-all shadow-sm ${
                     billingPeriod === "monthly"
-                      ? "bg-white text-midnight"
-                      : "text-slate-500 hover:text-midnight shadow-none bg-transparent"
+                      ? "bg-card text-midnight"
+                      : "text-muted-foreground hover:text-midnight shadow-none bg-transparent"
                   }`}
                 >
                   Monthly
@@ -233,8 +233,8 @@ export default function PricingPage() {
                     onClick={() => setBillingPeriod("yearly")}
                     className={`py-2.5 px-6 rounded-[18px] text-sm font-semibold transition-all shadow-sm ${
                       billingPeriod === "yearly"
-                        ? "bg-white text-midnight"
-                        : "text-slate-500 hover:text-midnight shadow-none bg-transparent"
+                        ? "bg-card text-midnight"
+                        : "text-muted-foreground hover:text-midnight shadow-none bg-transparent"
                     }`}
                   >
                     Yearly
@@ -249,39 +249,39 @@ export default function PricingPage() {
             {/* Comparison Grid */}
             <motion.div {...fadeUp(0.16)} className="grid md:grid-cols-2 gap-6 items-end">
               {/* Left Column: Job Management Software */}
-              <div className="rounded-[18px] border border-slate-200 bg-slate-50 p-8 opacity-80 flex flex-col items-center text-center">
-                <h3 className="text-xl font-bold text-slate-500 mb-1">Job Management Software</h3>
-                <div className="text-xs text-slate-400 mb-3">ServiceM8 / Tradify / Jobber</div>
-                <div className="text-4xl font-extrabold text-slate-400 mb-1">$39–69</div>
-                <div className="text-sm font-semibold text-slate-400 mb-2">/month</div>
-                <div className="text-xs text-slate-500 mb-8 max-w-[220px]">Plus you still answer every call yourself</div>
+              <div className="rounded-[18px] border border-border bg-muted/30 p-8 opacity-80 flex flex-col items-center text-center">
+                <h3 className="text-xl font-bold text-muted-foreground mb-1">Job Management Software</h3>
+                <div className="text-xs text-muted-foreground mb-3">ServiceM8 / Tradify / Jobber</div>
+                <div className="text-4xl font-extrabold text-muted-foreground mb-1">$39–69</div>
+                <div className="text-sm font-semibold text-muted-foreground mb-2">/month</div>
+                <div className="text-xs text-muted-foreground mb-8 max-w-[220px]">Plus you still answer every call yourself</div>
 
                 <ul className="text-left w-full space-y-4 mb-10">
-                  <li className="flex items-start gap-3 text-sm text-slate-500">
+                  <li className="flex items-start gap-3 text-sm text-muted-foreground">
                     <X className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
                     No AI receptionist — you answer every call
                   </li>
-                  <li className="flex items-start gap-3 text-sm text-slate-500">
+                  <li className="flex items-start gap-3 text-sm text-muted-foreground">
                     <X className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
                     No after-hours call handling
                   </li>
-                  <li className="flex items-start gap-3 text-sm text-slate-500">
+                  <li className="flex items-start gap-3 text-sm text-muted-foreground">
                     <X className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
                     No automated SMS follow-ups
                   </li>
-                  <li className="flex items-start gap-3 text-sm text-slate-500">
+                  <li className="flex items-start gap-3 text-sm text-muted-foreground">
                     <X className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
                     No voice agent that knows your business
                   </li>
-                  <li className="flex items-start gap-3 text-sm text-slate-500">
+                  <li className="flex items-start gap-3 text-sm text-muted-foreground">
                     <X className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
                     CRM only — no lead capture from calls
                   </li>
-                  <li className="flex items-start gap-3 text-sm text-slate-500">
+                  <li className="flex items-start gap-3 text-sm text-muted-foreground">
                     <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
                     Still need a separate phone system
                   </li>
-                  <li className="flex items-start gap-3 text-sm text-slate-500">
+                  <li className="flex items-start gap-3 text-sm text-muted-foreground">
                     <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
                     Manual data entry for every job
                   </li>
@@ -290,14 +290,14 @@ export default function PricingPage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="w-full text-slate-400 border-slate-200 cursor-not-allowed hover:bg-transparent hover:text-slate-400 pointer-events-none"
+                  className="w-full text-muted-foreground border-border cursor-not-allowed hover:bg-transparent hover:text-muted-foreground pointer-events-none"
                 >
                   Just a job tracker
                 </Button>
               </div>
 
               {/* Right Column: Earlymark Pro */}
-              <div className="rounded-[18px] border-2 border-primary bg-white shadow-2xl shadow-primary/10 p-8 relative flex flex-col items-center text-center -mt-6">
+              <div className="rounded-[18px] border-2 border-primary bg-card shadow-2xl shadow-primary/10 p-8 relative flex flex-col items-center text-center -mt-6">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
                   <span className="bg-primary text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                     Recommended
@@ -307,44 +307,44 @@ export default function PricingPage() {
                 <div className="text-5xl font-extrabold text-midnight mb-1">
                   {billingPeriod === "monthly" ? "A$30" : "A$24"}
                 </div>
-                <div className="text-sm font-semibold text-slate-500 mb-1">
+                <div className="text-sm font-semibold text-muted-foreground mb-1">
                   {billingPeriod === "monthly" ? "/month" : "/month, billed annually at A$288"}
                 </div>
                 <div className="text-sm font-semibold text-primary mb-2">
                   + 10¢ per call minute or text
                 </div>
-                <div className="text-xs text-slate-500 mb-8 max-w-[240px]">
+                <div className="text-xs text-muted-foreground mb-8 max-w-[240px]">
                   {billingPeriod === "monthly"
                     ? "Cancel anytime. No lock-in contracts."
                     : "Save 20% on the base fee. Promo codes accepted at checkout."}
                 </div>
 
                 <ul className="text-left w-full space-y-4 mb-10">
-                  <li className="flex items-start gap-3 text-sm text-slate-700 font-medium">
+                  <li className="flex items-start gap-3 text-sm text-foreground font-medium">
                     <Check className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                     Available 24/7/365
                   </li>
-                  <li className="flex items-start gap-3 text-sm text-slate-700 font-medium">
+                  <li className="flex items-start gap-3 text-sm text-foreground font-medium">
                     <Check className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                     Answers instantly as your business
                   </li>
-                  <li className="flex items-start gap-3 text-sm text-slate-700 font-medium">
+                  <li className="flex items-start gap-3 text-sm text-foreground font-medium">
                     <Check className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                     Automated quote follow-up sequences
                   </li>
-                  <li className="flex items-start gap-3 text-sm text-slate-700 font-medium">
+                  <li className="flex items-start gap-3 text-sm text-foreground font-medium">
                     <Check className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                     No hold times. No sick leaves.
                   </li>
-                  <li className="flex items-start gap-3 text-sm text-slate-700 font-medium">
+                  <li className="flex items-start gap-3 text-sm text-foreground font-medium">
                     <Check className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                     Learns once. Remembers forever.
                   </li>
-                  <li className="flex items-start gap-3 text-sm text-slate-700 font-medium">
+                  <li className="flex items-start gap-3 text-sm text-foreground font-medium">
                     <Check className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                     Captures all after-hours leads
                   </li>
-                  <li className="flex items-start gap-3 text-sm text-slate-700 font-medium">
+                  <li className="flex items-start gap-3 text-sm text-foreground font-medium">
                     <Check className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                     Updates CRM in real-time
                   </li>
@@ -365,11 +365,11 @@ export default function PricingPage() {
         </section>
 
         {/* ── 3. ROI Justification ── */}
-        <section className="py-10 md:py-20 px-6 bg-white border-t border-slate-200/60">
+        <section className="py-10 md:py-20 px-6 bg-card border-t border-border/60">
           <div className="max-w-4xl mx-auto">
             <motion.div {...fadeUp()} className="text-center mb-14">
               <h2 className="text-3xl font-extrabold text-midnight">Pays for itself by saving 1 missed job</h2>
-              <p className="mt-3 text-slate-600 max-w-2xl mx-auto">
+              <p className="mt-3 text-muted-foreground max-w-2xl mx-auto">
                 Stop losing money on missed calls, forgotten follow-ups, and wasted admin hours.
               </p>
             </motion.div>
@@ -379,10 +379,10 @@ export default function PricingPage() {
                 <motion.div
                   key={i}
                   {...fadeUp(0.1 + i * 0.1)}
-                  className="bg-slate-50/50 rounded-[18px] p-8 border border-slate-200 shadow-sm text-center flex flex-col items-center justify-center"
+                  className="bg-muted/20 rounded-[18px] p-8 border border-border shadow-sm text-center flex flex-col items-center justify-center"
                 >
                   <div className="text-4xl font-extrabold text-primary mb-3">{stat.value}</div>
-                  <div className="text-sm font-semibold text-slate-600">{stat.label}</div>
+                  <div className="text-sm font-semibold text-muted-foreground">{stat.label}</div>
                 </motion.div>
               ))}
             </div>
@@ -390,11 +390,11 @@ export default function PricingPage() {
         </section>
 
         {/* ── 4. Feature Grid ── */}
-        <section className="py-10 md:py-20 px-6 bg-[#F8FAFC] border-t border-slate-200/60">
+        <section className="py-10 md:py-20 px-6 bg-[#F8FAFC] border-t border-border/60">
           <div className="max-w-5xl mx-auto">
             <motion.div {...fadeUp()} className="text-center mb-14">
               <h2 className="text-3xl font-extrabold text-midnight">Everything you need is included</h2>
-              <p className="mt-3 text-slate-600">No add-ons, no hidden modules. You get the full platform from day one.</p>
+              <p className="mt-3 text-muted-foreground">No add-ons, no hidden modules. You get the full platform from day one.</p>
             </motion.div>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -404,14 +404,14 @@ export default function PricingPage() {
                   <motion.div
                     key={f.title}
                     {...fadeUp(0.1 + i * 0.05)}
-                    className="bg-white border border-slate-100 p-5 rounded-[18px] flex flex-col items-start gap-4 hover:shadow-md transition-shadow"
+                    className="bg-card border border-border/50 p-5 rounded-[18px] flex flex-col items-start gap-4 hover:shadow-md transition-shadow"
                   >
                     <div className="w-10 h-10 rounded-[18px] bg-emerald-100 flex items-center justify-center">
                       <Icon className="w-5 h-5 text-primary" />
                     </div>
                     <div>
                       <h4 className="font-bold text-midnight text-sm mb-1">{f.title}</h4>
-                      <p className="text-xs text-slate-600 leading-relaxed">{f.description}</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{f.description}</p>
                     </div>
                   </motion.div>
                 )
@@ -421,7 +421,7 @@ export default function PricingPage() {
         </section>
 
         {/* ── 5. FAQ ── */}
-        <section className="py-10 md:py-20 px-6 bg-white border-t border-slate-200/60">
+        <section className="py-10 md:py-20 px-6 bg-card border-t border-border/60">
           <div className="max-w-3xl mx-auto">
             <motion.div {...fadeUp()} className="text-center mb-10">
               <h2 className="text-3xl font-extrabold text-midnight">Pricing questions</h2>
@@ -434,11 +434,11 @@ export default function PricingPage() {
         </section>
 
         {/* ── 6. Contact Form ── */}
-        <section id="contact-form" className="py-10 md:py-20 px-6 bg-[#F8FAFC] border-t border-slate-200/60 scroll-mt-20">
+        <section id="contact-form" className="py-10 md:py-20 px-6 bg-[#F8FAFC] border-t border-border/60 scroll-mt-20">
           <div className="container mx-auto max-w-xl">
             <motion.div {...fadeUp()} className="text-center mb-10">
               <h2 className="text-3xl font-extrabold text-midnight">Still have questions?</h2>
-              <p className="text-slate-600 mt-2">Get in touch with the team.</p>
+              <p className="text-muted-foreground mt-2">Get in touch with the team.</p>
             </motion.div>
 
             <motion.div {...fadeUp(0.1)}>
@@ -454,11 +454,11 @@ export default function PricingPage() {
                           {callPlaced ? "Tracey is calling you now" : "Message sent"}
                         </h2>
                         {callPlaced && (
-                          <p className="text-sm text-slate-600 mt-1">
+                          <p className="text-sm text-muted-foreground mt-1">
                             Pick up - Tracey will be on the line in a few seconds.
                           </p>
                         )}
-                        <p className="text-sm text-slate-600 mt-1" hidden={callPlaced}>
+                        <p className="text-sm text-muted-foreground mt-1" hidden={callPlaced}>
                           Thanks for reaching out. We’ll get back to you within 24 hours.
                         </p>
                       </div>
@@ -476,7 +476,7 @@ export default function PricingPage() {
                   </CardContent>
                 </Card>
               ) : (
-                <Card className="rounded-[18px] border border-border shadow-sm bg-white">
+                <Card className="rounded-[18px] border border-border shadow-sm bg-card">
                   <CardHeader className="px-8 pt-8 pb-0">
                     <CardTitle className="text-midnight">Get in touch</CardTitle>
                     <CardDescription>Choose the team that best fits your question.</CardDescription>
@@ -486,7 +486,7 @@ export default function PricingPage() {
                       <div className="space-y-2">
                         <Label htmlFor="department">Department</Label>
                         <Select value={department} onValueChange={setDepartment}>
-                          <SelectTrigger id="department" className="bg-slate-50/50">
+                          <SelectTrigger id="department" className="bg-muted/20">
                             <SelectValue placeholder="Select a department" />
                           </SelectTrigger>
                           <SelectContent>
@@ -509,7 +509,7 @@ export default function PricingPage() {
                             name="name"
                             placeholder="Your name"
                             required
-                            className="bg-slate-50/50"
+                            className="bg-muted/20"
                           />
                         </div>
                         <div className="space-y-2">
@@ -520,7 +520,7 @@ export default function PricingPage() {
                             type="email"
                             placeholder="you@example.com"
                             required
-                            className="bg-slate-50/50"
+                            className="bg-muted/20"
                           />
                         </div>
                       </div>
@@ -532,9 +532,9 @@ export default function PricingPage() {
                           name="phone"
                           type="tel"
                           placeholder="+61 400 000 000"
-                          className="bg-slate-50/50"
+                          className="bg-muted/20"
                         />
-                        <p className="text-xs text-slate-600">
+                        <p className="text-xs text-muted-foreground">
                           Add your phone if you want Tracey to call you back right away.
                         </p>
                       </div>
@@ -546,7 +546,7 @@ export default function PricingPage() {
                           name="subject"
                           placeholder="Brief summary of your enquiry"
                           required
-                          className="bg-slate-50/50"
+                          className="bg-muted/20"
                         />
                       </div>
 
@@ -557,7 +557,7 @@ export default function PricingPage() {
                           name="message"
                           placeholder="Tell us how we can help..."
                           rows={4}
-                          className="rounded-[18px] border-border bg-slate-50/50 resize-none"
+                          className="rounded-[18px] border-border bg-muted/20 resize-none"
                           required
                         />
                       </div>
@@ -601,7 +601,7 @@ export default function PricingPage() {
                 </Button>
               </Link>
               <Link href="/#interview-assistant">
-                <Button size="lg" variant="ghost" className="text-white border border-white/30 hover:bg-white/10">
+                <Button size="lg" variant="ghost" className="text-white border border-white/30 hover:bg-card/10">
                   Interview Tracey for free
                 </Button>
               </Link>

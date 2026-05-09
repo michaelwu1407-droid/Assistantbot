@@ -13,10 +13,10 @@ export function Breadcrumbs({ className }: { className?: string }) {
     if (segments.length === 0 || (segments.length === 1 && segments[0] === "dashboard")) return null
 
     return (
-        <nav aria-label="Breadcrumb" className={cn("hidden md:flex items-center text-sm text-slate-500", className)}>
+        <nav aria-label="Breadcrumb" className={cn("hidden md:flex items-center text-sm text-muted-foreground", className)}>
             <Link
                 href="/crm/dashboard"
-                className="flex items-center hover:text-slate-900 transition-colors"
+                className="flex items-center hover:text-foreground transition-colors"
             >
                 <Home className="h-4 w-4" />
             </Link>
@@ -31,15 +31,15 @@ export function Breadcrumbs({ className }: { className?: string }) {
 
                 return (
                     <div key={href} className="flex items-center">
-                        <ChevronRight className="h-4 w-4 mx-1 text-slate-400" />
+                        <ChevronRight className="h-4 w-4 mx-1 text-muted-foreground" />
                         {isLast ? (
-                            <span className="font-medium text-slate-900 pointer-events-none">
+                            <span className="font-medium text-foreground pointer-events-none">
                                 {title}
                             </span>
                         ) : (
                             <Link
                                 href={href}
-                                className="hover:text-slate-900 transition-colors"
+                                className="hover:text-foreground transition-colors"
                             >
                                 {title}
                             </Link>

@@ -47,15 +47,15 @@ const handbookSections: { title: string; content: React.ReactNode }[] = [
         <p>Change this any time in <strong>Settings - AI Assistant</strong>.</p>
         <div className="space-y-2">
           <div>
-            <p className="font-medium text-slate-700 dark:text-slate-300">Execution</p>
+            <p className="font-medium text-foreground dark:text-slate-300">Execution</p>
             <p>Tracey acts directly without waiting for approval.</p>
           </div>
           <div>
-            <p className="font-medium text-slate-700 dark:text-slate-300">Review &amp; approve</p>
+            <p className="font-medium text-foreground dark:text-slate-300">Review &amp; approve</p>
             <p>Tracey drafts actions first and you confirm them.</p>
           </div>
           <div>
-            <p className="font-medium text-slate-700 dark:text-slate-300">Info only</p>
+            <p className="font-medium text-foreground dark:text-slate-300">Info only</p>
             <p>Tracey collects information and answers questions without making commitments.</p>
           </div>
         </div>
@@ -141,10 +141,10 @@ export default function HelpSettingsPage() {
           Tracey handbook
         </h3>
         {handbookSections.map((section) => (
-          <details key={section.title} className="group rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950">
+          <details key={section.title} className="group rounded-xl border border-border dark:border-slate-800 bg-card dark:bg-slate-950">
             <summary className="list-none cursor-pointer px-4 py-3 flex items-center justify-between">
               <span className="font-medium text-sm">{section.title}</span>
-              <span className="text-slate-500 transition-transform group-open:rotate-180">v</span>
+              <span className="text-muted-foreground transition-transform group-open:rotate-180">v</span>
             </summary>
             <div className="px-4 pb-4 text-sm text-muted-foreground leading-relaxed">{section.content}</div>
           </details>

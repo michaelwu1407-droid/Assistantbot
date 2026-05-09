@@ -331,7 +331,7 @@ export function InboxView({
       case "system":
         return {
           icon: <Settings className="h-4 w-4" />,
-          containerClass: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400",
+          containerClass: "bg-muted text-muted-foreground dark:bg-slate-800 dark:text-muted-foreground",
           label: "System",
         }
       case "note":
@@ -573,7 +573,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
                       "w-full text-left p-3 border-b border-border/10 transition-all flex gap-3",
                       isSelected
                         ? "bg-primary/10 border-l-4 border-l-primary"
-                        : "border-l-4 border-l-transparent hover:bg-white/5"
+                        : "border-l-4 border-l-transparent hover:bg-card/5"
                     )}
                   >
                     <div className="h-9 w-9 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 text-sm font-semibold">
@@ -610,7 +610,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
           {selectedContact ? (
             <>
               {/* Header: Name + Action buttons */}
-              <div className="h-14 border-b border-border/40 flex items-center px-4 justify-between shrink-0 bg-white/5">
+              <div className="h-14 border-b border-border/40 flex items-center px-4 justify-between shrink-0 bg-card/5">
                 <div className="flex items-center gap-3 min-w-0">
                   <button onClick={() => setSelectedId(null)} className="md:hidden h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
                     <ArrowLeft className="h-4 w-4" />
@@ -854,7 +854,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
               </div>
 
               {/* Bottom: Ask Tracey vs direct SMS (workspace Twilio) */}
-              <div className="border-t border-border/40 p-3 bg-white/5 shrink-0">
+              <div className="border-t border-border/40 p-3 bg-card/5 shrink-0">
                 <p id="inbox-composer-mode-label" className="mb-1.5 app-field-label text-[11px] uppercase tracking-wide text-muted-foreground">
                   Who sends the next message?
                 </p>
@@ -981,7 +981,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
                   <p className="app-body-secondary mt-1 text-xs text-red-400">No phone number on file - add one to send direct messages.</p>
                 )}
                 {messageMode === "direct" && !!selectedContact.phone && (
-                  <p className={cn("app-body-secondary mt-1 text-right text-xs", messageText.length > 160 ? "text-red-500 font-medium" : "text-muted-foreground")}>
+                  <p className={cn("app-body-secondary mt-1 text-right text-xs", messageText.length > 160 ? "text-destructive font-medium" : "text-muted-foreground")}>
                     {messageText.length}/160 characters
                   </p>
                 )}

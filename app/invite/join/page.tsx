@@ -127,7 +127,7 @@ function JoinByInviteContent() {
         <Card className="w-full max-w-md">
           <CardContent className="p-8 text-center space-y-4">
             <div className="h-12 w-12 mx-auto rounded-full bg-red-100 flex items-center justify-center">
-              <Shield className="h-6 w-6 text-red-600" />
+              <Shield className="h-6 w-6 text-destructive" />
             </div>
             <h2 className="text-xl font-bold text-midnight">Invalid Invite</h2>
             <p className="text-muted-foreground">{error}</p>
@@ -224,7 +224,7 @@ function JoinByInviteContent() {
             </form>
 
             {message && (
-              <div className="mt-4 p-3 rounded-lg bg-red-50 text-red-600 text-sm text-center border border-red-100">
+              <div className="mt-4 p-3 rounded-lg bg-red-50 text-destructive text-sm text-center border border-red-100">
                 {message}
               </div>
             )}

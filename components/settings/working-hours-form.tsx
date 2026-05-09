@@ -59,7 +59,7 @@ export function WorkingHoursForm({ initialData }: WorkingHoursFormProps) {
   }
 
   return (
-    <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+    <Card className="border-border dark:border-slate-800 shadow-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Clock className="h-5 w-5" />
@@ -93,7 +93,7 @@ export function WorkingHoursForm({ initialData }: WorkingHoursFormProps) {
         <div className="flex items-center justify-between">
           <div>
             <Label>Emergency callout</Label>
-            <p className="text-xs text-slate-500">Offer emergency service outside business hours</p>
+            <p className="text-xs text-muted-foreground">Offer emergency service outside business hours</p>
           </div>
           <Switch checked={emergency} onCheckedChange={setEmergency} />
         </div>

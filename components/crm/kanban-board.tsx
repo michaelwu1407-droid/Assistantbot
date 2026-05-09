@@ -1023,7 +1023,7 @@ export function KanbanBoard({
             {COLUMNS.map((col) => {
               const colDeals = columns[col.id] || []
               return (
-                <div key={col.id} className="rounded-t-[18px] bg-black/[0.03] px-2 pb-1 pt-2.5 dark:bg-white/[0.03] md:px-1.5">
+                <div key={col.id} className="rounded-t-[18px] bg-black/[0.03] px-2 pb-1 pt-2.5 dark:bg-card/[0.03] md:px-1.5">
                   <KanbanColumnHeader col={col} count={colDeals.length} />
                 </div>
               )
@@ -1043,7 +1043,7 @@ export function KanbanBoard({
                 return (
                   <div
                     key={col.id}
-                    className="kanban-column-panel flex min-w-0 flex-col gap-3 bg-black/[0.03] px-2 py-2.5 dark:bg-white/[0.03] max-md:rounded-[18px] md:rounded-none md:rounded-b-[18px] md:px-1.5 md:pt-2"
+                    className="kanban-column-panel flex min-w-0 flex-col gap-3 bg-black/[0.03] px-2 py-2.5 dark:bg-card/[0.03] max-md:rounded-[18px] md:rounded-none md:rounded-b-[18px] md:px-1.5 md:pt-2"
                   >
                     {/* Mobile: header inline; desktop: header is above scroll area */}
                     <div className="md:hidden">
@@ -1208,7 +1208,7 @@ export function KanbanBoard({
             </div>
           ) : (
             <div className="grid gap-3 py-2">
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-muted-foreground">
                 Add team members in Settings - Team first, then you can assign them to jobs.
               </p>
               <Button asChild variant="outline" className="justify-start">

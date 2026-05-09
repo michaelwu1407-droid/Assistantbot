@@ -4,6 +4,7 @@ import type { ReactNode } from "react"
 import { DealView } from "@/actions/deal-actions"
 import { cn } from "@/lib/utils"
 import { countAttentionRequiredDeals } from "@/lib/deal-attention"
+import { formatCurrency } from "@/lib/format"
 
 interface DashboardKpiCardsProps {
   deals: DealView[]
@@ -108,18 +109,18 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
       <KpiCardFrame borderClass="border-l-sky-700" bgClass="bg-sky-100 dark:bg-sky-950/40">
         <p className={kpiLabelClass}>{monthLabel} Revenue</p>
         <div className="flex min-w-0 items-end justify-between gap-2">
-          <KpiMetric>${revenue.toLocaleString()}</KpiMetric>
+          <KpiMetric>{formatCurrency(revenue)}</KpiMetric>
         </div>
       </KpiCardFrame>
 
       <KpiCardFrame borderClass="border-l-emerald-700" bgClass="bg-emerald-100 dark:bg-emerald-950/45">
         <p className={kpiLabelClass}>Jobs Won With Tracey ({monthLabel})</p>
         <div className="flex min-w-0 items-end justify-between gap-2">
-          <KpiMetric>${travisWonRevenue.toLocaleString()} ({travisWonCount})</KpiMetric>
+          <KpiMetric>{formatCurrency(travisWonRevenue)} ({travisWonCount})</KpiMetric>
         </div>
       </KpiCardFrame>
 
-      <KpiCardFrame borderClass="border-l-slate-600" bgClass="bg-slate-200 dark:bg-slate-900/50">
+      <KpiCardFrame borderClass="border-l-slate-600" bgClass="bg-muted dark:bg-slate-900/50">
         <p className={kpiLabelClass}>Upcoming Jobs ({monthLabel})</p>
         <div className="flex min-w-0 items-end justify-between gap-2">
           <KpiMetric>{upcomingCount}</KpiMetric>

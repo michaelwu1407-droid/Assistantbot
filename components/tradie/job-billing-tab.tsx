@@ -16,12 +16,13 @@ import {
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { formatInvoiceStatusLabel } from "@/lib/job-portal-status-labels"
+import { formatCurrency, formatDate } from "@/lib/format"
 
 const STATUS_STYLE: Record<string, string> = {
-    DRAFT: "text-slate-600 border-slate-200 bg-slate-50",
+    DRAFT: "text-muted-foreground border-border bg-muted/30",
     ISSUED: "text-blue-700 border-blue-200 bg-blue-50",
     PAID: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    VOID: "text-red-600 border-red-200 bg-red-50 line-through",
+    VOID: "text-destructive border-red-200 bg-red-50 line-through",
 }
 
 interface LineItem { desc: string; price: number }
@@ -48,7 +49,7 @@ function LineItemEditor({
     const remove = (idx: number) => setItems(prev => prev.filter((_, i) => i !== idx))
 
     return (
-        <div className="space-y-2 p-3 bg-white border border-slate-200 rounded-lg">
+        <div className="space-y-2 p-3 bg-card border border-border rounded-lg">
             {items.map((it, idx) => (
                 <div key={idx} className="flex gap-2 items-center">
                     <Input
@@ -58,7 +59,7 @@ function LineItemEditor({
                         onChange={e => update(idx, "desc", e.target.value)}
                     />
                     <div className="relative w-20 shrink-0">
-                        <span className="absolute left-2 top-1.5 text-slate-400 text-xs">$</span>
+                        <span className="absolute left-2 top-1.5 text-muted-foreground text-xs">$</span>
                         <Input
                             type="number"
                             className="text-xs h-8 pl-5"
@@ -69,7 +70,7 @@ function LineItemEditor({
                         />
                     </div>
                     {items.length > 1 && (
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-red-500" onClick={() => remove(idx)}>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive" onClick={() => remove(idx)}>
                             <X className="w-3 h-3" />
                         </Button>
                     )}
@@ -217,7 +218,7 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                             onChange={(e) => setVariationDesc(e.target.value)}
                         />
                         <div className="relative w-24 shrink-0">
-                            <span className="absolute left-2 top-2.5 text-slate-400 text-sm">$</span>
+                            <span className="absolute left-2 top-2.5 text-muted-foreground text-sm">$</span>
                             <Input
                                 type="number"
                                 className={`pl-5 ${priceError ? "border-red-400" : ""}`}
@@ -229,12 +230,12 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                             />
                         </div>
                     </div>
-                    {priceError && <p className="text-xs text-red-500">{priceError}</p>}
+                    {priceError && <p className="text-xs text-destructive">{priceError}</p>}
                     <Button onClick={handleCreateInvoice} disabled={creating || !variationDesc.trim()} className="w-full bg-slate-900 hover:bg-slate-800">
                         {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
                         Create Draft Invoice
                     </Button>
-                    <p className="text-xs text-slate-400 text-center">
+                    <p className="text-xs text-muted-foreground text-center">
                         Creates a draft quote. Use <strong>Email quote</strong> to send an estimate, or <strong>Mark issued</strong> when it is ready to become an invoice.
                     </p>
                 </CardContent>
@@ -243,49 +244,49 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
             {/* Invoices List */}
             <div className="space-y-3">
                 <div className="flex items-center justify-between px-1">
-                    <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Invoices</h3>
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Invoices</h3>
                     <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={fetchInvoices}>
                         <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
                     </Button>
                 </div>
 
-                <Card className="border-slate-200 bg-slate-50 shadow-none">
+                <Card className="border-border bg-muted/30 shadow-none">
                     <CardContent className="flex flex-col gap-1.5 p-3">
-                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                             Next best action
                         </div>
                         {!latestInvoice ? (
                             <>
-                                <p className="text-sm font-medium text-slate-900">Create the first draft invoice for this job.</p>
-                                <p className="text-xs text-slate-500">
+                                <p className="text-sm font-medium text-foreground">Create the first draft invoice for this job.</p>
+                                <p className="text-xs text-muted-foreground">
                                     Add the job total or variation above, then create the draft so it appears in the workflow below.
                                 </p>
                             </>
                         ) : latestInvoice.status === "DRAFT" ? (
                             <>
-                                <p className="text-sm font-medium text-slate-900">Send the quote, or mark it as issued when it becomes the invoice.</p>
-                                <p className="text-xs text-slate-500">
+                                <p className="text-sm font-medium text-foreground">Send the quote, or mark it as issued when it becomes the invoice.</p>
+                                <p className="text-xs text-muted-foreground">
                                     You can still edit the line items first. Use <strong>Email quote</strong> for the estimate, or <strong>Mark issued</strong> once the final invoice is ready.
                                 </p>
                             </>
                         ) : latestInvoice.status === "ISSUED" ? (
                             <>
-                                <p className="text-sm font-medium text-slate-900">Email the invoice if needed, then mark it as paid once payment lands.</p>
-                                <p className="text-xs text-slate-500">
+                                <p className="text-sm font-medium text-foreground">Email the invoice if needed, then mark it as paid once payment lands.</p>
+                                <p className="text-xs text-muted-foreground">
                                     This invoice is already marked as issued. Use <strong>Email invoice</strong> to send or resend it, then <strong>Mark Paid</strong> once payment lands.
                                 </p>
                             </>
                         ) : latestInvoice.status === "PAID" ? (
                             <>
-                                <p className="text-sm font-medium text-slate-900">Payment is recorded.</p>
-                                <p className="text-xs text-slate-500">
+                                <p className="text-sm font-medium text-foreground">Payment is recorded.</p>
+                                <p className="text-xs text-muted-foreground">
                                     This job is financially complete. If needed, you can still reverse the invoice status from the card below.
                                 </p>
                             </>
                         ) : (
                             <>
-                                <p className="text-sm font-medium text-slate-900">This invoice is no longer active.</p>
-                                <p className="text-xs text-slate-500">
+                                <p className="text-sm font-medium text-foreground">This invoice is no longer active.</p>
+                                <p className="text-xs text-muted-foreground">
                                     Void invoices stay in the record for history, but they should not be sent or marked paid.
                                 </p>
                             </>
@@ -294,10 +295,10 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                 </Card>
 
                 {loading && invoices.length === 0 ? (
-                    <div className="text-center py-4 text-slate-400 text-xs">Loading invoices...</div>
+                    <div className="text-center py-4 text-muted-foreground text-xs">Loading invoices...</div>
                 ) : invoices.length === 0 ? (
-                    <Card className="min-h-[10rem] bg-slate-50 border-dashed shadow-none">
-                        <CardContent className="flex min-h-[10rem] items-center justify-center py-8 text-center text-slate-500 text-sm">
+                    <Card className="min-h-[10rem] bg-muted/30 border-dashed shadow-none">
+                        <CardContent className="flex min-h-[10rem] items-center justify-center py-8 text-center text-muted-foreground text-sm">
                             No invoices generated yet.
                         </CardContent>
                     </Card>
@@ -310,29 +311,29 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                             : []
 
                         return (
-                            <Card key={inv.id} className={`overflow-hidden border-slate-200 shadow-sm ${inv.status === "VOID" ? "opacity-60" : ""}`}>
+                            <Card key={inv.id} className={`overflow-hidden border-border shadow-sm ${inv.status === "VOID" ? "opacity-60" : ""}`}>
                                 <div className="p-4 flex justify-between items-start">
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
-                                            <FileText className="w-4 h-4 text-slate-400 shrink-0" />
-                                            <span className="font-semibold text-slate-900 text-sm">{inv.number}</span>
+                                            <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                                            <span className="font-semibold text-foreground text-sm">{inv.number}</span>
                                             {sync && (
                                                 <span className="inline-flex items-center gap-1 text-[10px]" title={sync.synced ? `Synced to ${sync.provider}` : "Not synced to accounting"}>
                                                     {sync.synced
                                                         ? <Cloud className="w-3 h-3 text-emerald-500" />
                                                         : <CloudOff className="w-3 h-3 text-slate-300" />}
-                                                    <span className={sync.synced ? "text-emerald-600" : "text-slate-400"}>{sync.synced ? sync.provider : "Not synced"}</span>
+                                                    <span className={sync.synced ? "text-emerald-600" : "text-muted-foreground"}>{sync.synced ? sync.provider : "Not synced"}</span>
                                                 </span>
                                             )}
                                         </div>
-                                        <p className="text-xs text-slate-500">
-                                            {new Date(inv.createdAt).toLocaleDateString("en-AU")}
-                                            {inv.issuedAt && ` · Issued ${new Date(inv.issuedAt).toLocaleDateString("en-AU")}`}
-                                            {inv.paidAt && ` · Paid ${new Date(inv.paidAt).toLocaleDateString("en-AU")}`}
+                                        <p className="text-xs text-muted-foreground">
+                                            {formatDate(inv.createdAt)}
+                                            {inv.issuedAt && ` · Issued ${formatDate(inv.issuedAt)}`}
+                                            {inv.paidAt && ` · Paid ${formatDate(inv.paidAt)}`}
                                         </p>
                                     </div>
                                     <div className="text-right shrink-0">
-                                        <span className="block font-bold text-slate-900">${Number(inv.total).toLocaleString()}</span>
+                                        <span className="block font-bold text-foreground">{formatCurrency(Number(inv.total))}</span>
                                         <Badge variant="outline" className={`shadow-none ${STATUS_STYLE[inv.status] ?? ""}`}>
                                             {formatInvoiceStatusLabel(inv.status)}
                                         </Badge>
@@ -342,7 +343,7 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                                 {/* Line items (collapsed) */}
                                 {lineItems.length > 0 && editingId !== inv.id && (
                                     <div className="px-4 pb-2">
-                                        <div className="text-[11px] text-slate-500 space-y-0.5">
+                                        <div className="text-[11px] text-muted-foreground space-y-0.5">
                                             {lineItems.map((it, i) => (
                                                 <div key={i} className="flex justify-between">
                                                     <span className="truncate mr-2">{it.desc}</span>
@@ -367,7 +368,7 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
 
                                 {/* Action bar */}
                                 {inv.status !== "VOID" && editingId !== inv.id && (
-                                    <div className="bg-slate-50 p-2 flex gap-2 flex-wrap border-t border-slate-100">
+                                    <div className="bg-muted/30 p-2 flex gap-2 flex-wrap border-t border-border/50">
                                         {/* Primary actions based on status */}
                                         {inv.status === "DRAFT" && (
                                             <>
@@ -408,7 +409,7 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
 
                                         {/* Void — available on DRAFT, ISSUED */}
                                         {(inv.status === "DRAFT" || inv.status === "ISSUED") && (
-                                            <Button size="sm" variant="outline" className="bg-white border-red-200 text-red-600 hover:bg-red-50 text-xs h-8" disabled={busy} onClick={() => handleVoid(inv.id)}>
+                                            <Button size="sm" variant="outline" className="bg-card border-red-200 text-destructive hover:bg-red-50 text-xs h-8" disabled={busy} onClick={() => handleVoid(inv.id)}>
                                                 {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Ban className="w-3 h-3 mr-1" />}
                                                 Void
                                             </Button>

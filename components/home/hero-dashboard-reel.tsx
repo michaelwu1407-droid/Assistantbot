@@ -24,7 +24,7 @@ const STATUS = {
 // ── Shared sidebar ─────────────────────────────────────────────────────────────
 function ReelSidebar({ active }: { active: string }) {
     return (
-        <div className="w-11 shrink-0 flex flex-col items-center gap-1 py-3 bg-white border-r border-[#E5E7EB]">
+        <div className="w-11 shrink-0 flex flex-col items-center gap-1 py-3 bg-card border-r border-[#E5E7EB]">
             {REEL_STEPS.map(({ label, icon: Icon }) => {
                 const isActive = label === active;
                 return (
@@ -57,14 +57,14 @@ function ChatScreen() {
             <ReelSidebar active="Chat" />
             <div className="flex-1 flex flex-col bg-[#F7F8FA] p-3">
                 {/* Frosted glass chat panel */}
-                <div className="flex-1 flex flex-col rounded overflow-hidden bg-white/60 backdrop-blur-xl border border-white/50 shadow-lg">
+                <div className="flex-1 flex flex-col rounded overflow-hidden bg-card/60 backdrop-blur-xl border border-white/50 shadow-lg">
                     {/* Header */}
-                    <div className="flex items-center gap-2.5 px-4 py-3 border-b border-slate-200/60 bg-white/70">
+                    <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border/60 bg-card/70">
                         <div className="w-7 h-7 rounded flex items-center justify-center" style={{ backgroundColor: "#E0FAF2" }}>
                             <Bot className="w-4 h-4" style={{ color: "#00D28B" }} />
                         </div>
                         <div>
-                            <p className="text-xs font-semibold text-slate-900 leading-none">Ask Tracey</p>
+                            <p className="text-xs font-semibold text-foreground leading-none">Ask Tracey</p>
                             <p className="text-[10px] mt-0.5 flex items-center gap-1" style={{ color: "#00D28B" }}>
                                 <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ backgroundColor: "#00D28B" }} />
                                 Online
@@ -84,7 +84,7 @@ function ChatScreen() {
                                     className={`px-3 py-2 text-xs leading-relaxed max-w-[78%] rounded-full ${
                                         m.from === "user"
                                             ? "text-white rounded-br-sm"
-                                            : "text-slate-900 border border-slate-200/50 bg-white/80 rounded-bl-sm"
+                                            : "text-foreground border border-border/50 bg-card/80 rounded-bl-sm"
                                     }`}
                                     style={m.from === "user" ? { backgroundColor: "#00D28B" } : undefined}
                                 >
@@ -95,8 +95,8 @@ function ChatScreen() {
                     </div>
                     {/* Input */}
                     <div className="px-4 pb-3">
-                        <div className="flex items-center gap-2 bg-white border border-slate-200/60 rounded-full px-3 py-2 shadow-sm">
-                            <span className="text-xs text-slate-400 flex-1">Message Tracey…</span>
+                        <div className="flex items-center gap-2 bg-card border border-border/60 rounded-full px-3 py-2 shadow-sm">
+                            <span className="text-xs text-muted-foreground flex-1">Message Tracey…</span>
                             <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: "#00D28B" }}>
                                 <Send className="w-3 h-3 text-white" />
                             </div>
@@ -150,7 +150,7 @@ function DashboardScreen() {
                             { label: "Upcoming jobs", value: "6" },
                             { label: "Follow-up", value: "3", amber: true },
                         ].map((k) => (
-                            <div key={k.label} className="bg-white rounded border border-[#E5E7EB] shadow-sm px-2.5 py-2 flex flex-col gap-0.5">
+                            <div key={k.label} className="bg-card rounded border border-[#E5E7EB] shadow-sm px-2.5 py-2 flex flex-col gap-0.5">
                                 <span className="text-[8px] font-medium text-neutral-500 uppercase tracking-wide leading-none">{k.label}</span>
                                 <span className={`text-base font-bold tracking-tight leading-none mt-0.5 ${k.amber ? "text-amber-600" : "text-neutral-900"}`}>{k.value}</span>
                             </div>
@@ -159,7 +159,7 @@ function DashboardScreen() {
                     {/* Kanban */}
                     <div className="flex-1 grid grid-cols-3 gap-1.5 min-h-0">
                         {KANBAN_COLS.map((col) => (
-                            <div key={col.id} className="bg-white rounded border border-[#E5E7EB] p-2 flex flex-col gap-1.5 overflow-hidden">
+                            <div key={col.id} className="bg-card rounded border border-[#E5E7EB] p-2 flex flex-col gap-1.5 overflow-hidden">
                                 <div className="flex items-center gap-1.5">
                                     <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: col.color.dot }} />
                                     <span className="text-[10px] font-semibold text-neutral-700 truncate">{col.label}</span>
@@ -196,9 +196,9 @@ function InboxScreen() {
     return (
         <div className="h-full flex flex-row">
             <ReelSidebar active="Inbox" />
-            <div className="flex-1 flex flex-col bg-white overflow-hidden">
+            <div className="flex-1 flex flex-col bg-card overflow-hidden">
                 {/* Header */}
-                <div className="px-4 py-3 border-b border-[#E5E7EB] flex items-center justify-between bg-white">
+                <div className="px-4 py-3 border-b border-[#E5E7EB] flex items-center justify-between bg-card">
                     <div>
                         <p className="text-xs font-bold text-neutral-900">Activity Inbox</p>
                         <p className="text-[10px] text-neutral-500">All Tracey interactions</p>
@@ -264,19 +264,19 @@ function MapScreen() {
                             <div className="w-8 h-8 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-white text-[10px] font-bold" style={{ backgroundColor: pin.color }}>
                                 {pin.num}
                             </div>
-                            <div className="mt-1 bg-white text-[9px] font-semibold text-neutral-700 px-2 py-0.5 rounded-full shadow-sm border border-neutral-200 whitespace-nowrap">
+                            <div className="mt-1 bg-card text-[9px] font-semibold text-neutral-700 px-2 py-0.5 rounded-full shadow-sm border border-neutral-200 whitespace-nowrap">
                                 {pin.label}
                             </div>
                         </div>
                     </div>
                 ))}
                 {/* Badge */}
-                <div className="absolute top-3 left-3 bg-white/95 backdrop-blur rounded border border-neutral-200 shadow-sm px-3 py-2">
+                <div className="absolute top-3 left-3 bg-card/95 backdrop-blur rounded border border-neutral-200 shadow-sm px-3 py-2">
                     <p className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wide">Today</p>
                     <p className="text-base font-bold text-neutral-900 leading-none mt-0.5">3 jobs</p>
                 </div>
                 {/* Legend */}
-                <div className="absolute bottom-3 right-3 bg-white/95 backdrop-blur rounded border border-neutral-200 shadow-sm px-3 py-2 flex flex-col gap-1.5">
+                <div className="absolute bottom-3 right-3 bg-card/95 backdrop-blur rounded border border-neutral-200 shadow-sm px-3 py-2 flex flex-col gap-1.5">
                     {[{ color: "#3B82F6", label: "New" }, { color: "#00D28B", label: "Scheduled" }, { color: "#6B7280", label: "Done" }].map((l) => (
                         <div key={l.label} className="flex items-center gap-1.5">
                             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: l.color }} />
@@ -306,7 +306,7 @@ function CalendarScreen() {
     return (
         <div className="h-full flex flex-row">
             <ReelSidebar active="Calendar" />
-            <div className="flex-1 flex flex-col bg-white overflow-hidden">
+            <div className="flex-1 flex flex-col bg-card overflow-hidden">
                 {/* Day headers */}
                 <div className="flex border-b border-[#E5E7EB]">
                     <div className="w-10 shrink-0" />
@@ -368,18 +368,18 @@ function ReelChrome({ children }: { children: React.ReactNode }) {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            className="relative overflow-hidden rounded border border-white/55 bg-white/55 shadow-[0_28px_90px_rgba(15,23,42,0.16)] backdrop-blur-xl"
+            className="relative overflow-hidden rounded border border-white/55 bg-card/55 shadow-[0_28px_90px_rgba(15,23,42,0.16)] backdrop-blur-xl"
         >
             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.52)_0%,rgba(255,255,255,0.18)_18%,rgba(255,255,255,0)_36%)] pointer-events-none" />
-            <div className="absolute inset-x-0 top-0 h-px bg-white/80 pointer-events-none" />
-            <div className="flex items-center justify-between gap-4 border-b border-slate-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.94)_0%,rgba(241,245,249,0.88)_100%)] px-4 py-3 sm:px-5">
+            <div className="absolute inset-x-0 top-0 h-px bg-card/80 pointer-events-none" />
+            <div className="flex items-center justify-between gap-4 border-b border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.94)_0%,rgba(241,245,249,0.88)_100%)] px-4 py-3 sm:px-5">
                 <div className="flex items-center gap-2">
                     <span className="h-3 w-3 rounded-full bg-rose-400/90" />
                     <span className="h-3 w-3 rounded-full bg-amber-400/90" />
                     <span className="h-3 w-3 rounded-full bg-emerald-400/90" />
                 </div>
                 <div className="min-w-0 flex-1 px-2">
-                    <div className="mx-auto w-fit max-w-full rounded-full border border-slate-200/80 bg-white/88 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 shadow-sm">
+                    <div className="mx-auto w-fit max-w-full rounded-full border border-border/80 bg-card/88 px-4 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground shadow-sm">
                         earlymark.ai/crm
                     </div>
                 </div>
@@ -427,12 +427,12 @@ export function HeroDashboardReel({ className = "" }: { className?: string }) {
             <ReelChrome>
                 {/* Screen area */}
                 <div className="relative overflow-hidden md:h-[500px]">
-                    <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border border-white/80 bg-white/88 px-3.5 py-2 shadow-sm backdrop-blur">
-                        <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-600">
+                    <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border border-white/80 bg-card/88 px-3.5 py-2 shadow-sm backdrop-blur">
+                        <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                             <ActiveStepIcon className="h-3.5 w-3.5 text-emerald-600" />
                             <span>{activeStep.label}</span>
                         </div>
-                        <div className="h-4 w-px bg-slate-200" />
+                        <div className="h-4 w-px bg-muted" />
                         <div className="flex items-center gap-2">
                             {REEL_STEPS.map((step, idx) => {
                                 const isActive = idx === active;

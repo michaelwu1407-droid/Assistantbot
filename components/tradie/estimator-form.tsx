@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { generateQuote, type LineItem } from "@/actions/tradie-actions"
 import { DealView } from "@/actions/deal-actions"
 import { MaterialPicker } from "./material-picker"
+import { formatCurrency } from "@/lib/format"
 import { toast } from "sonner"
 
 interface EstimatorFormProps {
@@ -75,22 +76,22 @@ export function EstimatorForm({ deals = [], workspaceId }: EstimatorFormProps) {
 
     if (quoteResult) {
         return (
-            <Card className="max-w-md mx-auto border-slate-200 shadow-lg animate-in fade-in zoom-in-95 duration-300">
+            <Card className="max-w-md mx-auto border-border shadow-lg animate-in fade-in zoom-in-95 duration-300">
                 <CardHeader className="text-center pb-2">
                     <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
                         <FileText className="w-6 h-6 text-green-600" />
                     </div>
-                    <CardTitle className="text-xl text-slate-900">Quote Generated!</CardTitle>
-                    <p className="text-sm text-slate-500">Invoice #{quoteResult.invoiceNumber}</p>
+                    <CardTitle className="text-xl text-foreground">Quote Generated!</CardTitle>
+                    <p className="text-sm text-muted-foreground">Invoice #{quoteResult.invoiceNumber}</p>
                 </CardHeader>
                 <CardContent className="space-y-4 text-center">
-                    <div className="text-4xl font-bold text-slate-900 tracking-tight">
-                        ${quoteResult.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    <div className="text-4xl font-bold text-foreground tracking-tight">
+                        {formatCurrency(quoteResult.total)}
                     </div>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-muted-foreground">
                         Quote has been attached to the deal and invoice created in Draft status.
                     </p>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-muted-foreground">
                         Next step: mark the draft as issued from the job billing panel when it is ready, then email it to the customer.
                     </p>
                 </CardContent>
@@ -110,7 +111,7 @@ export function EstimatorForm({ deals = [], workspaceId }: EstimatorFormProps) {
     }
 
     return (
-        <Card className="border-slate-200 shadow-sm">
+        <Card className="border-border shadow-sm">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                     <Calculator className="w-5 h-5 text-blue-600" />
@@ -119,9 +120,9 @@ export function EstimatorForm({ deals = [], workspaceId }: EstimatorFormProps) {
             </CardHeader>
             <CardContent className="space-y-6">
                 <div className="space-y-2">
-                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Select Deal</label>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Select Deal</label>
                     <Select onValueChange={setSelectedDealId} value={selectedDealId}>
-                        <SelectTrigger className="bg-white border-slate-200">
+                        <SelectTrigger className="bg-card border-border">
                             <SelectValue placeholder="Choose a deal..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -140,7 +141,7 @@ export function EstimatorForm({ deals = [], workspaceId }: EstimatorFormProps) {
 
                 <div className="space-y-3">
                     <div className="flex justify-between items-center">
-                        <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Line Items</label>
+                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Line Items</label>
                         <MaterialPicker
                             workspaceId={workspaceId}
                             onSelect={(m) => {
@@ -159,15 +160,15 @@ export function EstimatorForm({ deals = [], workspaceId }: EstimatorFormProps) {
                             <div key={index} className="flex gap-2 items-start">
                                 <Input
                                     placeholder="Description (e.g. Labor)"
-                                    className="flex-1 bg-white"
+                                    className="flex-1 bg-card"
                                     value={item.desc}
                                     onChange={(e) => handleItemChange(index, 'desc', e.target.value)}
                                 />
                                 <div className="relative w-24 flex-shrink-0">
-                                    <span className="absolute left-3 top-2.5 text-slate-400 text-sm">$</span>
+                                    <span className="absolute left-3 top-2.5 text-muted-foreground text-sm">$</span>
                                     <Input
                                         type="number"
-                                        className="pl-6 bg-white"
+                                        className="pl-6 bg-card"
                                         placeholder="0.00"
                                         value={item.price || ''}
                                         onChange={(e) => handleItemChange(index, 'price', e.target.value)}
@@ -176,7 +177,7 @@ export function EstimatorForm({ deals = [], workspaceId }: EstimatorFormProps) {
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="text-slate-400 hover:text-red-500 hover:bg-red-50"
+                                    className="text-muted-foreground hover:text-red-500 hover:bg-red-50"
                                     onClick={() => handleRemoveItem(index)}
                                     disabled={items.length === 1}
                                 >
@@ -190,27 +191,27 @@ export function EstimatorForm({ deals = [], workspaceId }: EstimatorFormProps) {
                         variant="outline"
                         size="sm"
                         onClick={handleAddItem}
-                        className="w-full border-dashed border-slate-300 text-slate-500 hover:text-blue-600 hover:border-blue-300"
+                        className="w-full border-dashed border-border text-muted-foreground hover:text-blue-600 hover:border-blue-300"
                     >
                         <Plus className="w-4 h-4 mr-2" />
                         Add Line Item
                     </Button>
                 </div>
 
-                <div className="pt-4 border-t border-slate-100 flex flex-col gap-2">
-                    <div className="flex justify-between text-sm text-slate-500">
+                <div className="pt-4 border-t border-border/50 flex flex-col gap-2">
+                    <div className="flex justify-between text-sm text-muted-foreground">
                         <span>Subtotal</span>
                         <span>${subtotal.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-sm text-slate-500">
+                    <div className="flex justify-between text-sm text-muted-foreground">
                         <span>GST (10%)</span>
                         <span>${gst.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-lg font-bold text-slate-900 pt-2 border-t border-slate-100 mt-2">
+                    <div className="flex justify-between text-lg font-bold text-foreground pt-2 border-t border-border/50 mt-2">
                         <span>Total</span>
                         <span>${total.toFixed(2)}</span>
                     </div>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-muted-foreground">
                         Generates a draft invoice with GST included, then links it back to the selected job.
                     </p>
                 </div>

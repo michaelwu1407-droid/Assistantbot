@@ -38,16 +38,16 @@ export default async function OpenHouseKioskPage({ searchParams }: PageProps) {
         if (err instanceof Error && err.message === "NEXT_REDIRECT") throw err;
 
         return (
-            <div className="flex items-center justify-center min-h-screen bg-slate-50">
-                <p className="text-slate-500">Database not initialized or session expired.</p>
+            <div className="flex items-center justify-center min-h-screen bg-muted/30">
+                <p className="text-muted-foreground">Database not initialized or session expired.</p>
             </div>
         )
     }
 
     if (!dealId) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-slate-50">
-                <p className="text-slate-500">No active open house found.</p>
+            <div className="flex items-center justify-center min-h-screen bg-muted/30">
+                <p className="text-muted-foreground">No active open house found.</p>
             </div>
         )
     }
@@ -59,12 +59,12 @@ export default async function OpenHouseKioskPage({ searchParams }: PageProps) {
     const qrDataUrl = generateQRDataURL(kioskUrl)
 
     return (
-        <div className="min-h-screen bg-slate-100 flex flex-col justify-center p-4 md:p-8 bg-[url('https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=2073&q=80')] bg-cover bg-center relative">
+        <div className="min-h-screen bg-muted flex flex-col justify-center p-4 md:p-8 bg-[url('https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=2073&q=80')] bg-cover bg-center relative">
             <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm z-0"></div>
 
             <div className="relative z-10 w-full max-w-5xl mx-auto grid lg:grid-cols-2 gap-8 items-center">
                 <div className="hidden lg:block text-white space-y-6">
-                    <div className="inline-flex items-center px-3 py-1 rounded-full border border-white/20 bg-white/10 backdrop-blur-md text-sm font-medium">
+                    <div className="inline-flex items-center px-3 py-1 rounded-full border border-white/20 bg-card/10 backdrop-blur-md text-sm font-medium">
                         Open House Now
                     </div>
                     <h1 className="text-5xl font-bold tracking-tight leading-tight">
@@ -75,16 +75,16 @@ export default async function OpenHouseKioskPage({ searchParams }: PageProps) {
                     </p>
 
                     <div className="pt-4">
-                        <div className="bg-white p-4 rounded-xl inline-block shadow-2xl">
+                        <div className="bg-card p-4 rounded-xl inline-block shadow-2xl">
                             <Image src={qrDataUrl} alt="Scan to check in" width={128} height={128} unoptimized className="w-32 h-32" />
-                            <p className="text-slate-900 text-center text-xs font-bold mt-2 uppercase tracking-wider">Scan to Check In</p>
+                            <p className="text-foreground text-center text-xs font-bold mt-2 uppercase tracking-wider">Scan to Check In</p>
                         </div>
                     </div>
 
                     <div className="pt-4 flex items-center gap-4">
                         <div className="flex -space-x-3">
                             {[1, 2, 3].map(i => (
-                                <div key={i} className="w-10 h-10 rounded-full border-2 border-slate-900 bg-slate-200"></div>
+                                <div key={i} className="w-10 h-10 rounded-full border-2 border-slate-900 bg-muted"></div>
                             ))}
                         </div>
                         <p className="text-sm font-medium">Join 24 others interested today</p>

@@ -18,8 +18,8 @@ interface PhotoGalleryProps {
 export function PhotoGallery({ photos, onRemove }: PhotoGalleryProps) {
     if (photos.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-slate-200 rounded-xl text-slate-400">
-                <div className="bg-slate-50 p-4 rounded-full mb-3">
+            <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-border rounded-xl text-muted-foreground">
+                <div className="bg-muted/30 p-4 rounded-full mb-3">
                     <ZoomIn className="h-6 w-6" />
                 </div>
                 <p className="font-medium">No photos yet</p>
@@ -33,7 +33,7 @@ export function PhotoGallery({ photos, onRemove }: PhotoGalleryProps) {
             {photos.map((photo) => (
                 <Dialog key={photo.id}>
                     <DialogTrigger asChild>
-                        <div className="relative aspect-square bg-slate-100 rounded-lg overflow-hidden cursor-pointer group border shadow-sm">
+                        <div className="relative aspect-square bg-muted rounded-lg overflow-hidden cursor-pointer group border shadow-sm">
                             <div className="relative w-full h-full">
                                 <Image
                                     src={photo.url}

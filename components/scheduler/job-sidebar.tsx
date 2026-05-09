@@ -10,7 +10,7 @@ interface JobSidebarProps {
 
 export function JobSidebar({ jobs }: JobSidebarProps) {
     return (
-        <Card className="h-full border-r rounded-none flex flex-col bg-slate-50/50">
+        <Card className="h-full border-r rounded-none flex flex-col bg-muted/20">
             <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium uppercase text-muted-foreground">
                     Unscheduled Jobs ({jobs.length})

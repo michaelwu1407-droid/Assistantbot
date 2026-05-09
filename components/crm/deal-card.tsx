@@ -8,6 +8,7 @@ import { MapPin, Briefcase, User, Trash2, AlertTriangle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { approveCompletion, approveDraft, DealView, rejectCompletion, rejectDraft } from "@/actions/deal-actions"
 import { getOverdueStyling } from "@/lib/deal-utils"
+import { formatCurrency } from "@/lib/format"
 import { StaleJobReconciliationModal } from "./stale-job-reconciliation-modal"
 import {
   DropdownMenu,
@@ -326,7 +327,7 @@ export function DealCard({
   const footerPriceLeftOnly = (
     <div className="flex min-w-0 items-center gap-2">
       <span className="shrink-0 text-xs font-bold text-primary leading-none">
-        $ {deal.invoicedAmount !== undefined ? deal.invoicedAmount.toLocaleString() : deal.value.toLocaleString()}
+        {deal.invoicedAmount !== undefined ? formatCurrency(deal.invoicedAmount) : formatCurrency(deal.value)}
       </span>
       {assigneeInitial ? (
         <div
@@ -592,7 +593,7 @@ export function DealCard({
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="h-6 border-amber-200 bg-white/95 px-2.5 text-[10px] font-semibold text-amber-900 hover:bg-amber-50"
+                      className="h-6 border-amber-200 bg-card/95 px-2.5 text-[10px] font-semibold text-amber-900 hover:bg-amber-50"
                       disabled={approvalBusy}
                       onClick={(e) => {
                         e.stopPropagation()

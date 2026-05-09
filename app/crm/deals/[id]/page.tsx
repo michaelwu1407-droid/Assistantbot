@@ -13,6 +13,7 @@ import { ActivityFeed } from "@/components/crm/activity-feed"
 import { getActivities } from "@/actions/activity-actions"
 import { format } from "date-fns"
 import { PRISMA_STAGE_LABELS } from "@/lib/deal-utils"
+import { formatCurrency } from "@/lib/format"
 import { formatDateTimeInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone"
 
 export const dynamic = "force-dynamic"
@@ -81,20 +82,20 @@ export default async function DealDetailPage({ params }: PageProps) {
   const notes = (metadata.notes as string) || ""
   const contact = deal.contact
   const stageLabel = PRISMA_STAGE_LABELS[deal.stage] ?? deal.stage
-  const sectionCardClass = "rounded-lg border border-slate-200 bg-white shadow-sm"
+  const sectionCardClass = "rounded-lg border border-border bg-card shadow-sm"
   const topSectionMinHeightClass = "min-h-[16rem] md:min-h-[18rem]"
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto p-4 pb-24 md:p-6 md:pb-24">
-      <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm text-slate-500">
-        <Link href="/crm/dashboard" className="inline-flex items-center gap-1 hover:text-slate-900 transition-colors">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm text-muted-foreground">
+        <Link href="/crm/dashboard" className="inline-flex items-center gap-1 hover:text-foreground transition-colors">
           <Home className="h-4 w-4" />
           Dashboard
         </Link>
-        <ChevronRight className="h-4 w-4 text-slate-400" />
-        <span className="text-slate-600">Jobs</span>
-        <ChevronRight className="h-4 w-4 text-slate-400" />
-        <span className="font-medium text-slate-900">{deal.title}</span>
+        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        <span className="text-muted-foreground">Jobs</span>
+        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        <span className="font-medium text-foreground">{deal.title}</span>
       </nav>
 
       {/* Header */}
@@ -102,25 +103,25 @@ export default async function DealDetailPage({ params }: PageProps) {
         <div className="flex items-center gap-4">
           <Link
             href="/crm/dashboard"
-            className="h-10 w-10 inline-flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-900 transition-colors"
+            className="h-10 w-10 inline-flex items-center justify-center rounded-lg hover:bg-muted text-foreground transition-colors"
             aria-label="Back to dashboard"
           >
             <ChevronLeft className="w-5 h-5" />
           </Link>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-xl font-bold text-slate-900">{deal.title}</h1>
+              <h1 className="text-xl font-bold text-foreground">{deal.title}</h1>
               <Badge variant={stageToVariant(deal.stage)} className="text-xs font-semibold">
                 {stageLabel}
               </Badge>
             </div>
-            <p className="text-slate-500 text-sm mt-0.5">
+            <p className="text-muted-foreground text-sm mt-0.5">
               {contact?.company || "No company"} -{" "}
               <span className="text-emerald-600 font-medium">
-                ${Number(deal.invoicedAmount && Number(deal.invoicedAmount) > 0 ? deal.invoicedAmount : deal.value || 0).toLocaleString("en-AU")}
+                {formatCurrency(Number(deal.invoicedAmount && Number(deal.invoicedAmount) > 0 ? deal.invoicedAmount : deal.value || 0))}
               </span>
               {deal.invoicedAmount && Number(deal.invoicedAmount) > 0 && (
-                <span className="text-xs text-slate-400 ml-1">invoiced</span>
+                <span className="text-xs text-muted-foreground ml-1">invoiced</span>
               )}
             </p>
           </div>
@@ -140,7 +141,7 @@ export default async function DealDetailPage({ params }: PageProps) {
           {/* Contact details */}
           <div className={`${sectionCardClass} ${topSectionMinHeightClass} p-4`}>
             <div className="mb-3 flex items-center justify-between gap-2">
-              <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+              <h3 className="font-semibold text-foreground flex items-center gap-2">
                 <FileText className="w-4 h-4" />
                 Contact details
               </h3>
@@ -156,18 +157,18 @@ export default async function DealDetailPage({ params }: PageProps) {
             {contact ? (
               <div className="space-y-2.5 text-sm">
                 <div>
-                  <p className="text-slate-500 text-xs">Name</p>
-                  <p className="font-medium text-slate-900">{contact.name}</p>
+                  <p className="text-muted-foreground text-xs">Name</p>
+                  <p className="font-medium text-foreground">{contact.name}</p>
                 </div>
                 {contact.email && (
                   <div>
-                    <p className="text-slate-500 text-xs">Email</p>
-                    <p className="font-medium text-slate-900">{contact.email}</p>
+                    <p className="text-muted-foreground text-xs">Email</p>
+                    <p className="font-medium text-foreground">{contact.email}</p>
                   </div>
                 )}
                 {contact.phone && (
                   <div>
-                    <p className="text-slate-500 text-xs">Phone</p>
+                    <p className="text-muted-foreground text-xs">Phone</p>
                     <a href={`tel:${contact.phone}`} className="font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 mt-0.5">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
                       {contact.phone}
@@ -176,29 +177,29 @@ export default async function DealDetailPage({ params }: PageProps) {
                 )}
                 {contact.company && (
                   <div>
-                    <p className="text-slate-500 text-xs">Company</p>
-                    <p className="font-medium text-slate-900">{contact.company}</p>
+                    <p className="text-muted-foreground text-xs">Company</p>
+                    <p className="font-medium text-foreground">{contact.company}</p>
                   </div>
                 )}
                 {(deal.address || (typeof metadata.address === "string" && metadata.address)) && (
                   <div className="flex items-start gap-1.5">
-                    <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                    <MapPin className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-slate-500 text-xs">Address</p>
-                      <p className="font-medium text-slate-900">{deal.address || (metadata.address as string)}</p>
+                      <p className="text-muted-foreground text-xs">Address</p>
+                      <p className="font-medium text-foreground">{deal.address || (metadata.address as string)}</p>
                     </div>
                   </div>
                 )}
               </div>
             ) : (
-              <p className="text-slate-500 text-sm">No contact associated.</p>
+              <p className="text-muted-foreground text-sm">No contact associated.</p>
             )}
           </div>
 
           {/* Current / upcoming job details */}
           <div className={`${sectionCardClass} ${topSectionMinHeightClass} p-4`}>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+              <h3 className="font-semibold text-foreground flex items-center gap-2">
                 <Briefcase className="w-4 h-4" />
                 Current job
               </h3>
@@ -222,43 +223,43 @@ export default async function DealDetailPage({ params }: PageProps) {
             </div>
             <div className="space-y-2.5 text-sm">
               <div>
-                <p className="text-slate-500 text-xs">Job</p>
-                <p className="font-medium text-slate-900">{deal.title}</p>
+                <p className="text-muted-foreground text-xs">Job</p>
+                <p className="font-medium text-foreground">{deal.title}</p>
               </div>
               <div>
                 {deal.invoicedAmount && Number(deal.invoicedAmount) > 0 ? (
                   <>
-                    <p className="text-slate-500 text-xs">Invoiced</p>
-                    <p className="font-medium text-emerald-600">${Number(deal.invoicedAmount).toLocaleString("en-AU")}</p>
+                    <p className="text-muted-foreground text-xs">Invoiced</p>
+                    <p className="font-medium text-emerald-600">{formatCurrency(Number(deal.invoicedAmount))}</p>
                     {Number(deal.invoicedAmount) !== Number(deal.value || 0) && (
-                      <p className="text-xs text-slate-400 mt-0.5">Quoted: ${Number(deal.value || 0).toLocaleString("en-AU")}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Quoted: {formatCurrency(Number(deal.value || 0))}</p>
                     )}
                   </>
                 ) : (
                   <>
-                    <p className="text-slate-500 text-xs">Quoted value</p>
-                    <p className="font-medium text-emerald-600">${Number(deal.value || 0).toLocaleString("en-AU")}</p>
+                    <p className="text-muted-foreground text-xs">Quoted value</p>
+                    <p className="font-medium text-emerald-600">{formatCurrency(Number(deal.value || 0))}</p>
                   </>
                 )}
               </div>
               <div>
-                <p className="text-slate-500 text-xs">Scheduled</p>
-                <p className="font-medium text-slate-900">
+                <p className="text-muted-foreground text-xs">Scheduled</p>
+                <p className="font-medium text-foreground">
                   {deal.scheduledAt ? formatDateTimeInTimezone(deal.scheduledAt, workspaceTimezone) : "Not scheduled"}
                 </p>
               </div>
               {deal.address || (typeof metadata.address === "string" && metadata.address) ? (
                 <div>
-                  <p className="text-slate-500 text-xs">Job address</p>
+                  <p className="text-muted-foreground text-xs">Job address</p>
                   <div className="flex items-start justify-between gap-2">
-                    <p className="font-medium text-slate-900 flex-1">
+                    <p className="font-medium text-foreground flex-1">
                       {deal.address || (metadata.address as string)}
                     </p>
                     <a
                       href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(deal.address || (metadata.address as string))}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="shrink-0 flex items-center gap-1 px-2 py-1 rounded border border-slate-200 text-xs text-blue-600 hover:bg-blue-50 transition-colors"
+                      className="shrink-0 flex items-center gap-1 px-2 py-1 rounded border border-border text-xs text-blue-600 hover:bg-blue-50 transition-colors"
                       title="Open in Google Maps"
                     >
                       <Navigation className="w-3 h-3" /> Navigate
@@ -267,16 +268,16 @@ export default async function DealDetailPage({ params }: PageProps) {
                 </div>
               ) : contact?.id ? (
                 <div>
-                  <p className="text-slate-500 text-xs">Job address</p>
-                  <p className="text-xs text-red-500">No address on file. Add one in CRM before using route or map actions for this job.</p>
+                  <p className="text-muted-foreground text-xs">Job address</p>
+                  <p className="text-xs text-destructive">No address on file. Add one in CRM before using route or map actions for this job.</p>
                   <Button variant="outline" size="sm" className="mt-2 h-8 text-xs" asChild>
                     <Link href={`/crm/contacts/${contact.id}/edit`}>Add address in CRM</Link>
                   </Button>
                 </div>
               ) : null}
               <div>
-                <p className="text-slate-500 text-xs">Assigned to</p>
-                <p className="font-medium text-slate-900">
+                <p className="text-muted-foreground text-xs">Assigned to</p>
+                <p className="font-medium text-foreground">
                   {deal.assignedTo ? (deal.assignedTo.name || deal.assignedTo.email) : "Unassigned"}
                 </p>
               </div>
@@ -299,15 +300,15 @@ export default async function DealDetailPage({ params }: PageProps) {
                 </div>
               ) : contact?.id ? (
                 <div className="pt-1">
-                  <p className="text-xs text-red-500">No phone number on file. Add one in CRM before calling or texting from this job.</p>
+                  <p className="text-xs text-destructive">No phone number on file. Add one in CRM before calling or texting from this job.</p>
                   <Button variant="outline" size="sm" className="mt-2 h-8 text-xs" asChild>
                     <Link href={`/crm/contacts/${contact.id}/edit`}>Add phone in CRM</Link>
                   </Button>
                 </div>
               ) : null}
               <div>
-                <p className="text-slate-500 text-xs">Created</p>
-                <p className="font-medium text-slate-900">{format(new Date(deal.createdAt), "MMM d, yyyy")}</p>
+                <p className="text-muted-foreground text-xs">Created</p>
+                <p className="font-medium text-foreground">{format(new Date(deal.createdAt), "MMM d, yyyy")}</p>
               </div>
             </div>
           </div>
@@ -321,7 +322,7 @@ export default async function DealDetailPage({ params }: PageProps) {
               </h3>
               <div className="space-y-2">
                 {deal.syncIssues.map((issue) => (
-                  <div key={issue.id} className="p-2.5 border border-amber-200 dark:border-amber-900/50 rounded-md bg-white/60 dark:bg-black/20 text-sm">
+                  <div key={issue.id} className="p-2.5 border border-amber-200 dark:border-amber-900/50 rounded-md bg-card/60 dark:bg-black/20 text-sm">
                     <div className="flex items-center gap-2 mb-1">
                       <Badge variant="outline" className="text-[10px] border-amber-400 text-amber-700 dark:text-amber-300 h-5 px-1.5 py-0 font-mono">
                         {issue.surface.replace(/_/g, " ")}
@@ -342,7 +343,7 @@ export default async function DealDetailPage({ params }: PageProps) {
         <div className="lg:col-span-2 flex flex-col gap-4">
           {/* Customer / job history */}
           <div className={`${sectionCardClass} min-h-[20rem] md:min-h-[24rem] flex flex-col overflow-hidden`}>
-            <div className="p-3 border-b border-slate-100 font-semibold text-slate-900 bg-slate-50/50 flex items-center justify-between shrink-0">
+            <div className="p-3 border-b border-border/50 font-semibold text-foreground bg-muted/20 flex items-center justify-between shrink-0">
               <span className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4" />
                 Customer & job history
@@ -361,12 +362,12 @@ export default async function DealDetailPage({ params }: PageProps) {
                 </Button>
               )}
             </div>
-            <div className="border-b border-slate-100 bg-white px-3 py-2 text-xs text-slate-500">
+            <div className="border-b border-border/50 bg-card px-3 py-2 text-xs text-muted-foreground">
               Recent activity stays here. Open the customer timeline for the full SMS, email, and call correspondence.
             </div>
             <Tabs defaultValue="communications" className="flex min-h-0 flex-1 flex-col">
-              <div className="border-b border-slate-100 px-3 py-2">
-                <TabsList className="h-9 bg-slate-100/70">
+              <div className="border-b border-border/50 px-3 py-2">
+                <TabsList className="h-9 bg-muted/70">
                   <TabsTrigger value="communications" className="text-xs">Communications</TabsTrigger>
                   <TabsTrigger value="jobs" className="text-xs">Past jobs</TabsTrigger>
                   <TabsTrigger value="notes" className="text-xs">Notes</TabsTrigger>
@@ -378,17 +379,17 @@ export default async function DealDetailPage({ params }: PageProps) {
               <TabsContent value="jobs" className="mt-0 flex-1 min-h-[16rem] p-3">
                 <div className="space-y-2">
                   {contactDeals.length === 0 ? (
-                    <p className="text-slate-500 text-sm">No other jobs with this customer.</p>
+                    <p className="text-muted-foreground text-sm">No other jobs with this customer.</p>
                   ) : (
                     contactDeals.map((d) => (
                       <Link
                         key={d.id}
                         href={`/crm/deals/${d.id}`}
-                        className="block rounded-lg border border-slate-100 p-2 text-sm hover:bg-slate-50"
+                        className="block rounded-lg border border-border/50 p-2 text-sm hover:bg-muted/30"
                       >
-                        <span className="font-medium text-slate-900">{d.title}</span>
-                        <span className="ml-2 text-slate-500">${Number(d.value || 0).toLocaleString("en-AU")}</span>
-                        <span className="mt-0.5 block text-xs text-slate-400">
+                        <span className="font-medium text-foreground">{d.title}</span>
+                        <span className="ml-2 text-muted-foreground">{formatCurrency(Number(d.value || 0))}</span>
+                        <span className="mt-0.5 block text-xs text-muted-foreground">
                           {PRISMA_STAGE_LABELS[d.stage] ?? d.stage} - {format(new Date(d.updatedAt), "MMM d")}
                         </span>
                       </Link>

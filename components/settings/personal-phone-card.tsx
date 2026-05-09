@@ -19,7 +19,7 @@ export function PersonalPhoneCard() {
   }, [])
 
   return (
-    <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+    <Card className="border-border dark:border-slate-800 shadow-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Phone className="h-5 w-5" />
@@ -31,13 +31,13 @@ export function PersonalPhoneCard() {
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="flex items-center gap-2 text-slate-500">
+          <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
             Loading…
           </div>
         ) : (
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            <p className="text-sm font-medium text-foreground dark:text-slate-300">
               {status?.hasPersonalPhone && status.personalPhone
                 ? status.personalPhone
                 : "No phone number set"}

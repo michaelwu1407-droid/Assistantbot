@@ -120,11 +120,11 @@ export function ReferralSuccessModal({ isOpen, onClose, trigger, userId }: Refer
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md bg-white">
+      <Card className="w-full max-w-md bg-card">
         <CardHeader className="relative">
           <button
             onClick={onClose}
-            className="absolute right-4 top-4 p-1 rounded-full hover:bg-gray-100 transition-colors"
+            className="absolute right-4 top-4 p-1 rounded-full hover:bg-muted transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
@@ -136,12 +136,12 @@ export function ReferralSuccessModal({ isOpen, onClose, trigger, userId }: Refer
             <div className="text-lg font-semibold text-green-600">
               {getTriggerMessage()}
             </div>
-            <p className="text-sm text-gray-600 mt-2">
+            <p className="text-sm text-muted-foreground mt-2">
               {getRewardText()}
             </p>
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-4">
+          <div className="bg-muted/30 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium">Your referral link:</span>
               <Badge variant="secondary" className="text-xs">
@@ -153,7 +153,7 @@ export function ReferralSuccessModal({ isOpen, onClose, trigger, userId }: Refer
                 type="text"
                 value={referralLink}
                 readOnly
-                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md bg-white"
+                className="flex-1 px-3 py-2 text-sm border border-border rounded-md bg-card"
               />
               <Button
                 onClick={copyToClipboard}

@@ -41,7 +41,7 @@ export function BusinessContactForm({ initialData }: BusinessContactFormProps) {
   }
 
   return (
-    <Card className="border-slate-200 dark:border-slate-800 shadow-sm">
+    <Card className="border-border dark:border-slate-800 shadow-sm">
       <CardHeader>
         <CardTitle>Business details</CardTitle>
         <CardDescription>

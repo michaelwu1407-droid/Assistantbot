@@ -69,7 +69,7 @@ export function ShareResult({
   if (variant === "inline") {
     return (
       <div className={`flex items-center gap-2 ${className}`}>
-        <span className="text-sm text-gray-600">{title}:</span>
+        <span className="text-sm text-muted-foreground">{title}:</span>
         <Button
           onClick={copyLink}
           variant="ghost"

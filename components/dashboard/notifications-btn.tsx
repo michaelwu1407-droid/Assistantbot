@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { getNotifications, markAsRead, markAllAsRead, type NotificationView } from "@/actions/notification-actions"
 import { approveCompletion, approveDraft } from "@/actions/deal-actions"
 import { cn } from "@/lib/utils"
+import { formatTime } from "@/lib/format"
 import { toast } from "sonner"
 
 const ACTION_LABELS: Record<string, { label: string; icon: React.ElementType; className: string }> = {
@@ -133,7 +134,7 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
                         "relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-white/90 transition-colors",
                         "border-0 bg-transparent p-0 shadow-none outline-none",
                         /* globals: * { outline-ring/50 } and *:focus-visible { box-shadow: green } */
-                        "!outline-none hover:bg-white/10 hover:text-white",
+                        "!outline-none hover:bg-card/10 hover:text-white",
                         "focus-visible:!outline-none focus-visible:!shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
                     )}
                     onClick={() => {
@@ -152,7 +153,7 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
                     size="icon"
                     className={cn(
                         "relative h-9 w-9",
-                        "text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        "text-muted-foreground hover:text-foreground hover:bg-muted dark:hover:bg-slate-800"
                     )}
                     onClick={() => {
                         setIsOpen(!isOpen)
@@ -179,10 +180,10 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
                         id="notifications-panel"
                         role="dialog"
                         aria-label="Notifications"
-                        className="absolute right-0 mt-2 w-80 z-50 bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-100 origin-top-right"
+                        className="absolute right-0 mt-2 w-80 z-50 bg-card rounded-lg shadow-xl border border-border overflow-hidden animate-in fade-in zoom-in-95 duration-100 origin-top-right"
                     >
-                        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50">
-                            <h3 className="font-semibold text-sm text-slate-900">Notifications</h3>
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-muted/20">
+                            <h3 className="font-semibold text-sm text-foreground">Notifications</h3>
                             {unreadCount > 0 && (
                                 <button
                                     onClick={handleMarkAllRead}
@@ -195,9 +196,9 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
 
                         <div className="max-h-[300px] overflow-y-auto">
                             {loading && notifications.length === 0 ? (
-                                <div className="p-4 text-center text-xs text-slate-400">Loading...</div>
+                                <div className="p-4 text-center text-xs text-muted-foreground">Loading...</div>
                             ) : notifications.length === 0 ? (
-                                <div className="p-8 text-center text-slate-500 text-sm">
+                                <div className="p-8 text-center text-muted-foreground text-sm">
                                     <Bell className="h-8 w-8 mx-auto mb-2 text-slate-200" />
                                     No new notifications
                                 </div>
@@ -207,7 +208,7 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
                                         <div
                                             key={n.id}
                                             className={cn(
-                                                "p-3 flex gap-3 hover:bg-slate-50 transition-colors cursor-pointer",
+                                                "p-3 flex gap-3 hover:bg-muted/30 transition-colors cursor-pointer",
                                                 !n.read && "bg-primary/10"
                                             )}
                                             onClick={() => {
@@ -237,10 +238,10 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
                                                 )}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className={cn("text-sm font-medium text-slate-900", n.read && "text-slate-600")}>
+                                                <p className={cn("text-sm font-medium text-foreground", n.read && "text-muted-foreground")}>
                                                     {n.title}
                                                 </p>
-                                                <p className="text-xs text-slate-500 mt-0.5">
+                                                <p className="text-xs text-muted-foreground mt-0.5">
                                                     {n.message}
                                                 </p>
                                                 {n.actionType && ACTION_LABELS[n.actionType] && !n.read && (
@@ -255,8 +256,8 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
                                                         {ACTION_LABELS[n.actionType].label}
                                                     </button>
                                                 )}
-                                                <p className="text-[10px] text-slate-400 mt-1.5">
-                                                    {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                <p className="text-[10px] text-muted-foreground mt-1.5">
+                                                    {formatTime(n.createdAt)}
                                                 </p>
                                             </div>
                                             {!n.read && !n.actionType && (

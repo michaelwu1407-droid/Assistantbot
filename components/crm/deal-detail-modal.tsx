@@ -33,6 +33,7 @@ import {
 } from "@/lib/deal-utils"
 import { kanbanStageRequiresScheduledDate } from "@/lib/deal-stage-rules"
 import { formatDateTimeInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone"
+import { formatCurrency } from "@/lib/format"
 
 interface DealDetailModalProps {
   dealId: string | null
@@ -111,16 +112,16 @@ export function DealDetailModal({ dealId, open, onOpenChange, currentUserRole = 
         onOpenChange(nextOpen)
       }}
     >
-      <DialogContent className="max-w-7xl h-[90vh] overflow-hidden rounded-[18px] flex flex-col p-0 gap-0" aria-describedby={undefined}>
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-[1440px] h-[90vh] overflow-hidden rounded-[18px] flex flex-col p-0 gap-0" aria-describedby={undefined}>
         <DialogTitle className="sr-only">Deal details</DialogTitle>
         {loading && (
           <div className="flex items-center justify-center flex-1 min-h-[200px]">
-            <p className="text-slate-500">Loading...</p>
+            <p className="text-muted-foreground">Loading...</p>
           </div>
         )}
         {error && !loading && (
           <div className="flex flex-col items-center justify-center flex-1 min-h-[200px] gap-2">
-            <p className="text-red-600 font-medium">{error}</p>
+            <p className="text-destructive font-medium">{error}</p>
             <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
           </div>
         )}
@@ -385,7 +386,7 @@ function DealDetailContent({
               type="button"
               size="sm"
               variant="secondary"
-              className="h-8 bg-white/20 text-white hover:bg-white/30"
+              className="h-8 bg-card/20 text-white hover:bg-card/30"
               onClick={() => setShowReconcile(true)}
             >
               Reconcile
@@ -394,7 +395,7 @@ function DealDetailContent({
               type="button"
               size="icon"
               variant="ghost"
-              className="h-8 w-8 text-white hover:bg-white/20"
+              className="h-8 w-8 text-white hover:bg-card/20"
               aria-label="Dismiss overdue warning"
               onClick={() => setOverdueDismissed(true)}
             >
@@ -451,11 +452,11 @@ function DealDetailContent({
       <div className="shrink-0 border-b">
         <div className="flex items-start justify-between gap-4 p-4 md:p-6">
           <div className="min-w-0 flex-1">
-            <h1 className="text-lg font-bold text-slate-900 break-words leading-snug">{deal.title}</h1>
-            <p className="mt-0.5 text-sm font-medium text-slate-600">{contact?.name ?? "—"}</p>
-            <p className="mt-1 text-xs text-slate-400">
+            <h1 className="text-lg font-bold text-foreground break-words leading-snug">{deal.title}</h1>
+            <p className="mt-0.5 text-sm font-medium text-muted-foreground">{contact?.name ?? "—"}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
               {deal.source ? deal.source.charAt(0).toUpperCase() + deal.source.slice(1) : "—"} •{" "}
-              <span className="font-semibold text-emerald-600">${Number(deal.value || 0).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span className="font-semibold text-emerald-600">{formatCurrency(Number(deal.value || 0))}</span>
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -503,94 +504,94 @@ function DealDetailContent({
       </div>
 
       {/* Main: LHS (contact + job) | RHS (history + notes) */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0 p-4 md:p-6 overflow-y-auto">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-5 gap-4 min-h-0 p-4 md:p-6 overflow-y-auto">
         {/* Left: Contact + Current job */}
-        <div className="lg:col-span-1 flex flex-col gap-4">
+        <div className="lg:col-span-2 flex flex-col gap-4">
           {/* Contact details — name is in header; edit opens contact */}
-          <div className="shrink-0 rounded-[18px] border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="shrink-0 rounded-[18px] border border-border bg-card p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <h3 className="flex items-center gap-2 font-semibold text-slate-900">
+              <h3 className="app-panel-title flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 Contact details
               </h3>
-              <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={handleEditContact} aria-label="Edit contact">
+              <Button type="button" variant="outline" size="sm" className="h-8 text-xs shrink-0" onClick={handleEditContact} aria-label="Edit contact">
                 <Edit className="mr-1 h-3 w-3" />
                 Edit
               </Button>
             </div>
             {contact ? (
-              <div className="space-y-2.5 text-sm">
+              <div className="space-y-3">
                 {contact.phone && (
-                  <div>
-                    <p className="text-xs text-slate-500">Phone</p>
+                  <div className="min-w-0">
+                    <p className="app-field-label mb-0.5">Phone</p>
                     <a
                       href={`tel:${contact.phone}`}
-                      className="mt-0.5 flex items-center gap-1 font-medium text-blue-600 hover:underline dark:text-blue-400"
+                      className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:underline truncate dark:text-blue-400"
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
-                      {contact.phone}
+                      <svg className="shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
+                      <span className="truncate">{contact.phone}</span>
                     </a>
                   </div>
                 )}
                 {contact.email && (
-                  <div>
-                    <p className="text-xs text-slate-500">Email</p>
-                    <a href={`mailto:${contact.email}`} className="font-medium text-slate-900 hover:underline">
+                  <div className="min-w-0">
+                    <p className="app-field-label mb-0.5">Email</p>
+                    <a href={`mailto:${contact.email}`} className="app-body-primary hover:underline truncate block" title={contact.email}>
                       {contact.email}
                     </a>
                   </div>
                 )}
                 {contact.company && (
-                  <div>
-                    <p className="text-xs text-slate-500">Company</p>
-                    <p className="font-medium text-slate-900">{contact.company}</p>
+                  <div className="min-w-0">
+                    <p className="app-field-label mb-0.5">Company</p>
+                    <p className="app-body-primary truncate">{contact.company}</p>
                   </div>
                 )}
                 {(deal.address || (typeof metadata.address === "string" && metadata.address)) && (
-                  <div className="flex items-start gap-1.5">
-                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
-                    <div>
-                      <p className="text-xs text-slate-500">Address</p>
-                      <p className="font-medium text-slate-900">{deal.address || (metadata.address as string)}</p>
+                  <div className="flex items-start gap-1.5 min-w-0">
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                    <div className="min-w-0">
+                      <p className="app-field-label mb-0.5">Address</p>
+                      <p className="app-body-primary break-words">{deal.address || (metadata.address as string)}</p>
                     </div>
                   </div>
                 )}
                 {(!(deal.address || (typeof metadata.address === "string" && metadata.address)) && contact.id) && (
                   <div className="space-y-1.5">
-                    <p className="text-xs text-red-500">No address on file. Add one in CRM before using route or map actions for this job.</p>
+                    <p className="text-xs text-destructive">No address on file. Add one in CRM before using route or map actions for this job.</p>
                     <Button type="button" variant="outline" size="sm" className="h-7 text-xs" asChild>
                       <Link href={`/crm/contacts/${contact.id}/edit`}>Add address in CRM</Link>
                     </Button>
                   </div>
                 )}
                 {!contact.phone && !contact.email && !contact.company && !deal.address && !(typeof metadata.address === "string" && metadata.address) && (
-                  <p className="text-sm text-slate-500">Add phone, email, or address via Edit.</p>
+                  <p className="text-sm text-muted-foreground">Add phone, email, or address via Edit.</p>
                 )}
               </div>
             ) : (
-              <p className="text-sm text-slate-500">No contact associated.</p>
+              <p className="text-sm text-muted-foreground">No contact associated.</p>
             )}
           </div>
 
           {/* Current / upcoming job details */}
-          <div className="shrink-0 rounded-[18px] border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="shrink-0 rounded-[18px] border border-border bg-card p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <h3 className="flex items-center gap-2 font-semibold text-slate-900">
+              <h3 className="app-panel-title flex items-center gap-2">
                 <Briefcase className="h-4 w-4" />
                 Current job
               </h3>
-              <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={handleEdit} aria-label="Edit job">
+              <Button type="button" variant="outline" size="sm" className="h-8 text-xs shrink-0" onClick={handleEdit} aria-label="Edit job">
                 <Edit className="mr-1 h-3 w-3" />
                 Edit
               </Button>
             </div>
-            <div className="space-y-2.5 text-sm">
-              <div>
-                <p className="text-xs text-slate-500">Job</p>
-                <p className="font-medium text-slate-900">{deal.title}</p>
+            <div className="space-y-3">
+              <div className="min-w-0">
+                <p className="app-field-label mb-0.5">Job</p>
+                <p className="app-body-primary break-words">{deal.title}</p>
               </div>
               <div>
-                <p className="text-slate-500 text-xs text-emerald-600 font-medium mb-1">Final Invoice Amount</p>
+                <p className="app-field-label mb-1">Final Invoice Amount</p>
                 {isEditingInvoice ? (
                   <div className="flex items-center gap-2">
                     <div className="relative w-full">
@@ -611,7 +612,7 @@ function DealDetailContent({
                   <div className="flex items-center justify-between rounded-[18px] border border-emerald-100 bg-emerald-50 p-2">
                     <span className="font-semibold text-emerald-700 text-lg">
                       {deal.invoicedAmount !== undefined && deal.invoicedAmount !== null
-                        ? `$${deal.invoicedAmount.toLocaleString()}`
+                        ? formatCurrency(deal.invoicedAmount)
                         : "Not set"
                       }
                     </span>
@@ -622,31 +623,31 @@ function DealDetailContent({
                 )}
               </div>
               <div>
-                <p className="text-slate-500 text-xs">Quoted Value</p>
-                <p className="font-medium text-slate-700">${Number(deal.value || 0).toLocaleString()}</p>
+                <p className="app-field-label mb-0.5">Quoted Value</p>
+                <p className="app-body-primary">{formatCurrency(Number(deal.value || 0))}</p>
               </div>
               <div>
-                <p className="text-slate-500 text-xs">Scheduled</p>
-                <p className="font-medium text-slate-900">
+                <p className="app-field-label mb-0.5">Scheduled</p>
+                <p className="app-body-primary">
                   {deal.scheduledAt ? formatDateTimeInTimezone(deal.scheduledAt, workspaceTimezone) : "—"}
                 </p>
               </div>
               <div>
-                <p className="text-slate-500 text-xs">Created</p>
-                <p className="font-medium text-slate-900">{format(new Date(deal.createdAt), "MMM d, yyyy")}</p>
+                <p className="app-field-label mb-0.5">Created</p>
+                <p className="app-body-primary">{format(new Date(deal.createdAt), "MMM d, yyyy")}</p>
               </div>
             </div>
 
             {/* ─── Follow-up Reminder ─────────────────────────────── */}
-            <div className="mt-3 rounded-[14px] border border-slate-100 bg-slate-50/60 p-3">
+            <div className="mt-3 rounded-[14px] border border-border/50 bg-muted/30 p-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 uppercase tracking-wide">
+                <span className="app-micro-label flex items-center gap-1.5">
                   <Bell className="w-3.5 h-3.5 text-amber-500" />
                   Follow-up
                 </span>
                 {followUpAt && !followUpCompletedAt && (
                   <button
-                    className="text-[10px] text-slate-400 hover:text-red-500 transition-colors"
+                    className="text-[10px] text-muted-foreground hover:text-destructive transition-colors"
                     onClick={async () => {
                       await cancelFollowUp(deal.id)
                       setDeal((d) => ({ ...d!, followUpAt: null, followUpNote: null, followUpChannel: null } as DealDetail))
@@ -667,14 +668,14 @@ function DealDetailContent({
                   <div className="flex items-center gap-2">
                     <span className={cn(
                       "text-sm font-medium",
-                      new Date(followUpAt) < new Date() ? "text-red-600" : "text-slate-900"
+                      new Date(followUpAt) < new Date() ? "text-destructive" : "text-foreground"
                     )}>
                       {new Date(followUpAt) < new Date() ? "⚠ Overdue — " : ""}
                       {format(new Date(followUpAt), "EEE MMM d, h:mm a")}
                     </span>
                   </div>
                   {followUpNoteSaved && (
-                    <p className="text-xs text-slate-500">{followUpNoteSaved}</p>
+                    <p className="text-xs text-muted-foreground">{followUpNoteSaved}</p>
                   )}
                   <div className="flex gap-2 mt-2">
                     <Button
@@ -712,7 +713,7 @@ function DealDetailContent({
               {followUpCompletedAt && (
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-muted-foreground">
                     Completed {format(new Date(followUpCompletedAt), "MMM d")}
                   </span>
                   <button
@@ -741,7 +742,7 @@ function DealDetailContent({
               {showFollowUpForm && (
                 <div className="space-y-2 mt-1">
                   <div>
-                    <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">When</label>
+                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">When</label>
                     <input
                       type="datetime-local"
                       value={followUpDate}
@@ -750,7 +751,7 @@ function DealDetailContent({
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Note (optional)</label>
+                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Note (optional)</label>
                     <Input
                       value={followUpNote}
                       onChange={(e) => setFollowUpNoteState(e.target.value)}
@@ -759,7 +760,7 @@ function DealDetailContent({
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Channel</label>
+                    <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Channel</label>
                     <select
                       value={followUpChannel}
                       onChange={(e) => setFollowUpChannel(e.target.value)}
@@ -819,13 +820,13 @@ function DealDetailContent({
         </div>
 
         {/* Right: History + Notes */}
-        <div className="lg:col-span-2 flex flex-col gap-4 min-h-0">
+        <div className="lg:col-span-3 flex flex-col gap-4 min-h-0">
           {/* Customer / job history */}
-          <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-sm">
-            <div className="p-3 border-b border-slate-100 font-semibold text-slate-900 bg-slate-50/50 flex items-center justify-between shrink-0">
-              <span className="flex items-center gap-2">
+          <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-[18px] border border-border bg-card shadow-sm">
+            <div className="p-3 border-b border-border bg-muted/30 flex items-center justify-between shrink-0">
+              <span className="app-panel-title flex items-center gap-2">
                 <MessageSquare className="w-4 h-4" />
-                Customer & job history
+                Customer &amp; job history
               </span>
               {deal.contactId ? (
                 <Link href={`/crm/inbox?contact=${deal.contactId}`}>
@@ -841,10 +842,10 @@ function DealDetailContent({
                 </Button>
               )}
             </div>
-            <div className="border-b border-slate-100 bg-white px-3 py-2 text-xs text-slate-500">
+            <div className="border-b border-border/50 bg-card px-3 py-2 text-xs text-muted-foreground">
               Recent activity stays here. Open the customer timeline for the full SMS, email, and call correspondence.
             </div>
-            <div className="flex bg-slate-100/50 p-1 border-b border-slate-100 shrink-0" role="tablist" aria-label="Deal detail sections">
+            <div className="flex bg-muted/30 p-1 border-b border-border/50 shrink-0" role="tablist" aria-label="Deal detail sections">
               {(["activities", "jobs", "notes"] as const).map((t) => (
                 <button
                   key={t}
@@ -855,7 +856,7 @@ function DealDetailContent({
                   id={`deal-tab-btn-${t}`}
                   className={cn(
                     "flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all",
-                    activeDetailTab === t ? "bg-white text-primary shadow-sm" : "text-slate-400 hover:text-slate-600"
+                    activeDetailTab === t ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-muted-foreground"
                   )}
                 >
                   {t === "activities" ? "Communications" : t}
@@ -866,7 +867,7 @@ function DealDetailContent({
               {activeDetailTab === "jobs" && (
                 <div id="deal-tab-jobs" role="tabpanel" aria-labelledby="deal-tab-btn-jobs" className="h-full overflow-y-auto p-3 space-y-2">
                   {contactDeals.length === 0 ? (
-                    <p className="text-slate-500 text-sm">No other jobs with this customer.</p>
+                    <p className="text-muted-foreground text-sm">No other jobs with this customer.</p>
                   ) : (
                     contactDeals.map((d: ContactDeal) => (
                       <button
@@ -875,11 +876,11 @@ function DealDetailContent({
                           onOpenChange(false)
                           router.push(`/crm/deals/${d.id}`)
                         }}
-                        className="block w-full rounded-[18px] border border-slate-100 p-2 text-left text-sm hover:bg-slate-50"
+                        className="block w-full rounded-[18px] border border-border/50 p-2 text-left text-sm hover:bg-muted/30"
                       >
-                        <span className="font-medium text-slate-900">{d.title}</span>
-                        {d.value != null && <span className="text-slate-500 ml-2">${Number(d.value).toLocaleString()}</span>}
-                        <span className="text-slate-400 text-xs block mt-0.5">
+                        <span className="font-medium text-foreground">{d.title}</span>
+                        {d.value != null && <span className="text-muted-foreground ml-2">{formatCurrency(Number(d.value))}</span>}
+                        <span className="text-muted-foreground text-xs block mt-0.5">
                           {getUserFacingDealStageLabel(d.stage)} •{" "}
                           {d.updatedAt ? format(new Date(d.updatedAt as string), "MMM d") : "—"}
                         </span>
@@ -897,16 +898,16 @@ function DealDetailContent({
                 <div id="deal-tab-activities" role="tabpanel" aria-labelledby="deal-tab-btn-activities" className="h-full overflow-hidden flex flex-col min-h-0">
                   <ActivityFeed contactId={deal.contactId} compact className="flex-1" />
                   {/* Direct message mini-box */}
-                  <div className="p-3 border-t bg-slate-50/50 shrink-0">
+                  <div className="p-3 border-t bg-muted/20 shrink-0">
                     <div className="mb-2 flex items-center justify-between gap-3">
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-muted-foreground">
                         Send a direct SMS from your workspace number. Open customer timeline for the full thread.
                       </p>
                     </div>
                     <div className="flex gap-2">
                       <Input
                         placeholder="Send a direct SMS..."
-                        className="bg-white h-9 text-xs"
+                        className="bg-card h-9 text-xs"
                         value={quickMessage}
                         onChange={(e) => setQuickMessage(e.target.value)}
                         onKeyDown={async (e) => {
@@ -930,7 +931,7 @@ function DealDetailContent({
                     </div>
                     {!hasSmsNumber && (
                       <div className="mt-1 flex flex-wrap items-center gap-2">
-                        <p className="text-xs text-red-500">No phone number on file. Add one in CRM before sending a direct SMS from here.</p>
+                        <p className="text-xs text-destructive">No phone number on file. Add one in CRM before sending a direct SMS from here.</p>
                         {contact?.id ? (
                           <Button
                             type="button"
@@ -957,7 +958,7 @@ function DealDetailContent({
         <div className="shrink-0 p-4 border-t">
           <div className="flex gap-2 overflow-x-auto pb-2">
             {deal.jobPhotos.map((photo) => (
-              <div key={photo.id} className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[18px] border border-slate-200 bg-slate-100">
+              <div key={photo.id} className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[18px] border border-border bg-muted">
                 <Image
                   src={photo.url ?? photo.fileUrl ?? ""}
                   alt={photo.caption || "Job"}

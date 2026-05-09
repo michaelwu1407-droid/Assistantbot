@@ -155,7 +155,7 @@ export function EmailLeadCaptureSettings() {
                 ? "rounded-[18px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
                 : readinessMessage.tone === "info"
                   ? "rounded-[18px] border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900"
-                  : "rounded-[18px] border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700"
+                  : "rounded-[18px] border border-border bg-muted/30 p-4 text-sm text-foreground"
           }
         >
           <div className="font-medium">{readinessMessage.title}</div>

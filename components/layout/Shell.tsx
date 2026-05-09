@@ -278,19 +278,19 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
           <div className="absolute inset-0 ott-glow opacity-30 pointer-events-none" />
 
           {/* Main Chat Container - seamless glassmorphism (id for tutorial spotlight so whole window + toggle is visible) */}
-          <div id="chat-mode-window" className="z-10 w-full max-w-4xl h-full md:h-[82dvh] flex flex-col rounded-none md:rounded-3xl overflow-hidden bg-white/40 dark:bg-zinc-950/40 backdrop-blur-2xl shadow-2xl relative border border-white/20 dark:border-white/5">
+          <div id="chat-mode-window" className="z-10 w-full max-w-4xl h-full md:h-[82dvh] flex flex-col rounded-none md:rounded-3xl overflow-hidden bg-card/40 dark:bg-zinc-950/40 backdrop-blur-2xl shadow-2xl relative border border-white/20 dark:border-white/5">
             {/* Header inside card: title + mode toggle */}
             <header className="shrink-0 flex items-center justify-between gap-4 px-4 md:px-6 py-4 bg-transparent border-b border-border/10">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm overflow-hidden bg-primary">
                   <Image src="/latest-logo.png" alt="Earlymark" width={32} height={32} className="h-8 w-8 object-contain" />
                 </div>
-                <span className="font-semibold text-slate-900 dark:text-foreground">Ask Tracey</span>
+                <span className="font-semibold text-foreground dark:text-foreground">Ask Tracey</span>
               </div>
               <div className="flex items-center bg-neutral-100 dark:bg-slate-800/80 rounded-lg p-1 gap-1">
                 <button
                   onClick={() => { }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-white text-neutral-900 shadow-xs transition-all duration-150"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-card text-neutral-900 shadow-xs transition-all duration-150"
                 >
                   <MessageSquare size={14} />
                   Chat
@@ -386,7 +386,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
                       className={cn(
                         'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-150',
                         viewMode !== 'ADVANCED'
-                          ? 'bg-white text-neutral-900 shadow-xs'
+                          ? 'bg-card text-neutral-900 shadow-xs'
                           : 'text-neutral-500 hover:text-neutral-700'
                       )}
                     >
@@ -398,7 +398,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
                       className={cn(
                         'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-150',
                         viewMode === 'ADVANCED'
-                          ? 'bg-white text-neutral-900 shadow-xs'
+                          ? 'bg-card text-neutral-900 shadow-xs'
                           : 'text-neutral-500 hover:text-neutral-700'
                       )}
                     >

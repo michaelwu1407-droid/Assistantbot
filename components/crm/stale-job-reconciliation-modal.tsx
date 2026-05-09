@@ -100,7 +100,7 @@ export function StaleJobReconciliationModal({
       case "NO_SHOW":
         return <UserX className="w-4 h-4 text-orange-600" />
       case "CANCELLED":
-        return <X className="w-4 h-4 text-red-600" />
+        return <X className="w-4 h-4 text-destructive" />
       default:
         return null
     }
@@ -136,7 +136,7 @@ export function StaleJobReconciliationModal({
           {/* Actual Outcome */}
           <div className="space-y-2">
             <Label htmlFor="actualOutcome" className="text-sm font-medium">
-              What happened with this job? <span className="text-red-500">*</span>
+              What happened with this job? <span className="text-destructive">*</span>
             </Label>
             <Select
               value={actualOutcome}
@@ -158,7 +158,7 @@ export function StaleJobReconciliationModal({
               </SelectContent>
             </Select>
             {actualOutcome && (
-              <p className="text-xs text-slate-500">{getOutcomeNextStep(actualOutcome)}</p>
+              <p className="text-xs text-muted-foreground">{getOutcomeNextStep(actualOutcome)}</p>
             )}
           </div>
 

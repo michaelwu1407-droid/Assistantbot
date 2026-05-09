@@ -27,7 +27,7 @@ export default function AuthCodeErrorPage() {
       <div className="absolute inset-0 ott-glow -z-10" />
 
       <div className="mb-8 p-6 bg-card rounded-[24px] shadow-ott border border-border/60">
-        <AlertTriangle className="h-12 w-12 text-red-500" />
+        <AlertTriangle className="h-12 w-12 text-destructive" />
       </div>
       
       <h1 className="text-4xl font-extrabold text-midnight tracking-tight mb-2">Authentication Error</h1>

@@ -211,10 +211,10 @@ export default function NotificationsSettingsPage() {
             </div>
             <Switch checked={prefs.inAppStaleDealAlerts} onCheckedChange={(v) => updatePref("inAppStaleDealAlerts", v)} />
           </div>
-          <div className="relative overflow-hidden rounded-[18px] border border-slate-200 p-4 dark:border-slate-800">
+          <div className="relative overflow-hidden rounded-[18px] border border-border p-4 dark:border-slate-800">
             {!pushConfigured && (
               <>
-                <div className="pointer-events-none absolute inset-0 bg-white/55 backdrop-blur-[1px] dark:bg-slate-950/45" />
+                <div className="pointer-events-none absolute inset-0 bg-card/55 backdrop-blur-[1px] dark:bg-slate-950/45" />
                 <div className="pointer-events-none absolute right-3 top-3 rounded-full border border-amber-300 bg-amber-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-900 dark:border-amber-800 dark:bg-amber-950/70 dark:text-amber-100">
                   Draft
                 </div>

@@ -91,10 +91,10 @@ export function AttachmentLibrarySection({ documents: initialDocuments }: { docu
 
     return (
         <div className="space-y-6">
-            <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
+            <div className="bg-muted/30 dark:bg-slate-900/50 border border-border dark:border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
                 <div>
-                    <h5 className="text-sm font-medium text-slate-800 dark:text-slate-200">Upload New Attachment</h5>
-                    <p className="text-xs text-slate-500 mb-4">
+                    <h5 className="text-sm font-medium text-foreground dark:text-slate-200">Upload New Attachment</h5>
+                    <p className="text-xs text-muted-foreground mb-4">
                         Give the AI context on what this file is so it knows exactly when to send it to customers.
                     </p>
                 </div>
@@ -128,7 +128,7 @@ export function AttachmentLibrarySection({ documents: initialDocuments }: { docu
                             disabled={isUploading}
                             rows={2}
                         />
-                        <p className="text-[11px] text-slate-400">
+                        <p className="text-[11px] text-muted-foreground">
                             Example: &quot;Send this file whenever a customer asks about our Standard Pricing or Call-out fees.&quot;
                         </p>
                     </div>
@@ -142,22 +142,22 @@ export function AttachmentLibrarySection({ documents: initialDocuments }: { docu
 
             <div className="space-y-3">
                 {docs.length === 0 ? (
-                    <div className="text-center p-8 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg text-slate-500 text-sm">
+                    <div className="text-center p-8 border border-dashed border-border dark:border-slate-800 rounded-lg text-muted-foreground text-sm">
                         No documents in your library yet.
                     </div>
                 ) : (
                     docs.map(doc => (
-                        <div key={doc.id} className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between p-4 border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-950">
+                        <div key={doc.id} className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between p-4 border border-border dark:border-slate-800 rounded-lg bg-card dark:bg-slate-950">
                             <div className="flex gap-3">
                                 <div className="bg-emerald-100/50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 p-2 rounded-lg shrink-0 h-fit">
                                     <File className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <h6 className="font-semibold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                                    <h6 className="font-semibold text-sm text-foreground dark:text-slate-100 flex items-center gap-2">
                                         {doc.name}
                                     </h6>
-                                    <p className="text-xs text-slate-500 mt-1 italic">
-                                        <span className="font-medium text-slate-600 dark:text-slate-400">AI Rules: </span>
+                                    <p className="text-xs text-muted-foreground mt-1 italic">
+                                        <span className="font-medium text-muted-foreground dark:text-muted-foreground">AI Rules: </span>
                                         {doc.description}
                                     </p>
                                 </div>
