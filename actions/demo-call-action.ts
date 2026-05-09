@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { initiateDemoCall } from "@/lib/demo-call";
 import { dispatchDemoCallFailureAlert } from "@/lib/demo-call-failure-alert";
 import { getDemoCallUserMessage } from "@/lib/demo-call-errors";
+import { sendDemoLeadNotificationEmail } from "@/lib/demo-lead-email";
 import {
     markDemoLeadFailed,
     markDemoLeadInitiated,
@@ -117,6 +118,23 @@ export async function requestDemoCall(data: DemoCallData): Promise<DemoCallResul
             warnings: result.warnings,
         });
 
+        await sendDemoLeadNotificationEmail({
+            leadId,
+            source: "homepage_form",
+            firstName: data.firstName,
+            lastName: data.lastName,
+            phone: data.phone,
+            email: data.email,
+            businessName: data.businessName,
+            callStatus: "initiated",
+            roomName: result.roomName,
+            resolvedTrunkId: result.resolvedTrunkId,
+            callerNumber: result.callerNumber,
+            warnings: result.warnings,
+        }).catch((emailError) => {
+            console.error("[Demo Call] Failed to send sales lead email:", emailError);
+        });
+
         const message = result.connectionVerified
             ? "Tracey is calling you now!"
             : "We've started your callback attempt. If your phone does not ring within 30 seconds, please try again.";
@@ -135,6 +153,20 @@ export async function requestDemoCall(data: DemoCallData): Promise<DemoCallResul
             businessName: data.businessName,
             error: err,
         }).catch(() => null);
+
+        await sendDemoLeadNotificationEmail({
+            leadId,
+            source: "homepage_form",
+            firstName: data.firstName,
+            lastName: data.lastName,
+            phone: data.phone,
+            email: data.email,
+            businessName: data.businessName,
+            callStatus: "failed",
+            callError: err instanceof Error ? err.message : String(err),
+        }).catch((emailError) => {
+            console.error("[Demo Call] Failed to send sales lead email:", emailError);
+        });
 
         return { success: false, error: getDemoCallUserMessage(err), leadId };
     }

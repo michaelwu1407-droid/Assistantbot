@@ -6,6 +6,7 @@ const hoisted = vi.hoisted(() => ({
   markDemoLeadInitiated: vi.fn(),
   markDemoLeadFailed: vi.fn(),
   dispatchDemoCallFailureAlert: vi.fn(),
+  sendDemoLeadNotificationEmail: vi.fn(),
   headers: vi.fn(),
 }));
 
@@ -21,6 +22,10 @@ vi.mock("@/lib/demo-lead-store", () => ({
 
 vi.mock("@/lib/demo-call-failure-alert", () => ({
   dispatchDemoCallFailureAlert: hoisted.dispatchDemoCallFailureAlert,
+}));
+
+vi.mock("@/lib/demo-lead-email", () => ({
+  sendDemoLeadNotificationEmail: hoisted.sendDemoLeadNotificationEmail,
 }));
 
 vi.mock("next/headers", () => ({
@@ -51,6 +56,7 @@ describe("requestDemoCall server action", () => {
     hoisted.markDemoLeadInitiated.mockResolvedValue(undefined);
     hoisted.markDemoLeadFailed.mockResolvedValue(undefined);
     hoisted.dispatchDemoCallFailureAlert.mockResolvedValue(null);
+    hoisted.sendDemoLeadNotificationEmail.mockResolvedValue({ sent: true, skipped: false });
   });
 
   it("rejects missing required fields with field-specific errors", async () => {
@@ -100,6 +106,14 @@ describe("requestDemoCall server action", () => {
       "lead_123",
       expect.objectContaining({ roomName: "demo-1", resolvedTrunkId: "ST_real" }),
     );
+    expect(hoisted.sendDemoLeadNotificationEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        leadId: "lead_123",
+        source: "homepage_form",
+        callStatus: "initiated",
+        businessName: "Alexandria Auto",
+      }),
+    );
     expect(result).toEqual({
       success: true,
       message: "Tracey is calling you now!",
@@ -121,6 +135,13 @@ describe("requestDemoCall server action", () => {
         leadId: "lead_123",
         source: "homepage_form",
         phone: "+61434955958",
+      }),
+    );
+    expect(hoisted.sendDemoLeadNotificationEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        leadId: "lead_123",
+        source: "homepage_form",
+        callStatus: "failed",
       }),
     );
     expect(result).toEqual(
@@ -168,5 +189,28 @@ describe("requestDemoCall server action", () => {
       expect(result.leadId).toBeNull();
     }
     expect(hoisted.markDemoLeadInitiated).toHaveBeenCalledWith(null, expect.any(Object));
+  });
+
+  it("does not fail the user flow when the sales lead email send throws", async () => {
+    hoisted.initiateDemoCall.mockResolvedValue({
+      roomName: "demo-3",
+      normalizedPhone: "+61434955958",
+      resolvedTrunkId: "ST_real",
+      callerNumber: "+61485010634",
+      warnings: [],
+      transport: "livekit_control",
+      callSid: null,
+      connectionVerified: true,
+      sipCallStatus: "active",
+    });
+    hoisted.sendDemoLeadNotificationEmail.mockRejectedValue(new Error("Resend unavailable"));
+
+    const result = await requestDemoCall(validForm);
+
+    expect(result).toEqual({
+      success: true,
+      message: "Tracey is calling you now!",
+      leadId: "lead_123",
+    });
   });
 });

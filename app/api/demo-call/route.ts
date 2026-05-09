@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { initiateDemoCall } from "@/lib/demo-call";
 import { dispatchDemoCallFailureAlert } from "@/lib/demo-call-failure-alert";
+import { sendDemoLeadNotificationEmail } from "@/lib/demo-lead-email";
 import {
   markDemoLeadFailed,
   markDemoLeadInitiated,
@@ -71,6 +72,23 @@ export async function POST(req: NextRequest) {
       warnings: result.warnings,
     });
 
+    await sendDemoLeadNotificationEmail({
+      leadId,
+      source: "api",
+      firstName,
+      lastName,
+      phone,
+      email,
+      businessName,
+      callStatus: "initiated",
+      roomName: result.roomName,
+      resolvedTrunkId: result.resolvedTrunkId,
+      callerNumber: result.callerNumber,
+      warnings: result.warnings,
+    }).catch((emailError) => {
+      console.error("[demo-call] Failed to send sales lead email:", emailError);
+    });
+
     return NextResponse.json({
       success: true,
       leadId,
@@ -93,6 +111,20 @@ export async function POST(req: NextRequest) {
       businessName,
       error: err,
     }).catch(() => null);
+
+    await sendDemoLeadNotificationEmail({
+      leadId,
+      source: "api",
+      firstName,
+      lastName,
+      phone,
+      email,
+      businessName,
+      callStatus: "failed",
+      callError: err instanceof Error ? err.message : "Unknown error",
+    }).catch((emailError) => {
+      console.error("[demo-call] Failed to send sales lead email:", emailError);
+    });
 
     return NextResponse.json(
       {
