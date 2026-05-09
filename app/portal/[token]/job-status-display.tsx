@@ -46,7 +46,7 @@ export function JobStatusDisplay({
       <div className="rounded-xl border border-red-100 bg-red-50 p-6 text-center">
         <p className="text-sm font-medium text-red-700">This appointment has been cancelled.</p>
         {data.businessPhone && (
-          <p className="mt-2 text-sm text-red-600">
+          <p className="mt-2 text-sm text-destructive">
             Questions?{" "}
             <a href={`tel:${data.businessPhone}`} className="underline">
               Call us

@@ -190,7 +190,7 @@ export function PublicFeedbackForm({
           />
         </div>
 
-        {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
+        {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
 
         <Button onClick={handleSubmit} disabled={submitting} className="rounded-full">
           {submitting ? (

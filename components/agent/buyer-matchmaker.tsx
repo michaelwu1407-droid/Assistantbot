@@ -50,7 +50,7 @@ export function BuyerMatchmaker({ dealId }: BuyerMatchmakerProps) {
             <Card className="h-full border-border shadow-sm">
                 <CardHeader>
                     <CardTitle className="text-foreground">Buyer Matchmaker</CardTitle>
-                    <CardDescription className="text-red-500">
+                    <CardDescription className="text-destructive">
                         {result?.error || "Unable to load matches."}
                     </CardDescription>
                 </CardHeader>

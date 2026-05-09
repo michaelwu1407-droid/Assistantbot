@@ -269,7 +269,7 @@ export default async function DealDetailPage({ params }: PageProps) {
               ) : contact?.id ? (
                 <div>
                   <p className="text-muted-foreground text-xs">Job address</p>
-                  <p className="text-xs text-red-500">No address on file. Add one in CRM before using route or map actions for this job.</p>
+                  <p className="text-xs text-destructive">No address on file. Add one in CRM before using route or map actions for this job.</p>
                   <Button variant="outline" size="sm" className="mt-2 h-8 text-xs" asChild>
                     <Link href={`/crm/contacts/${contact.id}/edit`}>Add address in CRM</Link>
                   </Button>
@@ -300,7 +300,7 @@ export default async function DealDetailPage({ params }: PageProps) {
                 </div>
               ) : contact?.id ? (
                 <div className="pt-1">
-                  <p className="text-xs text-red-500">No phone number on file. Add one in CRM before calling or texting from this job.</p>
+                  <p className="text-xs text-destructive">No phone number on file. Add one in CRM before calling or texting from this job.</p>
                   <Button variant="outline" size="sm" className="mt-2 h-8 text-xs" asChild>
                     <Link href={`/crm/contacts/${contact.id}/edit`}>Add phone in CRM</Link>
                   </Button>

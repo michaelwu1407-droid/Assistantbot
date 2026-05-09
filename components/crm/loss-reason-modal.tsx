@@ -57,7 +57,7 @@ export function LossReasonModal({ open, onOpenChange, deal, onConfirm }: LossRea
       <DialogContent className="max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-2">
-            <XCircle className="h-5 w-5 text-red-600" />
+            <XCircle className="h-5 w-5 text-destructive" />
             <DialogTitle>Mark Deal as Lost</DialogTitle>
           </div>
           <DialogDescription>

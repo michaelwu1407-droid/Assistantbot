@@ -207,7 +207,7 @@ function MockDealCard({ deal, highlighted }: {
     highlighted?: boolean;
 }) {
     const borderClass = deal.status === "rotting"
-        ? "border-red-500 shadow-[0_0_8px_rgba(239,68,68,0.15)]"
+        ? "border-destructive shadow-[0_0_8px_rgba(239,68,68,0.15)]"
         : deal.status === "stale"
             ? "border-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.15)]"
             : "border-border"
@@ -295,7 +295,7 @@ function MockPipelinePreview({ data, highlightType }: {
                 {data.stats.rotting > 0 && (
                     <div className={`text-center rounded px-1 ${highlightStale ? "bg-red-50 ring-1 ring-red-400" : ""}`}>
                         <div className="flex items-center justify-center gap-1 text-[9px] text-red-800 mb-0.5">
-                            <AlertCircle className="w-2.5 h-2.5 text-red-600" />Rotting
+                            <AlertCircle className="w-2.5 h-2.5 text-destructive" />Rotting
                         </div>
                         <p className="text-xs font-bold text-red-900">{data.stats.rotting}</p>
                     </div>

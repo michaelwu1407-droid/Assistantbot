@@ -72,7 +72,7 @@ export function DraggableJobCard({ job, isOverlay }: DraggableJobCardProps) {
                 return {
                     borderColor: 'border-l-red-500',
                     bgColor: 'bg-red-50',
-                    icon: <AlertCircle className="h-3 w-3 text-red-600" />
+                    icon: <AlertCircle className="h-3 w-3 text-destructive" />
                 };
             default: // SCHEDULED, PENDING, etc.
                 return {

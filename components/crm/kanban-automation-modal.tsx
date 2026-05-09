@@ -72,7 +72,7 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
       name: "Escalate",
       description: "Flag for manager review",
       icon: AlertTriangle,
-      color: "text-red-600",
+      color: "text-destructive",
     },
     {
       id: "move-stage",

@@ -135,7 +135,7 @@ export function ContactHeader({ contact }: ContactHeaderProps) {
                     onKeyDown={(e) => e.stopPropagation()}
                   />
                   <div className="flex justify-end mt-1 px-1">
-                    <span className={cn("text-[10px]", smsMessage.length > 160 ? "text-red-500 font-medium" : "text-muted-foreground")}>
+                    <span className={cn("text-[10px]", smsMessage.length > 160 ? "text-destructive font-medium" : "text-muted-foreground")}>
                       {smsMessage.length}/160
                     </span>
                   </div>

@@ -271,7 +271,7 @@ export default function TeamPage() {
 
                             {inviteError && (
                                 <div className="rounded-[18px] border border-red-200 bg-red-50 p-3">
-                                    <p className="text-sm text-red-600">{inviteError}</p>
+                                    <p className="text-sm text-destructive">{inviteError}</p>
                                 </div>
                             )}
 
@@ -411,7 +411,7 @@ export default function TeamPage() {
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
-                                                        className="h-9 w-9 rounded-full text-red-400 hover:bg-red-50 hover:text-red-600"
+                                                        className="h-9 w-9 rounded-full text-red-400 hover:bg-red-50 hover:text-destructive"
                                                         title="Remove from team"
                                                     >
                                                         <Trash2 className="h-4 w-4" />
@@ -498,7 +498,7 @@ export default function TeamPage() {
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="h-9 w-9 rounded-full text-red-400 hover:bg-red-50 hover:text-red-600"
+                                                    className="h-9 w-9 rounded-full text-red-400 hover:bg-red-50 hover:text-destructive"
                                                     onClick={() => handleRevoke(invite.id)}
                                                 >
                                                     <Trash2 className="h-4 w-4" />

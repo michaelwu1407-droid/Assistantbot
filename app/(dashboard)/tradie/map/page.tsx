@@ -28,7 +28,7 @@ export default async function TradieMapPage() {
         return (
             <div className="h-[calc(100vh-4rem)] w-full flex items-center justify-center">
                 <div className="text-center">
-                    <h2 className="text-xl font-semibold text-red-600 mb-2">Error Loading Map</h2>
+                    <h2 className="text-xl font-semibold text-destructive mb-2">Error Loading Map</h2>
                     <p className="text-muted-foreground">{errorMessage || "Unknown error"}</p>
                     <p className="text-sm text-muted-foreground mt-4">Please try refreshing the page</p>
                 </div>

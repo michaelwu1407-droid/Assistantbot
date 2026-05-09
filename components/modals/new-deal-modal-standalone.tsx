@@ -184,7 +184,7 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                                 placeholder="e.g. Toilet Repair, Kitchen Reno..."
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
-                                className={`h-11 ${attemptedSubmit && !title.trim() ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                                className={`h-11 ${attemptedSubmit && !title.trim() ? "ott-field-error" : ""}`}
                                 required
                             />
                         </div>
@@ -295,7 +295,7 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                         {mode === "select" ? (
                             <div className="space-y-2">
                                 <Select value={contactId} onValueChange={setContactId}>
-                                    <SelectTrigger className={`h-11 ${attemptedSubmit && mode === "select" && !contactId ? "border-red-500 focus-visible:ring-red-500" : ""}`}>
+                                    <SelectTrigger className={`h-11 ${attemptedSubmit && mode === "select" && !contactId ? "ott-field-error" : ""}`}>
                                         <SelectValue placeholder={isFetchingContacts ? "Loading..." : "Select a customer"} />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -312,7 +312,7 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                                     <Label htmlFor="new-name" className="text-[10px] font-bold text-muted-foreground ml-1">NAME *</Label>
                                     <div className="relative">
                                         <User className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                                        <Input id="new-name" placeholder="Full Name" className={`h-11 pl-10 bg-card ${attemptedSubmit && !newContactName.trim() ? "border-red-500 focus-visible:ring-red-500" : ""}`} value={newContactName} onChange={e => setNewContactName(e.target.value)} required />
+                                        <Input id="new-name" placeholder="Full Name" className={`h-11 pl-10 bg-card ${attemptedSubmit && !newContactName.trim() ? "ott-field-error" : ""}`} value={newContactName} onChange={e => setNewContactName(e.target.value)} required />
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
@@ -320,14 +320,14 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                                         <Label htmlFor="new-email" className="text-[10px] font-bold text-muted-foreground ml-1">EMAIL</Label>
                                         <div className="relative">
                                             <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                                            <Input id="new-email" type="email" placeholder="email@address.com" className={`h-11 pl-10 bg-card ${shouldHighlightContactMethod ? "border-red-500 focus-visible:ring-red-500" : ""}`} value={newContactEmail} onChange={e => setNewContactEmail(e.target.value)} />
+                                            <Input id="new-email" type="email" placeholder="email@address.com" className={`h-11 pl-10 bg-card ${shouldHighlightContactMethod ? "ott-field-error" : ""}`} value={newContactEmail} onChange={e => setNewContactEmail(e.target.value)} />
                                         </div>
                                     </div>
                                     <div className="space-y-1.5">
                                         <Label htmlFor="new-phone" className="text-[10px] font-bold text-muted-foreground ml-1">PHONE</Label>
                                         <div className="relative">
                                             <Phone className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                                            <Input id="new-phone" type="tel" placeholder="0400 000 000" className={`h-11 pl-10 bg-card ${shouldHighlightContactMethod ? "border-red-500 focus-visible:ring-red-500" : ""}`} value={newContactPhone} onChange={e => setNewContactPhone(e.target.value)} />
+                                            <Input id="new-phone" type="tel" placeholder="0400 000 000" className={`h-11 pl-10 bg-card ${shouldHighlightContactMethod ? "ott-field-error" : ""}`} value={newContactPhone} onChange={e => setNewContactPhone(e.target.value)} />
                                         </div>
                                     </div>
                                 </div>
@@ -337,7 +337,7 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                                         <Input
                                             id="new-company"
                                             placeholder="Business name"
-                                            className={`h-11 bg-card ${shouldHighlightBusinessName ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                                            className={`h-11 bg-card ${shouldHighlightBusinessName ? "ott-field-error" : ""}`}
                                             value={newContactCompany}
                                             onChange={e => setNewContactCompany(e.target.value)}
                                         />
@@ -352,8 +352,8 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                                         </TabsList>
                                     </Tabs>
                                 </div>
-                                <p className="text-[11px] text-muted-foreground text-right"><span className="text-red-500">*</span> Name required. Email or phone required.</p>
-                                {contactError && <div className="flex items-center gap-1.5 text-red-500 text-xs mt-1 font-medium"><AlertCircle className="h-3 w-3" />{contactError}</div>}
+                                <p className="text-[11px] text-muted-foreground text-right"><span className="text-destructive">*</span> Name required. Email or phone required.</p>
+                                {contactError && <div className="flex items-center gap-1.5 text-destructive text-xs mt-1 font-medium"><AlertCircle className="h-3 w-3" />{contactError}</div>}
                             </div>
                         )}
                     </div>

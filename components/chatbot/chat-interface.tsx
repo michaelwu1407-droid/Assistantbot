@@ -719,7 +719,7 @@ function ChatWithHistory({
                           }
                           if (state === "output-error" && errorText) {
                             rendered.push(
-                              <div key={idx} className="mt-2 text-[10px] text-red-600">
+                              <div key={idx} className="mt-2 text-[10px] text-destructive">
                                 {errorText}
                               </div>
                             );
@@ -883,7 +883,7 @@ function ChatWithHistory({
               className={cn(
                 "h-8 w-8 shrink-0 rounded-xl transition-all duration-200 mb-1 border",
                 isListening
-                  ? "bg-red-500 hover:bg-red-600 text-white shadow-md shadow-red-500/20 border-red-500 animate-pulse"
+                  ? "bg-red-500 hover:bg-red-600 text-white shadow-md shadow-red-500/20 border-destructive animate-pulse"
                   : "bg-card dark:bg-zinc-900 border-border dark:border-zinc-800 text-muted-foreground dark:text-zinc-400 hover:bg-muted/30 dark:hover:bg-zinc-800 hover:text-foreground dark:hover:text-zinc-300"
               )}
             >

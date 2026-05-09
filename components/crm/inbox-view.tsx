@@ -981,7 +981,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
                   <p className="app-body-secondary mt-1 text-xs text-red-400">No phone number on file - add one to send direct messages.</p>
                 )}
                 {messageMode === "direct" && !!selectedContact.phone && (
-                  <p className={cn("app-body-secondary mt-1 text-right text-xs", messageText.length > 160 ? "text-red-500 font-medium" : "text-muted-foreground")}>
+                  <p className={cn("app-body-secondary mt-1 text-right text-xs", messageText.length > 160 ? "text-destructive font-medium" : "text-muted-foreground")}>
                     {messageText.length}/160 characters
                   </p>
                 )}

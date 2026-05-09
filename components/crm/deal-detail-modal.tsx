@@ -121,7 +121,7 @@ export function DealDetailModal({ dealId, open, onOpenChange, currentUserRole = 
         )}
         {error && !loading && (
           <div className="flex flex-col items-center justify-center flex-1 min-h-[200px] gap-2">
-            <p className="text-red-600 font-medium">{error}</p>
+            <p className="text-destructive font-medium">{error}</p>
             <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
           </div>
         )}
@@ -558,7 +558,7 @@ function DealDetailContent({
                 )}
                 {(!(deal.address || (typeof metadata.address === "string" && metadata.address)) && contact.id) && (
                   <div className="space-y-1.5">
-                    <p className="text-xs text-red-500">No address on file. Add one in CRM before using route or map actions for this job.</p>
+                    <p className="text-xs text-destructive">No address on file. Add one in CRM before using route or map actions for this job.</p>
                     <Button type="button" variant="outline" size="sm" className="h-7 text-xs" asChild>
                       <Link href={`/crm/contacts/${contact.id}/edit`}>Add address in CRM</Link>
                     </Button>
@@ -647,7 +647,7 @@ function DealDetailContent({
                 </span>
                 {followUpAt && !followUpCompletedAt && (
                   <button
-                    className="text-[10px] text-muted-foreground hover:text-red-500 transition-colors"
+                    className="text-[10px] text-muted-foreground hover:text-destructive transition-colors"
                     onClick={async () => {
                       await cancelFollowUp(deal.id)
                       setDeal((d) => ({ ...d!, followUpAt: null, followUpNote: null, followUpChannel: null } as DealDetail))
@@ -668,7 +668,7 @@ function DealDetailContent({
                   <div className="flex items-center gap-2">
                     <span className={cn(
                       "text-sm font-medium",
-                      new Date(followUpAt) < new Date() ? "text-red-600" : "text-foreground"
+                      new Date(followUpAt) < new Date() ? "text-destructive" : "text-foreground"
                     )}>
                       {new Date(followUpAt) < new Date() ? "⚠ Overdue — " : ""}
                       {format(new Date(followUpAt), "EEE MMM d, h:mm a")}
@@ -931,7 +931,7 @@ function DealDetailContent({
                     </div>
                     {!hasSmsNumber && (
                       <div className="mt-1 flex flex-wrap items-center gap-2">
-                        <p className="text-xs text-red-500">No phone number on file. Add one in CRM before sending a direct SMS from here.</p>
+                        <p className="text-xs text-destructive">No phone number on file. Add one in CRM before sending a direct SMS from here.</p>
                         {contact?.id ? (
                           <Button
                             type="button"

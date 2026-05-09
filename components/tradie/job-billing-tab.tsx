@@ -22,7 +22,7 @@ const STATUS_STYLE: Record<string, string> = {
     DRAFT: "text-muted-foreground border-border bg-muted/30",
     ISSUED: "text-blue-700 border-blue-200 bg-blue-50",
     PAID: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    VOID: "text-red-600 border-red-200 bg-red-50 line-through",
+    VOID: "text-destructive border-red-200 bg-red-50 line-through",
 }
 
 interface LineItem { desc: string; price: number }
@@ -70,7 +70,7 @@ function LineItemEditor({
                         />
                     </div>
                     {items.length > 1 && (
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-red-500" onClick={() => remove(idx)}>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive" onClick={() => remove(idx)}>
                             <X className="w-3 h-3" />
                         </Button>
                     )}
@@ -230,7 +230,7 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                             />
                         </div>
                     </div>
-                    {priceError && <p className="text-xs text-red-500">{priceError}</p>}
+                    {priceError && <p className="text-xs text-destructive">{priceError}</p>}
                     <Button onClick={handleCreateInvoice} disabled={creating || !variationDesc.trim()} className="w-full bg-slate-900 hover:bg-slate-800">
                         {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
                         Create Draft Invoice
@@ -409,7 +409,7 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
 
                                         {/* Void — available on DRAFT, ISSUED */}
                                         {(inv.status === "DRAFT" || inv.status === "ISSUED") && (
-                                            <Button size="sm" variant="outline" className="bg-card border-red-200 text-red-600 hover:bg-red-50 text-xs h-8" disabled={busy} onClick={() => handleVoid(inv.id)}>
+                                            <Button size="sm" variant="outline" className="bg-card border-red-200 text-destructive hover:bg-red-50 text-xs h-8" disabled={busy} onClick={() => handleVoid(inv.id)}>
                                                 {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Ban className="w-3 h-3 mr-1" />}
                                                 Void
                                             </Button>

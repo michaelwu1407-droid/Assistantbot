@@ -261,7 +261,7 @@ export default async function ContactDetailPage({ params }: PageProps) {
           {contact.customerFeedback && contact.customerFeedback.length > 0 && (
             <div className="p-4 border border-red-200 dark:border-red-900/50 rounded-lg bg-red-50 dark:bg-red-950/20 shadow-sm shrink-0">
               <h3 className="font-semibold text-red-900 dark:text-red-200 mb-3 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-red-500" />
+                <AlertCircle className="w-4 h-4 text-destructive" />
                 Customer feedback
               </h3>
               <div className="space-y-3">

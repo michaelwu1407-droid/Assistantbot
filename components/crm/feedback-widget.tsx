@@ -30,13 +30,13 @@ function getScoreColor(score: number) {
     if (score >= 9) return "text-emerald-500 bg-emerald-500/10 border-emerald-500/20";
     if (score >= 7) return "text-blue-500 bg-blue-500/10 border-blue-500/20";
     if (score >= 5) return "text-amber-500 bg-amber-500/10 border-amber-500/20";
-    return "text-red-500 bg-red-500/10 border-red-500/20";
+    return "text-destructive bg-red-500/10 border-destructive/20";
 }
 
 function getSentiment(score: number) {
     if (score >= 9) return { label: "Promoter", color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" };
     if (score >= 7) return { label: "Neutral", color: "bg-muted text-muted-foreground border-border/50" };
-    return { label: "At Risk", color: "bg-red-500/10 text-red-500 border-red-500/20" };
+    return { label: "At Risk", color: "bg-red-500/10 text-destructive border-destructive/20" };
 }
 
 function FeedbackCard({ item }: { item: FeedbackItem }) {
@@ -114,10 +114,10 @@ function FeedbackCard({ item }: { item: FeedbackItem }) {
                 {!isResolved && item.score <= 6 && (
                     <div className="space-y-2">
                         {!resolving ? (
-                            <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/5 border border-red-500/10">
-                                <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
-                                <p className="text-xs text-red-600 dark:text-red-400 flex-1">Low score — resolve before client posts a public review</p>
-                                <Button size="sm" variant="outline" className="border-red-500/20 text-red-500 hover:bg-red-500/10" onClick={() => setResolving(true)}>
+                            <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/5 border border-destructive/10">
+                                <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />
+                                <p className="text-xs text-destructive dark:text-red-400 flex-1">Low score — resolve before client posts a public review</p>
+                                <Button size="sm" variant="outline" className="border-destructive/20 text-destructive hover:bg-red-500/10" onClick={() => setResolving(true)}>
                                     Resolve
                                 </Button>
                             </div>
@@ -169,7 +169,7 @@ export function FeedbackWidget({ feedback }: FeedbackWidgetProps) {
                 {unresolvedCount > 0 && (
                     <>
                         <div className="h-8 w-px bg-border/50" />
-                        <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20 gap-1">
+                        <Badge variant="outline" className="bg-red-500/10 text-destructive border-destructive/20 gap-1">
                             <AlertTriangle className="w-3 h-3" />
                             {unresolvedCount} need attention
                         </Badge>

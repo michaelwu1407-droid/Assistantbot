@@ -350,7 +350,7 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
             {refusalRules.map((rule) => (
               <div key={rule.id} className="flex items-center justify-between rounded-md border border-red-200 bg-red-50 px-3 py-2">
                 <span className="text-sm text-red-700">{rule.ruleContent}</span>
-                <Button variant="ghost" size="icon" onClick={() => removeRefusalRule(rule.id)} className="h-7 w-7 text-red-500">
+                <Button variant="ghost" size="icon" onClick={() => removeRefusalRule(rule.id)} className="h-7 w-7 text-destructive">
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
@@ -427,7 +427,7 @@ function ServiceRow({
           >
             {saving ? "Saving..." : "Save"}
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => onDelete(service.id)} className="h-10 w-10 rounded-full text-red-500">
+          <Button variant="ghost" size="icon" onClick={() => onDelete(service.id)} className="h-10 w-10 rounded-full text-destructive">
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>

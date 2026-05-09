@@ -240,7 +240,7 @@ function InterviewForm() {
             <input required type="text" placeholder="Business name"
                 value={form.businessName} onChange={(e) => setForm((f) => ({ ...f, businessName: e.target.value }))}
                 className={INPUT_CLASS} />
-            {status === "error" && <p className="text-red-500 text-xs">{message}</p>}
+            {status === "error" && <p className="text-destructive text-xs">{message}</p>}
             <Button type="submit" variant="mint" className="w-full mt-1" disabled={status === "loading"}>
                 {status === "loading" ? "Calling you now..." : "Interview Tracey for free"}
                 {status !== "loading" && <Phone className="ml-2 h-4 w-4" />}

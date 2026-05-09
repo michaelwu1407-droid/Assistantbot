@@ -229,13 +229,13 @@ export default function IntegrationsPage() {
                         <div className="grid grid-cols-2 gap-4">
                             <Button
                                 variant="outline"
-                                className="h-auto py-4 px-6 flex flex-col items-center gap-2 hover:border-red-500/50 hover:bg-red-50/50 transition-all"
+                                className="h-auto py-4 px-6 flex flex-col items-center gap-2 hover:border-destructive/50 hover:bg-red-50/50 transition-all"
                                 onClick={() => handleConnectEmail("gmail")}
                                 disabled={!readiness.gmail.ready}
                                 title={readiness.gmail.ready ? "Connect Gmail for lead capture" : readiness.gmail.reason}
                                 aria-label={readiness.gmail.ready ? "Connect Gmail" : `Gmail unavailable: ${readiness.gmail.reason ?? "not configured"}`}
                             >
-                                <Mail className="h-8 w-8 text-red-500" />
+                                <Mail className="h-8 w-8 text-destructive" />
                                 <div className="text-center">
                                     <div className="font-medium">Connect Gmail</div>
                                     <div className="text-xs text-muted-foreground">Use Gmail for lead emails</div>

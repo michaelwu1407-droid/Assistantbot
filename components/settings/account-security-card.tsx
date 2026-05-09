@@ -212,7 +212,7 @@ export function AccountSecurityCard({ userId, businessName = "" }: AccountSecuri
 
           <div className="rounded-[18px] border border-red-200/70 bg-red-50/70 p-4">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
               <div className="space-y-1">
                 <p className="text-sm font-semibold text-red-900">Delete account</p>
                 <p className="text-sm text-red-700">
