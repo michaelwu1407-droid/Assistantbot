@@ -111,7 +111,7 @@ export function DealDetailModal({ dealId, open, onOpenChange, currentUserRole = 
         onOpenChange(nextOpen)
       }}
     >
-      <DialogContent className="max-w-7xl h-[90vh] overflow-hidden rounded-[18px] flex flex-col p-0 gap-0" aria-describedby={undefined}>
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-[1440px] h-[90vh] overflow-hidden rounded-[18px] flex flex-col p-0 gap-0" aria-describedby={undefined}>
         <DialogTitle className="sr-only">Deal details</DialogTitle>
         {loading && (
           <div className="flex items-center justify-center flex-1 min-h-[200px]">
@@ -503,55 +503,55 @@ function DealDetailContent({
       </div>
 
       {/* Main: LHS (contact + job) | RHS (history + notes) */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0 p-4 md:p-6 overflow-y-auto">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-5 gap-4 min-h-0 p-4 md:p-6 overflow-y-auto">
         {/* Left: Contact + Current job */}
-        <div className="lg:col-span-1 flex flex-col gap-4">
+        <div className="lg:col-span-2 flex flex-col gap-4">
           {/* Contact details — name is in header; edit opens contact */}
-          <div className="shrink-0 rounded-[18px] border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="shrink-0 rounded-[18px] border border-border bg-card p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <h3 className="flex items-center gap-2 font-semibold text-slate-900">
+              <h3 className="app-panel-title flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 Contact details
               </h3>
-              <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={handleEditContact} aria-label="Edit contact">
+              <Button type="button" variant="outline" size="sm" className="h-8 text-xs shrink-0" onClick={handleEditContact} aria-label="Edit contact">
                 <Edit className="mr-1 h-3 w-3" />
                 Edit
               </Button>
             </div>
             {contact ? (
-              <div className="space-y-2.5 text-sm">
+              <div className="space-y-3">
                 {contact.phone && (
-                  <div>
-                    <p className="text-xs text-slate-500">Phone</p>
+                  <div className="min-w-0">
+                    <p className="app-field-label mb-0.5">Phone</p>
                     <a
                       href={`tel:${contact.phone}`}
-                      className="mt-0.5 flex items-center gap-1 font-medium text-blue-600 hover:underline dark:text-blue-400"
+                      className="flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:underline truncate dark:text-blue-400"
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
-                      {contact.phone}
+                      <svg className="shrink-0" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
+                      <span className="truncate">{contact.phone}</span>
                     </a>
                   </div>
                 )}
                 {contact.email && (
-                  <div>
-                    <p className="text-xs text-slate-500">Email</p>
-                    <a href={`mailto:${contact.email}`} className="font-medium text-slate-900 hover:underline">
+                  <div className="min-w-0">
+                    <p className="app-field-label mb-0.5">Email</p>
+                    <a href={`mailto:${contact.email}`} className="app-body-primary hover:underline truncate block" title={contact.email}>
                       {contact.email}
                     </a>
                   </div>
                 )}
                 {contact.company && (
-                  <div>
-                    <p className="text-xs text-slate-500">Company</p>
-                    <p className="font-medium text-slate-900">{contact.company}</p>
+                  <div className="min-w-0">
+                    <p className="app-field-label mb-0.5">Company</p>
+                    <p className="app-body-primary truncate">{contact.company}</p>
                   </div>
                 )}
                 {(deal.address || (typeof metadata.address === "string" && metadata.address)) && (
-                  <div className="flex items-start gap-1.5">
-                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
-                    <div>
-                      <p className="text-xs text-slate-500">Address</p>
-                      <p className="font-medium text-slate-900">{deal.address || (metadata.address as string)}</p>
+                  <div className="flex items-start gap-1.5 min-w-0">
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                    <div className="min-w-0">
+                      <p className="app-field-label mb-0.5">Address</p>
+                      <p className="app-body-primary break-words">{deal.address || (metadata.address as string)}</p>
                     </div>
                   </div>
                 )}
@@ -573,24 +573,24 @@ function DealDetailContent({
           </div>
 
           {/* Current / upcoming job details */}
-          <div className="shrink-0 rounded-[18px] border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="shrink-0 rounded-[18px] border border-border bg-card p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <h3 className="flex items-center gap-2 font-semibold text-slate-900">
+              <h3 className="app-panel-title flex items-center gap-2">
                 <Briefcase className="h-4 w-4" />
                 Current job
               </h3>
-              <Button type="button" variant="outline" size="sm" className="h-8 text-xs" onClick={handleEdit} aria-label="Edit job">
+              <Button type="button" variant="outline" size="sm" className="h-8 text-xs shrink-0" onClick={handleEdit} aria-label="Edit job">
                 <Edit className="mr-1 h-3 w-3" />
                 Edit
               </Button>
             </div>
-            <div className="space-y-2.5 text-sm">
-              <div>
-                <p className="text-xs text-slate-500">Job</p>
-                <p className="font-medium text-slate-900">{deal.title}</p>
+            <div className="space-y-3">
+              <div className="min-w-0">
+                <p className="app-field-label mb-0.5">Job</p>
+                <p className="app-body-primary break-words">{deal.title}</p>
               </div>
               <div>
-                <p className="text-slate-500 text-xs text-emerald-600 font-medium mb-1">Final Invoice Amount</p>
+                <p className="app-field-label mb-1">Final Invoice Amount</p>
                 {isEditingInvoice ? (
                   <div className="flex items-center gap-2">
                     <div className="relative w-full">
@@ -622,18 +622,18 @@ function DealDetailContent({
                 )}
               </div>
               <div>
-                <p className="text-slate-500 text-xs">Quoted Value</p>
-                <p className="font-medium text-slate-700">${Number(deal.value || 0).toLocaleString()}</p>
+                <p className="app-field-label mb-0.5">Quoted Value</p>
+                <p className="app-body-primary">${Number(deal.value || 0).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </div>
               <div>
-                <p className="text-slate-500 text-xs">Scheduled</p>
-                <p className="font-medium text-slate-900">
+                <p className="app-field-label mb-0.5">Scheduled</p>
+                <p className="app-body-primary">
                   {deal.scheduledAt ? formatDateTimeInTimezone(deal.scheduledAt, workspaceTimezone) : "—"}
                 </p>
               </div>
               <div>
-                <p className="text-slate-500 text-xs">Created</p>
-                <p className="font-medium text-slate-900">{format(new Date(deal.createdAt), "MMM d, yyyy")}</p>
+                <p className="app-field-label mb-0.5">Created</p>
+                <p className="app-body-primary">{format(new Date(deal.createdAt), "MMM d, yyyy")}</p>
               </div>
             </div>
 
@@ -819,13 +819,13 @@ function DealDetailContent({
         </div>
 
         {/* Right: History + Notes */}
-        <div className="lg:col-span-2 flex flex-col gap-4 min-h-0">
+        <div className="lg:col-span-3 flex flex-col gap-4 min-h-0">
           {/* Customer / job history */}
-          <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-sm">
-            <div className="p-3 border-b border-slate-100 font-semibold text-slate-900 bg-slate-50/50 flex items-center justify-between shrink-0">
-              <span className="flex items-center gap-2">
+          <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-[18px] border border-border bg-card shadow-sm">
+            <div className="p-3 border-b border-border bg-muted/30 flex items-center justify-between shrink-0">
+              <span className="app-panel-title flex items-center gap-2">
                 <MessageSquare className="w-4 h-4" />
-                Customer & job history
+                Customer &amp; job history
               </span>
               {deal.contactId ? (
                 <Link href={`/crm/inbox?contact=${deal.contactId}`}>
