@@ -176,7 +176,7 @@ fi
 
 CANARY_VERIFIED=0
 for _ in 1 2 3 4; do
-  if NEXT_PUBLIC_APP_URL="$EFFECTIVE_APP_URL" OPS_KEY="$EFFECTIVE_OPS_KEY" node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const opsKey = process.env.OPS_KEY || ''; const res = await fetch(base + '/api/cron/voice-synthetic-probe', { headers: { 'x-ops-key': opsKey }, cache: 'no-store' }); const text = await res.text(); let payload; try { payload = JSON.parse(text); } catch { process.exit(1); } if (payload?.status === 'healthy') process.exit(0); process.exit(2);"; then
+  if NEXT_PUBLIC_APP_URL="$EFFECTIVE_APP_URL" OPS_KEY="$EFFECTIVE_OPS_KEY" node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const opsKey = process.env.OPS_KEY || ''; const res = await fetch(base + '/api/cron/voice-synthetic-probe', { headers: { 'x-ops-key': opsKey }, cache: 'no-store' }); const text = await res.text(); let payload; try { payload = JSON.parse(text); } catch { process.exit(1); } const verification = payload?.spokenCanary?.verification || null; const degradedSipFallbackOk = payload?.status === 'degraded' && payload?.probeResult === 'pass' && payload?.spokenCanary?.status === 'degraded' && payload?.spokenCanary?.mode === 'sip_direct' && verification?.heardProbePhrase === true && verification?.capturedCallerSpeech === true && verification?.capturedAssistantSpeech === true; if (payload?.status === 'healthy' || degradedSipFallbackOk) process.exit(0); process.exit(2);"; then
     CANARY_VERIFIED=1
     break
   fi
