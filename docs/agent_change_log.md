@@ -1,3 +1,33 @@
+## 2026-05-09 (Codex) - Enforced signed Twilio webhooks on the canonical `www` host
+
+- Files changed:
+  - `lib/twilio/verify-signature.ts`
+  - `lib/earlymark-inbound-config.ts`
+  - `app/api/twilio/webhook/route.ts`
+  - `app/api/webhooks/whatsapp/route.ts`
+  - `app/api/webhooks/twilio-voice-gateway/route.ts`
+  - `app/api/webhooks/twilio-voice-fallback/route.ts`
+  - `app/api/webhooks/twilio-usage/route.ts`
+  - `__tests__/twilio-verify-signature.test.ts`
+  - `__tests__/twilio-sms-webhook.test.ts`
+  - `__tests__/twilio-voice-gateway-route.test.ts`
+  - `__tests__/twilio-voice-fallback-route.test.ts`
+  - `__tests__/twilio-usage-route.test.ts`
+  - `__tests__/whatsapp-route.test.ts`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added signature verification to the live Twilio SMS, WhatsApp, voice-gateway, voice-fallback, and usage-trigger routes.
+  - Taught the shared verifier to rebuild the public request URL from forwarded host/proto headers before calling Twilio's SDK, which avoids Vercel proxy/internal-host drift.
+  - Switched canonical server-side Twilio webhook URL generation to prefer `APP_URL` and documented the `www.earlymark.ai` host requirement for signed callbacks.
+  - Added regression tests for forwarded-URL reconstruction plus production-mode unsigned-request rejection on the Twilio webhook routes.
+- Why:
+  - Production Twilio callbacks were still split across `https://earlymark.ai` and `https://www.earlymark.ai`, while the apex host redirects to `www`.
+  - That redirect would make Twilio signature verification fail at the exact moment we turned it on unless both the route code and the configured callback URLs agreed on the same public URL.
+- Verified with:
+  - `npx tsc --noEmit`
+  - `npx vitest run __tests__/twilio-verify-signature.test.ts __tests__/twilio-sms-webhook.test.ts __tests__/twilio-voice-gateway-route.test.ts __tests__/twilio-voice-gateway-probe-auth.test.ts __tests__/twilio-voice-fallback-route.test.ts __tests__/twilio-usage-route.test.ts __tests__/whatsapp-route.test.ts`
+
 ## 2026-05-01 (Codex) - Reduce default spoken PSTN canary cadence to control Twilio spend
 
 - Files changed:

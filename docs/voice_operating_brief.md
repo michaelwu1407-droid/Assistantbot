@@ -5,6 +5,8 @@ Updated: 2026-04-29 AEST
 ## Production topology
 
 - Live voice stack: Twilio PSTN/SIP -> `app/api/webhooks/twilio-voice-gateway` -> LiveKit SIP -> OCI voice workers.
+- Canonical production app host for Twilio callbacks is `https://www.earlymark.ai`, not the apex `https://earlymark.ai`.
+- The apex host currently redirects to `www`, so signed Twilio webhooks must never be configured against the apex host or signature verification will drift before the request reaches the route.
 - Public website demo callbacks now have an emergency recovery path: if the web app cannot reach the LiveKit control API, it may originate the callback with Twilio and bridge the caller into the existing Earlymark SIP ingress instead of failing the lead immediately.
 - Production customer outbound calls now use a worker-owned control path: the web app enqueues the request in the app database, and the OCI `tracey-customer-agent` worker claims and executes it against local LiveKit control at `http://127.0.0.1:7880`.
 - Production LiveKit server + SIP currently run as Docker containers on OCI, but their bind-mounted config lives under `/home/ubuntu/livekit/live.earlymark.ai`.
@@ -45,6 +47,9 @@ Updated: 2026-04-29 AEST
   - `CARTESIA_API_KEY`
   - `VOICE_TTS_VOICE_ID`
   - `VOICE_TTS_LANGUAGE`
+- Production web env must include:
+  - `APP_URL=https://www.earlymark.ai`
+  - `NEXT_PUBLIC_APP_URL=https://www.earlymark.ai`
 - Current English Tracey default:
   - `VOICE_TTS_VOICE_ID=a4a16c5e-5902-4732-b9b6-2a48efd2e11b`
   - `VOICE_TTS_LANGUAGE=en-AU`
@@ -112,6 +117,13 @@ Updated: 2026-04-29 AEST
 
 ## Monitoring expectations
 
+- Twilio production webhook security is now expected on:
+  - `/api/twilio/webhook`
+  - `/api/webhooks/whatsapp`
+  - `/api/webhooks/twilio-voice-gateway`
+  - `/api/webhooks/twilio-voice-fallback`
+  - `/api/webhooks/twilio-usage`
+- Signed Twilio webhook validation must reconstruct the public URL from forwarded host/proto headers before verifying the signature, so Vercel proxy/internal host details do not create false `invalid_signature` failures.
 - `voice-fleet-health` must include:
   - fleet
   - Twilio routing

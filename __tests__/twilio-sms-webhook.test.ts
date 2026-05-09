@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 const {
@@ -127,6 +127,10 @@ describe("POST /api/twilio/webhook", () => {
     findContactByPhone.mockResolvedValue({ id: "contact_1" });
   });
 
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("records a Twilio webhook error when no matching workspace is found", async () => {
     findWorkspaceByTwilioNumber.mockResolvedValue(null);
 
@@ -146,6 +150,18 @@ describe("POST /api/twilio/webhook", () => {
       }),
     });
     expect(prisma.chatMessage.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects unsigned requests in production", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("TWILIO_AUTH_TOKEN", "prod-token");
+    vi.stubEnv("TWILIO_SKIP_SIGNATURE_VERIFICATION", "");
+
+    const response = await POST(buildSmsRequest());
+
+    expect(response.status).toBe(401);
+    expect(await response.text()).toBe("forbidden");
+    expect(prisma.webhookEvent.create).not.toHaveBeenCalled();
   });
 
   it("records inbound SMS success and still processes replies through the shared Tracey mode policy", async () => {

@@ -5,15 +5,20 @@ import { findUserByPhone } from "@/lib/workspace-routing";
 import { sendWhatsApp } from "@/lib/twilio/whatsapp";
 import { parseActionCode, resolveAndExecute } from "@/lib/notifications/whatsapp-reply-parser";
 import { runIdempotent } from "@/lib/idempotency";
+import { verifyTwilioFormPost } from "@/lib/twilio/verify-signature";
 
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
   try {
-    const formData = await req.formData();
-    const from = formData.get("From")?.toString() || "";
-    const body = formData.get("Body")?.toString() || "";
-    const messageSid = formData.get("MessageSid")?.toString() || "";
+    const verification = await verifyTwilioFormPost(req);
+    if (!verification.ok) {
+      return new NextResponse("forbidden", { status: verification.status });
+    }
+
+    const from = verification.params.From || "";
+    const body = verification.params.Body || "";
+    const messageSid = verification.params.MessageSid || "";
     console.log(`[WhatsApp Webhook] Received message from ${from}: ${body}`);
 
     const cleanNumber = from.replace("whatsapp:", "").trim();

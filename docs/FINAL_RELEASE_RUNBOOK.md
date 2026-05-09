@@ -26,6 +26,12 @@ Run these in order after a production release:
    - Create a contact and deal.
    - Issue an invoice, update it, and mark it paid.
    - Confirm analytics totals match the test fixture expectations for the workspace.
+7. Public/legal and operators
+   - Confirm `https://www.earlymark.ai/terms` and `https://www.earlymark.ai/privacy` return `200`.
+   - Run one live Stripe checkout and replay the resulting webhook once before launch if live billing is in scope.
+   - Confirm WhatsApp notifications remain disabled unless the Twilio/Meta sender registration is complete.
+   - Run the database backup + restore verifier in `docs/DB_BACKUP_AND_RESTORE.md`.
+   - Record the backup artifact location and restore summary path in the release notes.
 
 ## Deploy rollback
 

@@ -85,6 +85,28 @@ describe("POST /api/webhooks/whatsapp", () => {
     });
   });
 
+  it("rejects unsigned requests in production", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("TWILIO_SKIP_SIGNATURE_VERIFICATION", "");
+    const { POST } = await import("@/app/api/webhooks/whatsapp/route");
+
+    const body = new URLSearchParams({
+      From: "whatsapp:+61400000000",
+      Body: "hello",
+    });
+
+    const response = await POST(
+      new Request("https://app.example.com/api/webhooks/whatsapp", {
+        method: "POST",
+        body,
+      }),
+    );
+
+    expect(response.status).toBe(401);
+    expect(await response.text()).toBe("forbidden");
+    expect(hoisted.findUserByPhone).not.toHaveBeenCalled();
+  });
+
   it("records inbound traffic immediately before handling an authorized assistant command", async () => {
     hoisted.findUserByPhone.mockResolvedValue({ id: "user_1", workspaceId: "ws_1" });
     hoisted.processAgentCommand.mockResolvedValue("Handled.");

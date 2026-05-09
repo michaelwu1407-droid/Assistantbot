@@ -11,19 +11,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { runIdempotent } from "@/lib/idempotency";
+import { verifyTwilioFormPost } from "@/lib/twilio/verify-signature";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
     try {
-        const formData = await req.formData();
+        const verification = await verifyTwilioFormPost(req);
+        if (!verification.ok) {
+            return new NextResponse("forbidden", { status: verification.status });
+        }
 
         // Twilio UsageTrigger callback fields
-        const accountSid = formData.get("AccountSid")?.toString() || "";
-        const currentValue = formData.get("CurrentValue")?.toString() || "0";
-        const triggerValue = formData.get("TriggerValue")?.toString() || "0";
-        const usageCategory = formData.get("UsageCategory")?.toString() || "";
-        const triggerSid = formData.get("Sid")?.toString() || "";
+        const accountSid = verification.params.AccountSid || "";
+        const currentValue = verification.params.CurrentValue || "0";
+        const triggerValue = verification.params.TriggerValue || "0";
+        const usageCategory = verification.params.UsageCategory || "";
+        const triggerSid = verification.params.Sid || "";
 
         if (!accountSid) {
             return NextResponse.json({ error: "Missing AccountSid" }, { status: 400 });

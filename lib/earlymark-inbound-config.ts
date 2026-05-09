@@ -28,13 +28,13 @@ export function isKnownEarlymarkInboundNumber(phone?: string | null): boolean {
 }
 
 export function getExpectedVoiceGatewayUrl() {
-  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "").trim().replace(/\/$/, "");
+  const baseUrl = (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "").trim().replace(/\/$/, "");
   if (!baseUrl) return "";
   return `${baseUrl}/api/webhooks/twilio-voice-gateway`;
 }
 
 export function getExpectedSmsWebhookUrl() {
-  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "").trim().replace(/\/$/, "");
+  const baseUrl = (process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "").trim().replace(/\/$/, "");
   if (!baseUrl) return "";
   return `${baseUrl}/api/twilio/webhook`;
 }

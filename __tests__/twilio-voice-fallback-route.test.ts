@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 const hoisted = vi.hoisted(() => ({
@@ -39,6 +39,10 @@ describe("POST /api/webhooks/twilio-voice-fallback", () => {
     hoisted.db.webhookEvent.create.mockResolvedValue(undefined);
   });
 
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("stores the voicemail payload and returns TwiML confirmation", async () => {
     const response = await POST(buildFallbackRequest());
     const body = await response.text();
@@ -62,6 +66,18 @@ describe("POST /api/webhooks/twilio-voice-fallback", () => {
         }),
       },
     });
+  });
+
+  it("rejects unsigned voicemail callbacks in production", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("TWILIO_AUTH_TOKEN", "prod-token");
+    vi.stubEnv("TWILIO_SKIP_SIGNATURE_VERIFICATION", "");
+
+    const response = await POST(buildFallbackRequest());
+
+    expect(response.status).toBe(401);
+    expect(await response.text()).toBe("forbidden");
+    expect(hoisted.db.webhookEvent.create).not.toHaveBeenCalled();
   });
 
   it("still returns the completion TwiML when webhook persistence fails", async () => {

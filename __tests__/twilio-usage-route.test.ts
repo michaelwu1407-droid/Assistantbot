@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 const hoisted = vi.hoisted(() => ({
@@ -48,6 +48,10 @@ describe("POST /api/webhooks/twilio-usage", () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("rejects requests without an AccountSid", async () => {
     const response = await POST(
       buildUsageRequest({
@@ -59,6 +63,25 @@ describe("POST /api/webhooks/twilio-usage", () => {
 
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({ error: "Missing AccountSid" });
+  });
+
+  it("rejects unsigned usage trigger callbacks in production", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("TWILIO_AUTH_TOKEN", "prod-token");
+    vi.stubEnv("TWILIO_SKIP_SIGNATURE_VERIFICATION", "");
+
+    const response = await POST(
+      buildUsageRequest({
+        AccountSid: "ACsub123",
+        CurrentValue: "55",
+        TriggerValue: "50",
+        UsageCategory: "calls",
+      }),
+    );
+
+    expect(response.status).toBe(401);
+    expect(await response.text()).toBe("forbidden");
+    expect(hoisted.db.workspace.findFirst).not.toHaveBeenCalled();
   });
 
   it("disables voice and logs a workspace activity when the threshold is hit", async () => {

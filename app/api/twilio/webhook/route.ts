@@ -9,6 +9,7 @@ import { saveTriageRecommendation, triageIncomingLead } from "@/lib/ai/triage"
 import { isReplyableSmsAddress } from "@/lib/sms-address"
 import { assertSafeRecipient } from "@/lib/messaging/safe-recipient"
 import { withCostCeiling } from "@/lib/cost-ceiling"
+import { verifyTwilioFormPost } from "@/lib/twilio/verify-signature"
 
 const TWILIO_SMS_COST_USD = 0.05
 
@@ -60,11 +61,15 @@ async function recordSmsWebhookEvent(params: {
 
 export async function POST(req: NextRequest) {
     try {
-        const formData = await req.formData()
-        const From = formData.get("From") as string
-        const To = formData.get("To") as string
-        const Body = formData.get("Body") as string
-        const MessageSid = formData.get("MessageSid") as string
+        const verification = await verifyTwilioFormPost(req)
+        if (!verification.ok) {
+            return new NextResponse("forbidden", { status: verification.status })
+        }
+
+        const From = verification.params.From || ""
+        const To = verification.params.To || ""
+        const Body = verification.params.Body || ""
+        const MessageSid = verification.params.MessageSid || ""
 
         if (!From || !Body || !To) {
             console.error("[SMS Webhook] Missing From, To, or Body")

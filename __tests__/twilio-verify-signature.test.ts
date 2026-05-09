@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 const validateRequest = vi.hoisted(() => vi.fn())
 vi.mock("twilio", () => ({ default: { validateRequest } }))
 
-import { verifyTwilioSignature, shouldSkipTwilioSignatureCheck } from "@/lib/twilio/verify-signature"
+import { getTwilioRequestPublicUrl, verifyTwilioSignature, shouldSkipTwilioSignatureCheck } from "@/lib/twilio/verify-signature"
 
 beforeEach(() => {
   validateRequest.mockReset()
@@ -81,5 +81,23 @@ describe("verifyTwilioSignature", () => {
   it("respects TWILIO_SKIP_SIGNATURE_VERIFICATION=true", () => {
     vi.stubEnv("TWILIO_SKIP_SIGNATURE_VERIFICATION", "true")
     expect(shouldSkipTwilioSignatureCheck()).toBe(true)
+  })
+})
+
+describe("getTwilioRequestPublicUrl", () => {
+  it("prefers forwarded host and proto when present", () => {
+    const req = new Request("http://127.0.0.1:3000/api/twilio/webhook?foo=bar", {
+      headers: {
+        "x-forwarded-proto": "https",
+        "x-forwarded-host": "www.earlymark.ai",
+      },
+    })
+
+    expect(getTwilioRequestPublicUrl(req)).toBe("https://www.earlymark.ai/api/twilio/webhook?foo=bar")
+  })
+
+  it("falls back to req.url when forwarded headers are absent", () => {
+    const req = new Request("https://app.example.com/api/twilio/webhook")
+    expect(getTwilioRequestPublicUrl(req)).toBe("https://app.example.com/api/twilio/webhook")
   })
 })
