@@ -234,7 +234,8 @@ describe("GET /api/cron/voice-synthetic-probe", () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.status).toBe("degraded");
+    expect(body.status).toBe("healthy");
+    expect(body.summary).toContain("verified the voice agent path via direct SIP fallback");
     expect(body.spokenCanary.mode).toBe("sip_direct");
     expect(body.spokenCanary.fallbackReason).toBe("pstn_busy");
     expect(body.spokenCanary.attempts).toHaveLength(2);

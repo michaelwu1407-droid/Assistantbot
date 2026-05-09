@@ -36,6 +36,19 @@ export type VoiceSyntheticProbeExecution = {
   details: Record<string, unknown>;
 };
 
+function hasVerifiedFallbackSpeech(
+  spokenCanary: Awaited<ReturnType<typeof runVoiceSpokenPstnCanary>> | null,
+) {
+  return Boolean(
+    spokenCanary &&
+    spokenCanary.status === "degraded" &&
+    spokenCanary.mode === "sip_direct" &&
+    spokenCanary.verification?.heardProbePhrase &&
+    spokenCanary.verification?.capturedCallerSpeech &&
+    spokenCanary.verification?.capturedAssistantSpeech,
+  );
+}
+
 function getGatewayProbeAuthKey() {
   return (
     process.env.VOICE_MONITOR_PROBE_GATEWAY_KEY ||
@@ -168,11 +181,21 @@ export async function runVoiceSyntheticProbe(options?: {
     targetNumber,
     checkedAt,
   });
-  const status = probeResult !== "pass" ? "unhealthy" : spokenCanary.status;
+  const verifiedFallbackSpeech = hasVerifiedFallbackSpeech(spokenCanary);
+  const status =
+    probeResult !== "pass"
+      ? "unhealthy"
+      : spokenCanary.status === "healthy"
+        ? "healthy"
+        : verifiedFallbackSpeech
+          ? "healthy"
+          : spokenCanary.status;
   const summary =
     probeResult !== "pass"
       ? `Synthetic Earlymark inbound probe returned ${probeResult}`
-      : spokenCanary.summary;
+      : verifiedFallbackSpeech
+        ? "Synthetic Earlymark inbound probe verified the voice agent path via direct SIP fallback after a PSTN self-call busy response."
+        : spokenCanary.summary;
 
   const observations =
     status === "healthy"
