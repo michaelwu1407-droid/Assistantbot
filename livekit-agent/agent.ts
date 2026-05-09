@@ -1519,8 +1519,8 @@ function getParticipantSipStatus(participant: RemoteParticipant) {
 
 async function waitForDemoOutboundLegReady(params: {
   room: {
-    on: (event: string, listener: (...args: any[]) => void) => void;
-    off: (event: string, listener: (...args: any[]) => void) => void;
+    on: (event: string, listener: (...args: unknown[]) => void) => void;
+    off: (event: string, listener: (...args: unknown[]) => void) => void;
   };
   participant: RemoteParticipant;
   callId: string;

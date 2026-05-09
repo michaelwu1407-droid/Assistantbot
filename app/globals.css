@@ -450,10 +450,10 @@
     @apply h-10 w-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground/50;
   }
   .ott-empty-state-title {
-    @apply app-panel-title text-foreground;
+    @apply text-sm font-semibold text-foreground;
   }
   .ott-empty-state-body {
-    @apply app-body-secondary max-w-xs;
+    @apply max-w-xs text-sm text-muted-foreground;
   }
 
   /* STATUS PILLS — semantic deal-stage / job-status colors
