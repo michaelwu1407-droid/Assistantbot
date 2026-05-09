@@ -9,6 +9,34 @@ import type { TwilioVoiceCallHealth } from "@/lib/twilio-voice-call-health";
 import type { DemoCallHealth } from "@/lib/demo-call-health";
 import type { OutboundCallHealth } from "@/lib/outbound-call-health";
 
+const LATENCY_PROOF_GAP_SUMMARY = "No recent inbound_demo calls have been persisted, so latency cannot be verified.";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function readString(value: unknown) {
+  return typeof value === "string" ? value : null;
+}
+
+function isProofOnlyLatencyGap(monitorHealth: OpsMonitorHealth) {
+  if (monitorHealth.status !== "degraded") return false;
+  if (monitorHealth.ageMs === null || monitorHealth.ageMs > monitorHealth.staleAfterMs) return false;
+  if (!isRecord(monitorHealth.details)) return false;
+
+  const primaryIssue = isRecord(monitorHealth.details.primaryIssue) ? monitorHealth.details.primaryIssue : null;
+  if (!primaryIssue) return false;
+  if (readString(primaryIssue.key) !== "latency") return false;
+  if (readString(primaryIssue.status) !== "degraded") return false;
+  if (readString(primaryIssue.summary) !== LATENCY_PROOF_GAP_SUMMARY) return false;
+
+  const nonHealthyChecks = Array.isArray(monitorHealth.details.nonHealthyChecks)
+    ? monitorHealth.details.nonHealthyChecks.filter(isRecord)
+    : [];
+
+  return nonHealthyChecks.length === 1;
+}
+
 export function combineVoiceStatuses(statuses: Array<"healthy" | "degraded" | "unhealthy">) {
   if (statuses.includes("unhealthy")) return "unhealthy";
   if (statuses.includes("degraded")) return "degraded";
@@ -111,6 +139,7 @@ export function buildBusinessInvariantIncidentObservations(
 
 export function buildMonitorIncidentObservations(monitorHealth: OpsMonitorHealth): VoiceIncidentObservation[] {
   if (monitorHealth.status === "healthy") return [];
+  if (isProofOnlyLatencyGap(monitorHealth)) return [];
 
   return [
     {

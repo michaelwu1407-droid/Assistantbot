@@ -477,6 +477,79 @@ describe("GET /api/cron/voice-monitor-watchdog", () => {
     expect(body.refreshedVoiceAgentHealthRun).toBeNull();
   });
 
+  it("summarizes the actually unhealthy component before fresher degraded ones", async () => {
+    getPassiveProductionHealth.mockResolvedValueOnce({
+      status: "unhealthy",
+      summary: "3 recent call(s) ended as failed/no-answer/busy/canceled.",
+      checkedAt: "2026-03-12T14:03:39.000Z",
+      voice: { status: "healthy" },
+      sms: { status: "unhealthy" },
+      email: { status: "healthy" },
+      activeWorkspaceCount: 1,
+      unhealthyActiveWorkspaceCount: 0,
+      unknownWorkspaceCount: 0,
+    });
+    getMonitorRunHealth
+      .mockResolvedValueOnce(
+        monitorHealth({
+          monitorKey: "voice-agent-health",
+          status: "degraded",
+          summary: "voice-agent-health is reporting on schedule but last reported degraded",
+        }),
+      )
+      .mockResolvedValueOnce(
+        monitorHealth({
+          monitorKey: "passive-communications-health",
+          status: "unhealthy",
+          summary: "passive-communications-health is reporting on schedule but last reported unhealthy",
+        }),
+      )
+      .mockResolvedValueOnce(
+        monitorHealth({
+          monitorKey: "voice-synthetic-probe",
+          status: "healthy",
+          summary: "voice-synthetic-probe is reporting on schedule",
+          staleAfterMs: 14_400_000,
+        }),
+      )
+      .mockResolvedValueOnce(
+        monitorHealth({
+          monitorKey: "voice-agent-health",
+          status: "degraded",
+          summary: "voice-agent-health is reporting on schedule but last reported degraded",
+        }),
+      )
+      .mockResolvedValueOnce(
+        monitorHealth({
+          monitorKey: "passive-communications-health",
+          status: "unhealthy",
+          summary: "passive-communications-health is reporting on schedule but last reported unhealthy",
+        }),
+      );
+    runVoiceAgentHealthMonitor.mockResolvedValue({
+      ...healthyVoiceAgentRun(),
+      status: "degraded",
+      latency: healthyComponent(
+        "degraded",
+        "No recent inbound_demo calls have been persisted, so latency cannot be verified.",
+        ["No recent inbound_demo calls have been persisted, so latency cannot be verified."],
+      ),
+    });
+
+    const response = await GET(new NextRequest("https://app.example.com/api/cron/voice-monitor-watchdog"));
+    const body = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(body.status).toBe("unhealthy");
+    expect(recordMonitorRun).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        monitorKey: "voice-monitor-watchdog",
+        summary: "passive-communications-health is reporting on schedule but last reported unhealthy",
+      }),
+    );
+  });
+
   it("retries voice-agent-health once after its own spoken probe saturates the sales worker", async () => {
     getMonitorRunHealth
       .mockResolvedValueOnce(

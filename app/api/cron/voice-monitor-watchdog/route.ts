@@ -53,6 +53,29 @@ function shouldRetryVoiceAgentHealthAfterSyntheticProbe(
   );
 }
 
+function summarizeWatchdogIssue(
+  voiceAgentHealth: Awaited<ReturnType<typeof getMonitorRunHealth>>,
+  passiveTrafficHealth: Awaited<ReturnType<typeof getMonitorRunHealth>>,
+  syntheticProbeHealth: Awaited<ReturnType<typeof getMonitorRunHealth>>,
+) {
+  const components = [
+    syntheticProbeHealth,
+    voiceAgentHealth,
+    passiveTrafficHealth,
+  ];
+  const unhealthyComponent = components.find((component) => component.status === "unhealthy");
+  if (unhealthyComponent) {
+    return unhealthyComponent.summary;
+  }
+
+  const degradedComponent = components.find((component) => component.status === "degraded");
+  if (degradedComponent) {
+    return degradedComponent.summary;
+  }
+
+  return "Voice monitor watchdog completed successfully";
+}
+
 async function refreshVoiceAgentHealthRun(
   syntheticProbeRun: Awaited<ReturnType<typeof runVoiceSyntheticProbe>> | null,
 ) {
@@ -217,14 +240,7 @@ export async function GET(req: NextRequest) {
             syntheticProbeHealth.status === "degraded"
           ? "degraded"
           : "healthy";
-    const watchdogSummary =
-      watchdogStatus === "healthy"
-        ? "Voice monitor watchdog completed successfully"
-        : voiceAgentHealth.status !== "healthy"
-          ? voiceAgentHealth.summary
-          : syntheticProbeHealth.status !== "healthy"
-            ? syntheticProbeHealth.summary
-          : passiveTrafficHealth.summary;
+    const watchdogSummary = summarizeWatchdogIssue(voiceAgentHealth, passiveTrafficHealth, syntheticProbeHealth);
 
     await recordMonitorRun({
       monitorKey: "voice-monitor-watchdog",
