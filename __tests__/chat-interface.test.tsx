@@ -159,7 +159,8 @@ describe("ChatInterface", () => {
     await user.click(await screen.findByRole("button", { name: /morning briefing/i }));
 
     expect(await screen.findByRole("heading", { name: "Morning Briefing - 11 Apr 2026" })).toBeInTheDocument();
-    expect(screen.getByText(/Pipeline value: \$1,200 - Top actions:/i)).toBeInTheDocument();
+    const summaryCard = screen.getByText("Summary").closest("div");
+    expect(summaryCard).toHaveTextContent(/Pipeline value:\s*\$1,200(?:\.00)?\s*-\s*Top actions:\s*Call stale jobs,\s*Review invoices/i);
     expect(screen.getByText(/draft follow-ups for stale jobs - ask me/i)).toBeInTheDocument();
     expect(screen.queryByText(/â|Â|—|–|·/)).not.toBeInTheDocument();
   });
