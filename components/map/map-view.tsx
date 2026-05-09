@@ -53,7 +53,7 @@ interface MapViewProps {
   todayIds?: Set<string>
 }
 
-const DEFAULT_CENTER: [number, number] = [-37.8136, 144.9631]
+const DEFAULT_CENTER: [number, number] = [-33.8688, 151.2093]
 
 function getJobPosition(job: Job): [number, number] {
   if (job.lat != null && job.lng != null) {
