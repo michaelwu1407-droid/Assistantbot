@@ -4,6 +4,8 @@ import { phoneMatches, normalizePhone } from "@/lib/phone-utils";
 import { twilioMasterClient } from "@/lib/twilio";
 import type { RuntimeStatus } from "@/lib/voice-fleet";
 import {
+  getVoiceMonitorProbeBusyRetryCount,
+  getVoiceMonitorProbeBusyRetryDelaySeconds,
   getVoiceMonitorProbeCallTimeoutSeconds,
   getVoiceMonitorProbeMaxWaitSeconds,
   getVoiceMonitorProbePostSayPauseSeconds,
@@ -234,6 +236,40 @@ function buildAttempt(params: {
   return params;
 }
 
+async function runProbeAttempt(params: {
+  mode: "pstn_spoken" | "sip_direct";
+  target: string;
+  probeCaller: string;
+  expectedPhrase: string;
+  maxWaitMs: number;
+}) {
+  const createdCall = await startProbeCall({
+    to: params.target,
+    from: params.probeCaller,
+    expectedPhrase: params.expectedPhrase,
+  });
+
+  if (!createdCall) {
+    return null;
+  }
+
+  const terminalCall = await waitForTerminalCallStatus(createdCall.sid, params.maxWaitMs);
+  const callStatus = (terminalCall?.status || createdCall.status || "").toLowerCase() || null;
+  const durationSeconds = parseDurationSeconds(terminalCall?.duration || createdCall.duration || null);
+
+  return {
+    createdCall,
+    terminalCall,
+    attempt: buildAttempt({
+      mode: params.mode,
+      target: params.target,
+      callSid: createdCall.sid,
+      callStatus,
+      durationSeconds,
+    }),
+  };
+}
+
 async function waitForTerminalCallStatus(callSid: string, maxWaitMs: number) {
   if (!twilioMasterClient) return null;
 
@@ -391,30 +427,26 @@ export async function runVoiceSpokenPstnCanary(params: {
   }
 
   const startedAt = params.checkedAt || new Date();
+  const maxWaitMs = getVoiceMonitorProbeMaxWaitSeconds() * 1_000;
 
   try {
-    const createdCall = await startProbeCall({
-      to: targetNumber,
-      from: probeCaller,
-      expectedPhrase,
-    });
-    if (!createdCall) {
-      throw new Error("Twilio is not configured for the spoken PSTN canary.");
-    }
-
-    const terminalCall = await waitForTerminalCallStatus(
-      createdCall.sid,
-      getVoiceMonitorProbeMaxWaitSeconds() * 1_000,
-    );
-    const callStatus = (terminalCall?.status || createdCall.status || "").toLowerCase() || null;
-    const durationSeconds = parseDurationSeconds(terminalCall?.duration || createdCall.duration || null);
-    const pstnAttempt = buildAttempt({
+    const initialAttempt = await runProbeAttempt({
       mode: "pstn_spoken",
       target: targetNumber,
-      callSid: createdCall.sid,
-      callStatus,
-      durationSeconds,
+      probeCaller,
+      expectedPhrase,
+      maxWaitMs,
     });
+    if (!initialAttempt) {
+      throw new Error("Twilio is not configured for the spoken PSTN canary.");
+    }
+    let createdCall = initialAttempt.createdCall;
+    let terminalCall = initialAttempt.terminalCall;
+    let callStatus = initialAttempt.attempt.callStatus;
+    let durationSeconds = initialAttempt.attempt.durationSeconds;
+    const attempts = [initialAttempt.attempt];
+    let retrySucceeded = false;
+    let retryCountUsed = 0;
 
     if (!terminalCall || !callStatus) {
       return {
@@ -432,44 +464,72 @@ export async function runVoiceSpokenPstnCanary(params: {
         expectedPhrase,
         verification: null,
         fallbackReason: null,
-        attempts: [pstnAttempt],
+        attempts,
       };
     }
 
-    if (FAILURE_CALL_STATUSES.has(callStatus)) {
+    if (callStatus === "busy") {
+      const maxBusyRetries = getVoiceMonitorProbeBusyRetryCount();
+      const retryDelayMs = getVoiceMonitorProbeBusyRetryDelaySeconds() * 1_000;
+
+      for (let retryIndex = 0; retryIndex < maxBusyRetries; retryIndex += 1) {
+        if (retryDelayMs > 0) {
+          await sleep(retryDelayMs);
+        }
+
+        const retryAttempt = await runProbeAttempt({
+          mode: "pstn_spoken",
+          target: targetNumber,
+          probeCaller,
+          expectedPhrase,
+          maxWaitMs,
+        });
+        retryCountUsed += 1;
+        if (!retryAttempt) {
+          break;
+        }
+
+        attempts.push(retryAttempt.attempt);
+        createdCall = retryAttempt.createdCall;
+        terminalCall = retryAttempt.terminalCall;
+        callStatus = retryAttempt.attempt.callStatus;
+        durationSeconds = retryAttempt.attempt.durationSeconds;
+
+        if (terminalCall && callStatus && !FAILURE_CALL_STATUSES.has(callStatus)) {
+          retrySucceeded = true;
+          break;
+        }
+
+        if (callStatus !== "busy") {
+          break;
+        }
+      }
+    }
+
+    if (callStatus && FAILURE_CALL_STATUSES.has(callStatus)) {
       const sipTarget = getEarlymarkInboundSipUri(targetNumber);
       if (sipTarget) {
-        const sipCreatedCall = await startProbeCall({
-          to: sipTarget,
-          from: probeCaller,
+        const sipAttempt = await runProbeAttempt({
+          mode: "sip_direct",
+          target: sipTarget,
+          probeCaller,
           expectedPhrase,
+          maxWaitMs,
         });
-        const sipTerminalCall =
-          sipCreatedCall
-            ? await waitForTerminalCallStatus(
-                sipCreatedCall.sid,
-                getVoiceMonitorProbeMaxWaitSeconds() * 1_000,
-              )
-            : null;
-        const sipCallStatus = (sipTerminalCall?.status || sipCreatedCall?.status || "").toLowerCase() || null;
-        const sipDurationSeconds = parseDurationSeconds(sipTerminalCall?.duration || sipCreatedCall?.duration || null);
-        const attempts = [
-          pstnAttempt,
-          buildAttempt({
-            mode: "sip_direct",
-            target: sipTarget,
-            callSid: sipCreatedCall?.sid || null,
-            callStatus: sipCallStatus,
-            durationSeconds: sipDurationSeconds,
-          }),
-        ];
+        const sipCreatedCall = sipAttempt?.createdCall || null;
+        const sipTerminalCall = sipAttempt?.terminalCall || null;
+        const sipCallStatus = sipAttempt?.attempt.callStatus || null;
+        const sipDurationSeconds = sipAttempt?.attempt.durationSeconds || null;
+        if (sipAttempt) {
+          attempts.push(sipAttempt.attempt);
+        }
 
         if (sipTerminalCall && sipCallStatus && !FAILURE_CALL_STATUSES.has(sipCallStatus)) {
           const verification = await waitForVoiceCallVerification({
             probeCaller,
             targetNumber,
             startedAt,
-            maxWaitMs: getVoiceMonitorProbeMaxWaitSeconds() * 1_000,
+            maxWaitMs,
             callSid: sipCreatedCall?.sid || null,
           });
 
@@ -550,7 +610,7 @@ export async function runVoiceSpokenPstnCanary(params: {
         expectedPhrase,
         verification: null,
         fallbackReason: null,
-        attempts: [pstnAttempt],
+        attempts,
       };
     }
 
@@ -558,7 +618,7 @@ export async function runVoiceSpokenPstnCanary(params: {
       probeCaller,
       targetNumber,
       startedAt,
-      maxWaitMs: getVoiceMonitorProbeMaxWaitSeconds() * 1_000,
+      maxWaitMs,
       callSid: createdCall.sid,
     });
 
@@ -578,7 +638,7 @@ export async function runVoiceSpokenPstnCanary(params: {
         expectedPhrase,
         verification: null,
         fallbackReason: null,
-        attempts: [pstnAttempt],
+        attempts,
       };
     }
 
@@ -589,15 +649,23 @@ export async function runVoiceSpokenPstnCanary(params: {
     const partialExchange = verification.capturedCallerSpeech && verification.capturedAssistantSpeech;
 
     return {
-      status: healthyExchange ? "healthy" : partialExchange ? "degraded" : "unhealthy",
+      status: healthyExchange
+        ? "healthy"
+        : partialExchange
+          ? "degraded"
+          : "unhealthy",
       summary: healthyExchange
-        ? "Real PSTN spoken canary placed a successful inbound call and captured both caller and Tracey speech."
+        ? retrySucceeded
+          ? `Real PSTN spoken canary placed a successful inbound call after ${retryCountUsed} retry and captured both caller and Tracey speech.`
+          : "Real PSTN spoken canary placed a successful inbound call and captured both caller and Tracey speech."
         : partialExchange
           ? "Real PSTN spoken canary completed, but the transcript did not clearly capture the expected probe phrase."
           : "Real PSTN spoken canary completed, but the transcript did not show a complete spoken exchange.",
       warnings:
         healthyExchange
-          ? []
+          ? retrySucceeded
+            ? [`The PSTN probe needed ${retryCountUsed} retry after a busy response before succeeding.`]
+            : []
           : [
               partialExchange
                 ? "The spoken canary call persisted, but transcript matching for the probe phrase was incomplete."
@@ -613,8 +681,8 @@ export async function runVoiceSpokenPstnCanary(params: {
       durationSeconds,
       expectedPhrase,
       verification,
-      fallbackReason: null,
-      attempts: [pstnAttempt],
+      fallbackReason: retrySucceeded ? "pstn_busy_retry" : null,
+      attempts,
     };
   } catch (error) {
     return {

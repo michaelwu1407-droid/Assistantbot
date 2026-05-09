@@ -4,6 +4,8 @@ const DEFAULT_VOICE_SYNTHETIC_PROBE_REFRESH_AFTER_MINUTES = 180;
 const DEFAULT_VOICE_MONITOR_PROBE_CALL_TIMEOUT_SECONDS = 18;
 const DEFAULT_VOICE_MONITOR_PROBE_MAX_WAIT_SECONDS = 45;
 const DEFAULT_VOICE_MONITOR_PROBE_POST_SAY_PAUSE_SECONDS = 8;
+const DEFAULT_VOICE_MONITOR_PROBE_BUSY_RETRY_COUNT = 1;
+const DEFAULT_VOICE_MONITOR_PROBE_BUSY_RETRY_DELAY_SECONDS = 20;
 
 function parsePositiveInt(rawValue: string | undefined, fallback: number) {
   const raw = Number.parseInt((rawValue || "").trim(), 10);
@@ -50,4 +52,15 @@ export function getVoiceMonitorProbeMaxWaitSeconds(env: NodeJS.ProcessEnv = proc
 
 export function getVoiceMonitorProbePostSayPauseSeconds(env: NodeJS.ProcessEnv = process.env) {
   return parsePositiveInt(env.VOICE_MONITOR_PROBE_POST_SAY_PAUSE_SECONDS, DEFAULT_VOICE_MONITOR_PROBE_POST_SAY_PAUSE_SECONDS);
+}
+
+export function getVoiceMonitorProbeBusyRetryCount(env: NodeJS.ProcessEnv = process.env) {
+  return parsePositiveInt(env.VOICE_MONITOR_PROBE_BUSY_RETRY_COUNT, DEFAULT_VOICE_MONITOR_PROBE_BUSY_RETRY_COUNT);
+}
+
+export function getVoiceMonitorProbeBusyRetryDelaySeconds(env: NodeJS.ProcessEnv = process.env) {
+  return parsePositiveInt(
+    env.VOICE_MONITOR_PROBE_BUSY_RETRY_DELAY_SECONDS,
+    DEFAULT_VOICE_MONITOR_PROBE_BUSY_RETRY_DELAY_SECONDS,
+  );
 }
