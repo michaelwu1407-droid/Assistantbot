@@ -953,7 +953,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
                 <div className="flex gap-2">
                   <Input
                     placeholder={messageMode === "tracey"
-                      ? `Ask Tracey to reply or update the CRM for ${selectedContact.name}...`
+                      ? `Ask Tracey to reply and update the job, or log this and follow up tomorrow...`
                       : `Send an SMS to ${selectedContact.name} yourself...`
                     }
                     className="flex-1 bg-background/50 border-border/50"
@@ -984,9 +984,6 @@ If the request is to contact the customer, use the appropriate customer-contact 
                   <p className={cn("app-body-secondary mt-1 text-right text-xs", messageText.length > 160 ? "text-red-500 font-medium" : "text-muted-foreground")}>
                     {messageText.length}/160 characters
                   </p>
-                )}
-                {messageMode === "tracey" && (
-                  <p className="app-body-secondary mt-1 text-xs">Good for requests like &quot;reply and update the job&quot; or &quot;log this and follow up tomorrow.&quot;</p>
                 )}
               </div>
             </>

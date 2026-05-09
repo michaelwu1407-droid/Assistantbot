@@ -201,7 +201,7 @@ describe("InboxView", () => {
     await waitFor(() => expect(screen.getByRole("heading", { name: "Alice Example" })).toBeInTheDocument());
 
     await user.click(screen.getByRole("tab", { name: /Ask Tracey/i }));
-    const input = screen.getByPlaceholderText(/Ask Tracey to reply or update the CRM for Alice Example/i);
+    const input = screen.getByPlaceholderText(/Ask Tracey to reply and update the job, or log this and follow up tomorrow/i);
     await user.type(input, "Please let them know we'll be there at 3.");
     await user.click(screen.getByRole("button", { name: /Ask Tracey to act/i }));
 
@@ -246,7 +246,7 @@ describe("InboxView", () => {
     await waitFor(() => expect(screen.getByRole("heading", { name: "Alice Example" })).toBeInTheDocument());
 
     await user.click(screen.getByRole("tab", { name: /Ask Tracey/i }));
-    const input = screen.getByPlaceholderText(/Ask Tracey to reply or update the CRM for Alice Example/i);
+    const input = screen.getByPlaceholderText(/Ask Tracey to reply and update the job, or log this and follow up tomorrow/i);
     await user.type(input, "Please let them know we'll be there at 3.");
     await user.click(screen.getByRole("button", { name: /Ask Tracey to act/i }));
 
@@ -286,7 +286,7 @@ describe("InboxView", () => {
     expect(screen.getByRole("button", { name: /Send now/i })).toBeInTheDocument();
 
     await user.click(screen.getByRole("tab", { name: /Ask Tracey/i }));
-    const traceyInput = screen.getByPlaceholderText(/Ask Tracey to reply or update the CRM for Alice Example/i);
+    const traceyInput = screen.getByPlaceholderText(/Ask Tracey to reply and update the job, or log this and follow up tomorrow/i);
     expect(traceyInput).toHaveValue("");
     await user.type(traceyInput, "Tracey task");
     expect(traceyInput).toHaveValue("Tracey task");
