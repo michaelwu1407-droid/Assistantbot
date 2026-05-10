@@ -74,7 +74,7 @@ function normalizeLiveKitFingerprintUrl(value: string) {
 
     if (
       (hostname === "live.earlymark.ai" && port === "443") ||
-      (hostname === "localhost" && port === "7880")
+      ((hostname === "localhost" || hostname === "127.0.0.1") && port === "7880")
     ) {
       return "livekit://earlymark-primary";
     }
