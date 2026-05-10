@@ -67,6 +67,88 @@ function readSummary(value: unknown) {
     : null;
 }
 
+function readNestedString(record: Record<string, unknown> | null, path: string[]) {
+  let current: unknown = record;
+  for (const key of path) {
+    if (!current || typeof current !== "object" || Array.isArray(current)) {
+      return null;
+    }
+    current = (current as Record<string, unknown>)[key];
+  }
+  return typeof current === "string" ? current : null;
+}
+
+function readNestedNumber(record: Record<string, unknown> | null, path: string[]) {
+  let current: unknown = record;
+  for (const key of path) {
+    if (!current || typeof current !== "object" || Array.isArray(current)) {
+      return null;
+    }
+    current = (current as Record<string, unknown>)[key];
+  }
+  return typeof current === "number" ? current : null;
+}
+
+function readStringArray(record: Record<string, unknown> | null, key: string) {
+  const value = record?.[key];
+  return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
+}
+
+function buildSummaryScopedEnv(
+  worker: Pick<VoiceWorkerSnapshot, "hostId" | "workerRole" | "surfaceSet" | "summary">,
+  env: NodeJS.ProcessEnv = process.env,
+) {
+  const summary = readSummary(worker.summary);
+  const livekitUrl = readNestedString(summary, ["livekitSip", "livekitUrl"]);
+  const knownInboundNumbers = readStringArray(summary, "knownInboundNumbers");
+  const maxConcurrentCalls = readNestedNumber(summary, ["capacity", "maxConcurrentCalls"]);
+
+  return {
+    ...env,
+    LIVEKIT_URL: livekitUrl || env.LIVEKIT_URL,
+    EARLYMARK_INBOUND_PHONE_NUMBERS: knownInboundNumbers.join(",") || env.EARLYMARK_INBOUND_PHONE_NUMBERS,
+    EARLYMARK_INBOUND_PHONE_NUMBER:
+      knownInboundNumbers[0] || env.EARLYMARK_INBOUND_PHONE_NUMBER || env.EARLYMARK_PHONE_NUMBER,
+    VOICE_HOST_ID: worker.hostId,
+    VOICE_WORKER_ROLE: worker.workerRole,
+    VOICE_WORKER_SURFACES: worker.surfaceSet.join(","),
+    VOICE_MAX_ACTIVE_CALLS: maxConcurrentCalls ? String(maxConcurrentCalls) : env.VOICE_MAX_ACTIVE_CALLS,
+    EARLYMARK_VOICE_LLM_PROVIDER: readNestedString(summary, ["llmProvider", "earlymarkPrimary"]) || env.EARLYMARK_VOICE_LLM_PROVIDER,
+    VOICE_LLM_PROVIDER: readNestedString(summary, ["llmProvider", "customerPrimary"]) || env.VOICE_LLM_PROVIDER,
+    EARLYMARK_VOICE_LLM_MODEL: readNestedString(summary, ["llmModel", "earlymarkPrimary"]) || env.EARLYMARK_VOICE_LLM_MODEL,
+    EARLYMARK_VOICE_FALLBACK_LLM_MODEL:
+      readNestedString(summary, ["llmModel", "earlymarkFallback"]) || env.EARLYMARK_VOICE_FALLBACK_LLM_MODEL,
+    VOICE_LLM_MODEL: readNestedString(summary, ["llmModel", "customerPrimary"]) || env.VOICE_LLM_MODEL,
+    VOICE_FALLBACK_LLM_MODEL:
+      readNestedString(summary, ["llmModel", "customerFallback"]) || env.VOICE_FALLBACK_LLM_MODEL,
+    VOICE_STT_MODEL: readNestedString(summary, ["sttModel"]) || env.VOICE_STT_MODEL,
+    VOICE_TTS_MODEL: readNestedString(summary, ["ttsModel"]) || env.VOICE_TTS_MODEL,
+    VOICE_TTS_VOICE_ID: readNestedString(summary, ["ttsVoiceId"]) || env.VOICE_TTS_VOICE_ID,
+    VOICE_TTS_LANGUAGE: readNestedString(summary, ["ttsLanguage"]) || env.VOICE_TTS_LANGUAGE,
+    VOICE_LATENCY_ENABLED: readNestedString(summary, ["latencyEnabled"]) || env.VOICE_LATENCY_ENABLED,
+    VOICE_OPENER_BANK_ENABLED: readNestedString(summary, ["openerBankEnabled"]) || env.VOICE_OPENER_BANK_ENABLED,
+    VOICE_GUARD_ENABLED: readNestedString(summary, ["guardEnabled"]) || env.VOICE_GUARD_ENABLED,
+    VOICE_LATENCY_TARGET_CALL_TYPES: readNestedString(summary, ["targetCallTypes"]) || env.VOICE_LATENCY_TARGET_CALL_TYPES,
+    VOICE_SPECULATIVE_HEADS_ENABLED:
+      readNestedString(summary, ["speculativeHeadsEnabled"]) || env.VOICE_SPECULATIVE_HEADS_ENABLED,
+    VOICE_SPECULATIVE_HEADS_SURFACES:
+      readNestedString(summary, ["speculativeHeadSurfaces"]) || env.VOICE_SPECULATIVE_HEADS_SURFACES,
+  } as NodeJS.ProcessEnv;
+}
+
+function hasCompatibleSummaryFingerprint(
+  worker: Pick<VoiceWorkerSnapshot, "hostId" | "workerRole" | "surfaceSet" | "summary">,
+  env: NodeJS.ProcessEnv = process.env,
+) {
+  if (!readSummary(worker.summary)) {
+    return false;
+  }
+
+  const expectedFingerprint = getExpectedVoiceAgentRuntimeFingerprint(buildWorkerScopedEnv(worker, env));
+  const summaryFingerprint = getExpectedVoiceAgentRuntimeFingerprint(buildSummaryScopedEnv(worker, env));
+  return summaryFingerprint === expectedFingerprint;
+}
+
 function isLegacyHeartbeatRecord(
   value: NonNullable<LatestVoiceHeartbeatRecord | LatestLegacyHeartbeatRecord>,
 ): value is NonNullable<LatestLegacyHeartbeatRecord> {
@@ -128,7 +210,11 @@ export async function getVoiceAgentRuntimeDrift(): Promise<VoiceAgentRuntimeDrif
   const fingerprintMismatches = workerSnapshots.filter((worker) => {
     const scopedEnv = buildWorkerScopedEnv(worker);
     const acceptedFingerprints = new Set(buildEquivalentVoiceAgentRuntimeFingerprints(scopedEnv));
-    return !acceptedFingerprints.has(worker.runtimeFingerprint || "");
+    if (acceptedFingerprints.has(worker.runtimeFingerprint || "")) {
+      return false;
+    }
+
+    return !hasCompatibleSummaryFingerprint(worker, process.env);
   });
 
   if (!runtimeFingerprint) {

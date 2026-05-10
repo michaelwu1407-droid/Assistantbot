@@ -208,4 +208,59 @@ describe("getVoiceAgentRuntimeDrift", () => {
     expect(drift.status).toBe("healthy");
     expect(drift.warnings).toEqual([]);
   });
+
+  it("accepts a legacy runtime fingerprint when the worker summary reconstructs the current expected config", async () => {
+    process.env.NEXT_PUBLIC_APP_URL = "https://www.earlymark.ai";
+    process.env.APP_URL = "https://www.earlymark.ai";
+    process.env.LIVEKIT_URL = "https://live.earlymark.ai";
+    process.env.EARLYMARK_INBOUND_PHONE_NUMBER = "+61485010634";
+    process.env.EARLYMARK_INBOUND_PHONE_NUMBERS = "+61485010634";
+
+    getLatestVoiceWorkerSnapshots.mockResolvedValue([
+      {
+        hostId: "voice-host-a",
+        workerRole: "tracey-sales-agent",
+        surfaceSet: ["demo", "inbound_demo"],
+        deployGitSha: "sha",
+        runtimeFingerprint: "va_ca9bc5aa",
+        ready: true,
+        activeCalls: 0,
+        capacityState: "available",
+        summary: {
+          capacity: { maxConcurrentCalls: 1 },
+          llmProvider: {
+            earlymarkPrimary: "groq",
+            customerPrimary: "groq",
+          },
+          llmModel: {
+            earlymarkPrimary: "llama-3.3-70b-versatile",
+            earlymarkFallback: "meta-llama/Meta-Llama-3.1-8B-Instruct",
+            customerPrimary: "llama-3.3-70b-versatile",
+            customerFallback: "meta-llama/Meta-Llama-3.1-8B-Instruct",
+          },
+          sttModel: "nova-3",
+          ttsModel: "sonic-3",
+          ttsVoiceId: "a4a16c5e-5902-4732-b9b6-2a48efd2e11b",
+          ttsLanguage: "en-AU",
+          latencyEnabled: "true",
+          openerBankEnabled: "true",
+          guardEnabled: "true",
+          targetCallTypes: "demo,inbound_demo,normal",
+          speculativeHeadsEnabled: "true",
+          speculativeHeadSurfaces: "demo,inbound_demo",
+          knownInboundNumbers: ["+61485010634"],
+          livekitSip: { livekitUrl: "http://127.0.0.1:7880" },
+        },
+        heartbeatAt: new Date().toISOString(),
+        ageMs: 1_000,
+        status: "healthy",
+        warnings: [],
+      },
+    ]);
+
+    const drift = await getVoiceAgentRuntimeDrift();
+
+    expect(drift.status).toBe("healthy");
+    expect(drift.warnings).toEqual([]);
+  });
 });
