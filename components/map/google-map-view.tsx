@@ -26,7 +26,7 @@ interface GoogleMapViewProps {
   onFallbackToLeaflet?: () => void
 }
 
-const DEFAULT_CENTER = { lat: -37.8136, lng: 144.9631 }
+const DEFAULT_CENTER = { lat: -33.8688, lng: 151.2093 }
 const DEFAULT_ZOOM = 12
 const MAP_CONTAINER_STYLE = { width: "100%", height: "100%" }
 
