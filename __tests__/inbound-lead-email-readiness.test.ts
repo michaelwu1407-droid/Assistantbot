@@ -236,7 +236,7 @@ describe("getInboundLeadEmailReadiness", () => {
     expect(result.stage).toBe("provider_verified");
   });
 
-  it("surfaces a domains-list rate limit as an admin verification issue instead of calling inbound email broken", async () => {
+  it("treats a domains-list rate limit as a warning when recent inbound email traffic proves the channel is working", async () => {
     findMany.mockResolvedValue([
       {
         status: "success",
@@ -260,11 +260,12 @@ describe("getInboundLeadEmailReadiness", () => {
 
     const result = await getInboundLeadEmailReadiness("inbound.earlymark.ai");
 
-    expect(result.ready).toBe(false);
-    expect(result.issues).toEqual([
-      "Resend admin verification is rate-limited: Resend domains list returned HTTP 429. Recent inbound email traffic has still been observed.",
+    expect(result.ready).toBe(true);
+    expect(result.issues).toEqual([]);
+    expect(result.warnings).toEqual([
+      "Resend admin verification is rate-limited: Resend domains list returned HTTP 429. Recent inbound email traffic has still been observed for inbound.earlymark.ai.",
     ]);
-    expect(result.warnings).toEqual([]);
+    expect(result.providerVerified).toBe(true);
     expect(result.receivingConfirmed).toBe(true);
     expect(result.stage).toBe("receiving_confirmed");
   });

@@ -239,11 +239,18 @@ export async function getInboundLeadEmailReadiness(
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown Resend verification failure";
     if (message.includes("HTTP 429")) {
-      const recentTrafficSuffix =
-        recentInboundEmailSuccessCount > 0
-          ? " Recent inbound email traffic has still been observed."
-          : "";
-      issues.push(`Resend admin verification is rate-limited: ${message}.${recentTrafficSuffix}`);
+      if (recentInboundEmailSuccessCount > 0 && dnsReady) {
+        providerVerified = true;
+        warnings.push(
+          `Resend admin verification is rate-limited: ${message}. Recent inbound email traffic has still been observed for ${domain}.`,
+        );
+      } else {
+        const recentTrafficSuffix =
+          recentInboundEmailSuccessCount > 0
+            ? " Recent inbound email traffic has still been observed."
+            : "";
+        issues.push(`Resend admin verification is rate-limited: ${message}.${recentTrafficSuffix}`);
+      }
     } else {
       issues.push(`Resend admin verification failed: ${message}`);
     }

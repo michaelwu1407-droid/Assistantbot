@@ -18,7 +18,15 @@ function normalizeBaseUrl(value?: string | null) {
 }
 
 async function fetchJson(url: string, headers: Record<string, string>) {
-  const response = await fetch(url, { headers, cache: "no-store" });
+  const separator = url.includes("?") ? "&" : "?";
+  const response = await fetch(`${url}${separator}ts=${Date.now()}`, {
+    headers: {
+      ...headers,
+      "cache-control": "no-cache",
+      pragma: "no-cache",
+    },
+    cache: "no-store",
+  });
   const text = await response.text();
 
   let payload: unknown = null;
@@ -53,15 +61,21 @@ async function main() {
     authorization: `Bearer ${opsKey}`,
   };
 
-  const [health, launch, probe] = await Promise.all([
+  const [health, launch] = await Promise.all([
     fetchJson(`${baseUrl}/api/health`, headers),
     fetchJson(`${baseUrl}/api/internal/launch-readiness`, headers),
-    fetchJson(`${baseUrl}/api/cron/voice-synthetic-probe`, { "x-ops-key": opsKey }),
   ]);
 
   const launchPayload = launch.payload as Record<string, any> | null;
-  const probePayload = probe.payload as Record<string, any> | null;
   const healthPayload = health.payload as Record<string, any> | null;
+  const probePayload =
+    (launchPayload?.canary?.monitor as Record<string, any> | null) ||
+    (healthPayload?.canary?.monitor as Record<string, any> | null) ||
+    null;
+  const spokenCanaryPayload =
+    (launchPayload?.canary?.spokenCanary as Record<string, any> | null) ||
+    (healthPayload?.canary?.spokenCanary as Record<string, any> | null) ||
+    null;
 
   const summary = {
     baseUrl,
@@ -81,12 +95,12 @@ async function main() {
       launchPayload?.voiceCritical?.summary ||
       launchPayload?.summary ||
       null,
-    probeHttp: probe.response.status,
+    probeHttp: null,
     probeStatus: probePayload?.status ?? null,
-    probeResult: probePayload?.probeResult ?? null,
-    spokenCanaryStatus: probePayload?.spokenCanary?.status ?? null,
-    spokenCanaryMode: probePayload?.spokenCanary?.mode ?? null,
-    spokenCanarySummary: probePayload?.spokenCanary?.summary ?? null,
+    probeResult: launchPayload?.canary?.probeResult ?? healthPayload?.canary?.probeResult ?? null,
+    spokenCanaryStatus: spokenCanaryPayload?.status ?? null,
+    spokenCanaryMode: spokenCanaryPayload?.mode ?? null,
+    spokenCanarySummary: spokenCanaryPayload?.summary ?? null,
   };
 
   console.log(JSON.stringify(summary, null, 2));
