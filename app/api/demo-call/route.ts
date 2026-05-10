@@ -54,6 +54,8 @@ export async function POST(req: NextRequest) {
       lastName,
       email,
       businessName,
+    }, {
+      allowTwilioSipBridgeFallback: false,
     });
 
     console.log("[demo-call] Initiated:", {

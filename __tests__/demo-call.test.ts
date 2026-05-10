@@ -48,6 +48,7 @@ describe("demo-call outbound routing", () => {
     process.env.LIVEKIT_SIP_TRUNK_ID = "ST_stale";
     process.env.DEMO_CALL_CONNECTION_TIMEOUT_MS = "5";
     process.env.DEMO_CALL_CONNECTION_POLL_MS = "1";
+    process.env.VOICE_MONITOR_PROBE_CALLER_NUMBER = "+61434955958";
     createTwilioCall.mockResolvedValue({ sid: "CA_demo" });
     getParticipant.mockResolvedValue({
       attributes: {
@@ -233,6 +234,22 @@ describe("demo-call outbound routing", () => {
     );
   });
 
+  it("prefers the real outbound caller number over the monitor probe caller number for fallback calls", async () => {
+    listSipOutboundTrunk.mockRejectedValue(new TypeError("fetch failed"));
+
+    const result = await initiateDemoCall({
+      phone: "0434 955 958",
+      firstName: "Michael",
+    });
+
+    expect(createTwilioCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        from: "+61485010634",
+      }),
+    );
+    expect(result.callerNumber).toBe("+61485010634");
+  });
+
   it("falls back when the outbound leg never reaches a connected SIP state", async () => {
     listSipOutboundTrunk.mockResolvedValue([
       {
@@ -259,6 +276,40 @@ describe("demo-call outbound routing", () => {
     expect(deleteRoom).toHaveBeenCalledTimes(1);
     expect(createTwilioCall).toHaveBeenCalledTimes(1);
     expect(result.transport).toBe("twilio_sip_bridge");
+  });
+
+  it("does not fall back to the Twilio SIP bridge when public demo flows disable it", async () => {
+    listSipOutboundTrunk.mockResolvedValue([
+      {
+        sipTrunkId: "ST_real",
+        name: "Earlymark outbound",
+        numbers: ["+61485010634"],
+        address: "earlymark-outbound.pstn.sydney.twilio.com",
+      },
+    ]);
+    createRoom.mockResolvedValue({});
+    createSipParticipant.mockResolvedValue({ participantId: "PA_demo" });
+    getParticipant.mockResolvedValue({
+      attributes: {
+        "sip.callStatus": "dialing",
+      },
+    });
+
+    await expect(
+      initiateDemoCall(
+        {
+          phone: "0434 955 958",
+          firstName: "Michael",
+          businessName: "Alexandria Automotive Services",
+        },
+        {
+          allowTwilioSipBridgeFallback: false,
+        },
+      ),
+    ).rejects.toThrow(/did not connect/i);
+
+    expect(deleteRoom).toHaveBeenCalledTimes(1);
+    expect(createTwilioCall).not.toHaveBeenCalled();
   });
 
   it("validates E.164 phone numbers", () => {

@@ -53,6 +53,8 @@ export async function POST(request: NextRequest) {
           firstName: firstName || "there",
           lastName,
           email,
+        }, {
+          allowTwilioSipBridgeFallback: false,
         })
         callPlaced = true
         await markDemoLeadInitiated(leadId, {

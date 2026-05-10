@@ -1588,7 +1588,15 @@ async function waitForDemoOutboundLegReady(params: {
       participant: RemoteParticipant,
     ) => {
       if (participant.identity !== params.participant.identity) return;
-      finish(true, getParticipantSipStatus(participant) || "track_subscribed");
+
+      const status = getParticipantSipStatus(participant);
+      if (isSipCallConnectedStatus(status)) {
+        finish(true, status || "track_subscribed");
+        return;
+      }
+      if (isSipCallTerminalFailureStatus(status)) {
+        finish(false, status || "track_subscribed_failed");
+      }
     };
 
     params.room.on("participantAttributesChanged", onParticipantAttributesChanged);

@@ -38,6 +38,10 @@ export type DemoCallInput = {
   businessName?: string;
 };
 
+export type DemoCallOptions = {
+  allowTwilioSipBridgeFallback?: boolean;
+};
+
 export type DemoCallResult = {
   roomName: string;
   normalizedPhone: string;
@@ -125,7 +129,7 @@ function sleep(ms: number) {
 }
 
 function getTwilioBridgeCallerNumber(preferred?: string | null) {
-  return [process.env.VOICE_MONITOR_PROBE_CALLER_NUMBER, preferred, ...getKnownCallerNumbers()]
+  return [preferred, ...getKnownCallerNumbers(), process.env.VOICE_MONITOR_PROBE_CALLER_NUMBER]
     .map((value) => normalizePhone(value))
     .find(Boolean) || null;
 }
@@ -360,7 +364,10 @@ export async function resolveLivekitDemoOutboundTrunk(options: {
   };
 }
 
-export async function initiateDemoCall(input: DemoCallInput): Promise<DemoCallResult> {
+export async function initiateDemoCall(
+  input: DemoCallInput,
+  options: DemoCallOptions = {},
+): Promise<DemoCallResult> {
   const normalizedPhone = normalizePhone(input.phone);
   if (!normalizedPhone) {
     throw new Error("Phone number required");
@@ -446,6 +453,9 @@ export async function initiateDemoCall(input: DemoCallInput): Promise<DemoCallRe
       sipCallStatus: connectionCheck.sipCallStatus,
     };
   } catch (directError) {
+    if (options.allowTwilioSipBridgeFallback === false) {
+      throw directError;
+    }
     try {
       return await initiateDemoCallViaTwilioSipBridge({
         normalizedPhone,

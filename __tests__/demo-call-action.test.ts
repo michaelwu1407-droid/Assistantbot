@@ -102,6 +102,18 @@ describe("requestDemoCall server action", () => {
     const persistOrder = hoisted.persistDemoLeadAttempt.mock.invocationCallOrder[0];
     const initiateOrder = hoisted.initiateDemoCall.mock.invocationCallOrder[0];
     expect(persistOrder).toBeLessThan(initiateOrder);
+    expect(hoisted.initiateDemoCall).toHaveBeenCalledWith(
+      {
+        phone: "+61434955958",
+        firstName: "Michael",
+        lastName: "Wu",
+        email: "michael@example.com",
+        businessName: "Alexandria Auto",
+      },
+      {
+        allowTwilioSipBridgeFallback: false,
+      },
+    );
     expect(hoisted.markDemoLeadInitiated).toHaveBeenCalledWith(
       "lead_123",
       expect.objectContaining({ roomName: "demo-1", resolvedTrunkId: "ST_real" }),

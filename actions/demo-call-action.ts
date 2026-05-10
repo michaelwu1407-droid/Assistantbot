@@ -99,6 +99,8 @@ export async function requestDemoCall(data: DemoCallData): Promise<DemoCallResul
             lastName: data.lastName,
             email: data.email,
             businessName: data.businessName,
+        }, {
+            allowTwilioSipBridgeFallback: false,
         });
 
         console.log("[Demo Call] Initiated:", {
