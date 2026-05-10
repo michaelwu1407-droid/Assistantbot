@@ -65,6 +65,19 @@ normalize_env_value() {
   printf '%s' "$value"
 }
 
+canonicalize_app_url() {
+  value="$(normalize_env_value "${1:-}")"
+  value="${value%/}"
+  case "$value" in
+    http://earlymark.ai|https://earlymark.ai)
+      printf '%s' "https://www.earlymark.ai"
+      ;;
+    *)
+      printf '%s' "$value"
+      ;;
+  esac
+}
+
 compose_cmd() {
   compose_file="$1"
   shift
@@ -154,7 +167,7 @@ if grep -nE '^[[:space:]]*export[[:space:]]+' "$RELEASE_DIR/.env.local"; then
   exit 1
 fi
 
-SYNCED_APP_URL="$(normalize_env_value "${SYNCED_APP_URL:-}")"
+SYNCED_APP_URL="$(canonicalize_app_url "${SYNCED_APP_URL:-}")"
 SYNCED_VOICE_AGENT_WEBHOOK_SECRET="$(normalize_env_value "${SYNCED_VOICE_AGENT_WEBHOOK_SECRET:-}")"
 SYNCED_EARLYMARK_INBOUND_PHONE_NUMBER="$(normalize_env_value "${SYNCED_EARLYMARK_INBOUND_PHONE_NUMBER:-}")"
 SYNCED_DEEPGRAM_API_KEY="$(normalize_env_value "${SYNCED_DEEPGRAM_API_KEY:-}")"

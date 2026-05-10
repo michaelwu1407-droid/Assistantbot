@@ -45,7 +45,7 @@ export function buildCallForwardingSetupSmsBody(params: {
   delaySec: number;
   carrier: CallForwardingCarrier;
 }): string {
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://earlymark.ai").replace(/\/$/, "");
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://www.earlymark.ai").replace(/\/$/, "");
   const codes = buildCallForwardingCodes(params.agentPhoneNumber, params.delaySec);
   const recommendedCode = params.mode === "full" ? codes.full : codes.backup;
   const settingsUrl = `${appUrl}/crm/settings`;

@@ -75,7 +75,24 @@ if [ -n "$REQUESTED_VOICE_HOST_ID" ]; then
   export VOICE_HOST_ID="$REQUESTED_VOICE_HOST_ID"
 fi
 
-EFFECTIVE_APP_URL="${NEXT_PUBLIC_APP_URL:-${APP_URL:-}}"
+canonicalize_app_url() {
+  value="${1:-}"
+  value="${value//$'\r'/}"
+  while [[ "$value" == *$'\n' ]]; do
+    value="${value%$'\n'}"
+  done
+  value="${value%/}"
+  case "$value" in
+    http://earlymark.ai|https://earlymark.ai)
+      printf '%s' "https://www.earlymark.ai"
+      ;;
+    *)
+      printf '%s' "$value"
+      ;;
+  esac
+}
+
+EFFECTIVE_APP_URL="$(canonicalize_app_url "${NEXT_PUBLIC_APP_URL:-${APP_URL:-}}")"
 EFFECTIVE_VOICE_AGENT_SECRET="${VOICE_AGENT_WEBHOOK_SECRET:-${LIVEKIT_API_SECRET:-}}"
 EFFECTIVE_OPS_KEY="${TELEMETRY_ADMIN_KEY:-${CRON_SECRET:-}}"
 
@@ -158,7 +175,7 @@ fi
 
 LAUNCH_GATE_VERIFIED=0
 for _ in 1 2 3 4 5 6 7 8 9 10 11 12; do
-  if NEXT_PUBLIC_APP_URL="$EFFECTIVE_APP_URL" VOICE_AGENT_WEBHOOK_SECRET="$EFFECTIVE_VOICE_AGENT_SECRET" node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const hostId = process.env.VOICE_HOST_ID || ''; const sha = process.env.DEPLOY_GIT_SHA || ''; const url = new URL(base + '/api/internal/launch-readiness'); if (sha) url.searchParams.set('expectedWorkerSha', sha); if (hostId) url.searchParams.set('hostId', hostId); const res = await fetch(url, { headers: { 'x-voice-agent-secret': secret } }); const text = await res.text(); let payload; try { payload = JSON.parse(text); } catch { process.exit(1); } const workerReleaseHealthy = payload?.release?.worker?.status === 'healthy'; const twilioHealthy = payload?.voiceCritical?.twilioVoiceRouting?.status === 'healthy'; if (workerReleaseHealthy && twilioHealthy) process.exit(0); process.exit(2);"; then
+  if NEXT_PUBLIC_APP_URL="$EFFECTIVE_APP_URL" VOICE_AGENT_WEBHOOK_SECRET="$EFFECTIVE_VOICE_AGENT_SECRET" node --input-type=module -e "const base = (process.env.NEXT_PUBLIC_APP_URL || '').replace(/\/$/, ''); const secret = process.env.VOICE_AGENT_WEBHOOK_SECRET || ''; const hostId = process.env.VOICE_HOST_ID || ''; const sha = process.env.DEPLOY_GIT_SHA || ''; const url = new URL(base + '/api/internal/launch-readiness'); if (sha) url.searchParams.set('expectedWorkerSha', sha); if (hostId) url.searchParams.set('hostId', hostId); const res = await fetch(url, { headers: { 'x-voice-agent-secret': secret } }); const text = await res.text(); let payload; try { payload = JSON.parse(text); } catch { process.exit(1); } const workerReleaseHealthy = payload?.release?.worker?.status === 'healthy'; const voiceCriticalHealthy = payload?.voiceCritical?.status === 'healthy'; if (workerReleaseHealthy && voiceCriticalHealthy) process.exit(0); process.exit(2);"; then
     LAUNCH_GATE_VERIFIED=1
     break
   fi

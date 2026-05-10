@@ -17,7 +17,7 @@ export function getTraceyHandbookUrl(): string {
   const configured = process.env.TRACEY_HANDBOOK_URL?.trim();
   if (configured) return configured;
 
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://earlymark.ai").replace(/\/$/, "");
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "https://www.earlymark.ai").replace(/\/$/, "");
   return `${appUrl}/crm/settings/help`;
 }
 
