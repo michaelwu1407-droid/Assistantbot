@@ -129,7 +129,7 @@ function sleep(ms: number) {
 }
 
 function getTwilioBridgeCallerNumber(preferred?: string | null) {
-  return [preferred, ...getKnownCallerNumbers(), process.env.VOICE_MONITOR_PROBE_CALLER_NUMBER]
+  return [preferred, ...getKnownCallerNumbers()]
     .map((value) => normalizePhone(value))
     .find(Boolean) || null;
 }
@@ -432,7 +432,12 @@ export async function initiateDemoCall(
       roomName,
       participantIdentity,
     });
-    if (!connectionCheck.connectionVerified) {
+    if (!connectionCheck.connectionVerified && isSipCallPendingStatus(connectionCheck.sipCallStatus)) {
+      warnings.push(
+        `Outbound demo leg is still ${connectionCheck.sipCallStatus || "pending"}; waiting for the callee to answer.`,
+      );
+    }
+    if (!connectionCheck.connectionVerified && !isSipCallPendingStatus(connectionCheck.sipCallStatus)) {
       await roomClient.deleteRoom(roomName).catch(() => undefined);
       const statusMessage =
         connectionCheck.sipCallStatus && !isSipCallPendingStatus(connectionCheck.sipCallStatus)
@@ -449,7 +454,7 @@ export async function initiateDemoCall(
       warnings,
       transport: "livekit_control",
       callSid: null,
-      connectionVerified: true,
+      connectionVerified: connectionCheck.connectionVerified,
       sipCallStatus: connectionCheck.sipCallStatus,
     };
   } catch (directError) {

@@ -250,7 +250,7 @@ describe("demo-call outbound routing", () => {
     expect(result.callerNumber).toBe("+61485010634");
   });
 
-  it("falls back when the outbound leg never reaches a connected SIP state", async () => {
+  it("keeps the LiveKit demo call when the outbound leg is still ringing", async () => {
     listSipOutboundTrunk.mockResolvedValue([
       {
         sipTrunkId: "ST_real",
@@ -273,12 +273,17 @@ describe("demo-call outbound routing", () => {
       businessName: "Alexandria Automotive Services",
     });
 
-    expect(deleteRoom).toHaveBeenCalledTimes(1);
-    expect(createTwilioCall).toHaveBeenCalledTimes(1);
-    expect(result.transport).toBe("twilio_sip_bridge");
+    expect(deleteRoom).not.toHaveBeenCalled();
+    expect(createTwilioCall).not.toHaveBeenCalled();
+    expect(result.transport).toBe("livekit_control");
+    expect(result.connectionVerified).toBe(false);
+    expect(result.sipCallStatus).toBe("dialing");
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([expect.stringMatching(/still dialing/i)]),
+    );
   });
 
-  it("does not fall back to the Twilio SIP bridge when public demo flows disable it", async () => {
+  it("keeps a pending public demo call on the LiveKit path instead of forcing bridge fallback", async () => {
     listSipOutboundTrunk.mockResolvedValue([
       {
         sipTrunkId: "ST_real",
@@ -295,20 +300,38 @@ describe("demo-call outbound routing", () => {
       },
     });
 
-    await expect(
-      initiateDemoCall(
-        {
-          phone: "0434 955 958",
-          firstName: "Michael",
-          businessName: "Alexandria Automotive Services",
-        },
-        {
-          allowTwilioSipBridgeFallback: false,
-        },
-      ),
-    ).rejects.toThrow(/did not connect/i);
+    const result = await initiateDemoCall(
+      {
+        phone: "0434 955 958",
+        firstName: "Michael",
+        businessName: "Alexandria Automotive Services",
+      },
+      {
+        allowTwilioSipBridgeFallback: false,
+      },
+    );
 
-    expect(deleteRoom).toHaveBeenCalledTimes(1);
+    expect(result.transport).toBe("livekit_control");
+    expect(result.connectionVerified).toBe(false);
+    expect(result.sipCallStatus).toBe("dialing");
+    expect(deleteRoom).not.toHaveBeenCalled();
+    expect(createTwilioCall).not.toHaveBeenCalled();
+  });
+
+  it("never uses the monitor probe caller number as a demo fallback caller id", async () => {
+    delete process.env.EARLYMARK_INBOUND_PHONE_NUMBER;
+    delete process.env.TWILIO_PHONE_NUMBER;
+    delete process.env.EARLYMARK_INBOUND_PHONE_NUMBERS;
+    delete process.env.EARLYMARK_PHONE_NUMBER;
+    listSipOutboundTrunk.mockRejectedValue(new TypeError("fetch failed"));
+
+    await expect(
+      initiateDemoCall({
+        phone: "0434 955 958",
+        firstName: "Michael",
+      }),
+    ).rejects.toThrow(/No Twilio caller number is configured for demo-call fallback/i);
+
     expect(createTwilioCall).not.toHaveBeenCalled();
   });
 

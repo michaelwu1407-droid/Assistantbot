@@ -180,6 +180,7 @@ function InterviewForm() {
     const [form, setForm] = useState({ firstName: "", lastName: "", phone: "", email: "", businessName: "" });
     const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
     const [message, setMessage] = useState("");
+    const callbackConfirmed = message.trim() === "Tracey is calling you now!";
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -213,7 +214,9 @@ function InterviewForm() {
                 <div className="w-16 h-16 rounded-full bg-primary/15 flex items-center justify-center">
                     <Phone className="w-8 h-8 text-primary" />
                 </div>
-                <h3 className="text-xl font-bold text-midnight">Tracey is calling you now!</h3>
+                <h3 className="text-xl font-bold text-midnight">
+                    {callbackConfirmed ? "Tracey is calling you now!" : "Your callback is being placed"}
+                </h3>
                 <p className="text-slate-body text-sm max-w-xs leading-relaxed">
                     {message} She&apos;ll introduce herself and show you exactly what she can do for your business.
                 </p>
