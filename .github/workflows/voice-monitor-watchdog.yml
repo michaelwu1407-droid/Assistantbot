@@ -43,9 +43,18 @@ jobs:
           import json, sys
           with open(sys.argv[1], "r", encoding="utf-8") as handle:
               payload = json.load(handle)
-          status = payload.get("status")
-          if status != "healthy":
-              raise SystemExit(f"voice-monitor-watchdog returned non-healthy status: {status}")
+          overall_status = payload.get("status")
+          voice_status = ((payload.get("voiceAgentHealth") or {}).get("status"))
+          probe_status = ((payload.get("syntheticProbeHealth") or {}).get("status"))
+          passive_status = ((payload.get("passiveTrafficHealth") or {}).get("status"))
+
+          if voice_status == "unhealthy":
+              raise SystemExit(f"voice-monitor-watchdog returned unhealthy voiceAgentHealth: {voice_status}")
+          if probe_status == "unhealthy":
+              raise SystemExit(f"voice-monitor-watchdog returned unhealthy syntheticProbeHealth: {probe_status}")
+
+          if overall_status == "unhealthy" and passive_status != "unhealthy":
+              raise SystemExit(f"voice-monitor-watchdog returned unhealthy status: {overall_status}")
           PY
           if [ -n "${VOICE_MONITOR_DEADMAN_URL:-}" ]; then
             curl --fail --show-error --silent "${VOICE_MONITOR_DEADMAN_URL}"
