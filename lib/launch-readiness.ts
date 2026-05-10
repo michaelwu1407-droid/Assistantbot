@@ -264,7 +264,6 @@ export async function getLaunchReadiness(options?: {
     canary.status,
     latency.status,
     passiveProduction.status,
-    monitoring.status,
     communications.status,
     provisioning.status,
     readiness.overallStatus,
@@ -280,9 +279,7 @@ export async function getLaunchReadiness(options?: {
           ? latency.summary
       : passiveProduction.status !== "healthy"
         ? passiveProduction.summary
-        : monitoring.status !== "healthy"
-          ? monitoring.summary
-          : communications.status !== "healthy"
+        : communications.status !== "healthy"
             ? communications.summary
             : provisioning.status !== "healthy"
               ? provisioning.summary

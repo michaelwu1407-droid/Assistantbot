@@ -269,4 +269,38 @@ describe("getLaunchReadiness", () => {
     expect(result.status).toBe("degraded");
     expect(result.summary).toBe("No recent inbound_demo calls have been persisted, so latency cannot be verified.");
   });
+
+  it("keeps launch readiness healthy when only monitoring is degraded", async () => {
+    mocks.getMonitorRunHealth
+      .mockResolvedValueOnce({
+        status: "degraded",
+        summary: "voice-agent-health last completed on schedule but reported status degraded.",
+        warnings: ["voice-agent-health last completed on schedule but reported status degraded."],
+        details: null,
+      })
+      .mockResolvedValueOnce({
+        status: "healthy",
+        summary: "watchdog healthy",
+        warnings: [],
+        details: null,
+      })
+      .mockResolvedValueOnce({
+        status: "healthy",
+        summary: "passive monitor healthy",
+        warnings: [],
+        details: null,
+      })
+      .mockResolvedValueOnce({
+        status: "healthy",
+        summary: "synthetic probe healthy",
+        warnings: [],
+        details: null,
+      });
+
+    const result = await getLaunchReadiness();
+
+    expect(result.monitoring.status).toBe("degraded");
+    expect(result.status).toBe("healthy");
+    expect(result.summary).toBe("Launch-critical web, voice, communications, and provisioning signals are healthy.");
+  });
 });
