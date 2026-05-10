@@ -43,6 +43,24 @@ describe("buildVoiceAgentRuntimeFingerprint", () => {
     expect(buildVoiceAgentRuntimeFingerprint(workerEnv)).toBe(buildVoiceAgentRuntimeFingerprint(appEnv));
   });
 
+  it("treats apex and www Earlymark app URLs as the same runtime", () => {
+    const apexEnv = {
+      LIVEKIT_URL: "https://live.earlymark.ai",
+      NEXT_PUBLIC_APP_URL: "https://earlymark.ai",
+      TWILIO_PHONE_NUMBER: "+61485010634",
+      VOICE_HOST_ID: "voice-host-a",
+      VOICE_WORKER_ROLE: "tracey-sales-agent",
+      VOICE_WORKER_SURFACES: "demo,inbound_demo",
+    } as unknown as NodeJS.ProcessEnv;
+
+    const wwwEnv = {
+      ...apexEnv,
+      NEXT_PUBLIC_APP_URL: "https://www.earlymark.ai",
+    } as NodeJS.ProcessEnv;
+
+    expect(buildVoiceAgentRuntimeFingerprint(apexEnv)).toBe(buildVoiceAgentRuntimeFingerprint(wwwEnv));
+  });
+
   it("treats explicit worker defaults and implicit app defaults as the same runtime", () => {
     const appEnv = {
       LIVEKIT_URL: "https://live.earlymark.ai",

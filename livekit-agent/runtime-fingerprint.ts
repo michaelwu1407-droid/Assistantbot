@@ -91,7 +91,9 @@ function normalizeBaseUrl(value: string) {
 
   try {
     const url = new URL(value);
-    const hostname = url.hostname.toLowerCase();
+    const hostname = url.hostname.toLowerCase() === "earlymark.ai"
+      ? "www.earlymark.ai"
+      : url.hostname.toLowerCase();
     const normalizedPath = url.pathname === "/" ? "" : url.pathname.replace(/\/$/, "");
     const normalizedPort =
       url.port && !((url.protocol === "https:" && url.port === "443") || (url.protocol === "http:" && url.port === "80"))
