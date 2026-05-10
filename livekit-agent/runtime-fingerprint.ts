@@ -241,3 +241,58 @@ export function buildVoiceAgentRuntimeFingerprint(env: NodeJS.ProcessEnv = proce
 
   return `va_${(hash >>> 0).toString(16)}`;
 }
+
+function getEquivalentAppUrls(env: NodeJS.ProcessEnv = process.env) {
+  const configured = normalizeEnvValue(env.NEXT_PUBLIC_APP_URL) || normalizeEnvValue(env.APP_URL);
+  const normalized = normalizeBaseUrl(configured);
+  const values = new Set<string>();
+
+  if (normalized) {
+    values.add(normalized);
+    if (normalized === "https://www.earlymark.ai") values.add("https://earlymark.ai");
+    if (normalized === "https://earlymark.ai") values.add("https://www.earlymark.ai");
+  }
+
+  return Array.from(values);
+}
+
+function getEquivalentLiveKitUrls(env: NodeJS.ProcessEnv = process.env) {
+  const configured = normalizeEnvValue(env.LIVEKIT_URL);
+  const normalized = normalizeLiveKitFingerprintUrl(configured);
+  const values = new Set<string>();
+
+  if (normalized === "livekit://earlymark-primary") {
+    values.add("https://live.earlymark.ai");
+    values.add("http://127.0.0.1:7880");
+    values.add("http://localhost:7880");
+  } else if (configured) {
+    values.add(configured);
+  }
+
+  return Array.from(values);
+}
+
+export function buildEquivalentVoiceAgentRuntimeFingerprints(env: NodeJS.ProcessEnv = process.env) {
+  const appUrls = getEquivalentAppUrls(env);
+  const livekitUrls = getEquivalentLiveKitUrls(env);
+  const fingerprints = new Set<string>();
+
+  const appUrlCandidates = appUrls.length > 0 ? appUrls : [undefined];
+  const livekitUrlCandidates = livekitUrls.length > 0 ? livekitUrls : [undefined];
+
+  for (const appUrl of appUrlCandidates) {
+    for (const livekitUrl of livekitUrlCandidates) {
+      const variant = { ...env } as NodeJS.ProcessEnv;
+      if (appUrl) {
+        variant.NEXT_PUBLIC_APP_URL = appUrl;
+        variant.APP_URL = appUrl;
+      }
+      if (livekitUrl) {
+        variant.LIVEKIT_URL = livekitUrl;
+      }
+      fingerprints.add(buildVoiceAgentRuntimeFingerprint(variant));
+    }
+  }
+
+  return Array.from(fingerprints);
+}

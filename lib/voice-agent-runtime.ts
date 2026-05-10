@@ -1,6 +1,9 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { buildVoiceAgentRuntimeFingerprint } from "@/livekit-agent/runtime-fingerprint";
+import {
+  buildEquivalentVoiceAgentRuntimeFingerprints,
+  buildVoiceAgentRuntimeFingerprint,
+} from "@/livekit-agent/runtime-fingerprint";
 import {
   getVoiceFleetHealth,
   getLatestVoiceWorkerSnapshots,
@@ -123,8 +126,9 @@ export async function getVoiceAgentRuntimeDrift(): Promise<VoiceAgentRuntimeDrif
     ? readString(latest.payload.runtimeFingerprint)
     : null);
   const fingerprintMismatches = workerSnapshots.filter((worker) => {
-    const scopedExpectedFingerprint = getExpectedVoiceAgentRuntimeFingerprint(buildWorkerScopedEnv(worker));
-    return worker.runtimeFingerprint !== scopedExpectedFingerprint;
+    const scopedEnv = buildWorkerScopedEnv(worker);
+    const acceptedFingerprints = new Set(buildEquivalentVoiceAgentRuntimeFingerprints(scopedEnv));
+    return !acceptedFingerprints.has(worker.runtimeFingerprint || "");
   });
 
   if (!runtimeFingerprint) {

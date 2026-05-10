@@ -169,4 +169,43 @@ describe("getVoiceAgentRuntimeDrift", () => {
     expect(drift.status).toBe("degraded");
     expect(drift.warnings).toContain("LiveKit worker runtime fingerprint does not match the app's expected production env.");
   });
+
+  it("accepts equivalent legacy fingerprints that only differ by canonical URL forms", async () => {
+    process.env.NEXT_PUBLIC_APP_URL = "https://www.earlymark.ai";
+    process.env.APP_URL = "https://www.earlymark.ai";
+    process.env.LIVEKIT_URL = "https://live.earlymark.ai";
+
+    const legacyEquivalentFingerprint = getExpectedVoiceAgentRuntimeFingerprint({
+      ...process.env,
+      LIVEKIT_URL: "https://live.earlymark.ai",
+      NEXT_PUBLIC_APP_URL: "https://earlymark.ai",
+      APP_URL: "https://earlymark.ai",
+      VOICE_HOST_ID: "voice-host-a",
+      VOICE_WORKER_ROLE: "tracey-sales-agent",
+      VOICE_WORKER_SURFACES: "demo,inbound_demo",
+    } as NodeJS.ProcessEnv);
+
+    getLatestVoiceWorkerSnapshots.mockResolvedValue([
+      {
+        hostId: "voice-host-a",
+        workerRole: "tracey-sales-agent",
+        surfaceSet: ["demo", "inbound_demo"],
+        deployGitSha: "sha",
+        runtimeFingerprint: legacyEquivalentFingerprint,
+        ready: true,
+        activeCalls: 0,
+        capacityState: "available",
+        summary: null,
+        heartbeatAt: new Date().toISOString(),
+        ageMs: 1_000,
+        status: "healthy",
+        warnings: [],
+      },
+    ]);
+
+    const drift = await getVoiceAgentRuntimeDrift();
+
+    expect(drift.status).toBe("healthy");
+    expect(drift.warnings).toEqual([]);
+  });
 });
