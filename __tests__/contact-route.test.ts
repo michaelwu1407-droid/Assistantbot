@@ -113,12 +113,17 @@ describe("public contact route", () => {
         userAgent: "Vitest Browser",
       }),
     );
-    expect(hoisted.initiateDemoCall).toHaveBeenCalledWith({
-      phone: "+61 434 955 958",
-      firstName: "Miguel",
-      lastName: "Wu",
-      email: "miguel@example.com",
-    });
+    expect(hoisted.initiateDemoCall).toHaveBeenCalledWith(
+      {
+        phone: "+61 434 955 958",
+        firstName: "Miguel",
+        lastName: "Wu",
+        email: "miguel@example.com",
+      },
+      {
+        waitForConnection: false,
+      },
+    );
     expect(hoisted.markDemoLeadInitiated).toHaveBeenCalledWith("lead_1", {
       roomName: "room_123",
       resolvedTrunkId: "trunk_1",

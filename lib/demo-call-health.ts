@@ -13,6 +13,9 @@ export type DemoCallHealth = {
   failedAttempts: number;
   validationFailures: number;
   systemFailures: number;
+  slowInitiatedAttempts: number;
+  slowInitiatedThresholdMs: number;
+  slowestInitiatedMs: number | null;
   stalePendingAttempts: number;
   lastAttemptAt: string | null;
   lastSuccessAt: string | null;
@@ -29,11 +32,13 @@ export type DemoCallHealth = {
 export async function getDemoCallHealth(options?: {
   lookbackMinutes?: number;
   stalePendingMinutes?: number;
+  slowInitiatedThresholdMs?: number;
   limit?: number;
 }): Promise<DemoCallHealth> {
   const checkedAt = new Date();
   const lookbackMinutes = options?.lookbackMinutes ?? 180;
   const stalePendingMinutes = options?.stalePendingMinutes ?? 5;
+  const slowInitiatedThresholdMs = options?.slowInitiatedThresholdMs ?? 10_000;
   const limit = options?.limit ?? 50;
 
   if (!isDatabaseConfigured) {
@@ -48,6 +53,9 @@ export async function getDemoCallHealth(options?: {
       failedAttempts: 0,
       validationFailures: 0,
       systemFailures: 0,
+      slowInitiatedAttempts: 0,
+      slowInitiatedThresholdMs,
+      slowestInitiatedMs: null,
       stalePendingAttempts: 0,
       lastAttemptAt: null,
       lastSuccessAt: null,
@@ -79,6 +87,11 @@ export async function getDemoCallHealth(options?: {
   const failedAttempts = attempts.filter((attempt) => attempt.callStatus === "FAILED");
   const validationFailures = failedAttempts.filter((attempt) => isDemoCallValidationMessage(attempt.callError || ""));
   const systemFailures = failedAttempts.filter((attempt) => !isDemoCallValidationMessage(attempt.callError || ""));
+  const initiatedDurations = initiatedAttempts
+    .map((attempt) => Math.max(0, attempt.updatedAt.getTime() - attempt.createdAt.getTime()))
+    .filter(Number.isFinite);
+  const slowInitiatedAttempts = initiatedDurations.filter((durationMs) => durationMs > slowInitiatedThresholdMs);
+  const slowestInitiatedMs = initiatedDurations.length > 0 ? Math.max(...initiatedDurations) : null;
   const stalePendingAttempts = attempts.filter(
     (attempt) => attempt.callStatus === "PENDING" && attempt.updatedAt <= stalePendingSince,
   );
@@ -96,6 +109,11 @@ export async function getDemoCallHealth(options?: {
   if (systemFailures.length > 0) {
     warnings.push(
       `${systemFailures.length} recent demo callback attempt(s) failed with system errors.`,
+    );
+  }
+  if (slowInitiatedAttempts.length > 0) {
+    warnings.push(
+      `${slowInitiatedAttempts.length} recent demo callback attempt(s) took longer than ${slowInitiatedThresholdMs}ms to initiate.`,
     );
   }
   if (validationFailures.length > 0) {
@@ -117,6 +135,9 @@ export async function getDemoCallHealth(options?: {
     } else if (systemFailures.length > 0) {
       status = "degraded";
       summary = `${systemFailures.length} recent public demo callback attempt(s) failed, but at least one succeeded.`;
+    } else if (slowInitiatedAttempts.length > 0) {
+      status = "degraded";
+      summary = `${slowInitiatedAttempts.length} recent public demo callback attempt(s) initiated too slowly.`;
     } else if (validationFailures.length > 0 && initiatedAttempts.length === 0) {
       summary = "Recent public demo callback attempts were rejected for invalid phone input, but the callback service itself did not show system failures.";
     } else {
@@ -135,6 +156,9 @@ export async function getDemoCallHealth(options?: {
     failedAttempts: failedAttempts.length,
     validationFailures: validationFailures.length,
     systemFailures: systemFailures.length,
+    slowInitiatedAttempts: slowInitiatedAttempts.length,
+    slowInitiatedThresholdMs,
+    slowestInitiatedMs,
     stalePendingAttempts: stalePendingAttempts.length,
     lastAttemptAt: attempts[0]?.createdAt.toISOString() || null,
     lastSuccessAt: initiatedAttempts[0]?.createdAt.toISOString() || null,

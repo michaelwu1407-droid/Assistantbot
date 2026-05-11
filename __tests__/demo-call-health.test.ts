@@ -87,6 +87,32 @@ describe("getDemoCallHealth", () => {
     expect(result.summary).toMatch(/failed, but at least one succeeded/i);
   });
 
+  it("reports degraded when successful public demo callbacks initiate too slowly", async () => {
+    hoisted.findMany.mockResolvedValue([
+      {
+        id: "lead_1",
+        source: "homepage_form",
+        callStatus: "INITIATED",
+        callError: null,
+        createdAt: new Date("2026-04-28T10:20:00.000Z"),
+        updatedAt: new Date("2026-04-28T10:20:22.000Z"),
+      },
+    ]);
+
+    const result = await getDemoCallHealth({
+      lookbackMinutes: 180,
+      slowInitiatedThresholdMs: 10_000,
+    });
+
+    expect(result.status).toBe("degraded");
+    expect(result.slowInitiatedAttempts).toBe(1);
+    expect(result.slowestInitiatedMs).toBe(22_000);
+    expect(result.summary).toMatch(/initiated too slowly/i);
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([expect.stringMatching(/longer than 10000ms/i)]),
+    );
+  });
+
   it("does not count validation-only failures as system outages", async () => {
     hoisted.findMany.mockResolvedValue([
       {

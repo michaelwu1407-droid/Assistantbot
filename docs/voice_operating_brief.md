@@ -1,13 +1,14 @@
 # Voice Operating Brief
 
-Updated: 2026-04-29 AEST
+Updated: 2026-05-12 AEST
 
 ## Production topology
 
 - Live voice stack: Twilio PSTN/SIP -> `app/api/webhooks/twilio-voice-gateway` -> LiveKit SIP -> OCI voice workers.
 - Canonical production app host for Twilio callbacks is `https://www.earlymark.ai`, not the apex `https://earlymark.ai`.
 - The apex host currently redirects to `www`, so signed Twilio webhooks must never be configured against the apex host or signature verification will drift before the request reaches the route.
-- Public website demo callbacks now have an emergency recovery path: if the web app cannot reach the LiveKit control API, it may originate the callback with Twilio and bridge the caller into the existing Earlymark SIP ingress instead of failing the lead immediately.
+- Public website demo/contact callbacks return success as soon as LiveKit accepts the outbound SIP participant. Do not block the homepage user flow on post-origination SIP connection polling.
+- Public website demo callbacks have an emergency recovery path: if the web app cannot reach the LiveKit control API, it may originate the callback with Twilio and bridge the caller into the existing Earlymark SIP ingress instead of failing the lead immediately.
 - Production customer outbound calls now use a worker-owned control path: the web app enqueues the request in the app database, and the OCI `tracey-customer-agent` worker claims and executes it against local LiveKit control at `http://127.0.0.1:7880`.
 - Production LiveKit server + SIP currently run as Docker containers on OCI, but their bind-mounted config lives under `/home/ubuntu/livekit/live.earlymark.ai`.
 - The OCI host's Snap Docker setup does not reliably mount `/opt/livekit`; treat `/opt/livekit` as legacy drift, not the canonical runtime root for core LiveKit containers.
@@ -169,6 +170,7 @@ Updated: 2026-04-29 AEST
 - Worker heartbeats and health snapshots must start from the long-lived LiveKit agent process during `prewarm`, not only from the wrapper/bootstrap process. A single boot heartbeat followed by silence usually means the background loop is attached to the wrong process.
 - Docker worker request gating must use the child agent health snapshot, not only the parent process in-memory counters. The `worker-entry.ts` parent process does not share `bootReady` / `activeCalls` state with the child LiveKit agent, so trusting in-memory state there can make healthy workers reject every inbound job.
 - Public `/api/health` is a real production signal, not an internal debug route. Do not hide it behind production middleware rewrites.
+- Demo-call health must flag public callbacks that are accepted but slow to move through `INITIATED`; the default slow-initiation threshold is 10 seconds from row creation to update.
 
 ## Active known risks
 

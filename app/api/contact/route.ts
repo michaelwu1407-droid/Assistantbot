@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
           lastName,
           email,
         }, {
-          allowTwilioSipBridgeFallback: false,
+          waitForConnection: false,
         })
         callPlaced = true
         await markDemoLeadInitiated(leadId, {

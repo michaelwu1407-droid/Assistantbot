@@ -100,7 +100,7 @@ export async function requestDemoCall(data: DemoCallData): Promise<DemoCallResul
             email: data.email,
             businessName: data.businessName,
         }, {
-            allowTwilioSipBridgeFallback: false,
+            waitForConnection: false,
         });
 
         console.log("[Demo Call] Initiated:", {
@@ -137,11 +137,7 @@ export async function requestDemoCall(data: DemoCallData): Promise<DemoCallResul
             console.error("[Demo Call] Failed to send sales lead email:", emailError);
         });
 
-        const message = result.connectionVerified
-            ? "Tracey is calling you now!"
-            : "We've started your callback attempt. If your phone does not ring within 30 seconds, please try again.";
-
-        return { success: true, message, leadId };
+        return { success: true, message: "Tracey is calling you now!", leadId };
     } catch (err) {
         console.error("[Demo Call] Failed:", err);
         await markDemoLeadFailed(leadId, err);

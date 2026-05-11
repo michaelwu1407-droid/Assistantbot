@@ -111,7 +111,7 @@ describe("requestDemoCall server action", () => {
         businessName: "Alexandria Auto",
       },
       {
-        allowTwilioSipBridgeFallback: false,
+        waitForConnection: false,
       },
     );
     expect(hoisted.markDemoLeadInitiated).toHaveBeenCalledWith(
@@ -201,6 +201,40 @@ describe("requestDemoCall server action", () => {
       expect(result.leadId).toBeNull();
     }
     expect(hoisted.markDemoLeadInitiated).toHaveBeenCalledWith(null, expect.any(Object));
+  });
+
+  it("returns immediately once the public callback has been accepted by LiveKit", async () => {
+    hoisted.initiateDemoCall.mockResolvedValue({
+      roomName: "demo-queued",
+      normalizedPhone: "+61434955958",
+      resolvedTrunkId: "ST_real",
+      callerNumber: "+61485010634",
+      warnings: [],
+      transport: "livekit_control",
+      callSid: null,
+      connectionVerified: false,
+      sipCallStatus: "initiated",
+    });
+
+    const result = await requestDemoCall(validForm);
+
+    expect(hoisted.initiateDemoCall).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({
+        waitForConnection: false,
+      }),
+    );
+    expect(hoisted.initiateDemoCall).not.toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({
+        allowTwilioSipBridgeFallback: false,
+      }),
+    );
+    expect(result).toEqual({
+      success: true,
+      message: "Tracey is calling you now!",
+      leadId: "lead_123",
+    });
   });
 
   it("does not fail the user flow when the sales lead email send throws", async () => {

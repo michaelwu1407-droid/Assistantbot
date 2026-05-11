@@ -1,3 +1,30 @@
+## 2026-05-12 (Codex) - Restore instant public Tracey callback initiation
+
+- Files changed:
+  - `lib/demo-call.ts`
+  - `actions/demo-call-action.ts`
+  - `app/api/demo-call/route.ts`
+  - `app/api/contact/route.ts`
+  - `lib/demo-call-health.ts`
+  - `__tests__/demo-call.test.ts`
+  - `__tests__/demo-call-action.test.ts`
+  - `__tests__/demo-call-health.test.ts`
+  - `__tests__/contact-route.test.ts`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added a `waitForConnection` option to demo-call initiation and used `waitForConnection: false` for public homepage/API/contact callback paths.
+  - Restored Twilio SIP bridge fallback availability for public demo/contact callbacks when web-side LiveKit control cannot originate the call directly.
+  - Added demo-call health detection for successful callbacks that remain in `INITIATED` too slowly, so an accepted-but-sluggish path is visible instead of silently looking healthy.
+- Why:
+  - The public demo form had started blocking user success on post-origination SIP connection polling, adding up to a 20 second wait where the old flow returned almost immediately after LiveKit accepted the outbound SIP participant.
+  - The public paths were also explicitly disabling the Twilio bridge fallback, removing the recovery route documented for the homepage callback experience.
+- Verified with:
+  - `npm test -- __tests__/demo-call.test.ts __tests__/demo-call-action.test.ts __tests__/demo-call-health.test.ts __tests__/contact-route.test.ts`
+  - `npm test -- __tests__/voice-agent-runtime.test.ts __tests__/voice-agent-runtime-config.test.ts __tests__/voice-agent-runtime-fingerprint.test.ts __tests__/voice-agent-status-route.test.ts __tests__/voice-agent-health-route.test.ts __tests__/voice-agent-health-monitor.test.ts __tests__/voice-fleet.test.ts __tests__/voice-fleet-health-route.test.ts __tests__/voice-worker-entry.test.ts __tests__/voice-worker-background-tasks.test.ts __tests__/voice-monitor-watchdog-route.test.ts __tests__/voice-synthetic-probe-route.test.ts __tests__/voice-spoken-canary.test.ts __tests__/voice-call-latency-health.test.ts __tests__/voice-outbound-queue-route.test.ts __tests__/voice-calls-route.test.ts __tests__/twilio-voice-gateway-route.test.ts __tests__/twilio-voice-fallback-route.test.ts __tests__/livekit-sip-health.test.ts __tests__/livekit-sip-config.test.ts __tests__/outbound-call.test.ts __tests__/outbound-call-route.test.ts __tests__/outbound-call-health.test.ts __tests__/launch-readiness.test.ts __tests__/launch-readiness-route.test.ts __tests__/customer-contact-policy.test.ts __tests__/voice-prompts.test.ts __tests__/tracey-prompt-contract.test.ts __tests__/demo-call.test.ts __tests__/demo-call-action.test.ts __tests__/demo-call-health.test.ts __tests__/contact-route.test.ts`
+  - `npx tsc --noEmit --pretty false`
+  - `npm run check:launch-readiness -- --base-url https://www.earlymark.ai`
+
 ## 2026-05-09 (Codex) - Enforced signed Twilio webhooks on the canonical `www` host
 
 - Files changed:

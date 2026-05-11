@@ -40,6 +40,7 @@ export type DemoCallInput = {
 
 export type DemoCallOptions = {
   allowTwilioSipBridgeFallback?: boolean;
+  waitForConnection?: boolean;
 };
 
 export type DemoCallResult = {
@@ -427,23 +428,28 @@ export async function initiateDemoCall(
     });
 
     const participantIdentity = `demo-caller-${normalizedPhone}`;
-    const connectionCheck = await waitForLivekitSipParticipantConnection({
-      roomClient,
-      roomName,
-      participantIdentity,
-    });
-    if (!connectionCheck.connectionVerified && isSipCallPendingStatus(connectionCheck.sipCallStatus)) {
-      warnings.push(
-        `Outbound demo leg is still ${connectionCheck.sipCallStatus || "pending"}; waiting for the callee to answer.`,
-      );
-    }
-    if (!connectionCheck.connectionVerified && !isSipCallPendingStatus(connectionCheck.sipCallStatus)) {
-      await roomClient.deleteRoom(roomName).catch(() => undefined);
-      const statusMessage =
-        connectionCheck.sipCallStatus && !isSipCallPendingStatus(connectionCheck.sipCallStatus)
-          ? `last SIP status: ${connectionCheck.sipCallStatus}`
-          : "the outbound leg never reached a connected state";
-      throw new Error(`LiveKit outbound demo call did not connect (${statusMessage}).`);
+    const connectionCheck = options.waitForConnection === false
+      ? { connectionVerified: false, sipCallStatus: "initiated" }
+      : await waitForLivekitSipParticipantConnection({
+          roomClient,
+          roomName,
+          participantIdentity,
+        });
+
+    if (options.waitForConnection !== false) {
+      if (!connectionCheck.connectionVerified && isSipCallPendingStatus(connectionCheck.sipCallStatus)) {
+        warnings.push(
+          `Outbound demo leg is still ${connectionCheck.sipCallStatus || "pending"}; waiting for the callee to answer.`,
+        );
+      }
+      if (!connectionCheck.connectionVerified && !isSipCallPendingStatus(connectionCheck.sipCallStatus)) {
+        await roomClient.deleteRoom(roomName).catch(() => undefined);
+        const statusMessage =
+          connectionCheck.sipCallStatus && !isSipCallPendingStatus(connectionCheck.sipCallStatus)
+            ? `last SIP status: ${connectionCheck.sipCallStatus}`
+            : "the outbound leg never reached a connected state";
+        throw new Error(`LiveKit outbound demo call did not connect (${statusMessage}).`);
+      }
     }
 
     return {

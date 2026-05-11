@@ -283,6 +283,40 @@ describe("demo-call outbound routing", () => {
     );
   });
 
+  it("can skip connection polling for the public callback path", async () => {
+    listSipOutboundTrunk.mockResolvedValue([
+      {
+        sipTrunkId: "ST_real",
+        name: "Earlymark outbound",
+        numbers: ["+61485010634"],
+        address: "earlymark-outbound.pstn.sydney.twilio.com",
+      },
+    ]);
+    createRoom.mockResolvedValue({});
+    createSipParticipant.mockResolvedValue({ participantId: "PA_demo" });
+
+    const result = await initiateDemoCall(
+      {
+        phone: "0434 955 958",
+        firstName: "Michael",
+        businessName: "Alexandria Automotive Services",
+      },
+      {
+        waitForConnection: false,
+        allowTwilioSipBridgeFallback: false,
+      },
+    );
+
+    expect(getParticipant).not.toHaveBeenCalled();
+    expect(deleteRoom).not.toHaveBeenCalled();
+    expect(result.transport).toBe("livekit_control");
+    expect(result.connectionVerified).toBe(false);
+    expect(result.sipCallStatus).toBe("initiated");
+    expect(result.warnings).not.toEqual(
+      expect.arrayContaining([expect.stringMatching(/still/i)]),
+    );
+  });
+
   it("keeps a pending public demo call on the LiveKit path instead of forcing bridge fallback", async () => {
     listSipOutboundTrunk.mockResolvedValue([
       {
