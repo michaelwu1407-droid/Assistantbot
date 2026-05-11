@@ -12,6 +12,10 @@ export type VoiceNotificationParams = {
   subject: string;
   message: string;
   metadata?: Record<string, unknown>;
+  channels?: {
+    sms?: boolean;
+    email?: boolean;
+  };
 };
 
 function splitRecipients(raw?: string | null) {
@@ -57,6 +61,15 @@ function renderMetadata(metadata?: Record<string, unknown>) {
 async function sendSmsNotifications(params: VoiceNotificationParams) {
   const recipients = getAlertSmsRecipients();
 
+  if (params.channels?.sms === false) {
+    return {
+      sent: false,
+      skipped: true,
+      recipients,
+      error: "SMS channel disabled for this voice alert",
+    };
+  }
+
   if (!isSmsAlertingEnabled()) {
     return {
       sent: false,
@@ -98,6 +111,15 @@ async function sendSmsNotifications(params: VoiceNotificationParams) {
 async function sendEmailNotifications(params: VoiceNotificationParams) {
   const resendKey = process.env.RESEND_API_KEY;
   const recipients = getAlertEmailRecipients();
+
+  if (params.channels?.email === false) {
+    return {
+      sent: false,
+      skipped: true,
+      recipients,
+      error: "Email channel disabled for this voice alert",
+    };
+  }
 
   if (!resendKey) {
     return {

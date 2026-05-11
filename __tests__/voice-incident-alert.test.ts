@@ -92,4 +92,28 @@ describe("dispatchVoiceIncidentNotifications", () => {
     });
     expect(sendEmailMock).toHaveBeenCalledTimes(1);
   });
+
+  it("can disable SMS for a specific alert while still sending email", async () => {
+    process.env.VOICE_ALERT_SMS_ENABLED = "true";
+    process.env.VOICE_ALERT_SMS_TO = "+61411111111";
+    process.env.VOICE_ALERT_SMS_FROM = "+61422222222";
+    process.env.VOICE_ALERT_EMAIL_TO = "alerts@earlymark.ai";
+
+    const result = await dispatchVoiceIncidentNotifications({
+      subject: "VOICE DIGEST: warning issues",
+      message: "Daily digest",
+      channels: {
+        sms: false,
+        email: true,
+      },
+    });
+
+    expect(sendSmsMock).not.toHaveBeenCalled();
+    expect(sendEmailMock).toHaveBeenCalledTimes(1);
+    expect(result.sms).toMatchObject({
+      sent: false,
+      skipped: true,
+      error: "SMS channel disabled for this voice alert",
+    });
+  });
 });
