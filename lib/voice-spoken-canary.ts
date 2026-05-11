@@ -157,6 +157,7 @@ function extractProviderCallIds(metadata: unknown) {
       readString(providerCallIds?.twilioCallSid) ||
       readString(roomMetadata?.twilioCallSid) ||
       readString(roomMetadata?.callSid) ||
+      readString(sipAttributes?.["sip.twilio.callSid"]) ||
       readString(sipAttributes?.["twilio.callSid"]) ||
       readString(sipAttributes?.callSid),
     sipCallId:
