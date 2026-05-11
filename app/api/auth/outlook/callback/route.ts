@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { encrypt } from "@/lib/encryption";
 import { verifyOAuthState } from "@/lib/oauth-state";
+import {
+  finalizeEmailIntegrationSetup,
+  normalizeEmailProvider,
+  resolveMicrosoftUserEmail,
+  upsertEmailIntegrationFromOAuth,
+} from "@/lib/email-integrations";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -11,34 +15,34 @@ export async function GET(req: NextRequest) {
 
   if (error) {
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/crm/settings/integrations?error=${encodeURIComponent(error)}`
+      `${process.env.NEXT_PUBLIC_APP_URL}/crm/settings/integrations?error=${encodeURIComponent(error)}`,
     );
   }
 
   if (!code || !state) {
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/crm/settings/integrations?error=missing_params`
+      `${process.env.NEXT_PUBLIC_APP_URL}/crm/settings/integrations?error=missing_params`,
     );
   }
 
-  // Verify HMAC-signed state and extract userId/provider from the trusted payload.
   const verified = verifyOAuthState(state);
   if (!verified.ok) {
     return NextResponse.redirect(
       `${process.env.NEXT_PUBLIC_APP_URL}/crm/settings/integrations?error=invalid_state`,
     );
   }
+
   const userId = typeof verified.payload.userId === "string" ? verified.payload.userId : "";
-  const provider = typeof verified.payload.provider === "string" ? verified.payload.provider : "";
-  if (!userId || !provider) {
+  const provider = normalizeEmailProvider(
+    typeof verified.payload.provider === "string" ? verified.payload.provider : "",
+  );
+  if (!userId || provider !== "outlook") {
     return NextResponse.redirect(
       `${process.env.NEXT_PUBLIC_APP_URL}/crm/settings/integrations?error=invalid_state`,
     );
   }
 
   try {
-
-    // Exchange code for Outlook tokens
     const tokenResponse = await fetch("https://login.microsoftonline.com/common/oauth2/v2.0/token", {
       method: "POST",
       headers: {
@@ -54,61 +58,49 @@ export async function GET(req: NextRequest) {
     });
 
     const tokenData = await tokenResponse.json();
-
     if (tokenData.error) {
       throw new Error(tokenData.error_description || tokenData.error);
     }
 
-    // Get user's email address
-    const userInfoResponse = await fetch(
-      `https://graph.microsoft.com/v1.0/me?$select=mail`,
-      {
-        headers: {
-          Authorization: `Bearer ${tokenData.access_token}`,
-        },
-      }
-    );
-    const userInfo = await userInfoResponse.json();
-    const userEmail = userInfo.mail;
-
-    // Calculate token expiry
-    const tokenExpiry = new Date(Date.now() + (tokenData.expires_in * 1000));
-
-    // Store encrypted tokens in database
-    await db.emailIntegration.upsert({
-      where: {
-        userId_provider: {
-          userId,
-          provider,
-        },
-      },
-      update: {
-        emailAddress: userEmail,
-        accessToken: encrypt(tokenData.access_token),
-        refreshToken: tokenData.refresh_token ? encrypt(tokenData.refresh_token) : null,
-        tokenExpiry,
-        isActive: true,
-        lastSyncAt: new Date(),
-      },
-      create: {
-        userId,
-        provider,
-        emailAddress: userEmail,
-        accessToken: encrypt(tokenData.access_token),
-        refreshToken: tokenData.refresh_token ? encrypt(tokenData.refresh_token) : null,
-        tokenExpiry,
+    const userInfoResponse = await fetch("https://graph.microsoft.com/v1.0/me?$select=mail,userPrincipalName", {
+      headers: {
+        Authorization: `Bearer ${tokenData.access_token}`,
       },
     });
+    const userInfo = await userInfoResponse.json();
+    const emailAddress = resolveMicrosoftUserEmail(userInfo);
+    if (!emailAddress) {
+      throw new Error("Unable to resolve Outlook email address");
+    }
 
-    // Redirect to success page
+    const integration = await upsertEmailIntegrationFromOAuth({
+      userId,
+      provider,
+      emailAddress,
+      accessToken: tokenData.access_token,
+      refreshToken: typeof tokenData.refresh_token === "string" ? tokenData.refresh_token : null,
+      expiresInSeconds: typeof tokenData.expires_in === "number" ? tokenData.expires_in : null,
+    });
+
+    let warning: string | null = null;
+    try {
+      await finalizeEmailIntegrationSetup({
+        userId,
+        provider,
+        integrationId: integration.id,
+      });
+    } catch (setupError) {
+      console.error("Outlook OAuth setup warning:", setupError);
+      warning = "outlook_automation_setup_incomplete";
+    }
+
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/crm/settings/integrations?success=${provider}_connected`
+      `${process.env.NEXT_PUBLIC_APP_URL}/crm/settings/integrations?success=${provider}_connected${warning ? `&warning=${warning}` : ""}`,
     );
-
   } catch (err) {
     console.error("OAuth callback error:", err);
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/crm/settings/integrations?error=oauth_failed`
+      `${process.env.NEXT_PUBLIC_APP_URL}/crm/settings/integrations?error=oauth_failed`,
     );
   }
 }

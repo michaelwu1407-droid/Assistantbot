@@ -1,210 +1,77 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const hoisted = vi.hoisted(() => ({
   db: {
-    workspace: {
+    deal: {
       findUnique: vi.fn(),
-    },
-    contact: {
-      findUnique: vi.fn(),
-      findMany: vi.fn(),
     },
     activity: {
       create: vi.fn(),
     },
-    deal: {
+    workspace: {
       findUnique: vi.fn(),
-      update: vi.fn(),
     },
     webhookEvent: {
-      create: vi.fn().mockResolvedValue({}),
+      create: vi.fn(),
     },
   },
-  buildPublicFeedbackUrl: vi.fn(),
+  sendEmail: vi.fn(),
 }));
 
-vi.mock("@/lib/db", () => ({ db: hoisted.db }));
+vi.mock("@/lib/db", () => ({
+  db: hoisted.db,
+}));
+
 vi.mock("@/lib/public-feedback", () => ({
-  buildPublicFeedbackUrl: hoisted.buildPublicFeedbackUrl,
+  buildPublicFeedbackUrl: vi.fn(() => "https://www.earlymark.ai/feedback/test-token"),
 }));
 
-import { sendConfirmationSMS, sendRescheduleConfirmationSMS, sendSMS } from "@/actions/messaging-actions";
+vi.mock("resend", () => ({
+  Resend: class {
+    emails = {
+      send: hoisted.sendEmail,
+    };
+  },
+}));
 
 describe("messaging-actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubEnv("TWILIO_AUTH_TOKEN", "test-token");
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ sid: "SM123" }),
-      }),
-    );
-    hoisted.db.workspace.findUnique.mockResolvedValue({
-      twilioSubaccountId: "ACsub123",
-      twilioPhoneNumber: "+61400000000",
-    });
+    vi.stubEnv("RESEND_API_KEY", "resend_test_key");
+    vi.stubEnv("RESEND_FROM_DOMAIN", "earlymark.ai");
+    hoisted.db.activity.create.mockResolvedValue({ id: "activity_1" });
+    hoisted.db.webhookEvent.create.mockResolvedValue({ id: "webhook_1" });
+    hoisted.sendEmail.mockResolvedValue({ data: { id: "email_1" }, error: null });
   });
 
-  afterEach(() => {
-    vi.unstubAllEnvs();
-    vi.unstubAllGlobals();
-  });
-
-  it("sends SMS with workspace Twilio credentials and logs the activity", async () => {
-    hoisted.db.contact.findUnique.mockResolvedValue({
-      id: "contact_1",
-      name: "Alex",
-      phone: "0400000000",
+  it("falls back to email review requests when the contact has no phone number", async () => {
+    hoisted.db.deal.findUnique.mockResolvedValue({
+      id: "deal_1",
+      contactId: "contact_1",
       workspaceId: "ws_1",
+      contact: {
+        name: "Alex Harper",
+        phone: null,
+        email: "alex@customer.com",
+      },
+      workspace: {
+        name: "Friendly Plumbing",
+      },
     });
 
-    const result = await sendSMS("contact_1", "Your booking is confirmed.", "deal_1");
+    const { sendReviewRequestSMS } = await import("@/actions/messaging-actions");
+    const result = await sendReviewRequestSMS("deal_1");
 
     expect(result).toEqual({
       success: true,
-      messageId: "SM123",
-      channel: "sms",
-      error: undefined,
+      channel: "email",
+      messageId: "email_1",
     });
-    expect(fetch).toHaveBeenCalledWith(
-      "https://api.twilio.com/2010-04-01/Accounts/ACsub123/Messages.json",
+    expect(hoisted.sendEmail).toHaveBeenCalledWith(
       expect.objectContaining({
-        method: "POST",
-        body: expect.any(URLSearchParams),
+        to: ["alex@customer.com"],
+        subject: "We'd love your feedback on your recent job",
       }),
     );
-    const request = vi.mocked(fetch).mock.calls[0]?.[1];
-    expect(String(request?.body)).toContain("To=0400000000");
-    expect(String(request?.body)).toContain("From=%2B61400000000");
-    expect(hoisted.db.activity.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        title: "SMS sent",
-        contactId: "contact_1",
-        dealId: "deal_1",
-      }),
-    });
-  });
-
-  it("does not fall back to the platform SMS number when a workspace has not been provisioned", async () => {
-    vi.stubEnv("TWILIO_ACCOUNT_SID", "ACplatform");
-    vi.stubEnv("TWILIO_PHONE_NUMBER", "+61999999999");
-    hoisted.db.workspace.findUnique.mockResolvedValue({
-      twilioSubaccountId: null,
-      twilioPhoneNumber: null,
-    });
-    hoisted.db.contact.findUnique.mockResolvedValue({
-      id: "contact_1",
-      name: "Alex",
-      phone: "0400000000",
-      workspaceId: "ws_1",
-    });
-
-    const result = await sendSMS("contact_1", "Your booking is confirmed.", "deal_1");
-
-    expect(result.success).toBe(false);
-    expect(result.error).toContain("SMS not configured yet");
-    expect(fetch).not.toHaveBeenCalled();
-    expect(hoisted.db.activity.create).not.toHaveBeenCalled();
-  });
-
-  it("sends confirmation SMS, stores pending confirmation metadata, and logs the follow-up note", async () => {
-    hoisted.db.deal.findUnique.mockResolvedValue({
-      id: "deal_1",
-      title: "Hot Water Fix",
-      scheduledAt: new Date("2026-04-02T09:00:00.000Z"),
-      address: "12 King St",
-      workspaceId: "ws_1",
-      contactId: "contact_1",
-      metadata: { existing: true },
-      contact: {
-        id: "contact_1",
-        name: "Alex",
-        phone: "0400000000",
-      },
-      workspace: {
-        workspaceTimezone: "Australia/Sydney",
-      },
-    });
-    hoisted.db.contact.findUnique.mockResolvedValue({
-      id: "contact_1",
-      name: "Alex",
-      phone: "0400000000",
-      workspaceId: "ws_1",
-    });
-
-    const result = await sendConfirmationSMS("deal_1");
-
-    expect(result.success).toBe(true);
-    const request = vi.mocked(fetch).mock.calls[0]?.[1];
-    expect(String(request?.body)).toContain("Thu%2C+2+Apr%2C+8%3A00+pm");
-    expect(hoisted.db.deal.update).toHaveBeenCalledWith({
-      where: { id: "deal_1" },
-      data: {
-        metadata: expect.objectContaining({
-          existing: true,
-          confirmationSent: expect.any(String),
-          confirmationStatus: "pending",
-        }),
-      },
-    });
-    expect(hoisted.db.activity.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        title: "Confirmation SMS Sent",
-        dealId: "deal_1",
-        contactId: "contact_1",
-      }),
-    });
-  });
-
-  it("sends reschedule confirmation SMS and logs the updated booking note", async () => {
-    hoisted.db.deal.findUnique.mockResolvedValue({
-      id: "deal_1",
-      title: "Hot Water Fix",
-      scheduledAt: new Date("2026-04-03T11:30:00.000Z"),
-      address: "12 King St",
-      workspaceId: "ws_1",
-      contactId: "contact_1",
-      metadata: { existing: true, confirmationSent: "2026-04-01T01:00:00.000Z" },
-      contact: {
-        id: "contact_1",
-        name: "Alex",
-        phone: "0400000000",
-      },
-      workspace: {
-        workspaceTimezone: "Australia/Sydney",
-      },
-    });
-    hoisted.db.contact.findUnique.mockResolvedValue({
-      id: "contact_1",
-      name: "Alex",
-      phone: "0400000000",
-      workspaceId: "ws_1",
-    });
-
-    const result = await sendRescheduleConfirmationSMS("deal_1");
-
-    expect(result.success).toBe(true);
-    const request = vi.mocked(fetch).mock.calls[0]?.[1];
-    expect(String(request?.body)).toContain("Fri%2C+3+Apr%2C+10%3A30+pm");
-    expect(hoisted.db.deal.update).toHaveBeenCalledWith({
-      where: { id: "deal_1" },
-      data: {
-        metadata: expect.objectContaining({
-          existing: true,
-          confirmationSent: "2026-04-01T01:00:00.000Z",
-          rescheduleConfirmationSent: expect.any(String),
-          confirmationStatus: "pending",
-        }),
-      },
-    });
-    expect(hoisted.db.activity.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        title: "Reschedule confirmation SMS sent",
-        dealId: "deal_1",
-        contactId: "contact_1",
-      }),
-    });
   });
 });

@@ -43,7 +43,9 @@ export function SupportRequestPanel() {
       if (response.ok && result.success) {
         setSubmissionState({
           type: "success",
-          message: "Support request sent. We will get back to you within 24 hours.",
+          message: result.ticketRef
+            ? `Support request sent. Ticket ${result.ticketRef} is open${result.slaHours ? ` with a ${result.slaHours}-hour response target` : ""}.`
+            : "Support request sent. We will get back to you within 24 hours.",
         })
         setPriority("medium")
         form.reset()

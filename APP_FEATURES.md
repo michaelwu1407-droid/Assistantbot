@@ -1987,8 +1987,15 @@ Per template: enable/disable toggle (auto-saves), send timing dropdown, message 
 **Instant Lead Capture:**
 - Gmail connect (red) + Outlook connect (blue) buttons
 - Connected accounts list with status dot, email, provider badge, disconnect button
+- OAuth callback now preserves existing refresh tokens when providers do not resend them
+- After connection, the app attempts to finish provider-side automation setup:
+  - Gmail filter + Gmail watch
+  - Outlook inbox rule + Graph subscription
+- If OAuth succeeds but provider automation setup is incomplete, Integrations shows a warning instead of pretending setup is fully done
 
-**Google Calendar:** Connect/disconnect, last sync timestamp, read/write permissions
+**Google Calendar:**
+- Connect/disconnect, last sync timestamp, read/write permissions
+- Outbound sync: scheduled jobs are written to Google Calendar
 
 **Xero Accounting:** Connect/disconnect, invoices + contacts read/write
 
@@ -2047,7 +2054,7 @@ See [Section 2: Billing & Subscription](#2-billing--subscription)
 ### 16.10 Help
 
 - **Guided Tutorial:** Restart button (emerald) → `resetTutorial()` + navigate to `/dashboard`
-- **Support:** Link to ticket creation page
+- **Support:** support request form creates a tracked support ticket reference
 - **Contact:** support@earlymark.ai, 1300 EARLYMARK (Mon-Fri 9am-5pm AEST)
 - **System Status:** "Internal voice and platform monitoring is active"
 - **Tracey Handbook** (collapsible): Onboarding, AI modes, Calls/texts/lead capture, Scheduling/routing, Pricing/refusal rules
@@ -2061,7 +2068,8 @@ See [Section 2: Billing & Subscription](#2-billing--subscription)
 
 **Support Request Form:**
 - Subject (required), Priority (Low/Medium/High/Urgent), Message (textarea, 6 rows, required)
-- Success: "Support request sent! We'll get back to you within 24 hours."
+- Success returns a support ticket reference (for example `SUP-ABC123`) and the current response target in hours
+- Support tickets are tracked as structured support-ticket audit events, not only a loose email send
 
 **Common Issues:** AI agent number not working, Need to change number, SMS not sending
 

@@ -192,40 +192,6 @@ async function fetchGoogleCalendarJson<T>(
   return response.json() as Promise<T>;
 }
 
-export async function listWorkspaceCalendarEventsForRange(
-  workspaceId: string,
-  start: Date,
-  end: Date
-): Promise<Array<{ id: string; title: string; start: string; end: string }>> {
-  const status = await getWorkspaceCalendarStatus(workspaceId);
-  if (!status.connected) {
-    return [];
-  }
-
-  const integration = await getGoogleCalendarIntegration(workspaceId);
-  const calendarId = integration?.calendarId || "primary";
-  const query = new URLSearchParams({
-    timeMin: start.toISOString(),
-    timeMax: end.toISOString(),
-    singleEvents: "true",
-    orderBy: "startTime",
-    maxResults: "100",
-  });
-  const data = await fetchGoogleCalendarJson<{ items?: Array<{ id?: string; summary?: string; start?: { dateTime?: string; date?: string }; end?: { dateTime?: string; date?: string } }> }>(
-    workspaceId,
-    `/calendars/${encodeURIComponent(calendarId)}/events?${query.toString()}`
-  );
-
-  return (data.items || [])
-    .map((item) => ({
-      id: item.id || "",
-      title: item.summary || "Busy",
-      start: item.start?.dateTime || item.start?.date || "",
-      end: item.end?.dateTime || item.end?.date || "",
-    }))
-    .filter((item) => item.id && item.start);
-}
-
 export async function syncGoogleCalendarEventForDeal(dealId: string) {
   const deal = await db.deal.findUnique({
     where: { id: dealId },
@@ -366,7 +332,6 @@ export function buildGoogleCalendarAuthUrl(workspaceId: string) {
     redirect_uri: getGoogleCalendarRedirectUri(),
     scope: [
       "https://www.googleapis.com/auth/calendar.events",
-      "https://www.googleapis.com/auth/calendar.readonly",
       "https://www.googleapis.com/auth/userinfo.email",
     ].join(" "),
     response_type: "code",

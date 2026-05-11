@@ -3,7 +3,6 @@
 import { searchContacts } from "@/actions/contact-actions";
 import { db } from "@/lib/db";
 import { findHoursForDate, type WeeklyHours } from "@/lib/working-hours";
-import { listWorkspaceCalendarEventsForRange } from "@/lib/workspace-calendar";
 import { formatDateTimeInTimezone, getZonedDateParts, parseDateTimeLocalInTimezone, getHourInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone";
 
 const AGENT_STAGE_LABELS: Record<string, string> = {
@@ -595,8 +594,6 @@ export async function runGetAvailability(
     include: { contact: { select: { name: true } } },
     orderBy: { scheduledAt: "asc" },
   });
-  const calendarEvents = await listWorkspaceCalendarEventsForRange(workspaceId, dayStart, dayEnd);
-
   const dayHours = findHoursForDate(params.weeklyHours, targetDate, params.workspaceTimezone);
   if (dayHours && !dayHours.open) {
     return {
@@ -617,10 +614,7 @@ export async function runGetAvailability(
 
   // Compute booked hours in workspace timezone so slot generation is timezone-aware.
   const bookedHours = new Set(
-    [
-      ...jobs.map((j) => j.scheduledAt ? getHourInTimezone(j.scheduledAt, tz) : -1),
-      ...calendarEvents.map((event) => getHourInTimezone(new Date(event.start), tz)),
-    ].filter((h) => h >= 0)
+    jobs.map((j) => j.scheduledAt ? getHourInTimezone(j.scheduledAt, tz) : -1).filter((h) => h >= 0)
   );
 
   const availableSlots: string[] = [];
@@ -637,13 +631,7 @@ export async function runGetAvailability(
       title: j.title,
       startTime: j.scheduledAt?.toISOString() || "",
       clientName: j.contact?.name || "Unknown",
-    })).concat(
-      calendarEvents.map((event) => ({
-        title: event.title,
-        startTime: event.start,
-        clientName: "Google Calendar",
-      }))
-    ),
+    })),
     availableSlots,
   };
 }

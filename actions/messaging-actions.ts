@@ -4,13 +4,17 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { buildPublicFeedbackUrl } from "@/lib/public-feedback";
 import { DEFAULT_WORKSPACE_TIMEZONE, resolveWorkspaceTimezone } from "@/lib/timezone";
+import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
+import { withCostCeiling } from "@/lib/cost-ceiling";
+
+const RESEND_EMAIL_COST_USD = 0.001;
 
 // ─── Types ──────────────────────────────────────────────────────────
 
 export interface MessageResult {
   success: boolean;
   messageId?: string;
-  channel?: "sms" | "whatsapp";
+  channel?: "sms" | "whatsapp" | "email" | "multi";
   error?: string;
 }
 
@@ -556,8 +560,8 @@ export async function sendReviewRequestSMS(dealId: string): Promise<MessageResul
       include: { contact: true, workspace: true }
     });
 
-    if (!deal || !deal.contact.phone) {
-      return { success: false, error: "No contact phone number found" };
+    if (!deal) {
+      return { success: false, error: "Deal not found" };
     }
 
     const businessName = deal.workspace.name || "us";
@@ -566,26 +570,101 @@ export async function sendReviewRequestSMS(dealId: string): Promise<MessageResul
       contactId: deal.contactId,
       workspaceId: deal.workspaceId,
     });
-    const message = `Hi ${deal.contact.name}, thanks for choosing ${businessName}. We'd love your feedback: ${feedbackUrl}`;
+    const smsMessage = `Hi ${deal.contact.name}, thanks for choosing ${businessName}. We'd love your feedback: ${feedbackUrl}`;
 
-    const result = await sendSMS(deal.contactId, message, dealId);
+    const smsResult = deal.contact.phone ? await sendSMS(deal.contactId, smsMessage, dealId) : null;
+    const emailResult = deal.contact.email
+      ? await sendReviewRequestEmailInternal({
+          dealId,
+          contactId: deal.contactId,
+          contactName: deal.contact.name,
+          to: deal.contact.email,
+          businessName,
+          feedbackUrl,
+        })
+      : null;
 
-    if (result.success) {
+    if (smsResult?.success || emailResult?.success) {
+      const channelSummary = [
+        smsResult?.success ? "SMS" : null,
+        emailResult?.success ? "email" : null,
+      ]
+        .filter(Boolean)
+        .join(" and ");
+
       await db.activity.create({
         data: {
           type: "NOTE",
           title: "Feedback Request Sent",
-          content: `Sent customer feedback SMS to ${deal.contact.name}`,
+          content: `Sent customer feedback request via ${channelSummary} to ${deal.contact.name}`,
           dealId,
           contactId: deal.contactId
         }
       });
     }
 
-    return result;
+    if (smsResult?.success && emailResult?.success) {
+      return {
+        success: true,
+        channel: "multi",
+        messageId: [smsResult.messageId, emailResult.messageId].filter(Boolean).join(","),
+      };
+    }
+    if (smsResult?.success) return smsResult;
+    if (emailResult?.success) return emailResult;
+
+    return {
+      success: false,
+      error: smsResult?.error || emailResult?.error || "No contact phone number or email address found",
+    };
   } catch (error) {
     console.error("Error sending feedback request SMS:", error);
     return { success: false, error: "Failed to send feedback request SMS" };
   }
+}
+
+async function sendReviewRequestEmailInternal(input: {
+  dealId: string;
+  contactId: string;
+  contactName: string;
+  to: string;
+  businessName: string;
+  feedbackUrl: string;
+}): Promise<MessageResult> {
+  const resendKey = process.env.RESEND_API_KEY;
+  if (!resendKey) {
+    return { success: false, error: "Email sending is not configured" };
+  }
+
+  const safeRecipient = assertSafeRecipient("email", input.to);
+  const { Resend } = await import("resend");
+  const resend = new Resend(resendKey);
+  const fromDomain = process.env.RESEND_FROM_DOMAIN || "earlymark.ai";
+  const fromAddress = process.env.SUPPORT_EMAIL_FROM || `support@${fromDomain}`;
+
+  const result = await withCostCeiling("resend", RESEND_EMAIL_COST_USD, () =>
+    resend.emails.send({
+      from: `${input.businessName} via Earlymark <${fromAddress}>`,
+      to: [safeRecipient],
+      subject: "We'd love your feedback on your recent job",
+      text: [
+        `Hi ${input.contactName},`,
+        "",
+        `Thanks for choosing ${input.businessName}. We'd really appreciate your feedback on the recent job.`,
+        "",
+        input.feedbackUrl,
+      ].join("\n"),
+    }),
+  );
+
+  if (result.error) {
+    return { success: false, error: "Failed to send review request email" };
+  }
+
+  return {
+    success: true,
+    channel: "email",
+    messageId: result.data?.id || undefined,
+  };
 }
 

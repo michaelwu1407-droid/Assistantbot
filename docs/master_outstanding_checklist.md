@@ -1,11 +1,14 @@
 # Master Outstanding Checklist
 
-This file is the flat checklist for the next AI agent.
+This file is the canonical flat checklist for active outstanding work.
+Use it as the source of truth for still-open work.
 
 Use it together with:
-- [docs/agent_handoff_2026-04-05.md](/C:/Users/micha/Projects/Assistantbot/docs/agent_handoff_2026-04-05.md)
-- [docs/agent_change_log.md](/C:/Users/micha/Projects/Assistantbot/docs/agent_change_log.md)
-- [LIVE_CRM_WORKFLOW_AUDIT.md](/C:/Users/micha/Projects/Assistantbot/LIVE_CRM_WORKFLOW_AUDIT.md)
+- [docs/current_agent_handoff.md](/C:/Users/micha/Assistantbot/docs/current_agent_handoff.md)
+- [docs/agent_change_log.md](/C:/Users/micha/Assistantbot/docs/agent_change_log.md)
+- [LIVE_CRM_WORKFLOW_AUDIT.md](/C:/Users/micha/Assistantbot/LIVE_CRM_WORKFLOW_AUDIT.md)
+
+Do not use `IMPLEMENTATION_ROADMAP.md` or `ISSUE_TRACKER.md` for active planning; both are archived pointers now.
 
 Status meanings:
 - `fixed`: implemented and logged in repo

@@ -1,51 +1,57 @@
-# Missing Features & Gap Analysis
+# Missing Features
 
-This document tracks discrepancies between documented intent and the actual codebase.
+Updated: 2026-05-11 AEST
 
-Last audited: 2026-04-01
+This is the short, current list of product gaps that still look real.
+It intentionally excludes old fixed history and avoids re-listing archived work.
 
----
+For the full live backlog, use:
+- `docs/master_outstanding_checklist.md`
 
-## Open Items
+For historical changes and proof, use:
+- `docs/agent_change_log.md`
 
-### Medium Priority
+## Current Open Product Gaps
 
-- **Notification action buttons** (`components/dashboard/notifications-btn.tsx`): CONFIRM_JOB, CALL_CLIENT, SEND_INVOICE, APPROVE_COMPLETION buttons render and navigate but do not execute their named action server-side. Currently nav-only.
-- **Google Calendar auto-sync**: `actions/calendar-actions.ts` has real API code but no webhook subscription or scheduled trigger — sync only fires on manual invocation.
-- **Email OAuth token storage** (Gmail/Outlook onboarding step 3): Connection UI and OAuth flow exist; backend handler for storing/refreshing tokens after callback is not confirmed wired.
+### High-confidence gaps
 
-### Low Priority (Polish/Edge Cases)
+- **Real voice signoff is not finished**
+  - The infrastructure is much healthier, but the last step still needs real handset/provider validation for homepage demo callback, `inbound_demo`, and the real customer `normal` path.
 
-- **Xero auto-sync after invoice creation**: `createXeroDraftInvoice` works on-demand but is not automatically called when an invoice is issued or paid.
-- **Email variant of review request**: SMS review request (`sendReviewRequestSMS`) works; email equivalent is not implemented.
-- **Support ticket system**: Tickets are logged as `Activity` records — no status, assignment, or SLA fields. Not a full ticketing workflow.
+- **WhatsApp is still provider-blocked**
+  - The app-side assistant and notification plumbing are mostly there, but live production still depends on Twilio/Meta channel readiness.
 
-### Archived
+- **Google Calendar inbound readback is intentionally parked**
+  - Keep Google Calendar outbound-only for now; Earlymark should not read users' calendars into the CRM unless that product decision changes later.
 
-- **Asset DNA / Digital Handover**: Part of the real estate agent arm. Feature archived and route removed (2026-03-28). Prisma `Key` model retained in schema for data preservation.
+- **Support tickets are still lightweight**
+  - Support requests are captured, but they still behave more like activity logging than a complete ticket ownership/assignment/SLA workflow.
 
----
+### Medium-confidence gaps
 
-## Resolved (No Longer Missing)
+- **Email OAuth persistence/refresh confidence**
+  - The connection UI and flow exist, but callback storage/refresh handling still needs either proof or cleanup documentation.
 
-| Feature | Resolution |
-|---|---|
-| AI Voice Agent (inbound call → CRM) | Implemented — Twilio gateway + LiveKit + `VoiceCall` logging |
-| AI SMS Agent (inbound SMS → AI reply) | Implemented — `/api/twilio/webhook` + `sms-agent.ts` |
-| CRM Chat Assistant (internal queries) | Implemented — Gemini 2.0 Flash Lite via `/api/chat` |
-| Global Search | Fixed — no `useIndustry` hook dependency in search path |
-| Deal Photos | Implemented — gallery section in deal detail modal |
-| Kanban Stale Deal modals | Implemented — `kanban-automation-modal.tsx`, `stale-deal-follow-up-modal.tsx` |
-| AI Voice Agent settings UI | Implemented — `call-settings-client.tsx`, `ai-receptionist-settings.tsx` |
-| After Hours Mode settings | Implemented — voice after-hours message textarea in call settings |
-| Digital Handover UI | Archived — part of real estate agent arm, route removed |
-| Job Workflow (Start Travel / Complete Job) | Fixed in Round 3 |
-| AI Parsing / Pricing accuracy | Fixed — rebuilt to tool-use architecture (Sprint 21) |
-| Kanban drag to Lost column | Fixed — `updateDealStage` persists correctly |
-| Tradie deep-link "All Caught Up" bug | Fixed |
-| Stale deal follow-up modal (was setTimeout stub) | Fixed 2026-04-01 — now calls `sendFollowUpMessage` (real Twilio SMS / Resend email) |
-| Follow-up scheduling on deals | Built 2026-04-01 — `followUpAt/Note/Channel/CompletedAt` fields on Deal; schedule/complete/cancel actions; UI in deal detail modal |
-| Post-job "Follow Up After Job" rule never fired | Fixed 2026-04-01 — `processPostJobFollowUps` cron runs hourly via `/api/cron/followup-reminders` |
-| No proactive follow-up reminders to user | Fixed 2026-04-01 — `processFollowUpReminders` cron notifies workspace users when follow-ups are due/overdue |
-| CRM job completion modal (was setTimeout stub) | Fixed 2026-04-01 — checkboxes now trigger real actions (Request Payment → invoice email, Request Review → review SMS) |
-| Notification action buttons nav-only | Fixed 2026-04-01 — CONFIRM_JOB, APPROVE_COMPLETION execute server actions; SEND_INVOICE opens invoice; CALL_CLIENT opens tel: link |
+- **Xero automation depth**
+  - Draft invoice creation exists, but true automatic sync through later invoice lifecycle steps still looks incomplete.
+
+- **Email review-request parity**
+  - SMS review requests are stronger than email review-request support.
+
+## Not Missing Anymore
+
+Do not re-open these without fresh evidence:
+
+- AI voice agent for inbound calls
+- AI SMS agent for inbound SMS
+- CRM chat assistant
+- Voice settings UI
+- After-hours voice configuration
+- Follow-up scheduling and reminder cron
+- Real job completion modal actions
+- Notification action buttons that used to be nav-only
+
+## Archived / Intentionally Out Of Scope
+
+- Real-estate-arm features such as Digital Handover / Asset DNA
+- Retell / Vapi voice paths

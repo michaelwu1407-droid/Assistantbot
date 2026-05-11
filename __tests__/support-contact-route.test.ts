@@ -7,17 +7,18 @@ const hoisted = vi.hoisted(() => ({
     user: {
       findUnique: vi.fn(),
     },
-    activity: {
-      create: vi.fn(),
-    },
   },
   sendEmail: vi.fn(),
+  createSupportTicket: vi.fn(),
 }));
 
 vi.mock("@/lib/workspace-access", () => ({
   requireCurrentWorkspaceAccess: hoisted.requireCurrentWorkspaceAccess,
 }));
 vi.mock("@/lib/db", () => ({ db: hoisted.db }));
+vi.mock("@/lib/support-tickets", () => ({
+  createSupportTicket: hoisted.createSupportTicket,
+}));
 vi.mock("resend", () => ({
   Resend: class {
     emails = {
@@ -60,7 +61,11 @@ describe("support contact route", () => {
         type: "TRADIE",
       },
     });
-    hoisted.db.activity.create.mockResolvedValue({ id: "activity_1" });
+    hoisted.createSupportTicket.mockResolvedValue({
+      ticketId: "ticket_1",
+      ticketRef: "SUP-ABC123",
+      slaHours: 24,
+    });
     hoisted.sendEmail.mockResolvedValue({ data: { id: "email_1" }, error: null });
   });
 
@@ -82,13 +87,13 @@ describe("support contact route", () => {
         where: { id: "user_1" },
       }),
     );
-    expect(hoisted.db.activity.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        title: "Support Request: Phone setup",
+    expect(hoisted.createSupportTicket).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subject: "Phone setup",
+        workspaceId: "ws_1",
         userId: "user_1",
-        content: expect.stringContaining("Workspace: Friendly Plumbing"),
       }),
-    });
+    );
   });
 
   it("sends the support email when Resend is configured", async () => {
@@ -105,6 +110,9 @@ describe("support contact route", () => {
     await expect(response.json()).resolves.toEqual({
       success: true,
       message: "Support request sent successfully",
+      ticketId: "ticket_1",
+      ticketRef: "SUP-ABC123",
+      slaHours: 24,
     });
     expect(hoisted.sendEmail).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -126,6 +134,6 @@ describe("support contact route", () => {
 
     expect(response.status).toBe(401);
     await expect(response.json()).resolves.toEqual({ error: "Not authenticated" });
-    expect(hoisted.db.activity.create).not.toHaveBeenCalled();
+    expect(hoisted.createSupportTicket).not.toHaveBeenCalled();
   });
 });

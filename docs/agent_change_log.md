@@ -6063,6 +6063,47 @@ Rule: every agent change commit must include an entry in this file.
   - `npx tsc --noEmit`
   - `npm test`
 
+## 2026-05-11 20:50 AEST - Close integrations and support workflow gaps
+
+- Agent: Codex
+- Files:
+  - `app/api/auth/gmail/callback/route.ts`
+  - `app/api/auth/outlook/callback/route.ts`
+  - `app/api/support/contact/route.ts`
+  - `app/crm/settings/integrations/page.tsx`
+  - `actions/activity-actions.ts`
+  - `actions/chat-actions.ts`
+  - `actions/messaging-actions.ts`
+  - `lib/email-integrations.ts`
+  - `lib/support-tickets.ts`
+  - `lib/workspace-calendar.ts`
+  - `APP_FEATURES.md`
+  - `docs/current_agent_handoff.md`
+  - `docs/master_outstanding_checklist.md`
+  - `docs/missing_features.md`
+  - `IMPLEMENTATION_ROADMAP.md`
+  - `ISSUE_TRACKER.md`
+  - `__tests__/gmail-callback-route.test.ts`
+  - `__tests__/outlook-callback-route.test.ts`
+  - `__tests__/messaging-actions.test.ts`
+  - `__tests__/support-contact-route.test.ts`
+  - `__tests__/support-request-panel.test.tsx`
+  - `__tests__/chat-actions.test.ts`
+- What changed:
+  - Added a shared email-integration helper so Gmail/Outlook OAuth callbacks now normalize provider names, preserve existing refresh tokens when providers omit them, and attempt the provider-side automation setup immediately after token exchange.
+  - Integrations now surfaces a warning when OAuth succeeds but the Gmail watch/filter or Outlook rule/subscription setup does not complete cleanly.
+  - Kept Google Calendar outbound-only and removed the experimental background calendar-read/import path so Earlymark does not read users' calendars into the CRM.
+  - Extended review requests so they can fall back to email when a contact has no phone number, instead of failing outright.
+  - Reworked support requests into a fuller tracked workflow: settings-form and chatbot support requests now create structured support-ticket audit records, emit a support ticket reference, create a user notification, and allow later note appends to attach to support tickets instead of only CRM deals.
+  - Cleaned the doc source-of-truth story by archiving the stale roadmap/tracker docs, rewriting the current handoff and missing-features docs, and removing obsolete repo clutter files.
+- Why:
+  - The repo still had three real product gaps in scope here: fragile email OAuth completion/setup, no email parity for review requests, and support requests that were mostly loose notes plus email rather than a trackable workflow.
+  - We also aligned the repo to the product decision that Earlymark should not read users' calendars into the CRM.
+  - The docs also had drift between active truth and older planning/history files, which was making it harder to tell what was genuinely unfinished.
+- Verified with:
+  - `npx vitest run __tests__/gmail-callback-route.test.ts __tests__/outlook-callback-route.test.ts __tests__/google-calendar-callback-route.test.ts __tests__/support-contact-route.test.ts __tests__/support-request-panel.test.tsx __tests__/messaging-actions.test.ts __tests__/chat-actions.test.ts`
+  - `npx tsc --noEmit`
+
 ## 2026-04-30 22:43 AEST - Preserve caller transcript in inbound demo fast path
 
 - Agent: Codex

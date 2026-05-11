@@ -76,7 +76,7 @@ describe("SupportRequestPanel", () => {
           })
           .mockResolvedValueOnce({
             ok: true,
-            json: async () => ({ success: true }),
+            json: async () => ({ success: true, ticketRef: "SUP-ABC123", slaHours: 24 }),
           }),
     );
 
@@ -94,7 +94,7 @@ describe("SupportRequestPanel", () => {
     fireEvent.submit(form);
 
     await waitFor(() => {
-      expect(screen.getByText(/we will get back to you within 24 hours/i)).toBeInTheDocument();
+      expect(screen.getByText(/ticket sup-abc123 is open/i)).toBeInTheDocument();
     });
     expect(screen.queryByText("Support inbox unavailable")).not.toBeInTheDocument();
   });

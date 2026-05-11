@@ -2,20 +2,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 const hoisted = vi.hoisted(() => ({
-  db: {
-    emailIntegration: {
-      upsert: vi.fn(),
-    },
-  },
-  encrypt: vi.fn(),
+  upsertEmailIntegrationFromOAuth: vi.fn(),
+  finalizeEmailIntegrationSetup: vi.fn(),
 }));
 
-vi.mock("@/lib/db", () => ({
-  db: hoisted.db,
-}));
-
-vi.mock("@/lib/encryption", () => ({
-  encrypt: hoisted.encrypt,
+vi.mock("@/lib/email-integrations", () => ({
+  normalizeEmailProvider: (value: string) => (value === "gmail" || value === "outlook" ? value : null),
+  resolveMicrosoftUserEmail: (payload: { mail?: string; userPrincipalName?: string }) =>
+    payload.mail || payload.userPrincipalName || null,
+  upsertEmailIntegrationFromOAuth: hoisted.upsertEmailIntegrationFromOAuth,
+  finalizeEmailIntegrationSetup: hoisted.finalizeEmailIntegrationSetup,
 }));
 
 vi.mock("@/lib/oauth-state", () => ({
@@ -41,8 +37,8 @@ describe("GET /api/auth/outlook/callback", () => {
     process.env.OUTLOOK_CLIENT_ID = "outlook-client-id";
     process.env.OUTLOOK_CLIENT_SECRET = "outlook-client-secret";
 
-    hoisted.encrypt.mockImplementation((value: string) => `enc:${value}`);
-    hoisted.db.emailIntegration.upsert.mockResolvedValue(undefined);
+    hoisted.upsertEmailIntegrationFromOAuth.mockResolvedValue({ id: "integration_1" });
+    hoisted.finalizeEmailIntegrationSetup.mockResolvedValue(undefined);
   });
 
   async function loadRoute() {
@@ -94,33 +90,24 @@ describe("GET /api/auth/outlook/callback", () => {
 
     const response = await GET(
       new NextRequest(
-        "https://earlymark.ai/api/auth/outlook/callback?code=abc&state=%7B%22userId%22%3A%22user_1%22%2C%22provider%22%3A%22OUTLOOK%22%7D",
+        "https://earlymark.ai/api/auth/outlook/callback?code=abc&state=%7B%22userId%22%3A%22user_1%22%2C%22provider%22%3A%22outlook%22%7D",
       ),
     );
 
     expect(response.headers.get("location")).toBe(
-      "https://earlymark.ai/crm/settings/integrations?success=OUTLOOK_connected",
+      "https://earlymark.ai/crm/settings/integrations?success=outlook_connected",
     );
-    expect(hoisted.db.emailIntegration.upsert).toHaveBeenCalledWith({
-      where: {
-        userId_provider: {
-          userId: "user_1",
-          provider: "OUTLOOK",
-        },
-      },
-      update: expect.objectContaining({
-        emailAddress: "miguel@example.com",
-        accessToken: "enc:access_token",
-        refreshToken: "enc:refresh_token",
-        isActive: true,
-      }),
-      create: expect.objectContaining({
+    expect(hoisted.upsertEmailIntegrationFromOAuth).toHaveBeenCalledWith(
+      expect.objectContaining({
         userId: "user_1",
-        provider: "OUTLOOK",
+        provider: "outlook",
         emailAddress: "miguel@example.com",
-        accessToken: "enc:access_token",
-        refreshToken: "enc:refresh_token",
       }),
+    );
+    expect(hoisted.finalizeEmailIntegrationSetup).toHaveBeenCalledWith({
+      userId: "user_1",
+      provider: "outlook",
+      integrationId: "integration_1",
     });
   });
 
@@ -139,7 +126,7 @@ describe("GET /api/auth/outlook/callback", () => {
 
     const response = await GET(
       new NextRequest(
-        "https://earlymark.ai/api/auth/outlook/callback?code=abc&state=%7B%22userId%22%3A%22user_1%22%2C%22provider%22%3A%22OUTLOOK%22%7D",
+        "https://earlymark.ai/api/auth/outlook/callback?code=abc&state=%7B%22userId%22%3A%22user_1%22%2C%22provider%22%3A%22outlook%22%7D",
       ),
     );
 

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
 import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
 import { withCostCeiling } from "@/lib/cost-ceiling";
+import { createSupportTicket } from "@/lib/support-tickets";
 
 const RESEND_EMAIL_COST_USD = 0.001;
 
@@ -41,13 +42,18 @@ export async function POST(request: NextRequest) {
     const fromDomain = process.env.RESEND_FROM_DOMAIN || "earlymark.ai";
     const fromAddress = process.env.SUPPORT_EMAIL_FROM || `support@${fromDomain}`;
 
-    await db.activity.create({
-      data: {
-        type: "NOTE",
-        title: `Support Request: ${subject}`,
-        content: `Priority: ${priority}\n\n${message}\n\nUser: ${user.email}\nWorkspace: ${user.workspace?.name}\nAI Agent Number: ${user.workspace?.twilioPhoneNumber || "Not configured"}`,
-        userId: user.id,
-      },
+    const ticket = await createSupportTicket({
+      userId: user.id,
+      workspaceId: actor.workspaceId,
+      subject,
+      message,
+      priority,
+      source: "settings_form",
+      requesterName: user.name,
+      requesterEmail: user.email,
+      workspaceName: user.workspace?.name,
+      workspaceType: user.workspace?.type,
+      traceyNumber: user.workspace?.twilioPhoneNumber,
     });
 
     if (!resendKey) {
@@ -88,7 +94,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true,
-      message: "Support request sent successfully"
+      message: "Support request sent successfully",
+      ticketId: ticket.ticketId,
+      ticketRef: ticket.ticketRef,
+      slaHours: ticket.slaHours,
     });
   } catch (error) {
     if (

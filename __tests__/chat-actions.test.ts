@@ -76,6 +76,7 @@ const hoisted = vi.hoisted(() => ({
   getAttentionSignalsForDeal: vi.fn(),
   loggerError: vi.fn(),
   resendSend: vi.fn(),
+  createSupportTicket: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({ db: hoisted.db }));
@@ -168,6 +169,9 @@ vi.mock("@/lib/logging", () => ({
     error: hoisted.loggerError,
   },
 }));
+vi.mock("@/lib/support-tickets", () => ({
+  createSupportTicket: hoisted.createSupportTicket,
+}));
 vi.mock("resend", () => ({
   Resend: class {
     emails = {
@@ -215,6 +219,11 @@ describe("chat-actions", () => {
     hoisted.createContact.mockResolvedValue({ success: true, contactId: "contact_1" });
     hoisted.searchContacts.mockResolvedValue([]);
     hoisted.resendSend.mockResolvedValue({ data: { id: "email_1" }, error: null });
+    hoisted.createSupportTicket.mockResolvedValue({
+      ticketId: "ticket_1",
+      ticketRef: "SUP-ABC123",
+      slaHours: 24,
+    });
     hoisted.db.invoice.findFirst.mockResolvedValue(null);
     hoisted.db.invoice.create.mockResolvedValue({});
     hoisted.db.invoice.update.mockResolvedValue({});
@@ -704,22 +713,21 @@ describe("chat-actions", () => {
       twilioSubaccountId: "ACsub123",
       twilioSipTrunkSid: "TK123",
     });
-    hoisted.db.activity.create.mockResolvedValue({ id: "ticket_1" });
-
     const result = await handleSupportRequest(
       "My AI agent phone number is not working",
       "user_1",
       "ws_1",
     );
 
-    expect(hoisted.db.activity.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        title: "Chatbot Support Request: Phone/AI Agent Issue",
-      }),
-    });
+    expect(hoisted.createSupportTicket).toHaveBeenCalledWith(expect.objectContaining({
+      subject: "Phone/AI Agent Issue",
+      source: "chatbot",
+      userId: "user_1",
+      workspaceId: "ws_1",
+    }));
     expect(result.ticketId).toBe("ticket_1");
     expect(result.SYSTEM_CONTEXT_SIGNAL).toContain("TICKET_ID: ticket_1");
-    expect(result.displayMessage).toContain("Ticket #ticket_1 created for phone/Tracey support.");
+    expect(result.displayMessage).toContain("Ticket SUP-ABC123 created for phone/Tracey support.");
     expect(result.displayMessage).toContain("Tracey Number: +61400000000");
     expect(hoisted.resendSend).toHaveBeenCalledWith(expect.objectContaining({
       to: ["support@earlymark.ai"],
@@ -741,7 +749,11 @@ describe("chat-actions", () => {
       twilioSubaccountId: "ACsub123",
       twilioSipTrunkSid: "TK123",
     });
-    hoisted.db.activity.create.mockResolvedValue({ id: "ticket_2" });
+    hoisted.createSupportTicket.mockResolvedValue({
+      ticketId: "ticket_2",
+      ticketRef: "SUP-FEED02",
+      slaHours: 48,
+    });
 
     const result = await handleSupportRequest(
       "I have feedback: the chatbot answered this in a confusing way and I'd love to suggest a better flow",
@@ -749,13 +761,12 @@ describe("chat-actions", () => {
       "ws_1",
     );
 
-    expect(hoisted.db.activity.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        title: "Chatbot Support Request: Product Feedback",
-      }),
-    });
+    expect(hoisted.createSupportTicket).toHaveBeenCalledWith(expect.objectContaining({
+      subject: "Product Feedback",
+      priority: "low",
+    }));
     expect(result.ticketId).toBe("ticket_2");
-    expect(result.displayMessage).toContain("ticket #ticket_2 created for your product feedback");
+    expect(result.displayMessage).toContain("ticket SUP-FEED02 created for your product feedback");
     expect(result.displayMessage).toContain("attach it to the same ticket");
     expect(hoisted.resendSend).toHaveBeenCalledWith(expect.objectContaining({
       to: ["support@earlymark.ai"],
@@ -777,7 +788,11 @@ describe("chat-actions", () => {
       twilioSubaccountId: "ACsub123",
       twilioSipTrunkSid: "TK123",
     });
-    hoisted.db.activity.create.mockResolvedValue({ id: "ticket_3" });
+    hoisted.createSupportTicket.mockResolvedValue({
+      ticketId: "ticket_3",
+      ticketRef: "SUP-FEED03",
+      slaHours: 48,
+    });
     hoisted.resendSend.mockRejectedValue(new Error("provider offline"));
 
     const result = await handleSupportRequest(
@@ -786,13 +801,9 @@ describe("chat-actions", () => {
       "ws_1",
     );
 
-    expect(hoisted.db.activity.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        title: "Chatbot Support Request: Product Feedback",
-      }),
-    });
+    expect(hoisted.createSupportTicket).toHaveBeenCalled();
     expect(result.ticketId).toBe("ticket_3");
-    expect(result.displayMessage).toContain("ticket #ticket_3 created for your product feedback");
+    expect(result.displayMessage).toContain("ticket SUP-FEED03 created for your product feedback");
     expect(hoisted.loggerError).toHaveBeenCalled();
   });
 

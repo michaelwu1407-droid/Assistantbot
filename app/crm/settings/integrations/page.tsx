@@ -73,7 +73,8 @@ export default function IntegrationsPage() {
     useEffect(() => {
         const success = searchParams.get("success")
         const error = searchParams.get("error")
-        if (!success && !error) return
+        const warning = searchParams.get("warning")
+        if (!success && !error && !warning) return
 
         if (success === "gmail_connected" || success === "outlook_connected" || success === "xero_connected" || success === "google_calendar_connected") {
             toast.success(
@@ -84,6 +85,9 @@ export default function IntegrationsPage() {
                     : `${success === "gmail_connected" ? "Gmail" : "Outlook"} connected successfully!`
             )
             refreshIntegrationStatus()
+        }
+        if (warning) {
+            toast.warning(`Connected, but background automation still needs attention: ${warning.replace(/_/g, " ")}`)
         }
         if (error) {
             toast.error(`Connection failed: ${error.replace(/_/g, " ")}`)

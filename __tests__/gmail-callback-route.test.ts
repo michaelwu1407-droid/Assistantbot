@@ -2,20 +2,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 const hoisted = vi.hoisted(() => ({
-  db: {
-    emailIntegration: {
-      upsert: vi.fn(),
-    },
-  },
-  encrypt: vi.fn(),
+  upsertEmailIntegrationFromOAuth: vi.fn(),
+  finalizeEmailIntegrationSetup: vi.fn(),
 }));
 
-vi.mock("@/lib/db", () => ({
-  db: hoisted.db,
-}));
-
-vi.mock("@/lib/encryption", () => ({
-  encrypt: hoisted.encrypt,
+vi.mock("@/lib/email-integrations", () => ({
+  normalizeEmailProvider: (value: string) => (value === "gmail" || value === "outlook" ? value : null),
+  resolveMicrosoftUserEmail: vi.fn(),
+  upsertEmailIntegrationFromOAuth: hoisted.upsertEmailIntegrationFromOAuth,
+  finalizeEmailIntegrationSetup: hoisted.finalizeEmailIntegrationSetup,
 }));
 
 vi.mock("@/lib/oauth-state", () => ({
@@ -44,8 +39,8 @@ describe("GET /api/auth/gmail/callback", () => {
     process.env.OUTLOOK_CLIENT_ID = "outlook-client-id";
     process.env.OUTLOOK_CLIENT_SECRET = "outlook-client-secret";
 
-    hoisted.encrypt.mockImplementation((value: string) => `enc:${value}`);
-    hoisted.db.emailIntegration.upsert.mockResolvedValue(undefined);
+    hoisted.upsertEmailIntegrationFromOAuth.mockResolvedValue({ id: "integration_1" });
+    hoisted.finalizeEmailIntegrationSetup.mockResolvedValue(undefined);
   });
 
   async function loadRoute() {
@@ -101,16 +96,18 @@ describe("GET /api/auth/gmail/callback", () => {
     expect(response.headers.get("location")).toBe(
       "https://earlymark.ai/crm/settings/integrations?success=gmail_connected",
     );
-    expect(hoisted.db.emailIntegration.upsert).toHaveBeenCalledWith(
+    expect(hoisted.upsertEmailIntegrationFromOAuth).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: {
-          userId_provider: {
-            userId: "user_1",
-            provider: "gmail",
-          },
-        },
+        userId: "user_1",
+        provider: "gmail",
+        emailAddress: "miguel@example.com",
       }),
     );
+    expect(hoisted.finalizeEmailIntegrationSetup).toHaveBeenCalledWith({
+      userId: "user_1",
+      provider: "gmail",
+      integrationId: "integration_1",
+    });
   });
 
   it("redirects oauth failures back to integrations", async () => {
@@ -133,6 +130,36 @@ describe("GET /api/auth/gmail/callback", () => {
 
     expect(response.headers.get("location")).toBe(
       "https://earlymark.ai/crm/settings/integrations?error=oauth_failed",
+    );
+  });
+
+  it("still redirects to success with a warning when automation setup fails", async () => {
+    hoisted.finalizeEmailIntegrationSetup.mockRejectedValueOnce(new Error("watch setup failed"));
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce({
+          json: vi.fn().mockResolvedValue({
+            access_token: "access_token",
+            refresh_token: "refresh_token",
+            expires_in: 3600,
+          }),
+        })
+        .mockResolvedValueOnce({
+          json: vi.fn().mockResolvedValue({ email: "miguel@example.com" }),
+        }),
+    );
+
+    const { GET } = await loadRoute();
+    const response = await GET(
+      new NextRequest(
+        "https://earlymark.ai/api/auth/gmail/callback?code=abc&state=%7B%22userId%22%3A%22user_1%22%2C%22provider%22%3A%22gmail%22%7D",
+      ),
+    );
+
+    expect(response.headers.get("location")).toBe(
+      "https://earlymark.ai/crm/settings/integrations?success=gmail_connected&warning=gmail_automation_setup_incomplete",
     );
   });
 });

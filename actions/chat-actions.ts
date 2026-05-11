@@ -42,6 +42,7 @@ import {
 import { getAttentionSignalsForDeal } from "@/lib/deal-attention";
 import { logger } from "@/lib/logging";
 import { formatDateTimeInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone";
+import { createSupportTicket } from "@/lib/support-tickets";
 
 /**
  * Find similar contact names using fuzzy matching
@@ -3501,13 +3502,19 @@ export async function handleSupportRequest(
   const fromDomain = process.env.RESEND_FROM_DOMAIN || "earlymark.ai";
   const fromAddress = process.env.SUPPORT_EMAIL_FROM || `support@${fromDomain}`;
 
-  // Log support request to activity feed
-  const supportTicket = await db.activity.create({
-    data: {
-      type: "NOTE",
-      title: `Chatbot Support Request: ${subject}`,
-      content: `Priority: ${priority}\n\nOriginal message: "${message}"\n\nUser: ${user.email}\nPhone: ${user.phone || "Not provided"}\nWorkspace: ${workspace.name}\nAI Agent Number: ${workspace.twilioPhoneNumber || "Not configured"}\nTwilio Account: ${workspace.twilioSubaccountId ? "Active" : "Not setup"}\nVoice Agent: ${workspace.twilioSipTrunkSid ? "Active (LiveKit)" : "Not setup"}`,
-    },
+  const supportTicket = await createSupportTicket({
+    userId,
+    workspaceId,
+    subject,
+    message: `Original message: "${message}"\n\nTwilio Account: ${workspace.twilioSubaccountId ? "Active" : "Not setup"}\nVoice Agent: ${workspace.twilioSipTrunkSid ? "Active (LiveKit)" : "Not setup"}`,
+    priority,
+    source: "chatbot",
+    requesterName: user.name,
+    requesterEmail: user.email,
+    requesterPhone: user.phone,
+    workspaceName: workspace.name,
+    workspaceType: workspace.type,
+    traceyNumber: workspace.twilioPhoneNumber,
   });
 
   if (resendKey) {
@@ -3522,11 +3529,12 @@ export async function handleSupportRequest(
           replyTo: user.email ?? undefined,
           subject: `[Chat Support:${priority.toUpperCase()}] ${subject}`,
           text: [
-            `Priority: ${priority}`,
-            `Ticket ID: ${supportTicket.id}`,
-            `User: ${user.name || "Unknown user"}`,
-            `Email: ${user.email || "Unknown email"}`,
-            `Phone: ${user.phone || "Not provided"}`,
+              `Priority: ${priority}`,
+              `Ticket ID: ${supportTicket.ticketId}`,
+              `Ticket Ref: ${supportTicket.ticketRef}`,
+              `User: ${user.name || "Unknown user"}`,
+              `Email: ${user.email || "Unknown email"}`,
+              `Phone: ${user.phone || "Not provided"}`,
             `Workspace: ${workspace.name}`,
             `Tracey number: ${workspace.twilioPhoneNumber || "Not configured"}`,
             `Twilio Account: ${workspace.twilioSubaccountId ? "Active" : "Not setup"}`,
@@ -3537,17 +3545,17 @@ export async function handleSupportRequest(
         }),
       );
     } catch (error) {
-      logger.error("Failed to email chatbot support request", {
-        component: "chat-actions",
-        action: "handleSupportRequest",
-        ticketId: supportTicket.id,
-      }, error as Error);
+        logger.error("Failed to email chatbot support request", {
+          component: "chat-actions",
+          action: "handleSupportRequest",
+          ticketId: supportTicket.ticketId,
+        }, error as Error);
+      }
     }
-  }
 
-  const signal = `[STATE: TICKET_CREATED] [TICKET_ID: ${supportTicket.id}] If the user's next message is a detail/correction, automatically call 'appendTicketNote' with this ID.`;
+  const signal = `[STATE: TICKET_CREATED] [TICKET_ID: ${supportTicket.ticketId}] If the user's next message is a detail/correction, automatically call 'appendTicketNote' with this ID.`;
   const base = {
-    ticketId: supportTicket.id,
+    ticketId: supportTicket.ticketId,
     SYSTEM_CONTEXT_SIGNAL: signal,
   };
 
@@ -3555,16 +3563,16 @@ export async function handleSupportRequest(
   if (lowerMessage.includes("phone number") || lowerMessage.includes("twilio") || lowerMessage.includes("ai agent")) {
     return {
       ...base,
-      displayMessage: `Ticket #${supportTicket.id} created for phone/Tracey support. Here's what I can see:\n\n📱 Tracey Number: ${workspace.twilioPhoneNumber || "Not configured"}\n🔧 Twilio Account: ${workspace.twilioSubaccountId ? "Active" : "Not setup"}\n🤖 Voice Agent: ${workspace.twilioSipTrunkSid ? "Active (LiveKit)" : "Not setup"}\n\nIf your Tracey number isn't working, this usually means setup didn't complete during onboarding. Our support team will contact you within 24 hours.\n\nFor immediate help: call 1300 EARLYMARK (Mon-Fri 9am-5pm) or email support@earlymark.ai`,
-    };
-  }
+        displayMessage: `Ticket ${supportTicket.ticketRef} created for phone/Tracey support. Here's what I can see:\n\n📱 Tracey Number: ${workspace.twilioPhoneNumber || "Not configured"}\n🔧 Twilio Account: ${workspace.twilioSubaccountId ? "Active" : "Not setup"}\n🤖 Voice Agent: ${workspace.twilioSipTrunkSid ? "Active (LiveKit)" : "Not setup"}\n\nIf your Tracey number isn't working, this usually means setup didn't complete during onboarding. Our support team will contact you within ${supportTicket.slaHours} hours.\n\nFor immediate help: call 1300 EARLYMARK (Mon-Fri 9am-5pm) or email support@earlymark.ai`,
+      };
+    }
 
   if (lowerMessage.includes("billing") || lowerMessage.includes("payment") || lowerMessage.includes("subscription")) {
     return {
       ...base,
-      displayMessage: `Ticket #${supportTicket.id} created for billing support. Our billing team will review your account and contact you within 24 hours.\n\nFor immediate billing questions:\n• Check your Billing settings in the dashboard\n• Email support@earlymark.ai\n• Call 1300 EARLYMARK and ask for billing`,
-    };
-  }
+        displayMessage: `Ticket ${supportTicket.ticketRef} created for billing support. Our billing team will review your account and contact you within ${supportTicket.slaHours} hours.\n\nFor immediate billing questions:\n• Check your Billing settings in the dashboard\n• Email support@earlymark.ai\n• Call 1300 EARLYMARK and ask for billing`,
+      };
+    }
 
   if (
     lowerMessage.includes("feedback") ||
@@ -3575,14 +3583,14 @@ export async function handleSupportRequest(
   ) {
     return {
       ...base,
-      displayMessage: `Thanks — ticket #${supportTicket.id} created for your product feedback. We review every feedback ticket and will follow up at ${user.email} if we need more detail or have an update.\n\nIf you'd like, send more context now and I'll attach it to the same ticket.`,
-    };
-  }
+        displayMessage: `Thanks — ticket ${supportTicket.ticketRef} created for your product feedback. We review every feedback ticket and will follow up at ${user.email} if we need more detail or have an update.\n\nIf you'd like, send more context now and I'll attach it to the same ticket.`,
+      };
+    }
 
   // General support
   return {
     ...base,
-    displayMessage: `Ticket #${supportTicket.id} created with subject "${subject}" (${priority} priority).\n\nOur support team will contact you within 24 hours at ${user.email}. For urgent issues, call 1300 EARLYMARK (Mon-Fri 9am-5pm AEST).\n\nIf you'd like, add more details now and I'll attach them to this ticket.`,
+    displayMessage: `Ticket ${supportTicket.ticketRef} created with subject "${subject}" (${priority} priority).\n\nOur support team will contact you within ${supportTicket.slaHours} hours at ${user.email}. For urgent issues, call 1300 EARLYMARK (Mon-Fri 9am-5pm AEST).\n\nIf you'd like, add more details now and I'll attach them to this ticket.`,
   };
 }
 

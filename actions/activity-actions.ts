@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
 import { runIdempotent } from "@/lib/idempotency";
 import { revalidatePath } from "next/cache";
+import { appendSupportTicketNote } from "@/lib/support-tickets";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -645,22 +646,27 @@ export async function appendTicketNote(ticketId: string, noteContent: string) {
     where: { id: ticketId, workspaceId: user.workspaceId },
     select: { id: true, contactId: true },
   });
-  if (!ticket) {
-    throw new Error("Ticket not found.");
+  if (ticket) {
+    await db.activity.create({
+      data: {
+        type: "NOTE",
+        title: "Ticket note added",
+        content,
+        dealId: ticket.id,
+        contactId: ticket.contactId ?? undefined,
+      },
+    });
+
+    revalidatePath(`/crm/deals/${ticket.id}`);
+    if (ticket.contactId) revalidatePath(`/crm/contacts/${ticket.contactId}`);
+
+    return `Note added to ticket #${ticket.id}.`;
   }
 
-  await db.activity.create({
-    data: {
-      type: "NOTE",
-      title: "Ticket note added",
-      content,
-      dealId: ticket.id,
-      contactId: ticket.contactId ?? undefined,
-    },
+  return appendSupportTicketNote({
+    workspaceId: user.workspaceId,
+    ticketId,
+    noteContent: content,
+    userId: undefined,
   });
-
-  revalidatePath(`/crm/deals/${ticket.id}`);
-  if (ticket.contactId) revalidatePath(`/crm/contacts/${ticket.contactId}`);
-
-  return `Note added to ticket #${ticket.id}.`;
 }

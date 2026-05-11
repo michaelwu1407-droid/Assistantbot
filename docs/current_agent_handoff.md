@@ -1,131 +1,108 @@
 # Current Agent Handoff
 
-Updated: 2026-04-29 AEST
+Updated: 2026-05-11 AEST
 
-This is the shortest required-read handoff for any AI agent resuming active work in this repo.
-Start here before reading the longer audit/backlog docs.
+This is the canonical short resume brief for active work in this repo.
+Use this first, then read only the narrower docs that match the task at hand.
 
 ## Read Order
 
 1. `AGENTS.md`
 2. `docs/current_agent_handoff.md`
-3. `docs/voice_operating_brief.md` if the task touches voice, Twilio, monitoring, deploys, or onboarding/provisioning
+3. `docs/voice_operating_brief.md` if the task touches voice, Twilio, monitoring, deploys, onboarding, or provisioning
 4. The latest relevant entries at the end of `docs/agent_change_log.md`
-5. One or more of:
+5. Then, if you need product/backlog context:
+   - `docs/master_outstanding_checklist.md`
+   - `docs/missing_features.md`
    - `APP_MANUAL.md`
-   - `ISSUE_TRACKER.md`
    - `DEPLOYMENT_CHECKLIST.md`
    - `docs/FINAL_RELEASE_RUNBOOK.md`
 
-## Current Live State
+## Canonical Documentation Rules
+
+- `docs/master_outstanding_checklist.md` is the canonical flat backlog for still-open work.
+- `docs/missing_features.md` is the canonical short list of meaningful product gaps that still appear unbuilt or only partially built.
+- `IMPLEMENTATION_ROADMAP.md` is archived. Do not use it for active planning.
+- `ISSUE_TRACKER.md` is archived. Do not use it as the source of truth for current work.
+
+## Current Repo State
 
 - Repo branch: `main`
-- Latest pushed repo SHA: `97ec7706`
+- Latest pushed repo SHA in this workstream: `d308a392`
 - Production web alias:
   - `https://www.earlymark.ai`
-- Live web SHA:
-  - `97ec7706`
-- Primary OCI worker host:
-  - `140.238.198.39`
-  - host id `2b98e2ef-6fcf-4fb1-9053-96acae34bdd8`
-- Current active worker containers:
-  - `earlymark-sales-agent`
-  - `earlymark-customer-agent`
-- Worker env path:
-  - `/opt/earlymark-worker-shared/.env.local`
-- Current core LiveKit runtime:
-  - Docker containers: `livekit-livekit-1`, `livekit-sip`
-  - Host services: `caddy`, `redis-server`
-  - Core bind-mount root: `/home/ubuntu/livekit/live.earlymark.ai`
-- Current voice state:
-  - `voice-fleet-health` healthy
-  - `livekitSip` healthy
-  - spoken PSTN canary healthy
-  - fresh `VoiceCall` and latency samples are flowing again
-- Current remaining app degradation:
-  - communications/email verification noise (`Resend` `429` / recent inbound-email confirmation), not the voice path
-
-## What Was Completed Most Recently
-
-- Recovered the broken production LiveKit control plane on OCI.
-  - Root cause: Snap Docker could not bind-mount `/opt/livekit`, which left the core `livekit-livekit-1` and `livekit-sip` stack dead while emitting misleading `read-only file system` mount errors.
-  - Live fix: restarted LiveKit server and SIP with `--restart always` using bind mounts rooted at `/home/ubuntu/livekit/live.earlymark.ai`, then restarted the worker compose stack.
-- Verified the full voice path after recovery:
-  - `https://live.earlymark.ai` responds again
-  - local control API on `127.0.0.1:7880` responds again
-  - SIP signaling on `5060` is listening again
-  - the spoken canary completed with a persisted `VoiceCall`
-- Worker heartbeats are healthy again, but note:
-  - the manually restarted worker compose run did not inject `EARLYMARK_DEPLOY_GIT_SHA`, so the heartbeat `deployGitSha` currently reports `unknown` until the next normal worker deploy
+- Voice/ops work recently completed in repo:
+  - synthetic voice probe now skips invalid Twilio-to-our-own-Twilio PSTN self-calls and verifies directly over SIP instead
+  - launch-readiness checks no longer self-trigger a live synthetic probe
+  - warning-level voice incidents are now batched into a daily digest, with longer repeat cooldowns for critical incidents
+- Most recent working assumption:
+  - voice monitoring and launch-readiness are materially cleaner than before
+  - the remaining high-value work is product trust, real provider/device validation, and a small number of operational/provider gaps
 
 ## Exact Outstanding Work
 
-### Immediate unfinished items
+### Highest-priority live product work
 
-1. Run the next normal GitHub Actions worker deploy so worker heartbeats return to a real `deployGitSha` instead of `unknown`.
-2. Keep the core runtime truth aligned with production:
-   - use `/home/ubuntu/livekit/live.earlymark.ai` for core LiveKit bind mounts
-   - do not recreate `livekit-caddy-1` or `livekit-redis-1` unless the host topology is intentionally redesigned
-3. Resolve the remaining communications/email degradation so `/api/health` and launch readiness move from degraded to healthy.
-4. Clean up remaining ESLint warnings to reach `0 warnings` standard:
-   - `@typescript-eslint/no-unused-vars`
-   - `@next/next/no-img-element`
-   - `react-hooks/exhaustive-deps`
-
-### Still-open operational/platform items
-
-1. Add the second OCI voice host.
-2. Make sure the legacy `liveearlymarkai-redis-1` sidecar stays removed and is not recreated by any old compose/service owner.
-3. Resolve the remaining failed Twilio provisioning record:
-   - workspace: `My Workspace`
-   - failed stage: `bundle-clone`
-4. Run the remaining non-voice production smoke checks:
+1. Continue live authenticated CRM workflow testing and fix any remaining trust/coherence issues.
+2. Keep improving Tracey's real CRM usefulness:
+   - answer CRM questions correctly
+   - perform CRM mutations correctly
+   - explain clearly what happened
+3. Finish real provider/device verification for:
+   - homepage demo callback flow
+   - `inbound_demo`
+   - real customer `normal` voice path
+   - WhatsApp assistant / WhatsApp notifications
+4. Keep launch-scope comms verification honest:
    - onboarding with and without provisioning
    - inbound email
-   - any launch-scope SMS flow for customer workspaces
+   - customer SMS flows
+
+### Current known product/platform gaps worth treating as real until disproven
+
+1. Google Calendar should stay outbound-only for now; do not add background calendar-reading/import behavior unless the product decision changes.
+2. Email OAuth callback/token persistence still needs confidence or verification.
+3. Xero draft invoice creation exists, but true auto-sync after issue/paid events is still not documented as complete.
+4. Email review-request parity still appears weaker than SMS review-request support.
+5. Support tickets are still activity-based rather than a fuller owned ticket workflow.
+6. WhatsApp remains partly provider-blocked in production until Twilio channel configuration is fully cleared.
 
 ## Best Resume Points By Area
 
-### Voice deploy / monitoring
+### Voice / deploy / monitoring
 
 - `ops/deploy/livekit-worker-install.sh`
 - `ops/deploy/livekit-worker-verify.sh`
-- `ops/docker/worker-compose.yml`
 - `livekit-agent/agent.ts`
-- `livekit-agent/livekit-sip-runtime.ts`
-- `lib/livekit-sip-health.ts`
 - `lib/voice-spoken-canary.ts`
 - `lib/launch-readiness.ts`
 - `app/api/cron/voice-synthetic-probe/route.ts`
 - `app/admin/ops-status/page.tsx`
 
-### Provisioning / launch readiness
+### CRM / Tracey / workflow trust
+
+- `actions/chat-actions.ts`
+- `actions/deal-actions.ts`
+- `actions/activity-actions.ts`
+- `actions/search-actions.ts`
+- `actions/analytics-actions.ts`
+- `components/chatbot/*`
+- `components/crm/*`
+
+### Provisioning / communications / launch readiness
 
 - `lib/onboarding-provision.ts`
 - `lib/comms.ts`
-- `lib/twilio-regulatory.ts`
 - `lib/provisioning-readiness.ts`
 - `lib/launch-readiness.ts`
 - `app/api/workspace/setup-comms/route.ts`
 
-### Reports / CRM parity
-
-- `actions/analytics-actions.ts`
-- `app/crm/analytics/page.tsx`
-- `actions/tradie-actions.ts`
-- `actions/deal-actions.ts`
-- `actions/chat-actions.ts`
-- `actions/activity-actions.ts`
-- `actions/search-actions.ts`
-- `lib/workspace-audit.ts`
-- `components/layout/global-search.tsx`
-- `components/core/command-palette.tsx`
-
 ## Resume Rules
 
-- Do not start from the full changelog or old handover docs.
-- Start from this doc, then read only the files relevant to the task you are resuming.
-- If you change voice runtime, deploy, monitoring, or topology:
+- Do not restart from old roadmap docs.
+- Do not use `IMPLEMENTATION_ROADMAP.md` or `ISSUE_TRACKER.md` for active planning.
+- Start from this file, then move into the smallest relevant subset of docs and code.
+- If you change voice runtime, monitoring, or deploy behavior:
   - update `docs/voice_operating_brief.md`
-- For any code/config/process change:
+- For any meaningful code/config/process change:
   - update `docs/agent_change_log.md`
