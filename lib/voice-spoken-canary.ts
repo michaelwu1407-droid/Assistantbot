@@ -18,6 +18,7 @@ const TRANSCRIPT_POLL_INTERVAL_MS = 2_000;
 const PROBE_TRANSCRIPT_PHRASE = "voice monitor probe";
 const PROBE_TWILIO_VOICE = "Polly.Nicole";
 const PROBE_TWILIO_LANGUAGE = "en-AU";
+const TWILIO_NUMBER_CACHE_TTL_MS = 15 * 60_000;
 
 type TwilioCallSnapshot = {
   sid: string;
@@ -62,6 +63,18 @@ export type VoiceSpokenCanaryResult = {
     durationSeconds: number | null;
   }>;
 };
+
+type TwilioOwnedNumberCache = {
+  fetchedAt: number;
+  incomingNumbers: string[];
+  outgoingCallerIds: string[];
+};
+
+let twilioOwnedNumberCache: TwilioOwnedNumberCache | null = null;
+
+export function __resetVoiceSpokenCanaryCachesForTests() {
+  twilioOwnedNumberCache = null;
+}
 
 type VoiceCallVerificationCandidate = {
   callId: string;
@@ -207,6 +220,50 @@ function parseDurationSeconds(value?: string | null) {
   if (!value) return null;
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+async function getTwilioOwnedNumberCache() {
+  if (!twilioMasterClient) return null;
+
+  if (twilioOwnedNumberCache && Date.now() - twilioOwnedNumberCache.fetchedAt < TWILIO_NUMBER_CACHE_TTL_MS) {
+    return twilioOwnedNumberCache;
+  }
+
+  const incomingApi = (twilioMasterClient as unknown as Record<string, unknown>).incomingPhoneNumbers as
+    | { list?: (params?: { limit?: number }) => Promise<Array<{ phoneNumber?: string | null }>> }
+    | undefined;
+  const outgoingApi = (twilioMasterClient as unknown as Record<string, unknown>).outgoingCallerIds as
+    | { list?: (params?: { limit?: number }) => Promise<Array<{ phoneNumber?: string | null }>> }
+    | undefined;
+
+  if (!incomingApi?.list || !outgoingApi?.list) {
+    return null;
+  }
+
+  const [incoming, outgoing] = await Promise.all([
+    incomingApi.list({ limit: 50 }),
+    outgoingApi.list({ limit: 50 }),
+  ]);
+
+  twilioOwnedNumberCache = {
+    fetchedAt: Date.now(),
+    incomingNumbers: incoming.map((entry) => normalizePhone(entry.phoneNumber)).filter(Boolean),
+    outgoingCallerIds: outgoing.map((entry) => normalizePhone(entry.phoneNumber)).filter(Boolean),
+  };
+
+  return twilioOwnedNumberCache;
+}
+
+async function hasSameAccountPstnSelfCallRisk(probeCaller: string, targetNumber: string) {
+  const cache = await getTwilioOwnedNumberCache();
+  if (!cache) return false;
+
+  const targetIsManagedIncoming = cache.incomingNumbers.some((value) => phoneMatches(value, targetNumber));
+  const callerIsTwilioControlled =
+    cache.incomingNumbers.some((value) => phoneMatches(value, probeCaller)) ||
+    cache.outgoingCallerIds.some((value) => phoneMatches(value, probeCaller));
+
+  return targetIsManagedIncoming && callerIsTwilioControlled;
 }
 
 async function startProbeCall(params: {
@@ -430,6 +487,115 @@ export async function runVoiceSpokenPstnCanary(params: {
   const maxWaitMs = getVoiceMonitorProbeMaxWaitSeconds() * 1_000;
 
   try {
+    if (await hasSameAccountPstnSelfCallRisk(probeCaller, targetNumber)) {
+      const sipTarget = getEarlymarkInboundSipUri(targetNumber);
+      if (!sipTarget) {
+        return {
+          status: "degraded",
+          summary: "Skipped the PSTN self-call canary because the probe caller is Twilio-controlled, but no direct SIP target was available.",
+          warnings: ["The PSTN self-call path is known to return busy for Twilio-controlled callers into this Twilio number."],
+          mode: "gateway_only",
+          configured: true,
+          supported: true,
+          probeCaller,
+          targetNumber,
+          callSid: null,
+          callStatus: null,
+          durationSeconds: null,
+          expectedPhrase,
+          verification: null,
+          fallbackReason: "pstn_self_call_risk",
+          attempts: [],
+        };
+      }
+
+      const sipAttempt = await runProbeAttempt({
+        mode: "sip_direct",
+        target: sipTarget,
+        probeCaller,
+        expectedPhrase,
+        maxWaitMs,
+      });
+
+      if (!sipAttempt?.terminalCall || !sipAttempt.attempt.callStatus || FAILURE_CALL_STATUSES.has(sipAttempt.attempt.callStatus)) {
+        return {
+          status: "unhealthy",
+          summary: "Skipped the PSTN self-call canary because the probe caller is Twilio-controlled, and the direct SIP verification did not complete successfully.",
+          warnings: ["The PSTN self-call path is known to return busy for Twilio-controlled callers into this Twilio number."],
+          mode: "sip_direct",
+          configured: true,
+          supported: true,
+          probeCaller,
+          targetNumber,
+          callSid: sipAttempt?.createdCall?.sid || null,
+          callStatus: sipAttempt?.attempt.callStatus || null,
+          durationSeconds: sipAttempt?.attempt.durationSeconds || null,
+          expectedPhrase,
+          verification: null,
+          fallbackReason: "pstn_self_call_risk",
+          attempts: sipAttempt ? [sipAttempt.attempt] : [],
+        };
+      }
+
+      const verification = await waitForVoiceCallVerification({
+        probeCaller,
+        targetNumber,
+        startedAt,
+        maxWaitMs,
+        callSid: sipAttempt.createdCall.sid,
+      });
+
+      if (!verification) {
+        return {
+          status: "unhealthy",
+          summary: "Skipped the PSTN self-call canary because the probe caller is Twilio-controlled, and the direct SIP verification did not persist a matching voice call.",
+          warnings: ["The PSTN self-call path is known to return busy for Twilio-controlled callers into this Twilio number."],
+          mode: "sip_direct",
+          configured: true,
+          supported: true,
+          probeCaller,
+          targetNumber,
+          callSid: sipAttempt.createdCall.sid,
+          callStatus: sipAttempt.attempt.callStatus,
+          durationSeconds: sipAttempt.attempt.durationSeconds,
+          expectedPhrase,
+          verification: null,
+          fallbackReason: "pstn_self_call_risk",
+          attempts: [sipAttempt.attempt],
+        };
+      }
+
+      const healthyExchange =
+        verification.heardProbePhrase &&
+        verification.capturedCallerSpeech &&
+        verification.capturedAssistantSpeech;
+      const partialExchange = verification.capturedCallerSpeech && verification.capturedAssistantSpeech;
+
+      return {
+        status: healthyExchange ? "healthy" : partialExchange ? "degraded" : "unhealthy",
+        summary: healthyExchange
+          ? "Skipped the PSTN self-call canary because the probe caller is Twilio-controlled; direct SIP verification captured both caller and Tracey speech."
+          : partialExchange
+            ? "Skipped the PSTN self-call canary because the probe caller is Twilio-controlled; direct SIP verification only captured a partial spoken exchange."
+            : "Skipped the PSTN self-call canary because the probe caller is Twilio-controlled; direct SIP verification did not capture a complete spoken exchange.",
+        warnings: [
+          "The PSTN self-call path is known to return busy for Twilio-controlled callers into this Twilio number.",
+        ],
+        mode: "sip_direct",
+        configured: true,
+        supported: true,
+        probeCaller,
+        targetNumber,
+        callSid: sipAttempt.createdCall.sid,
+        callStatus: sipAttempt.attempt.callStatus,
+        durationSeconds: sipAttempt.attempt.durationSeconds,
+        expectedPhrase,
+        verification,
+        fallbackReason: "pstn_self_call_risk",
+        attempts: [sipAttempt.attempt],
+      };
+    }
+
     const initialAttempt = await runProbeAttempt({
       mode: "pstn_spoken",
       target: targetNumber,

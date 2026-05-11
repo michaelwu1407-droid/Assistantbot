@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const { db, twilioState } = vi.hoisted(() => {
   const createCall = vi.fn();
   const fetchCall = vi.fn();
+  const listIncomingPhoneNumbers = vi.fn();
+  const listOutgoingCallerIds = vi.fn();
   const calls = Object.assign(
     vi.fn(() => ({
       fetch: fetchCall,
@@ -19,10 +21,20 @@ const { db, twilioState } = vi.hoisted(() => {
       },
     },
     twilioState: {
-      client: { calls } as { calls: typeof calls } | null,
+      client: {
+        calls,
+        incomingPhoneNumbers: { list: listIncomingPhoneNumbers },
+        outgoingCallerIds: { list: listOutgoingCallerIds },
+      } as {
+        calls: typeof calls;
+        incomingPhoneNumbers: { list: typeof listIncomingPhoneNumbers };
+        outgoingCallerIds: { list: typeof listOutgoingCallerIds };
+      } | null,
       calls,
       createCall,
       fetchCall,
+      listIncomingPhoneNumbers,
+      listOutgoingCallerIds,
     },
   };
 });
@@ -37,15 +49,20 @@ vi.mock("@/lib/twilio", () => ({
   },
 }));
 
-import { runVoiceSpokenPstnCanary } from "@/lib/voice-spoken-canary";
+import { __resetVoiceSpokenCanaryCachesForTests, runVoiceSpokenPstnCanary } from "@/lib/voice-spoken-canary";
 
 describe("runVoiceSpokenPstnCanary", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    __resetVoiceSpokenCanaryCachesForTests();
     process.env.VOICE_MONITOR_PROBE_MAX_WAIT_SECONDS = "1";
     process.env.VOICE_MONITOR_PROBE_BUSY_RETRY_COUNT = "1";
     process.env.VOICE_MONITOR_PROBE_BUSY_RETRY_DELAY_SECONDS = "1";
-    twilioState.client = { calls: twilioState.calls };
+    twilioState.client = {
+      calls: twilioState.calls,
+      incomingPhoneNumbers: { list: twilioState.listIncomingPhoneNumbers },
+      outgoingCallerIds: { list: twilioState.listOutgoingCallerIds },
+    };
     twilioState.createCall.mockResolvedValue({
       sid: "CA123",
       status: "queued",
@@ -58,6 +75,8 @@ describe("runVoiceSpokenPstnCanary", () => {
       dateUpdated: new Date("2026-03-17T06:00:11.000Z"),
       endTime: new Date("2026-03-17T06:00:11.000Z"),
     });
+    twilioState.listIncomingPhoneNumbers.mockResolvedValue([]);
+    twilioState.listOutgoingCallerIds.mockResolvedValue([]);
     db.voiceCall.findMany.mockResolvedValue([
       {
         callId: "voice_call_1",
@@ -73,6 +92,7 @@ describe("runVoiceSpokenPstnCanary", () => {
   });
 
   afterEach(() => {
+    __resetVoiceSpokenCanaryCachesForTests();
     delete process.env.VOICE_MONITOR_PROBE_MAX_WAIT_SECONDS;
     delete process.env.VOICE_MONITOR_PROBE_BUSY_RETRY_COUNT;
     delete process.env.VOICE_MONITOR_PROBE_BUSY_RETRY_DELAY_SECONDS;
@@ -381,5 +401,65 @@ describe("runVoiceSpokenPstnCanary", () => {
         callStatus: "completed",
       }),
     ]);
+  });
+
+  it("skips the invalid PSTN self-call when both numbers are Twilio-controlled and verifies over direct SIP instead", async () => {
+    twilioState.listIncomingPhoneNumbers.mockResolvedValue([
+      { phoneNumber: "+61485010634" },
+      { phoneNumber: "+12624390786" },
+    ]);
+    twilioState.listOutgoingCallerIds.mockResolvedValue([{ phoneNumber: "+61434955958" }]);
+    twilioState.createCall.mockResolvedValueOnce({
+      sid: "CA_SIP_ONLY",
+      status: "queued",
+      dateCreated: new Date("2026-03-17T06:00:04.000Z"),
+    });
+    twilioState.fetchCall.mockResolvedValueOnce({
+      sid: "CA_SIP_ONLY",
+      status: "completed",
+      duration: "9",
+      dateUpdated: new Date("2026-03-17T06:00:11.000Z"),
+    });
+    db.voiceCall.findMany.mockResolvedValue([
+      {
+        callId: "voice_call_sip_only",
+        createdAt: new Date("2026-03-17T06:00:05.000Z"),
+        startedAt: new Date("2026-03-17T06:00:03.000Z"),
+        callerPhone: "+61434955958",
+        calledPhone: "+61485010634",
+        participantIdentity: "sip-participant",
+        transcriptText: "Caller: Hello Tracey. This is the voice monitor probe. Can you hear me?\nTracey: Yes, I can hear you clearly.",
+        metadata: {
+          providerCallIds: {
+            twilioCallSid: "CA_SIP_ONLY",
+          },
+        },
+      },
+    ]);
+
+    const result = await runVoiceSpokenPstnCanary({
+      probeCaller: "+61434955958",
+      targetNumber: "+61485010634",
+      checkedAt: new Date("2026-03-17T06:00:00.000Z"),
+    });
+
+    expect(result.status).toBe("healthy");
+    expect(result.mode).toBe("sip_direct");
+    expect(result.fallbackReason).toBe("pstn_self_call_risk");
+    expect(result.summary).toContain("Skipped the PSTN self-call canary");
+    expect(result.attempts).toEqual([
+      expect.objectContaining({
+        mode: "sip_direct",
+        target: "sip:+61485010634@live.earlymark.ai:5060;transport=tcp;region=au1",
+        callSid: "CA_SIP_ONLY",
+        callStatus: "completed",
+      }),
+    ]);
+    expect(twilioState.createCall).toHaveBeenCalledTimes(1);
+    expect(twilioState.createCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "sip:+61485010634@live.earlymark.ai:5060;transport=tcp;region=au1",
+      }),
+    );
   });
 });
