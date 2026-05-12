@@ -1,3 +1,33 @@
+## 2026-05-12 (Codex) - Make public Tracey callbacks ring through Twilio first
+
+- Files changed:
+  - `lib/demo-call.ts`
+  - `actions/demo-call-action.ts`
+  - `app/api/demo-call/route.ts`
+  - `app/api/contact/route.ts`
+  - `__tests__/demo-call.test.ts`
+  - `__tests__/demo-call-action.test.ts`
+  - `__tests__/contact-route.test.ts`
+  - `scripts/check-launch-readiness.ts`
+  - `app/page.tsx`
+  - `__tests__/home-demo-form.test.tsx`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added a `preferTwilioSipBridge` option and made public homepage/API/contact Tracey callbacks use the Twilio SIP bridge first, so Twilio directly creates the handset call and then bridges it into Tracey's SIP ingress.
+  - Kept the LiveKit-control path as a backup if Twilio bridge creation fails, but stopped treating "LiveKit accepted a participant" as the strongest public callback path.
+  - Fixed the CI lint error in `scripts/check-launch-readiness.ts` by removing `any` casts from the launch-readiness payload parsing.
+  - Removed new lint warnings from the homepage regression test and cleaned up an unused homepage icon import.
+- Why:
+  - Production DemoLead rows showed the homepage form was submitting and being marked `INITIATED` quickly, but that still did not prove the prospect handset actually rang.
+  - The public callback experience needs direct PSTN call creation as the primary proof path; LiveKit worker health can be green while a web-originated outbound participant is not enough evidence for the user.
+- Verified with:
+  - `npx eslint scripts/check-launch-readiness.ts __tests__/home-demo-form.test.tsx lib/demo-call.ts actions/demo-call-action.ts app/api/demo-call/route.ts app/api/contact/route.ts`
+  - `npm test -- __tests__/demo-call.test.ts __tests__/demo-call-action.test.ts __tests__/demo-call-health.test.ts __tests__/contact-route.test.ts __tests__/home-demo-form.test.tsx`
+  - `npx tsc --noEmit --pretty false`
+  - `npm run lint`
+  - `npm run build`
+
 ## 2026-05-12 (Codex) - Simplify homepage Tracey callback success copy
 
 - Files changed:

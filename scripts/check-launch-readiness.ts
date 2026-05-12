@@ -39,6 +39,21 @@ async function fetchJson(url: string, headers: Record<string, string>) {
   return { response, payload };
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function readRecord(record: Record<string, unknown> | null, key: string) {
+  return asRecord(record?.[key]);
+}
+
+function readString(record: Record<string, unknown> | null, key: string) {
+  const value = record?.[key];
+  return typeof value === "string" ? value : null;
+}
+
 async function main() {
   const baseUrl = normalizeBaseUrl(
     getArgValue("--base-url") ||
@@ -66,41 +81,49 @@ async function main() {
     fetchJson(`${baseUrl}/api/internal/launch-readiness`, headers),
   ]);
 
-  const launchPayload = launch.payload as Record<string, any> | null;
-  const healthPayload = health.payload as Record<string, any> | null;
+  const launchPayload = asRecord(launch.payload);
+  const healthPayload = asRecord(health.payload);
+  const launchCanary = readRecord(launchPayload, "canary");
+  const healthCanary = readRecord(healthPayload, "canary");
+  const launchVoiceCritical = readRecord(launchPayload, "voiceCritical");
+  const launchVoiceWorker = readRecord(launchVoiceCritical, "voiceWorker");
+  const launchLatestHeartbeat = readRecord(launchVoiceWorker, "latestHeartbeat");
+  const launchRelease = readRecord(launchPayload, "release");
+  const launchAppRelease = readRecord(launchRelease, "app");
+  const launchWorkerRelease = readRecord(launchRelease, "worker");
   const probePayload =
-    (launchPayload?.canary?.monitor as Record<string, any> | null) ||
-    (healthPayload?.canary?.monitor as Record<string, any> | null) ||
+    readRecord(launchCanary, "monitor") ||
+    readRecord(healthCanary, "monitor") ||
     null;
   const spokenCanaryPayload =
-    (launchPayload?.canary?.spokenCanary as Record<string, any> | null) ||
-    (healthPayload?.canary?.spokenCanary as Record<string, any> | null) ||
+    readRecord(launchCanary, "spokenCanary") ||
+    readRecord(healthCanary, "spokenCanary") ||
     null;
 
   const summary = {
     baseUrl,
     healthHttp: health.response.status,
-    healthStatus: healthPayload?.status ?? null,
-    healthSummary: healthPayload?.summary ?? null,
+    healthStatus: readString(healthPayload, "status"),
+    healthSummary: readString(healthPayload, "summary"),
     launchHttp: launch.response.status,
-    appSha: launchPayload?.release?.app?.shortGitSha ?? null,
-    workerShas: launchPayload?.release?.worker?.liveDeployGitShas ?? null,
-    launchStatus: launchPayload?.status ?? null,
-    voiceCritical: launchPayload?.voiceCritical?.status ?? null,
-    voiceWorker: launchPayload?.voiceCritical?.voiceWorker?.status ?? null,
-    workerFingerprint: launchPayload?.voiceCritical?.voiceWorker?.latestHeartbeat?.runtimeFingerprint ?? null,
-    expectedFingerprint: launchPayload?.voiceCritical?.voiceWorker?.expectedFingerprint ?? null,
+    appSha: readString(launchAppRelease, "shortGitSha"),
+    workerShas: launchWorkerRelease?.liveDeployGitShas ?? null,
+    launchStatus: readString(launchPayload, "status"),
+    voiceCritical: readString(launchVoiceCritical, "status"),
+    voiceWorker: readString(launchVoiceWorker, "status"),
+    workerFingerprint: readString(launchLatestHeartbeat, "runtimeFingerprint"),
+    expectedFingerprint: readString(launchVoiceWorker, "expectedFingerprint"),
     launchSummary:
-      launchPayload?.voiceCritical?.voiceWorker?.summary ||
-      launchPayload?.voiceCritical?.summary ||
-      launchPayload?.summary ||
+      readString(launchVoiceWorker, "summary") ||
+      readString(launchVoiceCritical, "summary") ||
+      readString(launchPayload, "summary") ||
       null,
     probeHttp: null,
-    probeStatus: probePayload?.status ?? null,
-    probeResult: launchPayload?.canary?.probeResult ?? healthPayload?.canary?.probeResult ?? null,
-    spokenCanaryStatus: spokenCanaryPayload?.status ?? null,
-    spokenCanaryMode: spokenCanaryPayload?.mode ?? null,
-    spokenCanarySummary: spokenCanaryPayload?.summary ?? null,
+    probeStatus: readString(probePayload, "status"),
+    probeResult: launchCanary?.probeResult ?? healthCanary?.probeResult ?? null,
+    spokenCanaryStatus: readString(spokenCanaryPayload, "status"),
+    spokenCanaryMode: readString(spokenCanaryPayload, "mode"),
+    spokenCanarySummary: readString(spokenCanaryPayload, "summary"),
   };
 
   console.log(JSON.stringify(summary, null, 2));

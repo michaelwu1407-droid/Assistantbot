@@ -40,6 +40,7 @@ export type DemoCallInput = {
 
 export type DemoCallOptions = {
   allowTwilioSipBridgeFallback?: boolean;
+  preferTwilioSipBridge?: boolean;
   waitForConnection?: boolean;
 };
 
@@ -147,7 +148,8 @@ function buildTwilioSipBridgeTwiml(sipTarget: string) {
 async function initiateDemoCallViaTwilioSipBridge(params: {
   normalizedPhone: string;
   preferredCallerNumber?: string | null;
-  directError: unknown;
+  directError?: unknown;
+  preferred?: boolean;
 }): Promise<DemoCallResult> {
   if (!twilioMasterClient) {
     throw new Error("Twilio is not configured for demo-call fallback.");
@@ -176,9 +178,9 @@ async function initiateDemoCallViaTwilioSipBridge(params: {
     normalizedPhone: params.normalizedPhone,
     resolvedTrunkId: `twilio-sip-bridge:${inboundTargetNumber || "default"}`,
     callerNumber,
-    warnings: [
-      `Used Twilio SIP bridge fallback because the LiveKit control API failed: ${getErrorMessage(params.directError)}`,
-    ],
+    warnings: params.preferred
+      ? []
+      : [`Used Twilio SIP bridge fallback because the LiveKit control API failed: ${getErrorMessage(params.directError)}`],
     transport: "twilio_sip_bridge",
     callSid: createdCall.sid,
     connectionVerified: false,
@@ -384,6 +386,22 @@ export async function initiateDemoCall(
   const email = input.email?.trim().toLowerCase() || "";
   const businessName = input.businessName?.trim() || "";
   let preferredCallerNumber: string | null = null;
+  let preferredBridgeError: unknown = null;
+
+  if (options.preferTwilioSipBridge) {
+    try {
+      return await initiateDemoCallViaTwilioSipBridge({
+        normalizedPhone,
+        preferredCallerNumber,
+        preferred: true,
+      });
+    } catch (error) {
+      preferredBridgeError = error;
+      if (options.allowTwilioSipBridgeFallback === false) {
+        throw error;
+      }
+    }
+  }
 
   try {
     const sipClient = getLivekitSipClient();
@@ -397,6 +415,9 @@ export async function initiateDemoCall(
     preferredCallerNumber = outbound.callerNumber;
 
     const warnings = [...outbound.warnings];
+    if (preferredBridgeError) {
+      warnings.push(`Twilio SIP bridge primary path failed; used LiveKit control path instead: ${getErrorMessage(preferredBridgeError)}`);
+    }
     if (!outbound.callerNumber) {
       // LiveKit/Twilio will reject outbound calls when neither the request nor the
       // trunk supplies a caller number. Surface this as a warning so the caller
@@ -464,6 +485,11 @@ export async function initiateDemoCall(
       sipCallStatus: connectionCheck.sipCallStatus,
     };
   } catch (directError) {
+    if (options.preferTwilioSipBridge && preferredBridgeError) {
+      throw new Error(
+        `Twilio SIP bridge primary path failed: ${getErrorMessage(preferredBridgeError)}. LiveKit demo call failed: ${getErrorMessage(directError)}`,
+      );
+    }
     if (options.allowTwilioSipBridgeFallback === false) {
       throw directError;
     }

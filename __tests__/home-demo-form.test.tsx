@@ -12,21 +12,10 @@ vi.mock("framer-motion", () => ({
     {},
     {
       get: () =>
-        ({
-          children,
-          initial: _initial,
-          whileInView: _whileInView,
-          whileHover: _whileHover,
-          whileTap: _whileTap,
-          viewport: _viewport,
-          transition: _transition,
-          animate: _animate,
-          exit: _exit,
-          ...props
-        }: {
+        ({ children }: {
           children: React.ReactNode;
           [key: string]: unknown;
-        }) => <div {...props}>{children}</div>,
+        }) => <div>{children}</div>,
     },
   ),
 }));

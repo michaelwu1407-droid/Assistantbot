@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import {
     ArrowRight, ChevronDown,
     Phone, Calendar, MapPin, Users, UsersRound,
-    BarChart3, CheckCircle2, MessageSquare, Layers, FileText,
+    BarChart3, CheckCircle2, MessageSquare, Layers,
     Inbox, ShieldCheck, Globe, Sparkles, Receipt,
 } from "lucide-react";
 import Link from "next/link";

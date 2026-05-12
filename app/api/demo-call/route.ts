@@ -55,6 +55,7 @@ export async function POST(req: NextRequest) {
       email,
       businessName,
     }, {
+      preferTwilioSipBridge: true,
       waitForConnection: false,
     });
 
@@ -95,7 +96,7 @@ export async function POST(req: NextRequest) {
       success: true,
       leadId,
       roomName: result.roomName,
-      message: `Calling ${result.normalizedPhone}...`,
+      message: "Tracey is calling you now!",
       trunkId: result.resolvedTrunkId,
       callerNumber: result.callerNumber,
       warnings: result.warnings,

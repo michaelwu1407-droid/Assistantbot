@@ -250,6 +250,37 @@ describe("demo-call outbound routing", () => {
     expect(result.callerNumber).toBe("+61485010634");
   });
 
+  it("uses the Twilio SIP bridge immediately when preferred for public callbacks", async () => {
+    const result = await initiateDemoCall(
+      {
+        phone: "0434 955 958",
+        firstName: "Michael",
+        businessName: "Alexandria Automotive Services",
+      },
+      {
+        preferTwilioSipBridge: true,
+        waitForConnection: false,
+      },
+    );
+
+    expect(listSipOutboundTrunk).not.toHaveBeenCalled();
+    expect(createRoom).not.toHaveBeenCalled();
+    expect(createSipParticipant).not.toHaveBeenCalled();
+    expect(createTwilioCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "+61434955958",
+        from: "+61485010634",
+        timeout: 20,
+        twiml: expect.stringContaining("<Sip>sip:+61485010634@live.earlymark.ai:5060;transport=tcp;region=au1</Sip>"),
+      }),
+    );
+    expect(result.roomName).toBe("twilio-bridge-CA_demo");
+    expect(result.resolvedTrunkId).toBe("twilio-sip-bridge:+61485010634");
+    expect(result.transport).toBe("twilio_sip_bridge");
+    expect(result.callSid).toBe("CA_demo");
+    expect(result.warnings).toEqual([]);
+  });
+
   it("keeps the LiveKit demo call when the outbound leg is still ringing", async () => {
     listSipOutboundTrunk.mockResolvedValue([
       {

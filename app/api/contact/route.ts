@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
           lastName,
           email,
         }, {
+          preferTwilioSipBridge: true,
           waitForConnection: false,
         })
         callPlaced = true
