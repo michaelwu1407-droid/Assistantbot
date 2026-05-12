@@ -111,7 +111,6 @@ describe("requestDemoCall server action", () => {
         businessName: "Alexandria Auto",
       },
       {
-        preferTwilioSipBridge: true,
         waitForConnection: false,
       },
     );
@@ -204,17 +203,17 @@ describe("requestDemoCall server action", () => {
     expect(hoisted.markDemoLeadInitiated).toHaveBeenCalledWith(null, expect.any(Object));
   });
 
-  it("uses the Twilio SIP bridge primary path for public callbacks", async () => {
+  it("keeps public callbacks on the direct LiveKit path unless fallback is needed", async () => {
     hoisted.initiateDemoCall.mockResolvedValue({
-      roomName: "twilio-bridge-CA_demo",
+      roomName: "demo-bridge-regression",
       normalizedPhone: "+61434955958",
-      resolvedTrunkId: "twilio-sip-bridge:+61485010634",
+      resolvedTrunkId: "ST_real",
       callerNumber: "+61485010634",
       warnings: [],
-      transport: "twilio_sip_bridge",
-      callSid: "CA_demo",
+      transport: "livekit_control",
+      callSid: null,
       connectionVerified: false,
-      sipCallStatus: null,
+      sipCallStatus: "initiated",
     });
 
     const result = await requestDemoCall(validForm);
@@ -222,14 +221,13 @@ describe("requestDemoCall server action", () => {
     expect(hoisted.initiateDemoCall).toHaveBeenCalledWith(
       expect.any(Object),
       expect.objectContaining({
-        preferTwilioSipBridge: true,
         waitForConnection: false,
       }),
     );
     expect(hoisted.initiateDemoCall).not.toHaveBeenCalledWith(
       expect.any(Object),
       expect.objectContaining({
-        allowTwilioSipBridgeFallback: false,
+        preferTwilioSipBridge: true,
       }),
     );
     expect(result).toEqual({

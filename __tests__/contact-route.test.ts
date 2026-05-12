@@ -121,7 +121,6 @@ describe("public contact route", () => {
         email: "miguel@example.com",
       },
       {
-        preferTwilioSipBridge: true,
         waitForConnection: false,
       },
     );

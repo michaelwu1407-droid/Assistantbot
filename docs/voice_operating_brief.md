@@ -1,14 +1,14 @@
 # Voice Operating Brief
 
-Updated: 2026-05-12 AEST
+Updated: 2026-05-13 AEST
 
 ## Production topology
 
 - Live voice stack: Twilio PSTN/SIP -> `app/api/webhooks/twilio-voice-gateway` -> LiveKit SIP -> OCI voice workers.
 - Canonical production app host for Twilio callbacks is `https://www.earlymark.ai`, not the apex `https://earlymark.ai`.
 - The apex host currently redirects to `www`, so signed Twilio webhooks must never be configured against the apex host or signature verification will drift before the request reaches the route.
-- Public website demo/contact callbacks use the Twilio SIP bridge as the primary public callback path: Twilio rings the handset directly, then bridges the answered call into the existing Earlymark SIP ingress. Do not make the homepage success path depend on Vercel directly proving a LiveKit outbound SIP participant connection.
-- The older web-side LiveKit outbound-control path remains a fallback for demo callbacks if the Twilio bridge creation fails, but it is not strong enough by itself to prove the prospect's handset rang.
+- Public website demo/contact callbacks use the direct LiveKit outbound-control path as the primary callback route, with `waitForConnection: false` so the form returns quickly instead of blocking on SIP polling.
+- The Twilio SIP bridge remains an emergency fallback if web-side LiveKit control cannot originate the call, but it must not be the preferred public route until its PSTN downlink audio path has stronger production proof.
 - Production customer outbound calls now use a worker-owned control path: the web app enqueues the request in the app database, and the OCI `tracey-customer-agent` worker claims and executes it against local LiveKit control at `http://127.0.0.1:7880`.
 - Production LiveKit server + SIP currently run as Docker containers on OCI, but their bind-mounted config lives under `/home/ubuntu/livekit/live.earlymark.ai`.
 - The OCI host's Snap Docker setup does not reliably mount `/opt/livekit`; treat `/opt/livekit` as legacy drift, not the canonical runtime root for core LiveKit containers.

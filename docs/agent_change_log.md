@@ -1,3 +1,19 @@
+## 2026-05-13 (Codex) - Demote silent Twilio bridge path for public callbacks
+
+- Files changed:
+  - `actions/demo-call-action.ts`
+  - `app/api/demo-call/route.ts`
+  - `app/api/contact/route.ts`
+  - `__tests__/demo-call-action.test.ts`
+  - `__tests__/contact-route.test.ts`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Moved homepage/API/contact Tracey callbacks back to the direct LiveKit outbound path while keeping the faster non-blocking response behavior.
+  - Left the Twilio SIP bridge available only as fallback if direct outbound control fails.
+- Why:
+  - A real public callback on 2026-05-13 completed both Twilio legs and produced a full Tracey transcript, but the called handset experienced silence. That makes the bridge path unsuitable as the preferred public route until its downstream audio is independently proven.
+
 ## 2026-05-12 (Codex) - Make public Tracey callbacks ring through Twilio first
 
 - Files changed:

@@ -100,7 +100,6 @@ export async function requestDemoCall(data: DemoCallData): Promise<DemoCallResul
             email: data.email,
             businessName: data.businessName,
         }, {
-            preferTwilioSipBridge: true,
             waitForConnection: false,
         });
 

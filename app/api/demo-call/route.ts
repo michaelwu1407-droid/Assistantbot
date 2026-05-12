@@ -55,7 +55,6 @@ export async function POST(req: NextRequest) {
       email,
       businessName,
     }, {
-      preferTwilioSipBridge: true,
       waitForConnection: false,
     });
 
