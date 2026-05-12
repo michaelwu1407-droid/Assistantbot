@@ -147,6 +147,6 @@ describe("buildCallForwardingSetupSmsBody", () => {
   it("falls back to earlymark.ai when NEXT_PUBLIC_APP_URL is not set", () => {
     delete process.env.NEXT_PUBLIC_APP_URL;
     const body = buildCallForwardingSetupSmsBody(baseParams);
-    expect(body).toContain("https://earlymark.ai/crm/settings");
+    expect(body).toContain("https://www.earlymark.ai/crm/settings");
   });
 });
