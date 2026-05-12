@@ -3,10 +3,7 @@ import { processBookingReminders } from "@/actions/automated-message-actions";
 
 /**
  * Cron endpoint: Send automated 24h booking reminders.
- * Should be called every hour via Vercel Cron or similar scheduler.
- *
- * Example cron config in vercel.json:
- * { "crons": [{ "path": "/api/cron/booking-reminders", "schedule": "0 * * * *" }] }
+ * Should be called every hour by the Reminder Crons GitHub Actions workflow.
  */
 export async function GET(req: NextRequest) {
   // Verify cron secret to prevent unauthorized access

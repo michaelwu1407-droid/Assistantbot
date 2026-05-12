@@ -3,14 +3,19 @@
 - Files changed:
   - `app/page.tsx`
   - `__tests__/home-demo-form.test.tsx`
+  - `.github/workflows/reminder-crons.yml`
+  - `app/api/cron/booking-reminders/route.ts`
+  - `vercel.json`
   - `docs/agent_change_log.md`
 - Summary:
   - Removed the homepage success fallback title and the extra explanatory sentence appended after the Tracey callback result.
   - Added a homepage regression test proving successful demo submissions show only `Tracey is calling you now!` and do not show the old callback-attempt, 30-second, or intro-explanation copy.
+  - Removed unsupported hourly Vercel cron definitions and added a GitHub Actions hourly reminder workflow so production web deploys are no longer blocked on the Hobby cron limit.
 - Why:
   - The server action had already been changed to return the direct success message, but the homepage component still had separate UI copy that could make the callback feel uncertain or slow.
+  - Production web was still serving the old app SHA because Vercel rejected deploys while `vercel.json` contained more-than-daily cron schedules.
 - Verified with:
-  - `npm test -- __tests__/home-demo-form.test.tsx __tests__/demo-call-action.test.ts __tests__/demo-call.test.ts __tests__/demo-call-health.test.ts __tests__/contact-route.test.ts`
+  - `npm test -- __tests__/home-demo-form.test.tsx __tests__/demo-call-action.test.ts __tests__/demo-call.test.ts __tests__/demo-call-health.test.ts __tests__/contact-route.test.ts __tests__/booking-reminders-route.test.ts __tests__/followup-reminders-route.test.ts`
   - `npx tsc --noEmit --pretty false`
 
 ## 2026-05-12 (Codex) - Restore instant public Tracey callback initiation

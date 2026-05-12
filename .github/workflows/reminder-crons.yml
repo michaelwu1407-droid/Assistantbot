@@ -1,0 +1,41 @@
+name: Reminder Crons
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+jobs:
+  reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run booking and follow-up reminder jobs
+        env:
+          APP_BASE_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -eu
+          if [ -z "${APP_BASE_URL:-}" ]; then
+            echo "NEXT_PUBLIC_APP_URL secret is missing."
+            exit 1
+          fi
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "CRON_SECRET secret is missing."
+            exit 1
+          fi
+
+          for path in /api/cron/booking-reminders /api/cron/followup-reminders; do
+            response_file="$(mktemp)"
+            status_code="$(
+              curl --location --show-error --silent \
+                --output "${response_file}" \
+                --write-out "%{http_code}" \
+                -H "Authorization: Bearer ${CRON_SECRET}" \
+                "${APP_BASE_URL%/}${path}"
+            )"
+            cat "${response_file}"
+            if [ "${status_code}" -ne 200 ]; then
+              echo "${path} returned HTTP ${status_code}"
+              exit 1
+            fi
+          done
