@@ -1,3 +1,18 @@
+## 2026-05-12 (Codex) - Simplify homepage Tracey callback success copy
+
+- Files changed:
+  - `app/page.tsx`
+  - `__tests__/home-demo-form.test.tsx`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Removed the homepage success fallback title and the extra explanatory sentence appended after the Tracey callback result.
+  - Added a homepage regression test proving successful demo submissions show only `Tracey is calling you now!` and do not show the old callback-attempt, 30-second, or intro-explanation copy.
+- Why:
+  - The server action had already been changed to return the direct success message, but the homepage component still had separate UI copy that could make the callback feel uncertain or slow.
+- Verified with:
+  - `npm test -- __tests__/home-demo-form.test.tsx __tests__/demo-call-action.test.ts __tests__/demo-call.test.ts __tests__/demo-call-health.test.ts __tests__/contact-route.test.ts`
+  - `npx tsc --noEmit --pretty false`
+
 ## 2026-05-12 (Codex) - Restore instant public Tracey callback initiation
 
 - Files changed:
