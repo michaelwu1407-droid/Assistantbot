@@ -4,19 +4,23 @@ function getBearerToken(req: Request) {
   return match?.[1]?.trim() || "";
 }
 
+function normalizeSecret(value: string | undefined | null) {
+  return value?.trim() || "";
+}
+
 export function isOpsAuthorized(req: Request): boolean {
   if (process.env.NODE_ENV !== "production") return true;
 
   const provided = [
     getBearerToken(req),
-    req.headers.get("x-telemetry-key") || "",
-    req.headers.get("x-ops-key") || "",
+    normalizeSecret(req.headers.get("x-telemetry-key")),
+    normalizeSecret(req.headers.get("x-ops-key")),
   ].filter(Boolean);
 
   const expected = [
-    process.env.CRON_SECRET,
-    process.env.TELEMETRY_ADMIN_KEY,
-  ].filter(Boolean) as string[];
+    normalizeSecret(process.env.CRON_SECRET),
+    normalizeSecret(process.env.TELEMETRY_ADMIN_KEY),
+  ].filter(Boolean);
 
   return expected.length > 0 && provided.some((value) => expected.includes(value));
 }

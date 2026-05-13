@@ -11,18 +11,22 @@ jobs:
     steps:
       - name: Reconcile Twilio routing and worker drift
         env:
-          APP_BASE_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+          APP_BASE_URL: ${{ secrets.APP_URL || secrets.NEXT_PUBLIC_APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           OPS_KEY: ${{ secrets.TELEMETRY_ADMIN_KEY || secrets.CRON_SECRET }}
         run: |
           set -eu
           if [ -z "${APP_BASE_URL:-}" ]; then
-            echo "NEXT_PUBLIC_APP_URL secret is missing."
+            echo "APP_URL or NEXT_PUBLIC_APP_URL secret is missing."
             exit 1
           fi
           if [ -z "${CRON_SECRET:-}" ]; then
             echo "CRON_SECRET secret is missing."
             exit 1
+          fi
+          APP_BASE_URL="${APP_BASE_URL%/}"
+          if [ "${APP_BASE_URL}" = "https://earlymark.ai" ]; then
+            APP_BASE_URL="https://www.earlymark.ai"
           fi
           response_file="$(mktemp)"
           http_status="$(

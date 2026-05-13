@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { processFollowUpReminders, processPostJobFollowUps } from "@/actions/followup-actions";
+import { getUnauthorizedJsonResponse, isOpsAuthorized } from "@/lib/ops-auth";
 
 /**
  * GET /api/cron/followup-reminders
@@ -13,10 +14,8 @@ import { processFollowUpReminders, processPostJobFollowUps } from "@/actions/fol
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
 
-  const authHeader = request.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isOpsAuthorized(request)) {
+    return getUnauthorizedJsonResponse();
   }
 
   try {

@@ -1,17 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { processBookingReminders } from "@/actions/automated-message-actions";
+import { getUnauthorizedJsonResponse, isOpsAuthorized } from "@/lib/ops-auth";
 
 /**
  * Cron endpoint: Send automated 24h booking reminders.
  * Should be called every hour by the Reminder Crons GitHub Actions workflow.
  */
 export async function GET(req: NextRequest) {
-  // Verify cron secret to prevent unauthorized access
-  const authHeader = req.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isOpsAuthorized(req)) {
+    return getUnauthorizedJsonResponse();
   }
 
   try {

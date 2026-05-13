@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 const hoisted = vi.hoisted(() => ({
   processFollowUpReminders: vi.fn(),
   processPostJobFollowUps: vi.fn(),
+  isOpsAuthorized: vi.fn(),
 }));
 
 vi.mock("@/actions/followup-actions", () => ({
@@ -11,36 +12,36 @@ vi.mock("@/actions/followup-actions", () => ({
   processPostJobFollowUps: hoisted.processPostJobFollowUps,
 }));
 
+vi.mock("@/lib/ops-auth", () => ({
+  isOpsAuthorized: hoisted.isOpsAuthorized,
+  getUnauthorizedJsonResponse: () =>
+    new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    }),
+}));
+
 import { GET } from "@/app/api/cron/followup-reminders/route";
 
 describe("GET /api/cron/followup-reminders", () => {
-  const originalCronSecret = process.env.CRON_SECRET;
-
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.CRON_SECRET = "secret";
+    hoisted.isOpsAuthorized.mockReturnValue(true);
     hoisted.processFollowUpReminders.mockResolvedValue({ reminders: 4 });
     hoisted.processPostJobFollowUps.mockResolvedValue({ sent: 2 });
   });
 
-  afterAll(() => {
-    if (originalCronSecret === undefined) delete process.env.CRON_SECRET;
-    else process.env.CRON_SECRET = originalCronSecret;
-  });
-
   it("rejects unauthorized callers", async () => {
+    hoisted.isOpsAuthorized.mockReturnValue(false);
+
     const response = await GET(new NextRequest("https://earlymark.ai/api/cron/followup-reminders"));
 
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(403);
     await expect(response.json()).resolves.toEqual({ error: "Unauthorized" });
   });
 
   it("returns both follow-up job results for authorized calls", async () => {
-    const response = await GET(
-      new NextRequest("https://earlymark.ai/api/cron/followup-reminders", {
-        headers: { authorization: "Bearer secret" },
-      }),
-    );
+    const response = await GET(new NextRequest("https://earlymark.ai/api/cron/followup-reminders"));
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual(
@@ -55,11 +56,7 @@ describe("GET /api/cron/followup-reminders", () => {
   it("returns 500 with details when the cron run fails", async () => {
     hoisted.processPostJobFollowUps.mockRejectedValue(new Error("sms failed"));
 
-    const response = await GET(
-      new NextRequest("https://earlymark.ai/api/cron/followup-reminders", {
-        headers: { authorization: "Bearer secret" },
-      }),
-    );
+    const response = await GET(new NextRequest("https://earlymark.ai/api/cron/followup-reminders"));
 
     expect(response.status).toBe(500);
     await expect(response.json()).resolves.toEqual(
