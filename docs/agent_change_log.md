@@ -1,3 +1,17 @@
+## 2026-05-15 (Codex) - Stop demo greeting before PSTN leg is answer-ready
+
+- Files changed:
+  - `lib/sip-call-status.ts`
+  - `livekit-agent/sip-call-status.ts`
+  - `livekit-agent/agent.ts`
+  - `__tests__/sip-call-status.test.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Reclassified LiveKit SIP `automation` as a pending state, not a connected state.
+  - This prevents the demo voice worker from speaking the first line while the outbound PSTN leg is still dialing/settling.
+- Why:
+  - The latest homepage attempt created a direct LiveKit demo room and persisted Tracey's opener about 150ms after call start, with no caller speech captured. That is too early for a real answered mobile call and explains the “call came through but no one spoke” symptom.
+
 ## 2026-05-13 (Codex) - Demote silent Twilio bridge path for public callbacks
 
 - Files changed:

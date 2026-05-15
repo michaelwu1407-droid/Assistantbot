@@ -21,6 +21,8 @@ describe("sip-call-status helpers", () => {
 
   it("classifies pending, connected, and failed states", () => {
     expect(isSipCallPendingStatus("dialing")).toBe(true);
+    expect(isSipCallPendingStatus("automation")).toBe(true);
+    expect(isSipCallConnectedStatus("automation")).toBe(false);
     expect(isSipCallConnectedStatus("active")).toBe(true);
     expect(isSipCallConnectedStatus("answered")).toBe(true);
     expect(isSipCallTerminalFailureStatus("busy")).toBe(true);

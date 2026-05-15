@@ -26,7 +26,7 @@ import * as deepgram from '@livekit/agents-plugin-deepgram';
 import * as cartesia from '@livekit/agents-plugin-cartesia';
 import { AutoSubscribe, WorkerOptions, cli, defineAgent, llm as livekitLlm, tts as agentsTts, voice } from '@livekit/agents';
 import type { STTOptions as DeepgramSTTOptions } from '@livekit/agents-plugin-deepgram';
-import { AudioFrame, type RemoteParticipant, type RemoteTrack, type RemoteTrackPublication } from '@livekit/rtc-node';
+import { AudioFrame, type RemoteParticipant, type RemoteTrack, type RemoteTrackPublication, type Room } from '@livekit/rtc-node';
 import { NoiseCancellation } from '@livekit/noise-cancellation-node';
 import { z } from 'zod';
 import {
@@ -86,7 +86,7 @@ import {
   isSipCallPendingStatus,
   isSipCallTerminalFailureStatus,
   readSipCallStatus,
-} from "../lib/sip-call-status";
+} from "./sip-call-status";
 
 loadEnv({ path: '.env.local' });
 assertRequiredVoiceAgentEnv();
@@ -1513,15 +1513,12 @@ function getGoodbyeLine(callType: CallType): string {
   return "No worries. Thanks for calling. Bye for now.";
 }
 
-function getParticipantSipStatus(participant: RemoteParticipant) {
+function getParticipantSipStatus(participant: { attributes?: Record<string, string> | null }) {
   return readSipCallStatus((participant.attributes || {}) as Record<string, string>);
 }
 
 async function waitForDemoOutboundLegReady(params: {
-  room: {
-    on: (event: string, listener: (...args: unknown[]) => void) => void;
-    off: (event: string, listener: (...args: unknown[]) => void) => void;
-  };
+  room: Pick<Room, "on" | "off">;
   participant: RemoteParticipant;
   callId: string;
   logPrefix: string;
@@ -1564,7 +1561,7 @@ async function waitForDemoOutboundLegReady(params: {
       resolve(ready);
     };
 
-    const onParticipantAttributesChanged = (_changed: Record<string, string>, participant: RemoteParticipant) => {
+    const onParticipantAttributesChanged = (_changed: Record<string, string>, participant: { identity: string; attributes?: Record<string, string> | null }) => {
       if (participant.identity !== params.participant.identity) return;
 
       const status = getParticipantSipStatus(participant);
