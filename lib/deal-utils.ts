@@ -14,7 +14,7 @@ export const KANBAN_COLUMN_HEADER_BG: Record<string, string> = {
   ready_to_invoice: "bg-status-awaiting",
   completed: "bg-status-complete",
   deleted: "bg-neutral-400",
-  lost: "bg-slate-500",
+  lost: "bg-muted-foreground",
 }
 
 /** Static hover backgrounds (JIT-safe) so the stage pill keeps Kanban colour on hover. */
@@ -107,10 +107,10 @@ export function getOverdueStyling(deal: {
   const longTitle = `Scheduled in the past (${overdueDays} day${overdueDays === 1 ? '' : 's'} ago). Click to reconcile or record an outcome.`;
 
   return {
-    borderClass: 'border-red-500 dark:border-red-800',
+    borderClass: 'border-destructive dark:border-red-800',
     badgeText: 'Overdue',
     badgeTitle: longTitle,
-    badgeClass: 'bg-red-500 text-white dark:bg-red-900/40 dark:text-red-300 dark:border-red-800 border',
+    badgeClass: 'bg-destructive/100 text-white dark:bg-red-900/40 dark:text-red-300 dark:border-red-800 border',
     severity: 'critical' as const
   };
 }
@@ -234,24 +234,24 @@ export function prismaStageToKanbanColumn(prismaStage: string): string {
 export function getKanbanStagePillClasses(prismaStage: string): string {
   const ui = PRISMA_STAGE_TO_UI_STAGE[prismaStage] ?? ""
   if (ui === "pending_approval") {
-    return "bg-amber-500 text-white hover:bg-amber-600 focus-visible:ring-amber-400"
+    return "bg-amber-500 text-white hover:bg-amber-600"
   }
   if (ui === "pipeline") {
-    return "bg-violet-600 text-white hover:bg-violet-700 focus-visible:ring-violet-500"
+    return "bg-violet-600 text-white hover:bg-violet-700"
   }
   const col = prismaStageToKanbanColumn(prismaStage)
-  const bg = KANBAN_COLUMN_HEADER_BG[col] ?? "bg-slate-500"
+  const bg = KANBAN_COLUMN_HEADER_BG[col] ?? "bg-muted-foreground"
   const hoverBg = KANBAN_COLUMN_HEADER_HOVER_BG[col] ?? "hover:bg-slate-500"
   return cn(
     bg,
     hoverBg,
-    "text-white border-transparent shadow-sm hover:brightness-[0.97] focus-visible:ring-2 focus-visible:ring-white/35 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+    "text-white border-transparent shadow-sm hover:brightness-[0.97]"
   )
 }
 
 /** Small swatch for dropdown rows — Kanban column id. */
 export function getKanbanColumnSwatchClass(columnId: string): string {
-  return KANBAN_COLUMN_HEADER_BG[columnId] ?? "bg-slate-500"
+  return KANBAN_COLUMN_HEADER_BG[columnId] ?? "bg-muted-foreground"
 }
 
 /** Full-width stage strip background (aligned with Kanban column colours in `kanban-board.tsx`). */
@@ -266,9 +266,9 @@ export function getStageStripBarClass(prismaStage: string): string {
     completed: "bg-status-complete",
     deleted: "bg-neutral-400",
     pending_approval: "bg-amber-500",
-    lost: "bg-slate-500",
+    lost: "bg-muted-foreground",
   }
-  return map[ui] ?? "bg-slate-500"
+  return map[ui] ?? "bg-muted-foreground"
 }
 
 export type ActualOutcome = typeof ACTUAL_OUTCOME_OPTIONS[number]['value'];

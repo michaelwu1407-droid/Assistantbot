@@ -21,7 +21,7 @@ import {
   type VerificationEvidenceStatus,
 } from "@/lib/feature-verification";
 import { requireInternalAdminAccess } from "@/lib/internal-admin";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatNumber } from "@/lib/format";
 import { formatDateTimeInTimezone, formatMonthDayYearInTimezone } from "@/lib/timezone";
 
 const ADMIN_TZ = "Australia/Sydney";
@@ -30,10 +30,6 @@ export const dynamic = "force-dynamic";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
-function formatNumber(value: number | null | undefined) {
-  if (value == null) return "--";
-  return value.toLocaleString("en-AU");
-}
 
 function formatMoney(value: number | null | undefined, currency?: string | null) {
   if (value == null) return "--";
@@ -852,7 +848,7 @@ export default async function CustomerUsagePage({
             <Link
               key={range}
               href={buildQuery(filters, { range, workspace: filters.workspace || "" })}
-              className={`inline-flex h-10 items-center rounded-full px-4 text-sm font-medium ${filters.range === range ? "bg-slate-900 text-white" : "border border-border text-foreground"}`}
+              className={`inline-flex h-10 items-center rounded-full px-4 text-sm font-medium ${filters.range === range ? "bg-muted-foreground text-white" : "border border-border text-foreground"}`}
             >
               {range}
             </Link>
@@ -869,7 +865,7 @@ export default async function CustomerUsagePage({
           <Link
             key={tab}
             href={buildQuery(filters, { tab })}
-            className={`inline-flex h-10 items-center rounded-full px-4 text-sm font-medium ${filters.tab === tab ? "bg-slate-900 text-white" : "border border-border text-foreground"}`}
+            className={`inline-flex h-10 items-center rounded-full px-4 text-sm font-medium ${filters.tab === tab ? "bg-muted-foreground text-white" : "border border-border text-foreground"}`}
           >
             {label}
           </Link>
@@ -942,7 +938,7 @@ export default async function CustomerUsagePage({
                 <option value="createdAt">Sort: newest</option>
                 <option value="name">Sort: name</option>
               </select>
-              <button className="h-11 rounded-full bg-slate-900 px-5 text-sm font-medium text-white" type="submit">Apply</button>
+              <button className="h-11 rounded-full bg-muted-foreground px-5 text-sm font-medium text-white" type="submit">Apply</button>
             </form>
           </SectionCard>
 

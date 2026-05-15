@@ -45,3 +45,8 @@ export function formatDateTime(date: Date | string | null | undefined): string {
   const time = d.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true })
   return `${day} · ${time}`
 }
+
+export function formatNumber(value: number | null | undefined): string {
+  if (value == null) return "—"
+  return value.toLocaleString("en-AU")
+}

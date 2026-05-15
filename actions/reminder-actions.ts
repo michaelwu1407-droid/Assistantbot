@@ -1,4 +1,5 @@
 "use server";
+import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
@@ -6,7 +7,7 @@ import { getWorkspaceTwilioClient, twilioMasterClient } from "@/lib/twilio";
 import { runIdempotent } from "@/lib/idempotency";
 import { sendNotification } from "@/lib/messaging/send-notification";
 import { NotificationScenario } from "@/lib/messaging/channel-router";
-import { DEFAULT_WORKSPACE_TIMEZONE } from "@/lib/timezone";
+import { DEFAULT_WORKSPACE_TIMEZONE, formatDateTimeInTimezone } from "@/lib/timezone";
 import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
 import { withCostCeiling } from "@/lib/cost-ceiling";
 
@@ -115,14 +116,7 @@ export async function sendJobReminder(dealId: string) {
     // Send reminder SMS
     const customerName = deal.contact.name || "there";
     const jobDescription = deal.title || "your job";
-    const scheduledTimeFormatted = scheduledTime.toLocaleString("en-AU", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      timeZone: workspace.workspaceTimezone || DEFAULT_WORKSPACE_TIMEZONE,
-    });
+    const scheduledTimeFormatted = formatDateTimeInTimezone(scheduledTime, workspace.workspaceTimezone || DEFAULT_WORKSPACE_TIMEZONE);
 
     const smsBody = `Hi ${customerName}, kind reminder about your ${jobDescription} scheduled for ${scheduledTimeFormatted}. Looking forward to seeing you!`;
     const emailBody = `Hi ${customerName},\n\nJust a reminder — your ${jobDescription} with ${workspace.name} is ${scheduledTimeFormatted}.\n\nLooking forward to seeing you!\n\n- ${workspace.name} via Earlymark`;

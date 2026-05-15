@@ -6,6 +6,7 @@ import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calculator, DollarSign, TrendingUp } from "lucide-react";
+import { formatNumber } from "@/lib/format";
 
 export function CommissionCalculator() {
     const [salePrice, setSalePrice] = useState(1500000);
@@ -28,7 +29,7 @@ export function CommissionCalculator() {
 
     return (
         <Card className="h-full border-border shadow-sm overflow-hidden">
-            <div className="bg-slate-900 p-4 border-b border-slate-800">
+            <div className="bg-muted-foreground p-4 border-b border-border">
                 <div className="flex items-center justify-between">
                     <h3 className="text-white font-semibold flex items-center gap-2">
                         <Calculator className="h-4 w-4 text-emerald-400" />
@@ -50,7 +51,7 @@ export function CommissionCalculator() {
                     <div className="relative">
                         <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
-                            value={salePrice.toLocaleString()}
+                            value={formatNumber(salePrice)}
                             onChange={handlePriceChange}
                             className="pl-9 font-bold text-lg border-border focus:border-emerald-500"
                         />

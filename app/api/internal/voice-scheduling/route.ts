@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { isVoiceAgentSecretAuthorized } from "@/lib/voice-agent-auth";
 import { runCreateJobNatural } from "@/actions/chat-actions";
+import { formatDateTimeInTimezone, DEFAULT_WORKSPACE_TIMEZONE } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
 
@@ -93,7 +94,7 @@ async function handleCheckAvailability(workspaceId: string, dateHint?: string) {
     .map((d) => {
       if (!d.scheduledAt) return null;
       const dt = new Date(d.scheduledAt);
-      return dt.toLocaleString("en-AU", { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+      return formatDateTimeInTimezone(dt, DEFAULT_WORKSPACE_TIMEZONE);
     })
     .filter(Boolean);
 
@@ -152,7 +153,7 @@ async function handleFindNearby(workspaceId: string, address: string, date: stri
   }
 
   const when = closest.scheduledAt
-    ? new Date(closest.scheduledAt).toLocaleString("en-AU", { weekday: "short", hour: "2-digit", minute: "2-digit" })
+    ? formatDateTimeInTimezone(new Date(closest.scheduledAt), DEFAULT_WORKSPACE_TIMEZONE)
     : "that day";
   return {
     summary: `There is already a job "${closest.title}" booked ${closest.distance.toFixed(1)}km away on ${when}. Mention to the caller that this area works well and you can cluster jobs efficiently.`,
