@@ -166,14 +166,19 @@ const COMPARISON_ROWS = [
 
 const TESTIMONIALS = [
   {
-    quote: "Tracey booked three jobs for me while I was driving between sites yesterday. It pays for itself immediately.",
+    quote: "It picked up while I was on site and the job details were already there when I got back to the ute.",
     author: "Mark S.",
     role: "Plumbing Contractor",
   },
   {
-    quote: "I used to spend two hours every evening following up on quotes. Now I just go home.",
+    quote: "The follow-ups are the part I notice most. Jobs keep moving without me doing admin at night.",
     author: "Sarah J.",
     role: "Electrical Services",
+  },
+  {
+    quote: "Customers get a quick answer instead of voicemail. It makes the business feel more organised straight away.",
+    author: "Dave W.",
+    role: "Landscaping & Design",
   },
 ]
 
