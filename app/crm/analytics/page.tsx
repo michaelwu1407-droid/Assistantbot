@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { useShellStore } from "@/lib/store"
-import { formatCurrency, formatShortDate, formatDate as formatLongDate } from "@/lib/format"
+import { formatCurrency, formatShortDate, formatDate as formatLongDate, formatDateTime } from "@/lib/format"
 import {
   getReportsData,
   getMonthlyRevenueBreakdown,
@@ -241,7 +241,7 @@ export default function AnalyticsPage() {
   <body>
     <main class="report">
       <h1>Analytics Report</h1>
-      <p class="meta">${escapeHtml(RANGE_LABELS[timeRange])} - Generated ${escapeHtml(new Date().toLocaleString("en-AU"))}</p>
+      <p class="meta">${escapeHtml(RANGE_LABELS[timeRange])} - Generated ${escapeHtml(formatDateTime(new Date()))}</p>
       <div class="metrics">
         <div class="metric"><span>Revenue</span><strong>${formatCurrency(data.revenue.total)}</strong></div>
         <div class="metric"><span>Customers</span><strong>${data.customers.inRange}</strong></div>

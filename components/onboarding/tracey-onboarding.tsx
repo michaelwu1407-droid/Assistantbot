@@ -4,6 +4,7 @@ import Image from "next/image"
 import { useState, useCallback, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
+import { formatDateTimeInTimezone } from "@/lib/timezone"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -86,11 +87,7 @@ type LeadCaptureEmailReadiness = Awaited<ReturnType<typeof getLeadCaptureEmailRe
 
 function formatSydneyDate(value: string | null | undefined) {
   if (!value) return null
-  return new Date(value).toLocaleString("en-AU", {
-    timeZone: "Australia/Sydney",
-    dateStyle: "medium",
-    timeStyle: "short",
-  })
+  return formatDateTimeInTimezone(value, "Australia/Sydney")
 }
 
 function getLeadCaptureStatusCopy(readiness: LeadCaptureEmailReadiness | null | undefined) {

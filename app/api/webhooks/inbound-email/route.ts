@@ -7,6 +7,7 @@ import * as Sentry from "@sentry/nextjs";
 import { isTrackableResendEvent, processResendStatusEvent } from "@/lib/resend-status-events";
 import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
 import { withCostCeiling } from "@/lib/cost-ceiling";
+import { getZonedDateParts } from "@/lib/timezone";
 
 const RESEND_EMAIL_COST_USD = 0.001;
 
@@ -139,15 +140,8 @@ function parseHHMM(value: string): { h: number; m: number } | null {
 }
 
 function minutesNowInSydney(): number {
-  const time = new Date().toLocaleTimeString("en-AU", {
-    hour12: false,
-    timeZone: "Australia/Sydney",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  const parsed = parseHHMM(time);
-  if (!parsed) return 0;
-  return parsed.h * 60 + parsed.m;
+  const parts = getZonedDateParts(new Date(), "Australia/Sydney");
+  return parts.hour * 60 + parts.minute;
 }
 
 function isWithinAllowedCallWindow(settings: unknown): boolean {

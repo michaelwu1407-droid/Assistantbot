@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { cn } from "@/lib/utils"
 import { formatShortDate } from "@/lib/format"
+import { formatMonthYearInTimezone, DEFAULT_WORKSPACE_TIMEZONE } from "@/lib/timezone"
 
 interface ContactsClientProps {
   contacts: ContactView[]
@@ -84,7 +85,7 @@ function formatLastContact(date: Date | null): string {
     return formatShortDate(contactDate)
   }
 
-  return contactDate.toLocaleDateString("en-AU", { month: "short", year: "2-digit" })
+  return formatMonthYearInTimezone(contactDate, DEFAULT_WORKSPACE_TIMEZONE)
 }
 
 export function ContactsClient({ contacts, pagination }: ContactsClientProps) {

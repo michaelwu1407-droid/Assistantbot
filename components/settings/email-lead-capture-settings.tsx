@@ -8,16 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Mail, Copy, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getLeadCaptureEmailReadiness, getOrAllocateLeadCaptureEmail, getWorkspaceSettings, updateWorkspaceSettings } from "@/actions/settings-actions";
+import { formatDateTimeInTimezone } from "@/lib/timezone";
 
 type LeadCaptureEmailReadiness = Awaited<ReturnType<typeof getLeadCaptureEmailReadiness>>;
 
 function formatDate(value: string | null | undefined) {
   if (!value) return null;
-  return new Date(value).toLocaleString("en-AU", {
-    timeZone: "Australia/Sydney",
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  return formatDateTimeInTimezone(value, "Australia/Sydney");
 }
 
 function getReadinessMessage(readiness: LeadCaptureEmailReadiness | null) {

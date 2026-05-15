@@ -21,6 +21,10 @@ import {
   type VerificationEvidenceStatus,
 } from "@/lib/feature-verification";
 import { requireInternalAdminAccess } from "@/lib/internal-admin";
+import { formatCurrency } from "@/lib/format";
+import { formatDateTimeInTimezone, formatMonthDayYearInTimezone } from "@/lib/timezone";
+
+const ADMIN_TZ = "Australia/Sydney";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +37,7 @@ function formatNumber(value: number | null | undefined) {
 
 function formatMoney(value: number | null | undefined, currency?: string | null) {
   if (value == null) return "--";
-  if (!currency) return "$" + value.toLocaleString("en-AU", { maximumFractionDigits: 2 });
+  if (!currency) return formatCurrency(value);
   return new Intl.NumberFormat("en-AU", {
     style: "currency",
     currency,
@@ -44,21 +48,12 @@ function formatMoney(value: number | null | undefined, currency?: string | null)
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "--";
-  return new Date(value).toLocaleString("en-AU", {
-    timeZone: "Australia/Sydney",
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  return formatDateTimeInTimezone(value, ADMIN_TZ);
 }
 
 function formatShortDate(value: string | null | undefined) {
   if (!value) return "--";
-  return new Date(value).toLocaleDateString("en-AU", {
-    timeZone: "Australia/Sydney",
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  return formatMonthDayYearInTimezone(value, ADMIN_TZ);
 }
 
 function truthBadge(tone: "exact" | "rollup" | "estimate") {
