@@ -1044,7 +1044,7 @@ export function TraceyOnboarding() {
                 {i < STEPS.length - 1 && (
                   <div className="flex items-center h-9">
                     <svg 
-                      className={`h-4 w-4 flex-shrink-0 ${i < step ? "text-emerald-400" : "text-slate-300"}`}
+                      className={`h-4 w-4 flex-shrink-0 ${i < step ? "text-emerald-400" : "text-muted-foreground/70"}`}
                       viewBox="0 0 24 24" 
                       fill="currentColor"
                     >

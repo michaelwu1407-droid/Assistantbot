@@ -1,4 +1,5 @@
 "use server";
+import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 
 import { db } from "@/lib/db";
 import { createNotification } from "./notification-actions";
@@ -121,7 +122,7 @@ export async function executeKanbanAction(
 
         await logActivity({
           type: "CALL",
-          title: `Call scheduled for ${callDate.toLocaleDateString("en-AU")}`,
+          title: `Call scheduled for ${formatDate(callDate)}`,
           content: data.message || `Follow-up call with ${deal.contact?.name || "contact"}`,
           dealId: data.dealId,
           contactId: deal.contact?.id,
@@ -132,7 +133,7 @@ export async function executeKanbanAction(
           await createNotification({
             userId: user.id,
             title: "Call Scheduled",
-            message: `${deal.title}: call on ${callDate.toLocaleDateString("en-AU")}`,
+            message: `${deal.title}: call on ${formatDate(callDate)}`,
             type: "SYSTEM",
             link: `/crm?dealId=${data.dealId}`,
           });

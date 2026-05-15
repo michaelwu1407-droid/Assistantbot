@@ -49,7 +49,7 @@ export function VendorReportCard({ data }: { data?: VendorReportData }) {
                         {percentage < 100 && (
                             <div className="h-full bg-muted" style={{ width: `${100 - percentage}%` }} />
                         )}
-                        <div className="absolute right-0 top-0 bottom-0 w-[2px] bg-slate-400" title="Goal" />
+                        <div className="absolute right-0 top-0 bottom-0 w-[2px] bg-muted-foreground/20" title="Goal" />
                     </div>
                 </div>
 

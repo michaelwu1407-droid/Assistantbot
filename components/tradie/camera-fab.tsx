@@ -70,7 +70,7 @@ export function CameraFAB({ dealId, onPhotoUploaded }: CameraFABProps) {
             />
             <Button
                 size="icon"
-                className="fixed bottom-24 right-6 h-14 w-14 rounded-full shadow-xl bg-slate-900 hover:bg-slate-800 text-white z-50"
+                className="fixed bottom-24 right-6 h-14 w-14 rounded-full shadow-xl bg-muted-foreground hover:bg-slate-800 text-white z-50"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
             >

@@ -83,7 +83,7 @@ export function BuyerMatchmaker({ dealId }: BuyerMatchmakerProps) {
             <CardContent className="flex-1 overflow-auto pt-4 space-y-4">
                 {matches.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
-                        <User className="w-12 h-12 mx-auto text-slate-200 mb-3" />
+                        <User className="w-12 h-12 mx-auto text-muted-foreground/70 mb-3" />
                         <p>No matching buyers found in this workspace.</p>
                         <Button variant="link" className="text-blue-600">Convert Lead to Buyer</Button>
                     </div>
@@ -132,7 +132,7 @@ export function BuyerMatchmaker({ dealId }: BuyerMatchmakerProps) {
                                     <Button size="sm" variant="outline" className="h-8 w-8 p-0 border-border bg-card" title="Email Listing">
                                         <Mail className="w-3.5 h-3.5 text-muted-foreground" />
                                     </Button>
-                                    <Button size="sm" className="bg-slate-900 text-xs h-8">
+                                    <Button size="sm" className="bg-muted-foreground text-xs h-8">
                                         Match
                                     </Button>
                                 </div>

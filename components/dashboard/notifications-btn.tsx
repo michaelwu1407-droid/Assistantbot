@@ -199,7 +199,7 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
                                 <div className="p-4 text-center text-xs text-muted-foreground">Loading...</div>
                             ) : notifications.length === 0 ? (
                                 <div className="p-8 text-center text-muted-foreground text-sm">
-                                    <Bell className="h-8 w-8 mx-auto mb-2 text-slate-200" />
+                                    <Bell className="h-8 w-8 mx-auto mb-2 text-muted-foreground/70" />
                                     No new notifications
                                 </div>
                             ) : (
@@ -233,7 +233,7 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
                                                         n.type === 'ERROR' ? "bg-destructive" :
                                                             n.type === 'WARNING' ? "bg-amber-500" :
                                                             n.type === 'SUCCESS' ? "bg-emerald-500" : "bg-primary",
-                                                        n.read && "bg-slate-300"
+                                                        n.read && "bg-muted-foreground/20"
                                                     )} />
                                                 )}
                                             </div>
@@ -266,7 +266,7 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
                                                         e.stopPropagation();
                                                         void handleMarkRead(n.id);
                                                     }}
-                                                    className="self-start text-slate-300 hover:text-primary transition-colors"
+                                                    className="self-start text-muted-foreground/70 hover:text-primary transition-colors"
                                                     title="Mark as read"
                                                 >
                                                     <Check className="h-4 w-4" />

@@ -96,7 +96,7 @@ export function EstimatorForm({ deals = [], workspaceId }: EstimatorFormProps) {
                     </p>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-3">
-                    <Button asChild className="w-full bg-slate-900 hover:bg-slate-800">
+                    <Button asChild className="w-full bg-muted-foreground hover:bg-slate-800">
                         <Link href={`/crm/deals/${selectedDealId}`}>
                             <ExternalLink className="w-4 h-4 mr-2" />
                             Open Billing Panel

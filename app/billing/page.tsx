@@ -58,7 +58,7 @@ export default async function BillingPaywallPage() {
                     Sign up today to get yourself an early mark
                 </p>
 
-                <div className="bg-muted/30 dark:bg-slate-900 ring-1 ring-slate-200 dark:ring-slate-800 rounded-xl p-6 text-left mb-8 space-y-4">
+                <div className="bg-muted/30 dark:bg-slate-900 ring-1 ring-border dark:ring-slate-800 rounded-xl p-6 text-left mb-8 space-y-4">
                     <div className="flex items-center gap-3">
                         <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
                         <span className="text-sm font-semibold text-foreground dark:text-slate-300">AI Agent — handles calls, SMS & scheduling</span>

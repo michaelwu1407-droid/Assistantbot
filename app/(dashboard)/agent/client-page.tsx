@@ -65,7 +65,7 @@ export default function AgentDashboard({ freshLeads, initialPipeline }: AgentDas
   return (
     <div className="h-full w-full bg-muted/30 text-foreground flex overflow-hidden">
       {/* 1. Sidebar Rail */}
-      <div className="w-16 bg-slate-900 flex flex-col items-center py-6 gap-6 text-muted-foreground border-r border-slate-800">
+      <div className="w-16 bg-muted-foreground flex flex-col items-center py-6 gap-6 text-muted-foreground border-r border-border">
         <div className="h-8 w-8 bg-blue-500 rounded-lg flex items-center justify-center text-white font-bold mb-4">Pj</div>
         <button className="p-2 hover:bg-slate-800 rounded-lg transition-colors text-white"><Home className="h-5 w-5" /></button>
         <button className="p-2 hover:bg-slate-800 rounded-lg transition-colors"><User className="h-5 w-5" /></button>

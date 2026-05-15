@@ -200,7 +200,7 @@ export function AutomationList({ initialAutomations, workspaceId }: AutomationLi
             <div className="grid gap-4">
                 {automations.length === 0 ? (
                     <div className="text-center py-12 border-2 border-dashed rounded-lg">
-                        <Zap className="h-8 w-8 mx-auto text-slate-300 mb-2" />
+                        <Zap className="h-8 w-8 mx-auto text-muted-foreground/70 mb-2" />
                         <h3 className="font-medium text-foreground">No automations yet</h3>
                         <p className="text-sm text-muted-foreground">Create your first rule to save time.</p>
                     </div>

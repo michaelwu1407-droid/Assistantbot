@@ -112,7 +112,7 @@ export function CommandPalette() {
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-slate-900/20 backdrop-blur-sm transition-all">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] bg-muted-foreground/20 backdrop-blur-sm transition-all">
       <div
         ref={containerRef}
         className="w-full max-w-lg bg-card rounded-xl shadow-2xl border border-border overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100"
@@ -169,7 +169,7 @@ export function CommandPalette() {
                       <div className="text-xs text-muted-foreground truncate">{item.subtitle}</div>
                     )}
                   </div>
-                  <ArrowRight className="h-4 w-4 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground/70 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </button>
               )
             })()

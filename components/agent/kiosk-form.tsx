@@ -146,7 +146,7 @@ export function KioskForm({ dealId, dealTitle }: KioskFormProps) {
                                     className={`
                                         h-12 rounded-lg border text-sm font-medium transition-all
                                         ${(i === 2 && formData.interestedLevel === 1) || (i !== 2 && formData.interestedLevel === 5 - i * 2)
-                                            ? "bg-slate-900 text-white border-slate-900 shadow-md ring-2 ring-slate-900 ring-offset-2"
+                                            ? "bg-muted-foreground text-white border-border shadow-md ring-2 ring-border ring-offset-2"
                                             : "bg-card text-muted-foreground border-border hover:border-border hover:bg-muted/30"}
                                     `}
                                 >

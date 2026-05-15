@@ -62,7 +62,7 @@ export function Header({ pageTitle, userName, userId, workspaceId, userRole, onO
             return <Sun className={ic} />
         }
         if (c.includes("rain") || c.includes("drizzle")) return <CloudRain className="h-4 w-4 text-primary" />
-        if (c.includes("snow")) return <CloudSnow className="h-4 w-4 text-slate-300" />
+        if (c.includes("snow")) return <CloudSnow className="h-4 w-4 text-muted-foreground/70" />
         if (c.includes("thunder")) return <CloudLightning className="h-4 w-4 text-amber-400" />
         if (c.includes("cloud") || c.includes("fog")) return <Cloud className="h-4 w-4 text-muted-foreground" />
         return <Sun className="h-4 w-4 text-amber-500" />

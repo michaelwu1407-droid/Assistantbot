@@ -84,15 +84,15 @@ export function PortalPreviewClient() {
         </section>
 
         <section className="flex w-full justify-center">
-          <div className="w-full max-w-[420px] rounded-md border border-slate-900/10 bg-[#dfe9ef] p-3 shadow-[0_30px_120px_rgba(15,23,42,0.18)]">
-            <div className="overflow-hidden rounded-md border border-slate-900/10 bg-muted/30">
+          <div className="w-full max-w-[420px] rounded-md border border-border/10 bg-[#dfe9ef] p-3 shadow-[0_30px_120px_rgba(15,23,42,0.18)]">
+            <div className="overflow-hidden rounded-md border border-border/10 bg-muted/30">
               <div className="bg-[linear-gradient(180deg,_#0f172a_0%,_#17263e_100%)] px-6 pb-8 pt-5 text-white">
                 <div className="flex items-center justify-between text-[11px] font-semibold tracking-[0.22em] text-white/70 uppercase">
                   <span>Northside Plumbing</span>
                   <span>Live job</span>
                 </div>
                 <h2 className="mt-6 text-3xl font-semibold tracking-tight">Your appointment</h2>
-                <p className="mt-2 max-w-xs text-sm leading-6 text-slate-200">
+                <p className="mt-2 max-w-xs text-sm leading-6 text-muted-foreground/70">
                   Stay updated without needing to call the office. This page refreshes automatically while the job is in progress.
                 </p>
               </div>

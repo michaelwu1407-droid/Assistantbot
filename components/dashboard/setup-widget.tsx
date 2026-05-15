@@ -87,7 +87,7 @@ export function SetupWidget() {
                                 {step.isComplete ? (
                                     <CheckCircle2 className="text-emerald-500 w-5 h-5 shrink-0" />
                                 ) : (
-                                    <Circle className="text-slate-300 dark:text-muted-foreground group-hover:text-emerald-400 w-5 h-5 shrink-0" />
+                                    <Circle className="text-muted-foreground/70 dark:text-muted-foreground group-hover:text-emerald-400 w-5 h-5 shrink-0" />
                                 )}
                                 <span className={`text-sm ${step.isComplete ? 'opacity-80' : 'font-medium'}`}>
                                     {step.title}

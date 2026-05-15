@@ -82,7 +82,7 @@ function LineItemEditor({
                 </Button>
                 <div className="flex-1" />
                 <Button variant="ghost" size="sm" className="text-xs h-7" onClick={onCancel} disabled={saving}>Cancel</Button>
-                <Button size="sm" className="text-xs h-7 bg-slate-900 hover:bg-slate-800" disabled={saving || !items.some(i => i.desc.trim())} onClick={() => onSave(items)}>
+                <Button size="sm" className="text-xs h-7 bg-muted-foreground hover:bg-slate-800" disabled={saving || !items.some(i => i.desc.trim())} onClick={() => onSave(items)}>
                     {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3 mr-1" />}
                     Save
                 </Button>
@@ -231,7 +231,7 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                         </div>
                     </div>
                     {priceError && <p className="text-xs text-destructive">{priceError}</p>}
-                    <Button onClick={handleCreateInvoice} disabled={creating || !variationDesc.trim()} className="w-full bg-slate-900 hover:bg-slate-800">
+                    <Button onClick={handleCreateInvoice} disabled={creating || !variationDesc.trim()} className="w-full bg-muted-foreground hover:bg-slate-800">
                         {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
                         Create Draft Invoice
                     </Button>
@@ -321,7 +321,7 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                                                 <span className="inline-flex items-center gap-1 text-[10px]" title={sync.synced ? `Synced to ${sync.provider}` : "Not synced to accounting"}>
                                                     {sync.synced
                                                         ? <Cloud className="w-3 h-3 text-emerald-500" />
-                                                        : <CloudOff className="w-3 h-3 text-slate-300" />}
+                                                        : <CloudOff className="w-3 h-3 text-muted-foreground/70" />}
                                                     <span className={sync.synced ? "text-emerald-600" : "text-muted-foreground"}>{sync.synced ? sync.provider : "Not synced"}</span>
                                                 </span>
                                             )}

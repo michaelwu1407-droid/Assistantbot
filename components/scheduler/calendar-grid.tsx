@@ -32,7 +32,7 @@ function TimeSlot({ id, children, date, hour }: { id: string, children: React.Re
                 isCurrentDay && !isOver && "bg-blue-50/10"
             )}
         >
-            <div className="absolute top-1 right-1 text-[10px] text-slate-300 group-hover:text-muted-foreground pointer-events-none select-none transition-colors">
+            <div className="absolute top-1 right-1 text-[10px] text-muted-foreground/70 group-hover:text-muted-foreground pointer-events-none select-none transition-colors">
                 {hour}:00
             </div>
             {children}

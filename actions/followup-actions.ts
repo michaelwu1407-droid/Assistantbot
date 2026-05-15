@@ -1,4 +1,5 @@
 "use server";
+import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
@@ -59,7 +60,7 @@ export async function scheduleFollowUp(
         data: {
           type: "NOTE",
           title: "Follow-up scheduled",
-          content: `Follow-up scheduled for ${followUpAt.toLocaleDateString()}${note ? `: ${note}` : ""}${channel ? ` (via ${channel})` : ""}`,
+          content: `Follow-up scheduled for ${formatDate(followUpAt)}${note ? `: ${note}` : ""}${channel ? ` (via ${channel})` : ""}`,
           dealId,
           contactId: deal.contactId,
         },
@@ -368,7 +369,7 @@ export async function requestPaymentForDeal(dealId: string): Promise<FollowUpRes
     if (!deal) return { success: false, error: "Deal not found" };
 
     const amount = deal.invoicedAmount ?? deal.value;
-    const formattedAmount = amount ? `$${Number(amount).toLocaleString()}` : "the invoice";
+    const formattedAmount = amount ? `${formatCurrency(Number(amount))}` : "the invoice";
 
     const message = `Hi ${deal.contact.name}, ${formattedAmount} is now due for ${deal.title}. Please get in touch to arrange payment. Thanks, ${deal.workspace.name || "us"}.`;
 

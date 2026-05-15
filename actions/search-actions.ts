@@ -1,4 +1,5 @@
 "use server"
+import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 
 import { db } from "@/lib/db"
 import { fuzzySearch, type SearchableItem } from "@/lib/search"
@@ -150,7 +151,7 @@ export async function globalSearch(workspaceId: string, query: string): Promise<
         id: deal.id,
         type: "deal",
         title: deal.title,
-        subtitle: `${getUserFacingDealStageLabel(deal.stage)} • $${value.toLocaleString("en-AU")}`,
+        subtitle: `${getUserFacingDealStageLabel(deal.stage)} • ${formatCurrency(value)}`,
         url: `/crm/deals/${deal.id}`,
       },
     })
@@ -164,7 +165,7 @@ export async function globalSearch(workspaceId: string, query: string): Promise<
         id: task.id,
         type: "task",
         title: task.title,
-        subtitle: task.dueAt ? `Due ${task.dueAt.toLocaleDateString("en-AU")}` : "No due date",
+        subtitle: task.dueAt ? `Due ${formatDate(task.dueAt)}` : "No due date",
         url: task.dealId ? `/crm/deals/${task.dealId}` : task.contactId ? `/crm/contacts/${task.contactId}` : "/crm/dashboard",
       },
     })
@@ -195,7 +196,7 @@ export async function globalSearch(workspaceId: string, query: string): Promise<
         id: call.id,
         type: "call",
         title: `${caller} (${call.callType})`,
-        subtitle: transcriptSnippet || `Started ${call.startedAt.toLocaleString("en-AU")}`,
+        subtitle: transcriptSnippet || `Started ${formatDateTime(call.startedAt)}`,
         url: call.contactId ? `/crm/contacts/${call.contactId}` : "/crm/dashboard",
       },
     })

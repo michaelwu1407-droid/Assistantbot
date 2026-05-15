@@ -44,9 +44,13 @@ export function DealEditModal({ dealId, open, onOpenChange, onDealUpdated, curre
   useEffect(() => {
     if (!dealId || !open) return
     let cancelled = false
-    setLoading(true)
-    setData(null)
-    setError(null)
+    queueMicrotask(() => {
+      if (!cancelled) {
+        setLoading(true)
+        setData(null)
+        setError(null)
+      }
+    })
 
     const canManageAssignment = currentUserRole !== "TEAM_MEMBER"
 

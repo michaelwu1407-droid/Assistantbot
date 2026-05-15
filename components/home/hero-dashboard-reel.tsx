@@ -443,7 +443,7 @@ export function HeroDashboardReel({ className = "" }: { className?: string }) {
                                         onClick={() => setActive(idx)}
                                         aria-label={`Show ${step.label} view`}
                                         className={`h-2.5 rounded-full transition-all duration-200 ${
-                                            isActive ? "w-6 bg-emerald-500" : "w-2.5 bg-slate-300 hover:bg-slate-400"
+                                            isActive ? "w-6 bg-emerald-500" : "w-2.5 bg-muted-foreground/20 hover:bg-slate-400"
                                         }`}
                                     />
                                 );

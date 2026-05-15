@@ -88,7 +88,7 @@ export function MaterialPicker({ onSelect, trigger, workspaceId: propWorkspaceId
     <>
       <div onClick={() => setOpen(true)} className="cursor-pointer inline-block">
         {trigger || (
-          <Button variant="outline" size="sm" className="gap-2 bg-slate-900 border-slate-800 hover:bg-slate-800 text-muted-foreground hover:text-white">
+          <Button variant="outline" size="sm" className="gap-2 bg-muted-foreground border-border hover:bg-slate-800 text-muted-foreground hover:text-white">
             <Search className="h-4 w-4" />
             Search
           </Button>
@@ -96,7 +96,7 @@ export function MaterialPicker({ onSelect, trigger, workspaceId: propWorkspaceId
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="ott-dialog p-0 gap-0 bg-slate-900 border-slate-800 text-slate-50 overflow-hidden sm:max-w-[400px]">
+        <DialogContent className="ott-dialog p-0 gap-0 bg-muted-foreground border-border text-muted-foreground overflow-hidden sm:max-w-[400px]">
           <DialogHeader className="sr-only">
             <DialogTitle>Search Materials</DialogTitle>
           </DialogHeader>
@@ -105,7 +105,7 @@ export function MaterialPicker({ onSelect, trigger, workspaceId: propWorkspaceId
               placeholder="Search database..."
               value={search}
               onValueChange={setSearch}
-              className="border-none text-slate-50 placeholder:text-muted-foreground"
+              className="border-none text-muted-foreground placeholder:text-muted-foreground"
             />
             <CommandList>
               {loading && (
@@ -120,7 +120,7 @@ export function MaterialPicker({ onSelect, trigger, workspaceId: propWorkspaceId
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-xs border-slate-700 text-slate-300 hover:text-[#ccff00]"
+                    className="text-xs border-border text-muted-foreground/70 hover:text-[#ccff00]"
                     onClick={async () => {
                       if (!workspaceId || !search.trim()) return
                       const result = await createMaterial({
@@ -150,8 +150,8 @@ export function MaterialPicker({ onSelect, trigger, workspaceId: propWorkspaceId
                       className="flex flex-col items-start gap-1 py-3 aria-selected:bg-slate-800 aria-selected:text-white data-[selected=true]:bg-slate-800 data-[selected=true]:text-white"
                     >
                       <div className="flex w-full justify-between items-center">
-                        <span className="font-medium text-slate-200">{material.name}</span>
-                        <span className="text-[#ccff00] font-mono text-xs bg-slate-950 px-2 py-0.5 rounded-full border border-slate-700">
+                        <span className="font-medium text-muted-foreground/70">{material.name}</span>
+                        <span className="text-[#ccff00] font-mono text-xs bg-muted-foreground px-2 py-0.5 rounded-full border border-border">
                           ${material.price.toFixed(2)}
                         </span>
                       </div>

@@ -35,7 +35,7 @@ export function MatchmakerFeed({ workspaceId }: { workspaceId: string }) {
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="flex justify-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin text-slate-300" />
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground/70" />
                 </CardContent>
             </Card>
         )
