@@ -52,7 +52,7 @@ export function CommissionCalculator() {
                         <Input
                             value={salePrice.toLocaleString()}
                             onChange={handlePriceChange}
-                            className="pl-9 font-bold text-lg border-border focus:ring-emerald-500/20 focus:border-emerald-500"
+                            className="pl-9 font-bold text-lg border-border focus:border-emerald-500"
                         />
                     </div>
                     <Slider

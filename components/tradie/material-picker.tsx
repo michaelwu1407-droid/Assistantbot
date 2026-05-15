@@ -105,7 +105,7 @@ export function MaterialPicker({ onSelect, trigger, workspaceId: propWorkspaceId
               placeholder="Search database..."
               value={search}
               onValueChange={setSearch}
-              className="border-none focus:ring-0 text-slate-50 placeholder:text-muted-foreground"
+              className="border-none text-slate-50 placeholder:text-muted-foreground"
             />
             <CommandList>
               {loading && (

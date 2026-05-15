@@ -747,7 +747,7 @@ function DealDetailContent({
                       type="datetime-local"
                       value={followUpDate}
                       onChange={(e) => setFollowUpDate(e.target.value)}
-                      className="mt-0.5 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="mt-0.5 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-visible:outline-none"
                     />
                   </div>
                   <div>
@@ -764,7 +764,7 @@ function DealDetailContent({
                     <select
                       value={followUpChannel}
                       onChange={(e) => setFollowUpChannel(e.target.value)}
-                      className="mt-0.5 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      className="mt-0.5 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm focus-visible:outline-none"
                     >
                       <option value="sms">SMS</option>
                       <option value="email">Email</option>

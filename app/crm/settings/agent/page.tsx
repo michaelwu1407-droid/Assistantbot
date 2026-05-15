@@ -220,7 +220,7 @@ export default function AgentSettingsPage() {
                             .filter((entry) => entry.length > 0)
                         )
                       }}
-                      className="h-8 border-none px-0 text-sm shadow-none focus-visible:ring-0"
+                      className="h-8 border-none px-0 text-sm shadow-none"
                     />
                     <Button type="button" variant="ghost" size="icon" onClick={() => removeRule(index)} aria-label="Remove rule">
                       <X className="h-4 w-4" />

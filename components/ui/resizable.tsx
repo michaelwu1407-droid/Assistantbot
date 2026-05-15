@@ -30,7 +30,7 @@ const ResizableHandle = ({
   <PanelResizeHandle
     className={cn(
       /* No ::after hit-expander — it extended past the strip and looked like a blank gap beside the main canvas. */
-      "relative flex w-px shrink-0 items-center justify-center bg-border px-0 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 data-[panel-group-direction=vertical]:h-px data-[panel-group-direction=vertical]:w-full [&[data-panel-group-direction=vertical]>div]:rotate-90 hover:bg-primary/20 transition-colors cursor-col-resize",
+      "relative flex w-px shrink-0 items-center justify-center bg-border px-0 focus-visible:outline-none data-[panel-group-direction=vertical]:h-px data-[panel-group-direction=vertical]:w-full [&[data-panel-group-direction=vertical]>div]:rotate-90 hover:bg-primary/20 transition-colors cursor-col-resize",
       className
     )}
     {...props}

@@ -60,7 +60,7 @@ export function DealPhotosUpload({ dealId, initialPhotos }: DealPhotosUploadProp
             placeholder="e.g. Installed new kitchen tap"
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
-            className="w-full text-sm p-2 rounded-lg border border-border bg-card focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+            className="w-full text-sm p-2 rounded-lg border border-border bg-card outline-none transition-all"
             disabled={uploading}
           />
         </div>

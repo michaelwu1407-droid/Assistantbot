@@ -135,7 +135,7 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
                         "border-0 bg-transparent p-0 shadow-none outline-none",
                         /* globals: * { outline-ring/50 } and *:focus-visible { box-shadow: green } */
                         "!outline-none hover:bg-card/10 hover:text-white",
-                        "focus-visible:!outline-none focus-visible:!shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                        "focus-visible:!outline-none focus-visible:!shadow-none"
                     )}
                     onClick={() => {
                         setIsOpen(!isOpen)

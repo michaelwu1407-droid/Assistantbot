@@ -129,7 +129,7 @@ export function DealNotes({ dealId, initialNotes }: DealNotesProps) {
             value={currentText}
             onChange={(e) => setCurrentText(e.target.value)}
             placeholder={editingId ? "Update note..." : "Add a quick note..."}
-            className="min-h-[32px] max-h-[80px] resize-none text-xs border-0 focus-visible:ring-0 px-3 py-2 bg-transparent scrollbar-hide pr-12 rounded-none shadow-none"
+            className="min-h-[32px] max-h-[80px] resize-none text-xs border-0 px-3 py-2 bg-transparent scrollbar-hide pr-12 rounded-none shadow-none"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault()

@@ -155,7 +155,7 @@ function HireMockup1() {
 // ─── Interview Form ───────────────────────────────────────────────────────────
 
 const INPUT_CLASS =
-    "w-full px-4 py-2.5 rounded border border-border text-sm text-midnight placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 bg-card transition";
+    "w-full px-4 py-2.5 rounded border border-border text-sm text-midnight placeholder:text-muted-foreground focus:outline-none bg-card transition";
 
 const DEMO_CALL_TIMEOUT_MS = 30_000;
 

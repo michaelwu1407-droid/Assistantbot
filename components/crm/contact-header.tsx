@@ -127,7 +127,7 @@ export function ContactHeader({ contact }: ContactHeaderProps) {
                     <Bot className="h-3 w-3" /> Direct SMS from workspace number
                   </p>
                   <textarea
-                    className="w-full text-sm border border-input rounded-md px-2 py-1.5 bg-background resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full text-sm border border-input rounded-md px-2 py-1.5 bg-background resize-none focus:outline-none"
                     rows={2}
                     placeholder="Type your message..."
                     value={smsMessage}

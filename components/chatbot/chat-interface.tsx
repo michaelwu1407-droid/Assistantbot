@@ -846,7 +846,7 @@ function ChatWithHistory({
                 }
               }}
               placeholder="Type your message..."
-              className="min-h-[44px] max-h-[120px] w-full resize-none border-0 bg-transparent text-xs md:text-sm py-3 px-3 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/50 placeholder:text-[10px] md:placeholder:text-xs scrollbar-hide"
+              className="min-h-[44px] max-h-[120px] w-full resize-none border-0 bg-transparent text-xs md:text-sm py-3 px-3 placeholder:text-muted-foreground/50 placeholder:text-[10px] md:placeholder:text-xs scrollbar-hide"
               rows={1}
               ref={(ref) => {
                 if (ref) {
