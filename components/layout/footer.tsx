@@ -42,6 +42,12 @@ export function Footer() {
           >
             Terms
           </Link>
+          <Link
+            href="/cookies"
+            className="hover:text-foreground transition-colors"
+          >
+            Website tech
+          </Link>
         </nav>
       </div>
     </footer>
