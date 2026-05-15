@@ -21,6 +21,17 @@ const TRADE_ICONS: Record<string, typeof Zap> = {
   hvac: Thermometer,
 };
 
+const CTA_INDUSTRIES: Record<string, string> = {
+  electricians: "electrical business",
+  plumbers: "plumbing business",
+  landscapers: "landscaping business",
+  cleaners: "cleaning business",
+  "pest-control": "pest control business",
+  locksmiths: "locksmith business",
+  painters: "painting business",
+  hvac: "HVAC business",
+};
+
 type RouteParams = {
   slug: string;
 };
@@ -55,6 +66,7 @@ export default async function SolutionDetailPage({
 
   const jobTypes = solution.heroDetail.split(" · ").map((s) => s.trim());
   const TradeIcon = TRADE_ICONS[solution.slug] ?? Sparkles;
+  const ctaIndustry = CTA_INDUSTRIES[solution.slug] ?? `${solution.summaryTitle.toLowerCase()} business`;
 
   return (
     <div className="min-h-screen bg-card text-foreground">
@@ -213,16 +225,16 @@ export default async function SolutionDetailPage({
         <section className="bg-[linear-gradient(135deg,#0f172a_0%,#065f46_100%)] px-6 py-20 text-white">
           <div className="mx-auto max-w-4xl flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div className="max-w-xl">
-              <h2 className="text-3xl font-extrabold tracking-[-0.03em] md:text-4xl">
-                Ready to try it for your {solution.navLabel.toLowerCase()} business?
+              <h2 className="text-3xl font-extrabold tracking-[-0.03em] text-white md:text-4xl">
+                Ready to see what Tracey can do for your {ctaIndustry}?
               </h2>
-              <p className="mt-3 text-sm leading-7 text-white/70">
+              <p className="mt-3 text-sm leading-7 text-white/80">
                 No contracts. No complexity. Tracey can be answering your calls today.
               </p>
             </div>
             <div className="flex flex-wrap gap-3 shrink-0">
               <Link href="/solutions">
-                <Button variant="ghost" className="border-white/30 text-white hover:bg-card/10">
+                <Button variant="ghost" className="border-white/30 text-white hover:bg-card/10 hover:text-white">
                   Back to Trade services
                 </Button>
               </Link>
