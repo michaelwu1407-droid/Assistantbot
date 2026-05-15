@@ -662,14 +662,12 @@ export default function FeaturesPage() {
         {([
           {
             key: "ai",
-            kicker: "Half one",
             heading: "The AI Voice Assistant",
             blurb: "Tracey answers every call and text 24/7, qualifies the lead against your rules, and writes everything she does into the CRM.",
             indices: [0, 3, 5],
           },
           {
             key: "crm",
-            kicker: "Half two",
             heading: "The CRM that runs itself",
             blurb: "A full-featured CRM that auto-fills as Tracey works — pipeline, scheduling, invoicing and analytics, all driven by chat or WhatsApp.",
             indices: [1, 2, 4],
@@ -678,10 +676,7 @@ export default function FeaturesPage() {
           <div key={group.key}>
             <section className={`px-6 pt-20 pb-6 ${groupIdx === 0 ? "bg-card" : "bg-[#F8FAFC]"} border-b border-border/60`}>
               <div className="mx-auto max-w-6xl text-center">
-                <motion.p {...fadeUp()} className="text-[11px] font-bold uppercase tracking-[0.28em] text-emerald-600">
-                  {group.kicker}
-                </motion.p>
-                <motion.h2 {...fadeUp(0.04)} className="mt-3 text-3xl md:text-5xl font-extrabold tracking-[-0.03em] text-midnight">
+                <motion.h2 {...fadeUp(0.04)} className="text-3xl md:text-5xl font-extrabold tracking-[-0.03em] text-midnight">
                   {group.heading}
                 </motion.h2>
                 <motion.p {...fadeUp(0.08)} className="mx-auto mt-3 max-w-2xl text-base leading-7 text-muted-foreground">
