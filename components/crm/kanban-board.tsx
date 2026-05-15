@@ -27,6 +27,7 @@ import {
 import { DealCard, type DealCardDecision } from "./deal-card"
 import { HoverScrollName } from "@/components/ui/hover-scroll-name"
 import { DealDetailModal } from "./deal-detail-modal"
+import { DealEditModal } from "./deal-edit-modal"
 import { Plus, Trash2, UserPlus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -186,7 +187,7 @@ function DroppableColumn({ id, children }: { id: string; children: React.ReactNo
       ref={setNodeRef}
       className={cn(
         "flex min-h-0 flex-col gap-3 transition-colors",
-        isOver ? "rounded-[18px] bg-primary/5" : ""
+        isOver ? "rounded-md bg-primary/5" : ""
       )}
     >
       {children}
@@ -355,6 +356,8 @@ export function KanbanBoard({
   const [modalOpen, setModalOpen] = useState(false)
   const [pendingMoveToScheduled, setPendingMoveToScheduled] = useState<{ dealId: string; dealTitle: string } | null>(null)
   const [pendingScheduleDate, setPendingScheduleDate] = useState<{ dealId: string; dealTitle: string } | null>(null)
+  const [editModalDealId, setEditModalDealId] = useState<string | null>(null)
+  const [editModalOpen, setEditModalOpen] = useState(false)
   const [assignModalUserId, setAssignModalUserId] = useState<string>("")
   const [assignModalSubmitting, setAssignModalSubmitting] = useState(false)
   const hasDragged = useRef(false)
@@ -1043,7 +1046,7 @@ export function KanbanBoard({
                 return (
                   <div
                     key={col.id}
-                    className="kanban-column-panel flex min-w-0 flex-col gap-3 bg-black/[0.03] px-2 py-2.5 dark:bg-card/[0.03] max-md:rounded-[18px] md:rounded-none md:rounded-b-[18px] md:px-1.5 md:pt-2"
+                    className="kanban-column-panel flex min-w-0 flex-col gap-3 bg-black/[0.03] px-2 py-2.5 dark:bg-card/[0.03] max-md:rounded-md md:rounded-none md:rounded-b-md md:px-1.5 md:pt-2"
                   >
                     {/* Mobile: header inline; desktop: header is above scroll area */}
                     <div className="md:hidden">
@@ -1119,7 +1122,7 @@ export function KanbanBoard({
                         ) : (
                           <button
                             type="button"
-                            className="flex w-full items-center justify-center gap-2 rounded-[18px] border border-dashed border-border/30 py-2 text-[11px] font-bold text-muted-foreground/50 transition-all hover:border-primary/50 hover:text-primary"
+                            className="flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-border/30 py-2 text-[11px] font-bold text-muted-foreground/50 transition-all hover:border-primary/50 hover:text-primary"
                             onClick={() => openNewDealModalForColumn(col.id)}
                           >
                             <Plus className="h-3.5 w-3.5" />
@@ -1156,7 +1159,7 @@ export function KanbanBoard({
       />
 
       <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
-        <AlertDialogContent className="rounded-[18px]">
+        <AlertDialogContent className="rounded-md">
           <AlertDialogHeader>
             <AlertDialogTitle>Move {selectedDealIds.length} job{selectedDealIds.length === 1 ? "" : "s"} to Deleted?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1180,7 +1183,7 @@ export function KanbanBoard({
 
       {/* Assign team member before moving to Scheduled */}
       <Dialog open={!!pendingMoveToScheduled} onOpenChange={(open) => !open && setPendingMoveToScheduled(null)}>
-        <DialogContent className="rounded-[18px] sm:max-w-md">
+        <DialogContent className="ott-dialog max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <UserPlus className="w-5 h-5" />
@@ -1232,7 +1235,7 @@ export function KanbanBoard({
       </Dialog>
 
       <Dialog open={!!pendingScheduleDate} onOpenChange={(open) => !open && setPendingScheduleDate(null)}>
-        <DialogContent className="rounded-[18px] sm:max-w-md">
+        <DialogContent className="ott-dialog max-w-md">
           <DialogHeader>
             <DialogTitle>Set a scheduled date first</DialogTitle>
             <DialogDescription>
@@ -1246,15 +1249,25 @@ export function KanbanBoard({
               Cancel
             </Button>
             {pendingScheduleDate && (
-              <Button asChild>
-                <Link href={`/crm/deals/${pendingScheduleDate.dealId}/edit`}>
-                  Open Job
-                </Link>
+              <Button onClick={() => {
+                setEditModalDealId(pendingScheduleDate.dealId)
+                setEditModalOpen(true)
+                setPendingScheduleDate(null)
+              }}>
+                Edit Job
               </Button>
             )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <DealEditModal
+        dealId={editModalDealId}
+        open={editModalOpen}
+        onOpenChange={(open) => { setEditModalOpen(open); if (!open) setEditModalDealId(null) }}
+        onDealUpdated={() => setDeals(initialDeals)}
+        currentUserRole={currentUserRole}
+      />
     </DndContext>
   )
 }

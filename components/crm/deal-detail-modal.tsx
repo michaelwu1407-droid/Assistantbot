@@ -112,7 +112,7 @@ export function DealDetailModal({ dealId, open, onOpenChange, currentUserRole = 
         onOpenChange(nextOpen)
       }}
     >
-      <DialogContent className="w-[calc(100vw-2rem)] max-w-[1440px] h-[90vh] overflow-hidden rounded-[18px] flex flex-col p-0 gap-0" aria-describedby={undefined}>
+      <DialogContent className="ott-dialog max-w-[1440px] h-[90vh] overflow-hidden flex flex-col p-0 gap-0" aria-describedby={undefined}>
         <DialogTitle className="sr-only">Deal details</DialogTitle>
         {loading && (
           <div className="flex items-center justify-center flex-1 min-h-[200px]">

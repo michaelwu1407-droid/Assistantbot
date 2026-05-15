@@ -48,7 +48,7 @@ export default async function DealEditPage({ params }: PageProps) {
   const stage = PRISMA_STAGE_TO_UI_STAGE[deal.stage] ?? "new_request"
 
   return (
-    <div className="flex flex-col max-w-2xl mx-auto p-4 md:p-6 gap-6">
+    <div className="flex flex-col max-w-2xl mx-auto p-4 md:p-6 gap-6 min-h-0 overflow-y-auto">
       <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm text-muted-foreground">
         <Link href="/crm/dashboard" className="inline-flex items-center gap-1 hover:text-foreground transition-colors">
           <Home className="h-4 w-4" />
@@ -70,7 +70,7 @@ export default async function DealEditPage({ params }: PageProps) {
         >
           <ChevronLeft className="w-5 h-5" />
         </Link>
-        <h1 className="text-xl font-bold text-foreground">Edit deal</h1>
+        <h1 className="app-page-title">Edit deal</h1>
       </div>
 
       <DealEditForm

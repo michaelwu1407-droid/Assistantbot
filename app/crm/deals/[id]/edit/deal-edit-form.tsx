@@ -33,6 +33,7 @@ interface DealEditFormProps {
   canManageAssignment?: boolean
   stageOptions: { value: string; label: string }[]
   initialRecurrence?: RecurrenceRule | null
+  onSaved?: () => void
 }
 
 export function DealEditForm({
@@ -49,6 +50,7 @@ export function DealEditForm({
   canManageAssignment = true,
   stageOptions,
   initialRecurrence,
+  onSaved,
 }: DealEditFormProps) {
   const router = useRouter()
   const [title, setTitle] = useState(initialTitle)
@@ -108,8 +110,12 @@ export function DealEditForm({
         : null
       await setDealRecurrence(dealId, recurrenceRule)
       toast.success("Deal updated")
-      router.push(`/crm/deals/${dealId}`)
-      router.refresh()
+      if (onSaved) {
+        onSaved()
+      } else {
+        router.push(`/crm/deals/${dealId}`)
+        router.refresh()
+      }
     } catch {
       toast.error("Something went wrong")
     } finally {
@@ -164,7 +170,7 @@ export function DealEditForm({
       </div>
 
       {/* Recurrence */}
-      <div className="space-y-3 rounded-lg border border-border dark:border-slate-700 p-4 max-w-md">
+      <div className="space-y-3 rounded-md border border-border p-4 max-w-md">
         <div className="flex items-center justify-between">
           <div>
             <Label className="font-medium">Repeat this job</Label>
@@ -175,7 +181,7 @@ export function DealEditForm({
         {isRecurring && (
           <div className="space-y-3 pt-1">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground dark:text-muted-foreground shrink-0">Every</span>
+              <span className="app-body-secondary shrink-0">Every</span>
               <Input
                 type="number"
                 min={1}
@@ -197,7 +203,7 @@ export function DealEditForm({
               </Select>
             </div>
             <div className="space-y-1">
-              <Label htmlFor="recurrence-end" className="text-xs text-muted-foreground dark:text-muted-foreground">End date (optional)</Label>
+              <Label htmlFor="recurrence-end" className="app-field-label">End date (optional)</Label>
               <Input
                 id="recurrence-end"
                 type="date"
@@ -257,7 +263,7 @@ export function DealEditForm({
         <Button type="submit" disabled={saving}>
           {saving ? "Saving…" : "Save changes"}
         </Button>
-        <Button type="button" variant="outline" onClick={() => router.push(`/crm/deals/${dealId}`)}>
+        <Button type="button" variant="outline" onClick={() => onSaved ? onSaved() : router.push(`/crm/deals/${dealId}`)}>
           Cancel
         </Button>
       </div>
