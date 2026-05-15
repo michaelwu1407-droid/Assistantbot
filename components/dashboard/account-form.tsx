@@ -233,7 +233,7 @@ export function AccountForm({ userId, email }: AccountFormProps) {
       </div>
 
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="ott-dialog sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle className="text-destructive flex items-center gap-2">
               <AlertTriangle className="h-5 w-5" />

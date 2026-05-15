@@ -132,7 +132,7 @@ export function AutomationList({ initialAutomations, workspaceId }: AutomationLi
                             New Rule
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-md">
+                    <DialogContent className="ott-dialog sm:max-w-md">
                         <DialogHeader>
                             <DialogTitle>Create Automation</DialogTitle>
                             <DialogDescription>

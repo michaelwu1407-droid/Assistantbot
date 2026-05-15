@@ -143,7 +143,7 @@ export function PersonalPhoneDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[min(calc(100vw-1.5rem),34rem)] p-0">
+      <DialogContent className="ott-dialog w-[min(calc(100vw-1.5rem),34rem)] p-0">
         <div className="border-b border-border/80 px-6 py-5 dark:border-white/10">
           <DialogHeader className="space-y-2">
             <DialogTitle className="flex items-center gap-2">

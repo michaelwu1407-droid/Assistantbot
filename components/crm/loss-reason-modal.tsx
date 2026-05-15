@@ -54,7 +54,7 @@ export function LossReasonModal({ open, onOpenChange, deal, onConfirm }: LossRea
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="ott-dialog max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <XCircle className="h-5 w-5 text-destructive" />

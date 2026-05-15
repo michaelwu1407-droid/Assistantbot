@@ -12,7 +12,7 @@ interface ActivityModalProps {
 export function ActivityModal({ isOpen, onClose, workspaceId }: ActivityModalProps) {
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="h-[min(84vh,48rem)] w-[min(calc(100vw-1.5rem),46rem)] flex flex-col p-0">
+            <DialogContent className="ott-dialog h-[min(84vh,48rem)] w-[min(calc(100vw-1.5rem),46rem)] flex flex-col p-0">
                 <DialogHeader className="border-b border-emerald-100/80 bg-[linear-gradient(180deg,rgba(16,185,129,0.08),rgba(255,255,255,0.4))] px-6 pb-4 pt-6 dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(16,185,129,0.12),rgba(255,255,255,0.03))]">
                     <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-emerald-700/80 dark:text-emerald-300/80">
                         Dashboard Activity

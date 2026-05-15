@@ -998,7 +998,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
         </div>
       </div>
       <Dialog open={customDateDialogOpen} onOpenChange={setCustomDateDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="ott-dialog sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Custom time period</DialogTitle>
             <DialogDescription>

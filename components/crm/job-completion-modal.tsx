@@ -152,7 +152,7 @@ export function JobCompletionModal({ open, onOpenChange, deal, onComplete }: Job
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="ott-dialog max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <CheckCircle className="h-5 w-5 text-green-600" />

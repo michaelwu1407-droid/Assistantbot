@@ -96,7 +96,7 @@ export function MaterialPicker({ onSelect, trigger, workspaceId: propWorkspaceId
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="p-0 gap-0 bg-slate-900 border-slate-800 text-slate-50 overflow-hidden sm:max-w-[400px]">
+        <DialogContent className="ott-dialog p-0 gap-0 bg-slate-900 border-slate-800 text-slate-50 overflow-hidden sm:max-w-[400px]">
           <DialogHeader className="sr-only">
             <DialogTitle>Search Materials</DialogTitle>
           </DialogHeader>

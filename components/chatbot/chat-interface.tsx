@@ -894,7 +894,7 @@ function ChatWithHistory({
       </div>
       {digestModal && (
         <Dialog open={true} onOpenChange={(open) => { if (!open) setDigestModal(null); }}>
-          <DialogContent className="sm:max-w-2xl lg:max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="ott-dialog sm:max-w-2xl lg:max-w-3xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {digestModal.kind === "morning" ? "Morning Briefing" : "Evening Wrap-Up"} - {digestModal.digest.date}

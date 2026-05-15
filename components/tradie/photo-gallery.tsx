@@ -60,7 +60,7 @@ export function PhotoGallery({ photos, onRemove }: PhotoGalleryProps) {
                             )}
                         </div>
                     </DialogTrigger>
-                    <DialogContent className="max-w-2xl p-0 overflow-hidden bg-black border-none">
+                    <DialogContent className="ott-dialog max-w-2xl p-0 overflow-hidden bg-black border-none">
                         <div className="relative w-full h-[80vh] flex items-center justify-center">
                             <Image
                                 src={photo.url}

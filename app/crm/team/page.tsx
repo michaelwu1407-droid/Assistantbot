@@ -231,7 +231,7 @@ export default function TeamPage() {
                             Invite Member
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="rounded-md">
+                    <DialogContent className="ott-dialog rounded-md">
                         <DialogHeader>
                             <DialogTitle>Invite a Team Member</DialogTitle>
                             <DialogDescription>
@@ -417,7 +417,7 @@ export default function TeamPage() {
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
                                                 </AlertDialogTrigger>
-                                                <AlertDialogContent className="rounded-md">
+                                                <AlertDialogContent className="ott-dialog rounded-md">
                                                     <AlertDialogHeader>
                                                         <AlertDialogTitle>Remove {member.name || member.email}?</AlertDialogTitle>
                                                         <AlertDialogDescription>

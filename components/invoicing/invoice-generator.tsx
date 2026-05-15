@@ -77,7 +77,7 @@ export function InvoiceGenerator({ invoiceId, invoiceNumber }: InvoiceGeneratorP
                 <FileText className="mr-2 h-4 w-4" />
                 View / Print
             </Button>
-            <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+            <DialogContent className="ott-dialog max-w-4xl h-[90vh] flex flex-col">
                 <DialogHeader>
                     <DialogTitle>Invoice {invoiceNumber}</DialogTitle>
                     <DialogDescription>

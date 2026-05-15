@@ -166,7 +166,7 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="ott-dialog max-w-2xl">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-amber-600" />

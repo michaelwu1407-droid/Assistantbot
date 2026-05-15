@@ -1159,7 +1159,7 @@ export function KanbanBoard({
       />
 
       <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
-        <AlertDialogContent className="rounded-md">
+        <AlertDialogContent className="ott-dialog rounded-md">
           <AlertDialogHeader>
             <AlertDialogTitle>Move {selectedDealIds.length} job{selectedDealIds.length === 1 ? "" : "s"} to Deleted?</AlertDialogTitle>
             <AlertDialogDescription>

@@ -212,7 +212,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="flex max-h-[calc(100dvh-1rem)] w-[min(calc(100vw-1.5rem),54rem)] flex-col overflow-hidden p-0">
+            <DialogContent className="ott-dialog flex max-h-[calc(100dvh-1rem)] w-[min(calc(100vw-1.5rem),54rem)] flex-col overflow-hidden p-0">
                 <DialogHeader className="shrink-0 border-b border-emerald-100/80 bg-[linear-gradient(180deg,rgba(16,185,129,0.08),rgba(255,255,255,0.5))] px-6 pb-5 pt-6 dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(16,185,129,0.12),rgba(255,255,255,0.03))]">
                     <DialogTitle className="mt-1">Create new job</DialogTitle>
                 </DialogHeader>

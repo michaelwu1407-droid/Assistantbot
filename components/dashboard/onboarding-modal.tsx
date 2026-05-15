@@ -32,7 +32,7 @@ export function OnboardingModal() {
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="ott-dialog sm:max-w-[425px]">
                 <DialogHeader>
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 mb-4">
                         <Sparkles className="h-6 w-6 text-emerald-600" />

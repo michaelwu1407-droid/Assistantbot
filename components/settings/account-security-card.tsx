@@ -242,7 +242,7 @@ export function AccountSecurityCard({ userId, businessName = "" }: AccountSecuri
           setDeleteDialogOpen(open)
         }}
       >
-        <DialogContent className="w-[min(calc(100vw-1.5rem),38rem)] rounded-md">
+        <DialogContent className="ott-dialog w-[min(calc(100vw-1.5rem),38rem)] rounded-md">
           <DialogHeader className="border-b border-border/70 px-6 pb-4 pt-6 dark:border-white/10">
             <DialogTitle className="flex items-center gap-2 text-destructive dark:text-destructive">
               <AlertTriangle className="h-5 w-5" />

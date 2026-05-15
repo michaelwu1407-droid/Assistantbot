@@ -175,7 +175,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="sm:max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+                <DialogContent className="ott-dialog sm:max-w-md max-h-[90vh] overflow-hidden flex flex-col">
                     {!completed ? (
                         <>
                             <DialogHeader>

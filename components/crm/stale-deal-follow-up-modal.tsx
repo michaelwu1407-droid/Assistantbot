@@ -166,7 +166,7 @@ export function StaleDealFollowUpModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100vh-2rem)] max-w-2xl overflow-y-auto">
+      <DialogContent className="ott-dialog max-h-[calc(100vh-2rem)] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-amber-600" />

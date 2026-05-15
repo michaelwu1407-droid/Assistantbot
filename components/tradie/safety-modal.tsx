@@ -52,7 +52,7 @@ export function SafetyModal({ open, onOpenChange, onConfirm, dealId }: SafetyMod
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="ott-dialog sm:max-w-[425px]">
                 <DialogHeader>
                     <div className="mx-auto bg-amber-100 p-3 rounded-full mb-4">
                         <AlertTriangle className="h-6 w-6 text-amber-600" />
