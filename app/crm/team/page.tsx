@@ -270,7 +270,7 @@ export default function TeamPage() {
                             </div>
 
                             {inviteError && (
-                                <div className="rounded-md border border-red-200 bg-red-50 p-3">
+                                <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3">
                                     <p className="text-sm text-destructive">{inviteError}</p>
                                 </div>
                             )}
@@ -411,7 +411,7 @@ export default function TeamPage() {
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
-                                                        className="h-9 w-9 rounded-full text-red-400 hover:bg-red-50 hover:text-destructive"
+                                                        className="h-9 w-9 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
                                                         title="Remove from team"
                                                     >
                                                         <Trash2 className="h-4 w-4" />
@@ -428,7 +428,7 @@ export default function TeamPage() {
                                                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                                                         <AlertDialogAction
                                                             onClick={() => handleRemoveMember(member.id)}
-                                                            className="bg-red-600 hover:bg-red-700"
+                                                            className="bg-destructive hover:bg-destructive"
                                                         >
                                                             Remove
                                                         </AlertDialogAction>
@@ -498,7 +498,7 @@ export default function TeamPage() {
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="h-9 w-9 rounded-full text-red-400 hover:bg-red-50 hover:text-destructive"
+                                                    className="h-9 w-9 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
                                                     onClick={() => handleRevoke(invite.id)}
                                                 >
                                                     <Trash2 className="h-4 w-4" />

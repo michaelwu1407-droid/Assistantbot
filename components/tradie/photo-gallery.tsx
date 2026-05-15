@@ -53,7 +53,7 @@ export function PhotoGallery({ photos, onRemove }: PhotoGalleryProps) {
                                         e.stopPropagation();
                                         onRemove(photo.id);
                                     }}
-                                    className="absolute top-2 right-2 bg-black/50 hover:bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                    className="absolute top-2 right-2 bg-black/50 hover:bg-destructive text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
                                     <X className="h-4 w-4" />
                                 </button>

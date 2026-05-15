@@ -1451,7 +1451,7 @@ export function TraceyOnboarding() {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => removeDocument(index)}
-                                className="h-6 w-6 text-muted-foreground hover:text-red-500 shrink-0"
+                                className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -1533,7 +1533,7 @@ export function TraceyOnboarding() {
                               Set up a forwarding rule from your email to: <strong className="text-emerald-600">{preGenLeadsEmail || "Loading..."}</strong>
                             </p>
                             {leadCaptureEmailReadiness && !leadCaptureEmailReadiness.ready && (
-                              <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                              <p className="mt-1 text-xs text-destructive dark:text-destructive">
                                 Inbound email is not live yet. Do not forward leads until DNS is fixed.
                               </p>
                             )}
@@ -1590,12 +1590,12 @@ export function TraceyOnboarding() {
                     )}
 
                     {inboxConnectionType === "forward" && preGenLeadsEmail && (
-                      <div className={`${leadCaptureStatusCopy.tone === "blocked" ? "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800" : leadCaptureStatusCopy.tone === "verified" ? "bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800" : "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"} border rounded-lg p-4`}>
-                        <p className={`text-xs mb-2 ${leadCaptureStatusCopy.tone === "blocked" ? "text-red-800 dark:text-red-200" : leadCaptureStatusCopy.tone === "verified" ? "text-amber-800 dark:text-amber-200" : "text-emerald-800 dark:text-emerald-200"}`}>
+                      <div className={`${leadCaptureStatusCopy.tone === "blocked" ? "bg-destructive/10 border-destructive/30 dark:border-destructive/30" : leadCaptureStatusCopy.tone === "verified" ? "bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-800" : "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"} border rounded-lg p-4`}>
+                        <p className={`text-xs mb-2 ${leadCaptureStatusCopy.tone === "blocked" ? "text-destructive dark:text-destructive" : leadCaptureStatusCopy.tone === "verified" ? "text-amber-800 dark:text-amber-200" : "text-emerald-800 dark:text-emerald-200"}`}>
                           <strong>{leadCaptureStatusCopy.title}</strong>
                         </p>
                         <div className="flex items-center gap-2">
-                          <code className={`flex-1 bg-card dark:bg-slate-900 px-3 py-2 rounded text-sm font-mono select-all ${leadCaptureStatusCopy.tone === "blocked" ? "text-red-700 dark:text-red-300" : leadCaptureStatusCopy.tone === "verified" ? "text-amber-700 dark:text-amber-300" : "text-emerald-700 dark:text-emerald-400"}`}>
+                          <code className={`flex-1 bg-card dark:bg-slate-900 px-3 py-2 rounded text-sm font-mono select-all ${leadCaptureStatusCopy.tone === "blocked" ? "text-destructive dark:text-destructive" : leadCaptureStatusCopy.tone === "verified" ? "text-amber-700 dark:text-amber-300" : "text-emerald-700 dark:text-emerald-400"}`}>
                             {preGenLeadsEmail}
                           </code>
                           <Button 
@@ -1610,7 +1610,7 @@ export function TraceyOnboarding() {
                           </Button>
                         </div>
                         {leadCaptureStatusCopy.tone === "blocked" ? (
-                          <div className="mt-2 text-xs text-red-700 dark:text-red-300">
+                          <div className="mt-2 text-xs text-destructive dark:text-destructive">
                             <p>{leadCaptureStatusCopy.helper}</p>
                             {(leadCaptureEmailReadiness?.issues || []).slice(0, 2).map((issue) => (
                               <p key={issue}>{issue}</p>
@@ -1716,7 +1716,7 @@ export function TraceyOnboarding() {
                               variant="ghost"
                               size="icon"
                               onClick={() => removeService(i)}
-                              className="text-muted-foreground hover:text-red-500 h-8 w-8"
+                              className="text-muted-foreground hover:text-destructive h-8 w-8"
                               disabled={services.length <= 1}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -1779,7 +1779,7 @@ export function TraceyOnboarding() {
                                     Your dedicated AU phone number: <strong className="text-emerald-600 font-mono">{resolvedPhoneNumber}</strong>
                                   </span>
                                 ) : (
-                                  <span className={provisioningStatus === "failed" || provisioningStatus === "blocked_duplicate" ? "text-red-600 dark:text-red-400" : provisioningStatus === "not_requested" ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground dark:text-slate-300"}>
+                                  <span className={provisioningStatus === "failed" || provisioningStatus === "blocked_duplicate" ? "text-destructive dark:text-destructive" : provisioningStatus === "not_requested" ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground dark:text-slate-300"}>
                                     {provisioningStatus === "provisioning" ? (
                                       <span className="flex items-center gap-2">
                                         <Loader2 className="h-3 w-3 animate-spin" />
@@ -1804,7 +1804,7 @@ export function TraceyOnboarding() {
                             </li>
                           </ul>
                           {provisioningError && (
-                            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+                            <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive dark:border-destructive/30 dark:text-destructive">
                               {provisioningError}
                             </div>
                           )}
@@ -1877,7 +1877,7 @@ export function TraceyOnboarding() {
                             )}
                           </div>
                           {inviteError && (
-                            <p className="text-sm text-red-600 dark:text-red-400">{inviteError}</p>
+                            <p className="text-sm text-destructive dark:text-destructive">{inviteError}</p>
                           )}
                         </div>
 

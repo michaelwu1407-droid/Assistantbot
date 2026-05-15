@@ -215,7 +215,7 @@ function MockDealCard({ deal, highlighted }: {
     return (
         <div className={`relative rounded-lg border bg-card p-2.5 mb-2 transition-all ${borderClass} ${highlighted ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}>
             {deal.status === "rotting" && (
-                <div className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded-full flex items-center z-10">
+                <div className="absolute -top-1.5 -right-1.5 bg-destructive text-white text-[8px] px-1.5 py-0.5 rounded-full flex items-center z-10">
                     <AlertCircle className="w-2 h-2 mr-0.5" />Rotting
                 </div>
             )}
@@ -293,11 +293,11 @@ function MockPipelinePreview({ data, highlightType }: {
                     </div>
                 )}
                 {data.stats.rotting > 0 && (
-                    <div className={`text-center rounded px-1 ${highlightStale ? "bg-red-50 ring-1 ring-red-400" : ""}`}>
-                        <div className="flex items-center justify-center gap-1 text-[9px] text-red-800 mb-0.5">
+                    <div className={`text-center rounded px-1 ${highlightStale ? "bg-destructive/10 ring-1 ring-destructive" : ""}`}>
+                        <div className="flex items-center justify-center gap-1 text-[9px] text-destructive mb-0.5">
                             <AlertCircle className="w-2.5 h-2.5 text-destructive" />Rotting
                         </div>
-                        <p className="text-xs font-bold text-red-900">{data.stats.rotting}</p>
+                        <p className="text-xs font-bold text-destructive">{data.stats.rotting}</p>
                     </div>
                 )}
             </div>

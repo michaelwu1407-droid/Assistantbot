@@ -348,8 +348,8 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
           </div>
           <div className="space-y-2">
             {refusalRules.map((rule) => (
-              <div key={rule.id} className="flex items-center justify-between rounded-md border border-red-200 bg-red-50 px-3 py-2">
-                <span className="text-sm text-red-700">{rule.ruleContent}</span>
+              <div key={rule.id} className="flex items-center justify-between rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2">
+                <span className="text-sm text-destructive">{rule.ruleContent}</span>
                 <Button variant="ghost" size="icon" onClick={() => removeRefusalRule(rule.id)} className="h-7 w-7 text-destructive">
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>

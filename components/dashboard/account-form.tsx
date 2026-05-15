@@ -226,7 +226,7 @@ export function AccountForm({ userId, email }: AccountFormProps) {
         <button
           type="button"
           onClick={() => setIsDeleteDialogOpen(true)}
-          className="text-xs text-red-400 hover:text-destructive underline underline-offset-2 transition-colors"
+          className="text-xs text-destructive hover:text-destructive underline underline-offset-2 transition-colors"
         >
           Delete my account
         </button>

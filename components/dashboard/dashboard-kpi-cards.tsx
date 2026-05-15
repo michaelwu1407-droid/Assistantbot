@@ -127,7 +127,7 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
         </div>
       </KpiCardFrame>
 
-      <KpiCardFrame borderClass="border-l-red-700" bgClass="bg-red-100 dark:bg-red-950/45">
+      <KpiCardFrame borderClass="border-l-destructive" bgClass="bg-destructive/15">
         <p className={cn(kpiLabelClass, "min-w-0 flex-1 truncate")}>Attention Required</p>
         <div className="flex min-w-0 items-end justify-between gap-2">
           <KpiMetric>{attentionRequiredCount}</KpiMetric>

@@ -78,7 +78,7 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
                             <h3 className="mb-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">Current Job</h3>
                             <h2 className="text-xl font-black leading-tight text-white">{job.title}</h2>
                             <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-                                <span className={cn("h-2 w-2 rounded-full", job.health?.status === "ROTTING" ? "bg-red-500" : "bg-[#ccff00]")} />
+                                <span className={cn("h-2 w-2 rounded-full", job.health?.status === "ROTTING" ? "bg-destructive" : "bg-[#ccff00]")} />
                                 {secondaryHeaderLabel}
                             </p>
                         </div>

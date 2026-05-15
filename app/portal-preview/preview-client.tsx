@@ -113,8 +113,8 @@ export function PortalPreviewClient() {
                 </div>
 
                 {status === "CANCELLED" ? (
-                  <div className="rounded-md border border-red-200 bg-red-50 p-5 shadow-[0_10px_30px_rgba(239,68,68,0.08)]">
-                    <p className="text-sm font-semibold text-red-700">This appointment has been cancelled.</p>
+                  <div className="rounded-md border border-destructive/30 bg-destructive/10 p-5 shadow-[0_10px_30px_rgba(239,68,68,0.08)]">
+                    <p className="text-sm font-semibold text-destructive">This appointment has been cancelled.</p>
                     <p className="mt-2 text-sm leading-6 text-destructive">
                       Questions? Call Northside Plumbing on 07 5555 0188 and the team can help with a new booking time.
                     </p>

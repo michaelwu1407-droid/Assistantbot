@@ -153,7 +153,7 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
   }
 
   const getStalenessColor = () => {
-    if (isRotting) return "bg-red-100 text-red-800 border-red-200"
+    if (isRotting) return "bg-destructive/15 text-destructive border-destructive/30"
     if (isStale) return "bg-amber-100 text-amber-800 border-amber-200"
     return "bg-blue-100 text-blue-800 border-blue-200"
   }

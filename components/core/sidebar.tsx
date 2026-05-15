@@ -163,7 +163,7 @@ export function Sidebar({ className, expanded }: SidebarProps) {
                             <button
                                 id="logout-btn"
                                 onClick={handleSignOut}
-                                className="flex h-10 w-full items-center justify-center rounded-lg text-muted-foreground hover:bg-red-50 hover:text-red-600 dark:text-muted-foreground dark:hover:bg-red-950/40 dark:hover:text-red-400 transition-colors duration-150"
+                                className="flex h-10 w-full items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive dark:text-muted-foreground dark:hover:text-destructive transition-colors duration-150"
                             >
                                 <LogOut size={20} strokeWidth={1.75} />
                             </button>

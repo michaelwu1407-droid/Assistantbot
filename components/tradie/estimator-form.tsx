@@ -177,7 +177,7 @@ export function EstimatorForm({ deals = [], workspaceId }: EstimatorFormProps) {
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="text-muted-foreground hover:text-red-500 hover:bg-red-50"
+                                    className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                                     onClick={() => handleRemoveItem(index)}
                                     disabled={items.length === 1}
                                 >

@@ -144,7 +144,7 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
                 >
                     <Bell className="h-4 w-4" />
                     {unreadCount > 0 && (
-                        <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500" aria-hidden />
+                        <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-destructive" aria-hidden />
                     )}
                 </button>
             ) : (
@@ -165,7 +165,7 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
                 >
                     <Bell className="h-4 w-4" />
                     {unreadCount > 0 && (
-                        <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500" aria-hidden />
+                        <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-destructive" aria-hidden />
                     )}
                 </Button>
             )}
@@ -230,7 +230,7 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
                                                 ) : (
                                                     <div className={cn(
                                                         "h-2 w-2 rounded-full",
-                                                        n.type === 'ERROR' ? "bg-red-500" :
+                                                        n.type === 'ERROR' ? "bg-destructive" :
                                                             n.type === 'WARNING' ? "bg-amber-500" :
                                                             n.type === 'SUCCESS' ? "bg-emerald-500" : "bg-primary",
                                                         n.read && "bg-slate-300"

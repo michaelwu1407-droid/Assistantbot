@@ -883,7 +883,7 @@ function ChatWithHistory({
               className={cn(
                 "h-8 w-8 shrink-0 rounded-xl transition-all duration-200 mb-1 border",
                 isListening
-                  ? "bg-red-500 hover:bg-red-600 text-white shadow-md shadow-red-500/20 border-destructive animate-pulse"
+                  ? "bg-destructive hover:bg-destructive text-white shadow-md shadow-destructive border-destructive animate-pulse"
                   : "bg-card dark:bg-zinc-900 border-border dark:border-zinc-800 text-muted-foreground dark:text-zinc-400 hover:bg-muted/30 dark:hover:bg-zinc-800 hover:text-foreground dark:hover:text-zinc-300"
               )}
             >
@@ -937,9 +937,9 @@ function ChatWithHistory({
                   ) : (
                     <ul className="space-y-1.5">
                       {digestModal.digest.items.filter(i => i.type === "rotting_deal").map((item, idx) => (
-                        <li key={idx} className="rounded-lg border border-red-200 dark:border-red-700 bg-red-50/70 dark:bg-red-900/40 px-3 py-2">
-                          <p className="text-[11px] font-semibold text-red-800 dark:text-red-100">{item.title}</p>
-                          <p className="text-[11px] text-red-700/90 dark:text-red-200/90 mt-0.5">{item.description}</p>
+                        <li key={idx} className="rounded-lg border border-destructive/30 dark:border-destructive/30 bg-destructive/10 px-3 py-2">
+                          <p className="text-[11px] font-semibold text-destructive dark:text-destructive">{item.title}</p>
+                          <p className="text-[11px] text-destructive dark:text-destructive mt-0.5">{item.description}</p>
                         </li>
                       ))}
                     </ul>

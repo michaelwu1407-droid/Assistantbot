@@ -70,7 +70,7 @@ interface DealCardProps {
 
 /** Overdue bottom strip — 65% colour opacity (design reference: /crm/design/deal-cards). */
 function overdueBannerOverlayClasses(_severity: "critical" | "warning" | "mild" | "none"): string {
-  return "bg-red-500/65 text-white shadow-inner dark:bg-red-600/65"
+  return "bg-destructive/65 text-white shadow-inner dark:bg-destructive"
 }
 
 /** Bottom strip for health / draft / pending — 65% opacity to match overdue / design page. */
@@ -81,11 +81,11 @@ function statusBannerOverlayClasses(label: string): string {
     case "Draft":
       return "bg-indigo-400/65 text-indigo-950 shadow-inner dark:bg-indigo-500/65 dark:text-indigo-950"
     case "Urgent":
-      return "bg-red-400/65 text-red-950 shadow-inner dark:bg-red-500/65 dark:text-red-50"
+      return "bg-destructive/70 text-destructive shadow-inner dark:bg-destructive/65 dark:text-destructive"
     case "Follow up":
       return "bg-amber-400/65 text-amber-950 shadow-inner dark:bg-amber-500/65 dark:text-amber-950"
     case "Rejected":
-      return "bg-red-400/65 text-red-950 shadow-inner dark:bg-red-500/65 dark:text-red-50"
+      return "bg-destructive/70 text-destructive shadow-inner dark:bg-destructive/65 dark:text-destructive"
     case "Needs review":
       return "bg-orange-400/65 text-orange-950 shadow-inner dark:bg-orange-500/65 dark:text-orange-950"
     default:

@@ -437,7 +437,7 @@ export function AuthSelector() {
           <div className={cn(
             "mt-6 p-4 rounded-xl text-center text-sm font-semibold border",
             message.includes("error") || message.includes("Error") || message.includes("already exists") || message.includes("Invalid")
-              ? "bg-red-50 text-red-600 border-red-100"
+              ? "bg-destructive/10 text-destructive border-destructive/30"
               : "bg-mint-50 text-primary border-primary/20"
           )}>
             {message}

@@ -70,8 +70,8 @@ export function DraggableJobCard({ job, isOverlay }: DraggableJobCardProps) {
             case 'CANCELLED':
             case 'LOST':
                 return {
-                    borderColor: 'border-l-red-500',
-                    bgColor: 'bg-red-50',
+                    borderColor: 'border-l-destructive',
+                    bgColor: 'bg-destructive/10',
                     icon: <AlertCircle className="h-3 w-3 text-destructive" />
                 };
             default: // SCHEDULED, PENDING, etc.

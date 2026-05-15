@@ -231,7 +231,7 @@ export function JobCompletionModal({ open, onOpenChange, deal, onComplete }: Job
                 <Label htmlFor="issues">Issues Encountered</Label>
                 <div className="space-y-2">
                   {reviewData.issues.map((issue, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 bg-red-50 border border-red-200 rounded">
+                    <div key={index} className="flex items-center justify-between p-2 bg-destructive/10 border border-destructive/30 rounded">
                       <span className="text-sm">{issue}</span>
                       <Button
                         size="sm"

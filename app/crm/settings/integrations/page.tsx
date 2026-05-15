@@ -233,7 +233,7 @@ export default function IntegrationsPage() {
                         <div className="grid grid-cols-2 gap-4">
                             <Button
                                 variant="outline"
-                                className="h-auto py-4 px-6 flex flex-col items-center gap-2 hover:border-destructive/50 hover:bg-red-50/50 transition-all"
+                                className="h-auto py-4 px-6 flex flex-col items-center gap-2 hover:border-destructive/50 hover:bg-destructive/10 transition-all"
                                 onClick={() => handleConnectEmail("gmail")}
                                 disabled={!readiness.gmail.ready}
                                 title={readiness.gmail.ready ? "Connect Gmail for lead capture" : readiness.gmail.reason}

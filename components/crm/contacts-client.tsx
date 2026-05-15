@@ -563,7 +563,7 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
                 void handleDelete()
               }}
               disabled={sending}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive"
             >
               {sending ? "Deleting..." : "Delete contacts"}
             </AlertDialogAction>

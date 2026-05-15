@@ -369,7 +369,7 @@ function DealDetailContent({
         <div
           className={cn(
             "flex shrink-0 items-center justify-between gap-3 border-b px-4 py-2.5 text-sm text-white",
-            overdueStyling.severity === "critical" && "bg-red-500",
+            overdueStyling.severity === "critical" && "bg-destructive",
             overdueStyling.severity === "warning" && "bg-orange-500",
             (overdueStyling.severity === "mild" || overdueStyling.severity === "none") && "bg-amber-500"
           )}
@@ -439,11 +439,11 @@ function DealDetailContent({
         </div>
       )}
       {isRejected && !isPendingApproval && (
-        <div className="bg-red-50 border-b border-red-200 p-3 shrink-0 flex items-center gap-2 text-red-800 text-sm">
-          <span className="flex h-2 w-2 rounded-full bg-red-500" />
+        <div className="bg-destructive/10 border-b border-destructive/30 p-3 shrink-0 flex items-center gap-2 text-destructive text-sm">
+          <span className="flex h-2 w-2 rounded-full bg-destructive" />
           <strong>Completion was rejected.</strong>
           {metadata.completionRejectionReason != null && (
-            <span className="text-red-700">Reason: {String(metadata.completionRejectionReason)}</span>
+            <span className="text-destructive">Reason: {String(metadata.completionRejectionReason)}</span>
           )}
           <span>Edit the job and move it back to Completed when ready, or a manager can approve from here if it’s pending again.</span>
         </div>

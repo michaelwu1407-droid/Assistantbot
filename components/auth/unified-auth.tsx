@@ -667,7 +667,7 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
           <div className={cn(
             "mt-6 p-4 rounded-xl text-center text-sm font-semibold border",
             state.message.includes("error") || state.message.includes("Error") || state.message.includes("already exists") || state.message.includes("Invalid")
-              ? "bg-red-50 text-red-600 border-red-100"
+              ? "bg-destructive/10 text-destructive border-destructive/30"
               : "bg-mint-50 text-primary border-primary/20"
           )}>
             {state.message}

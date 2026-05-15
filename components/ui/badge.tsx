@@ -30,7 +30,7 @@ const badgeVariants = cva(
                 complete:
                     "bg-neutral-100 text-neutral-500",
                 error:
-                    "bg-red-50 text-red-500",
+                    "bg-destructive/10 text-destructive",
             },
         },
         defaultVariants: {

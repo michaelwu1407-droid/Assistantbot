@@ -20,11 +20,11 @@ function DealCard({ deal }: { deal: any }) {
   return (
     <div className={cn(
       "p-3 rounded-lg border shadow-sm text-sm mb-3 cursor-pointer hover:shadow-md transition-shadow",
-      isRotting ? "bg-red-50 border-red-200" : "bg-card border-border"
+      isRotting ? "bg-destructive/10 border-destructive/30" : "bg-card border-border"
     )}>
       <div className="flex justify-between items-start mb-2">
         <span className="font-semibold text-foreground">{deal.title}</span>
-        {isRotting && <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">ROTTING</span>}
+        {isRotting && <span className="text-[10px] font-bold text-destructive bg-destructive/15 px-1.5 py-0.5 rounded">ROTTING</span>}
       </div>
       <div className="flex justify-between text-muted-foreground text-xs">
         <span>{deal.contactName}</span>

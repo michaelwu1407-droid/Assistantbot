@@ -30,7 +30,7 @@ export function PulseWidget({
                 Wk: {formatCurrency(weeklyRevenue)}
             </span>
             <span className={cn("mx-2", isAgent ? "text-slate-300" : "text-muted-foreground")}>|</span>
-            <span className={cn("text-sm font-medium", isAgent ? "text-muted-foreground" : "text-red-400")}>
+            <span className={cn("text-sm font-medium", isAgent ? "text-muted-foreground" : "text-destructive")}>
                 {isAgent ? "Pipeline" : "Owe"}: {formatCurrency(outstandingDebt)}
             </span>
         </div>
