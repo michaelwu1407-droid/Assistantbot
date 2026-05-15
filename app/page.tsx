@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Navbar } from "@/components/layout/navbar";
+import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { requestDemoCall } from "@/actions/demo-call-action";
 
@@ -524,41 +525,7 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* Footer */}
-            <footer className="bg-midnight text-white/55 py-16 px-6">
-                <div className="container mx-auto max-w-6xl">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-10 pb-12 border-b border-white/10">
-                        <div className="col-span-2 md:col-span-1 flex flex-col gap-4">
-                            <div className="flex items-center gap-2.5">
-                                <Image src="/latest-logo.png" alt="Earlymark" width={32} height={32} className="h-8 w-8 object-contain" unoptimized />
-                                <span className="text-white font-bold text-lg tracking-tight">Earlymark</span>
-                            </div>
-                            <p className="text-sm leading-relaxed max-w-xs">AI-powered assistant and CRM for the modern business.</p>
-                        </div>
-                        <div className="flex flex-col gap-3">
-                            <h4 className="text-white font-semibold text-xs uppercase tracking-widest">Company</h4>
-                            {[{label:"Home",href:"/"},{label:"Product",href:"/features"},{label:"Solutions",href:"/solutions"},{label:"Pricing",href:"/pricing"},{label:"Contact",href:"/contact"}].map((l) => (
-                                <Link key={l.label} href={l.href} className="text-sm hover:text-white transition-colors">{l.label}</Link>
-                            ))}
-                        </div>
-                        <div className="flex flex-col gap-3">
-                            <h4 className="text-white font-semibold text-xs uppercase tracking-widest">Legal</h4>
-                            {[{label:"Terms of Service",href:"/terms"},{label:"Privacy Policy",href:"/privacy"},{label:"Cookie Policy",href:"/cookies"}].map((l) => (
-                                <Link key={l.label} href={l.href} className="text-sm hover:text-white transition-colors">{l.label}</Link>
-                            ))}
-                        </div>
-                        <div className="flex flex-col gap-3">
-                            <h4 className="text-white font-semibold text-xs uppercase tracking-widest">Socials</h4>
-                            {[{label:"LinkedIn",href:"https://linkedin.com"},{label:"Instagram",href:"https://instagram.com"},{label:"Facebook",href:"https://facebook.com"},{label:"Twitter / X",href:"https://x.com"}].map((l) => (
-                                <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer" className="text-sm hover:text-white transition-colors">{l.label}</a>
-                            ))}
-                        </div>
-                    </div>
-                    <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-                        <p className="text-sm">© {new Date().getFullYear()} Earlymark. All rights reserved.</p>
-                    </div>
-                </div>
-            </footer>
+            <Footer />
         </div>
     );
 }

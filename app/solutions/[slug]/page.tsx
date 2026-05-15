@@ -73,10 +73,10 @@ export default async function SolutionDetailPage({
                 {solution.eyebrow}
               </p>
             </div>
-            <h1 className="text-4xl font-extrabold tracking-[-0.03em] leading-tight md:text-6xl text-balance">
+            <h1 className="text-4xl font-extrabold tracking-[-0.03em] leading-tight text-white md:text-6xl text-balance">
               {solution.title}
             </h1>
-            <p className="text-lg leading-8 text-white/80 max-w-2xl">
+            <p className="text-lg leading-8 text-white/85 max-w-2xl">
               {solution.summary}
             </p>
 
@@ -104,6 +104,18 @@ export default async function SolutionDetailPage({
                   Get a demo
                 </Button>
               </Link>
+            </div>
+
+            <div className="grid gap-3 pt-4 sm:grid-cols-3">
+              {[
+                "Answers while you are on site",
+                "Captures address, urgency, and job type",
+                "Keeps quotes and follow-ups moving",
+              ].map((item) => (
+                <div key={item} className="rounded border border-white/15 bg-white/10 px-4 py-3 text-sm font-medium leading-5 text-white shadow-sm backdrop-blur">
+                  {item}
+                </div>
+              ))}
             </div>
           </div>
         </section>

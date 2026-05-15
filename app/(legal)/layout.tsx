@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { Footer } from "@/components/layout/footer";
 
 export default function LegalLayout({
   children,
@@ -20,6 +21,7 @@ export default function LegalLayout({
         </div>
       </header>
       <main className="max-w-3xl mx-auto px-6 py-12">{children}</main>
+      <Footer />
     </div>
   );
 }

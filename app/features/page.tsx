@@ -177,6 +177,57 @@ const TESTIMONIALS = [
   },
 ]
 
+const PRODUCT_AREAS = [
+  {
+    icon: Phone,
+    label: "Voice front desk",
+    detail: "Answers inbound calls, captures the job, and records the full context.",
+  },
+  {
+    icon: Mail,
+    label: "Inbox and messages",
+    detail: "Keeps SMS, email, web enquiries, and Tracey actions in one timeline.",
+  },
+  {
+    icon: Calendar,
+    label: "Scheduling",
+    detail: "Books, confirms, reminds, and reschedules around your availability.",
+  },
+  {
+    icon: FileText,
+    label: "Quotes and invoices",
+    detail: "Drafts follow-ups, tracks quote status, and keeps payment chasing visible.",
+  },
+  {
+    icon: MapPin,
+    label: "Jobs and routing",
+    detail: "Shows where work is happening so the day is planned geographically.",
+  },
+  {
+    icon: ShieldCheck,
+    label: "Rules and approvals",
+    detail: "Controls what Tracey can do alone and what needs your sign-off.",
+  },
+]
+
+const OPERATING_MODES = [
+  {
+    mode: "Capture",
+    owner: "Tracey gathers details",
+    outcome: "Lead, contact, job, and transcript are filed automatically.",
+  },
+  {
+    mode: "Draft",
+    owner: "Tracey prepares the next step",
+    outcome: "You review the quote, message, or action before it goes out.",
+  },
+  {
+    mode: "Act",
+    owner: "Tracey executes within your rules",
+    outcome: "Routine confirmations, reminders, and follow-ups happen without admin.",
+  },
+]
+
 // ─── Feature mockup panels ────────────────────────────────────────────────────
 
 /** Shared mini sidebar for all feature mockups */
@@ -537,6 +588,48 @@ export default function FeaturesPage() {
         </section>
 
         {/* ── 2. Core jobs ── */}
+        <section className="py-16 md:py-20 px-6 bg-[#F8FAFC] border-b border-border/70">
+          <div className="mx-auto max-w-6xl">
+            <motion.div {...fadeUp()} className="mb-10 max-w-3xl">
+              <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-emerald-600">Product map</p>
+              <h2 className="mt-3 text-3xl md:text-5xl font-extrabold tracking-[-0.03em] text-midnight">
+                More than a call bot. A working system for the whole job lifecycle.
+              </h2>
+              <p className="mt-4 text-base leading-7 text-muted-foreground">
+                The homepage explains the promise. This page shows the operating surface: what Tracey touches, where the CRM fills in, and how you keep control.
+              </p>
+            </motion.div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              {PRODUCT_AREAS.map(({ icon: Icon, label, detail }, i) => (
+                <motion.div
+                  key={label}
+                  {...fadeUp(i * 0.04)}
+                  className="rounded border border-border bg-card p-5 shadow-sm"
+                >
+                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded bg-emerald-50">
+                    <Icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <h3 className="text-base font-bold text-midnight">{label}</h3>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{detail}</p>
+                </motion.div>
+              ))}
+            </div>
+
+            <motion.div {...fadeUp(0.1)} className="mt-10 overflow-hidden rounded border border-border bg-card shadow-sm">
+              <div className="grid md:grid-cols-3">
+                {OPERATING_MODES.map((mode) => (
+                  <div key={mode.mode} className="border-b border-border p-6 last:border-b-0 md:border-b-0 md:border-r md:last:border-r-0">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-primary">{mode.mode}</p>
+                    <h3 className="mt-3 text-lg font-extrabold text-midnight">{mode.owner}</h3>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{mode.outcome}</p>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
         <section className="py-10 md:py-20 px-6 bg-[#F8FAFC] border-y border-border/70">
           <div className="mx-auto max-w-5xl">
             <motion.p {...fadeUp()} className="text-center text-[11px] font-semibold uppercase tracking-[0.28em] text-primary mb-10">
@@ -666,7 +759,8 @@ export default function FeaturesPage() {
               <p className="mt-3 text-base text-muted-foreground">Phone + paper + spreadsheet + late-night follow-ups, vs. one AI that handles it all.</p>
             </motion.div>
 
-            <motion.div {...fadeUp(0.06)} className="rounded overflow-hidden border border-border shadow-sm">
+            <motion.div {...fadeUp(0.06)} className="overflow-x-auto rounded border border-border shadow-sm">
+              <div className="min-w-[760px]">
               {/* Header row */}
               <div className="grid grid-cols-3 bg-midnight text-white">
                 <div className="px-5 py-4 text-sm font-semibold text-white/60">Task</div>
@@ -687,6 +781,7 @@ export default function FeaturesPage() {
                   </div>
                 </div>
               ))}
+              </div>
             </motion.div>
           </div>
         </section>
