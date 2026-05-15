@@ -759,7 +759,31 @@ export default function FeaturesPage() {
               <p className="mt-3 text-base text-muted-foreground">Phone + paper + spreadsheet + late-night follow-ups, vs. one AI that handles it all.</p>
             </motion.div>
 
-            <motion.div {...fadeUp(0.06)} className="overflow-x-auto rounded border border-border shadow-sm">
+            <motion.div {...fadeUp(0.06)} className="grid gap-4 md:hidden">
+              {COMPARISON_ROWS.map((row) => (
+                <div key={row.task} className="rounded border border-border bg-card p-5 shadow-sm">
+                  <h3 className="text-base font-bold text-midnight">{row.task}</h3>
+                  <div className="mt-4 grid gap-3">
+                    <div className="rounded border border-emerald-100 bg-emerald-50/60 p-3">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">Earlymark</p>
+                      <div className="mt-2 flex items-start gap-2">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                        <span className="text-sm leading-6 text-foreground">{row.earlymark}</span>
+                      </div>
+                    </div>
+                    <div className="rounded border border-border bg-muted/30 p-3">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Traditional</p>
+                      <div className="mt-2 flex items-start gap-2">
+                        <X className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" />
+                        <span className="text-sm leading-6 text-muted-foreground">{row.traditional}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </motion.div>
+
+            <motion.div {...fadeUp(0.06)} className="hidden overflow-x-auto rounded border border-border shadow-sm md:block">
               <div className="min-w-[760px]">
               {/* Header row */}
               <div className="grid grid-cols-3 bg-midnight text-white">

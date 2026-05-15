@@ -247,9 +247,9 @@ export default function PricingPage() {
             </motion.div>
 
             {/* Comparison Grid */}
-            <motion.div {...fadeUp(0.16)} className="grid md:grid-cols-2 gap-6 items-end">
+            <motion.div {...fadeUp(0.16)} className="grid gap-6 items-end md:grid-cols-2">
               {/* Left Column: Job Management Software */}
-              <div className="rounded-[18px] border border-border bg-muted/30 p-8 opacity-80 flex flex-col items-center text-center">
+              <div className="order-2 rounded-[18px] border border-border bg-muted/30 p-6 opacity-80 flex flex-col items-center text-center md:order-1 md:p-8">
                 <h3 className="text-xl font-bold text-muted-foreground mb-1">Job Management Software</h3>
                 <div className="text-xs text-muted-foreground mb-3">ServiceM8 / Tradify / Jobber</div>
                 <div className="text-4xl font-extrabold text-muted-foreground mb-1">$39–69</div>
@@ -297,7 +297,7 @@ export default function PricingPage() {
               </div>
 
               {/* Right Column: Earlymark Pro */}
-              <div className="rounded-[18px] border-2 border-primary bg-card shadow-2xl shadow-primary/10 p-8 relative flex flex-col items-center text-center -mt-6">
+              <div className="order-1 rounded-[18px] border-2 border-primary bg-card shadow-2xl shadow-primary/10 p-6 relative flex flex-col items-center text-center md:order-2 md:-mt-6 md:p-8">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
                   <span className="bg-primary text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                     Recommended
