@@ -22,13 +22,13 @@ export function PulsingLogo() {
                 <div className="absolute -left-[2px] top-[204px] h-14 w-[4px] rounded-r-full bg-slate-300/90 shadow-[0_0_1px_rgba(255,255,255,0.9)]" />
                 <div className="absolute -right-[2px] top-[148px] h-20 w-[4px] rounded-l-full bg-slate-300/90 shadow-[0_0_1px_rgba(255,255,255,0.9)]" />
 
-                <div className="relative rounded-[3rem] border border-slate-300/70 bg-[linear-gradient(135deg,rgba(248,250,252,0.98)_0%,rgba(228,234,240,0.98)_48%,rgba(246,248,250,0.98)_100%)] p-[5px] shadow-[0_30px_90px_rgba(15,23,42,0.22)]">
-                    <div className="rounded-[2.75rem] bg-[#090C10] p-[4px] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                <div className="relative rounded-md border border-slate-300/70 bg-[linear-gradient(135deg,rgba(248,250,252,0.98)_0%,rgba(228,234,240,0.98)_48%,rgba(246,248,250,0.98)_100%)] p-[5px] shadow-[0_30px_90px_rgba(15,23,42,0.22)]">
+                    <div className="rounded-md bg-[#090C10] p-[4px] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                         <div className="absolute left-1/2 top-[15px] z-20 flex h-[24px] w-[110px] -translate-x-1/2 items-center justify-end rounded-full bg-slate-950/96 px-3 shadow-sm">
                             <span className="h-2.5 w-2.5 rounded-full bg-slate-800 ring-1 ring-white/10" />
                         </div>
 
-                        <div className="relative min-h-[432px] overflow-hidden rounded-[2.42rem] border border-slate-300/70 bg-[radial-gradient(circle_at_50%_24%,rgba(236,253,245,0.82)_0%,rgba(226,232,240,0.82)_44%,rgba(203,213,225,0.62)_100%)]">
+                        <div className="relative min-h-[432px] overflow-hidden rounded-md border border-slate-300/70 bg-[radial-gradient(circle_at_50%_24%,rgba(236,253,245,0.82)_0%,rgba(226,232,240,0.82)_44%,rgba(203,213,225,0.62)_100%)]">
                     <div className="absolute inset-x-0 top-0 h-px bg-white/80" />
                     <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.26)_0%,rgba(255,255,255,0.04)_38%,rgba(15,23,42,0.035)_100%)]" />
                     <div className="absolute left-5 right-5 top-10 z-10 flex items-center justify-between text-[10px] font-semibold text-slate-500">
@@ -51,7 +51,7 @@ export function PulsingLogo() {
 
                     <div className="relative flex min-h-[432px] items-center justify-center px-6 py-10">
                         <motion.div
-                            className="absolute h-[236px] w-[236px] rounded-[46%_54%_58%_42%/44%_48%_52%_56%] bg-emerald-300/24 blur-2xl"
+                            className="absolute h-[236px] w-[236px] rounded-md bg-emerald-300/24 blur-2xl"
                             animate={{
                                 scale: [0.88, 1.12, 0.96, 1.05, 0.91, 1.08, 0.88],
                                 x: [0, 14, -10, 5, -13, 8, 0],
@@ -68,7 +68,7 @@ export function PulsingLogo() {
                         />
 
                         <motion.div
-                            className="absolute h-[184px] w-[184px] rounded-[55%_45%_49%_51%/48%_57%_43%_52%] bg-[#00D28B]/22 blur-lg"
+                            className="absolute h-[184px] w-[184px] rounded-md bg-[#00D28B]/22 blur-lg"
                             animate={{
                                 scale: [1, 1.18, 0.92, 1.1, 0.98, 1.14, 1],
                                 x: [0, -12, 9, -4, 10, -7, 0],
@@ -78,7 +78,7 @@ export function PulsingLogo() {
                         />
 
                         <motion.div
-                            className="relative flex h-[136px] w-[136px] items-center justify-center overflow-hidden rounded-[44%_56%_51%_49%/48%_43%_57%_52%] bg-[#00D28B] shadow-[0_24px_58px_rgba(0,210,139,0.44)]"
+                            className="relative flex h-[136px] w-[136px] items-center justify-center overflow-hidden rounded-md bg-[#00D28B] shadow-[0_24px_58px_rgba(0,210,139,0.44)]"
                             animate={{
                                 scale: [1, 1.035, 0.985, 1.045, 0.995, 1.025, 1],
                                 rotate: [0, -1.2, 1.6, -0.8, 1.1, -0.4, 0],
@@ -124,7 +124,7 @@ export function PulsingLogo() {
                             ))}
 
                             <motion.div
-                                className="absolute inset-[-18px] rounded-[44%_56%_51%_49%/48%_43%_57%_52%] border border-emerald-200/35 bg-emerald-100/12"
+                                className="absolute inset-[-18px] rounded-md border border-emerald-200/35 bg-emerald-100/12"
                                 animate={{
                                     scale: [0.96, 1.1, 1.02, 1.14, 0.98, 1.08, 0.96],
                                     opacity: [0.18, 0.36, 0.16, 0.32, 0.2, 0.34, 0.18],

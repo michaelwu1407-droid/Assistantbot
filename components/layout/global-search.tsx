@@ -115,7 +115,7 @@ export function GlobalSearch({
                         variant === "bar" && tone !== "onDark" &&
                             "toolbar-pill h-10 min-h-10 border-border/40 bg-muted/40 text-sm font-semibold text-muted-foreground sm:pr-12 md:w-full md:min-w-0",
                         variant === "default" &&
-                            "h-9 rounded-[0.5rem] bg-background text-sm text-muted-foreground sm:pr-12 md:w-40 lg:w-64",
+                            "h-9 rounded-md bg-background text-sm text-muted-foreground sm:pr-12 md:w-40 lg:w-64",
                         className
                     )}
                     onClick={() => setOpen(true)}

@@ -163,7 +163,7 @@ export function AccountSecurityCard({ userId, businessName = "" }: AccountSecuri
 
   return (
     <>
-      <Card className="rounded-[18px] border-border dark:border-slate-800 shadow-sm">
+      <Card className="rounded-md border-border dark:border-slate-800 shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Lock className="h-5 w-5" />
@@ -210,7 +210,7 @@ export function AccountSecurityCard({ userId, businessName = "" }: AccountSecuri
             </Button>
           </form>
 
-          <div className="rounded-[18px] border border-red-200/70 bg-red-50/70 p-4">
+          <div className="rounded-md border border-red-200/70 bg-red-50/70 p-4">
             <div className="flex items-start gap-3">
               <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
               <div className="space-y-1">
@@ -242,7 +242,7 @@ export function AccountSecurityCard({ userId, businessName = "" }: AccountSecuri
           setDeleteDialogOpen(open)
         }}
       >
-        <DialogContent className="w-[min(calc(100vw-1.5rem),38rem)] rounded-[18px]">
+        <DialogContent className="w-[min(calc(100vw-1.5rem),38rem)] rounded-md">
           <DialogHeader className="border-b border-border/70 px-6 pb-4 pt-6 dark:border-white/10">
             <DialogTitle className="flex items-center gap-2 text-red-700 dark:text-red-300">
               <AlertTriangle className="h-5 w-5" />
@@ -264,11 +264,11 @@ export function AccountSecurityCard({ userId, businessName = "" }: AccountSecuri
           <div className="space-y-5 px-6 py-5">
             {deleteStep === "reason" && (
               <div className="space-y-4">
-                <div className="rounded-[18px] border border-border/70 bg-card/70 p-4">
+                <div className="rounded-md border border-border/70 bg-card/70 p-4">
                   <div className="space-y-2">
                     <Label htmlFor="delete-reason">Why are you leaving?</Label>
                     <Select value={deleteReason} onValueChange={(value) => setDeleteReason(value as DeleteReason)}>
-                      <SelectTrigger id="delete-reason" className="h-11 rounded-[18px]">
+                      <SelectTrigger id="delete-reason" className="h-11 rounded-md">
                         <SelectValue placeholder="Select a reason" />
                       </SelectTrigger>
                       <SelectContent>
@@ -282,7 +282,7 @@ export function AccountSecurityCard({ userId, businessName = "" }: AccountSecuri
                     </Select>
                   </div>
                 </div>
-                <div className="rounded-[18px] border border-amber-200/70 bg-amber-50/80 p-4 text-sm text-amber-900">
+                <div className="rounded-md border border-amber-200/70 bg-amber-50/80 p-4 text-sm text-amber-900">
                   Deletion is permanent. If you are the last person on the account, jobs, contacts, templates, settings, and history are removed too.
                 </div>
               </div>
@@ -290,7 +290,7 @@ export function AccountSecurityCard({ userId, businessName = "" }: AccountSecuri
 
             {deleteStep === "rescue" && (
               <div className="space-y-4">
-                <div className="rounded-[18px] border border-emerald-200/70 bg-emerald-50/80 p-5">
+                <div className="rounded-md border border-emerald-200/70 bg-emerald-50/80 p-5">
                   <div className="flex items-start gap-3">
                     <ShieldQuestion className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" />
                     <div className="space-y-1">
@@ -299,7 +299,7 @@ export function AccountSecurityCard({ userId, businessName = "" }: AccountSecuri
                     </div>
                   </div>
                 </div>
-                <div className="rounded-[18px] border border-border/70 bg-card/70 p-4 text-sm text-foreground">
+                <div className="rounded-md border border-border/70 bg-card/70 p-4 text-sm text-foreground">
                   Deleting now means starting from scratch later. Your current setup, saved settings, and account history will be gone.
                 </div>
               </div>
@@ -307,7 +307,7 @@ export function AccountSecurityCard({ userId, businessName = "" }: AccountSecuri
 
             {deleteStep === "confirm" && (
               <div className="space-y-4">
-                <div className="rounded-[18px] border border-red-200/70 bg-red-50/80 p-4">
+                <div className="rounded-md border border-red-200/70 bg-red-50/80 p-4">
                   <p className="text-sm font-semibold text-red-900">What will happen</p>
                   <ul className="mt-2 space-y-1 text-sm text-red-800">
                     <li>Your account will be removed.</li>
@@ -315,7 +315,7 @@ export function AccountSecurityCard({ userId, businessName = "" }: AccountSecuri
                     <li>This cannot be undone from the app.</li>
                   </ul>
                 </div>
-                <div className="space-y-2 rounded-[18px] border border-border/70 bg-card/70 p-4">
+                <div className="space-y-2 rounded-md border border-border/70 bg-card/70 p-4">
                   <Label htmlFor="confirm-name">
                     Type <strong className="text-foreground">&quot;{expectedName}&quot;</strong> to confirm deletion
                   </Label>

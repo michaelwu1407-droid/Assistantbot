@@ -1670,7 +1670,7 @@ export function TraceyOnboarding() {
                       {services.map((svc, i) => (
                         <div
                           key={i}
-                          className="grid grid-cols-1 gap-2 rounded-[18px] border bg-card p-3 dark:bg-slate-900 sm:grid-cols-[minmax(0,1.55fr)_96px_96px_minmax(0,1.75fr)_40px]"
+                          className="grid grid-cols-1 gap-2 rounded-md border bg-card p-3 dark:bg-slate-900 sm:grid-cols-[minmax(0,1.55fr)_96px_96px_minmax(0,1.75fr)_40px]"
                         >
                           <div>
                             <Label className="sm:hidden text-xs text-muted-foreground mb-1">Service Name</Label>

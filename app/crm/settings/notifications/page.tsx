@@ -211,7 +211,7 @@ export default function NotificationsSettingsPage() {
             </div>
             <Switch checked={prefs.inAppStaleDealAlerts} onCheckedChange={(v) => updatePref("inAppStaleDealAlerts", v)} />
           </div>
-          <div className="relative overflow-hidden rounded-[18px] border border-border p-4 dark:border-slate-800">
+          <div className="relative overflow-hidden rounded-md border border-border p-4 dark:border-slate-800">
             {!pushConfigured && (
               <>
                 <div className="pointer-events-none absolute inset-0 bg-card/55 backdrop-blur-[1px] dark:bg-slate-950/45" />

@@ -508,7 +508,7 @@ function DealDetailContent({
         {/* Left: Contact + Current job */}
         <div className="lg:col-span-2 flex flex-col gap-4">
           {/* Contact details — name is in header; edit opens contact */}
-          <div className="shrink-0 rounded-[18px] border border-border bg-card p-4 shadow-sm">
+          <div className="shrink-0 rounded-md border border-border bg-card p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between gap-2">
               <h3 className="app-panel-title flex items-center gap-2">
                 <FileText className="h-4 w-4" />
@@ -574,7 +574,7 @@ function DealDetailContent({
           </div>
 
           {/* Current / upcoming job details */}
-          <div className="shrink-0 rounded-[18px] border border-border bg-card p-4 shadow-sm">
+          <div className="shrink-0 rounded-md border border-border bg-card p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between gap-2">
               <h3 className="app-panel-title flex items-center gap-2">
                 <Briefcase className="h-4 w-4" />
@@ -609,7 +609,7 @@ function DealDetailContent({
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between rounded-[18px] border border-emerald-100 bg-emerald-50 p-2">
+                  <div className="flex items-center justify-between rounded-md border border-emerald-100 bg-emerald-50 p-2">
                     <span className="font-semibold text-emerald-700 text-lg">
                       {deal.invoicedAmount !== undefined && deal.invoicedAmount !== null
                         ? formatCurrency(deal.invoicedAmount)
@@ -639,7 +639,7 @@ function DealDetailContent({
             </div>
 
             {/* ─── Follow-up Reminder ─────────────────────────────── */}
-            <div className="mt-3 rounded-[14px] border border-border/50 bg-muted/30 p-3">
+            <div className="mt-3 rounded-md border border-border/50 bg-muted/30 p-3">
               <div className="flex items-center justify-between mb-2">
                 <span className="app-micro-label flex items-center gap-1.5">
                   <Bell className="w-3.5 h-3.5 text-amber-500" />
@@ -822,7 +822,7 @@ function DealDetailContent({
         {/* Right: History + Notes */}
         <div className="lg:col-span-3 flex flex-col gap-4 min-h-0">
           {/* Customer / job history */}
-          <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-[18px] border border-border bg-card shadow-sm">
+          <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-md border border-border bg-card shadow-sm">
             <div className="p-3 border-b border-border bg-muted/30 flex items-center justify-between shrink-0">
               <span className="app-panel-title flex items-center gap-2">
                 <MessageSquare className="w-4 h-4" />
@@ -876,7 +876,7 @@ function DealDetailContent({
                           onOpenChange(false)
                           router.push(`/crm/deals/${d.id}`)
                         }}
-                        className="block w-full rounded-[18px] border border-border/50 p-2 text-left text-sm hover:bg-muted/30"
+                        className="block w-full rounded-md border border-border/50 p-2 text-left text-sm hover:bg-muted/30"
                       >
                         <span className="font-medium text-foreground">{d.title}</span>
                         {d.value != null && <span className="text-muted-foreground ml-2">{formatCurrency(Number(d.value))}</span>}
@@ -958,7 +958,7 @@ function DealDetailContent({
         <div className="shrink-0 p-4 border-t">
           <div className="flex gap-2 overflow-x-auto pb-2">
             {deal.jobPhotos.map((photo) => (
-              <div key={photo.id} className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[18px] border border-border bg-muted">
+              <div key={photo.id} className="relative h-24 w-24 shrink-0 overflow-hidden rounded-md border border-border bg-muted">
                 <Image
                   src={photo.url ?? photo.fileUrl ?? ""}
                   alt={photo.caption || "Job"}

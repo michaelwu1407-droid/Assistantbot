@@ -142,7 +142,7 @@ export default async function SolutionDetailPage({
             ].map(({ icon: Icon, label, desc }) => (
               <div key={label} className="flex flex-col gap-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-[18px] bg-[#E0FAF2] flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-md bg-[#E0FAF2] flex items-center justify-center shrink-0">
                     <Icon className="w-4 h-4 text-primary" />
                   </div>
                   <p className="text-sm font-semibold text-midnight">{label}</p>

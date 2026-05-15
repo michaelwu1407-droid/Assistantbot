@@ -32,8 +32,8 @@ const servicePricingTableMinWidthClass = "min-w-[1020px]"
 const servicePricingGridClass =
   "grid items-start gap-3 [grid-template-columns:minmax(240px,1.15fr)_110px_110px_minmax(420px,1.7fr)_120px]"
 
-const compactInputClass = "h-12 min-w-0 rounded-[16px] px-3 text-sm"
-const compactTextareaClass = "h-[56px] min-h-[56px] resize-none rounded-[16px] px-3 py-2 text-sm"
+const compactInputClass = "h-12 min-w-0 rounded-md px-3 text-sm"
+const compactTextareaClass = "h-[56px] min-h-[56px] resize-none rounded-md px-3 py-2 text-sm"
 
 function toServiceDraft(rule: KnowledgeRule): ServiceDraft {
   const metadata = (rule.metadata || {}) as Record<string, unknown>
@@ -206,7 +206,7 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
           <p className="text-xs text-muted-foreground">
             Add your common services and fee range. Use comments to explain how Tracey should answer price questions.
           </p>
-          <div className="rounded-[18px] border border-border dark:border-slate-700 overflow-hidden">
+          <div className="rounded-md border border-border dark:border-slate-700 overflow-hidden">
             <div className="overflow-x-auto">
               <div className={servicePricingTableMinWidthClass}>
                 <div className={`bg-muted/30 px-3 py-2 dark:bg-slate-900 ${servicePricingGridClass}`}>

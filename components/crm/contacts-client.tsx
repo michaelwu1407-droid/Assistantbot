@@ -382,7 +382,7 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
             </p>
           )}
 
-          <div className="overflow-hidden rounded-[18px] border border-border bg-card">
+          <div className="overflow-hidden rounded-md border border-border bg-card">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>

@@ -64,7 +64,7 @@ function KpiCardFrame({
   return (
     <div
       className={cn(
-        "flex min-h-[5.75rem] rounded-[18px] border-l-[5px] shadow-sm",
+        "flex min-h-[5.75rem] rounded-md border-l-[5px] shadow-sm",
         borderClass,
         bgClass
       )}

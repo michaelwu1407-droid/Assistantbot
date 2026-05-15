@@ -220,7 +220,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                 <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col bg-[linear-gradient(180deg,rgba(248,250,249,0.96),rgba(241,245,243,0.98))] dark:bg-[linear-gradient(180deg,rgba(12,22,18,0.35),rgba(10,18,15,0.75))]">
                     <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-6">
                     {/* Job Details */}
-                    <div className="grid gap-4 rounded-[20px] border border-white/80 bg-card/80 p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-card/5">
+                    <div className="grid gap-4 rounded-md border border-white/80 bg-card/80 p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-card/5">
                         <div className="space-y-1">
                             <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Job details</p>
                             <p className="text-sm text-muted-foreground">Describe the work, its value, timing, and pipeline stage.</p>
@@ -338,7 +338,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                     </div>
 
                     {/* Contact Selection / Creation */}
-                    <div className="space-y-4 rounded-[20px] border border-white/80 bg-card/80 p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-card/5">
+                    <div className="space-y-4 rounded-md border border-white/80 bg-card/80 p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-card/5">
                         <div className="flex items-center justify-between">
                             <div className="space-y-1">
                                 <Label className="text-[11px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Client <span className="text-destructive">*</span></Label>

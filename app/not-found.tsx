@@ -9,7 +9,7 @@ export default function NotFound() {
         <div className="flex h-screen w-full flex-col items-center justify-center bg-background text-center animate-in fade-in duration-500 relative">
             <div className="absolute inset-0 ott-glow -z-10" />
 
-            <div className="mb-8 p-6 bg-card rounded-[24px] shadow-ott border border-border/60">
+            <div className="mb-8 p-6 bg-card rounded-md shadow-ott border border-border/60">
                 <Home className="h-12 w-12 text-primary" />
             </div>
             <h1 className="text-4xl font-extrabold text-midnight tracking-tight mb-2">Page Not Found</h1>

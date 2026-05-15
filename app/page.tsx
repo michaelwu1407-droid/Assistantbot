@@ -31,7 +31,7 @@ const PulsingLogo = dynamic(
     () => import("@/components/home/PulsingLogo").then((mod) => mod.PulsingLogo),
     {
         loading: () => (
-            <div className="w-[220px] sm:w-[280px] lg:w-[320px] aspect-[3/4] rounded-[2.5rem] bg-muted/50 animate-pulse" />
+            <div className="w-[220px] sm:w-[280px] lg:w-[320px] aspect-[3/4] rounded-md bg-muted/50 animate-pulse" />
         ),
     },
 );
@@ -425,7 +425,7 @@ export default function Home() {
                         </p>
                     </motion.div>
 
-                    <motion.div {...fadeUp(0.06)} className="rounded-[2rem] border border-emerald-900/10 bg-[linear-gradient(145deg,#103126_0%,#1B4637_52%,#2B5F4D_100%)] shadow-[0_24px_80px_rgba(15,23,42,0.14)]">
+                    <motion.div {...fadeUp(0.06)} className="rounded-md border border-emerald-900/10 bg-[linear-gradient(145deg,#103126_0%,#1B4637_52%,#2B5F4D_100%)] shadow-[0_24px_80px_rgba(15,23,42,0.14)]">
                         <div className="grid divide-y sm:divide-y-0 sm:divide-x divide-white/10 sm:grid-cols-3 p-8 md:p-12">
                             {TRACEY_WORKFLOW.map(({ label, icon: Icon, points }, i) => (
                                 <div key={label} className="flex flex-col gap-5 sm:px-8 first:pl-0 last:pr-0 py-8 sm:py-0 first:pt-0 last:pb-0">

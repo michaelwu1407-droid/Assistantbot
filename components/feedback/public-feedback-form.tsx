@@ -91,7 +91,7 @@ export function PublicFeedbackForm({
     const showReviewCta = submitted.promptPublicReview && submitted.googleReviewUrl
 
     return (
-      <Card className="rounded-[18px] border-border shadow-sm">
+      <Card className="rounded-md border-border shadow-sm">
         <CardContent className="space-y-5 p-6 sm:p-8">
           <div className="flex items-start gap-3">
             <div className="rounded-full bg-emerald-100 p-2 text-emerald-700">
@@ -107,7 +107,7 @@ export function PublicFeedbackForm({
           </div>
 
           {showReviewCta ? (
-            <div className="rounded-[18px] border border-emerald-200 bg-emerald-50 p-4">
+            <div className="rounded-md border border-emerald-200 bg-emerald-50 p-4">
               <p className="text-sm font-medium text-emerald-950">Happy with the result?</p>
               <p className="mt-1 text-sm leading-6 text-emerald-800">
                 If you have another minute, you can also leave a public Google review for {businessName}.
@@ -135,7 +135,7 @@ export function PublicFeedbackForm({
   }
 
   return (
-    <Card className="rounded-[18px] border-border shadow-sm">
+    <Card className="rounded-md border-border shadow-sm">
       <CardHeader className="space-y-2 p-6 sm:p-8">
         <div className="flex items-center gap-2 text-amber-500">
           <Star className="h-5 w-5 fill-current" />
@@ -186,7 +186,7 @@ export function PublicFeedbackForm({
             onChange={(event) => setComment(event.target.value)}
             placeholder="Optional comment"
             rows={4}
-            className="min-h-[120px] rounded-[18px] border-border bg-muted/30 px-4 py-3"
+            className="min-h-[120px] rounded-md border-border bg-muted/30 px-4 py-3"
           />
         </div>
 

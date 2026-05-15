@@ -44,7 +44,7 @@ export function ProfileForm({ userId, initialData }: ProfileFormProps) {
   };
 
   return (
-    <Card className="rounded-[18px] border-border shadow-sm dark:border-slate-800">
+    <Card className="rounded-md border-border shadow-sm dark:border-slate-800">
       <CardHeader>
         <CardTitle>Profile</CardTitle>
         <CardDescription>

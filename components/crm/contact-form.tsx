@@ -120,9 +120,9 @@ export function ContactForm({ mode, workspaceId, contact }: ContactFormProps) {
         </p>
       </div>
 
-      <div className="rounded-[20px] border border-border bg-card p-5 shadow-sm">
+      <div className="rounded-md border border-border bg-card p-5 shadow-sm">
         {redirectNotice && (
-          <div className="mb-5 rounded-[18px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          <div className="mb-5 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
             {redirectNotice}
           </div>
         )}

@@ -160,7 +160,7 @@ function SectionCard({
   aside?: ReactNode;
 }) {
   return (
-    <Card className="rounded-[18px]">
+    <Card className="rounded-md">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -724,7 +724,7 @@ function OpsRollupTable({ data }: { data: CustomerUsageDashboardData }) {
 
 function SelectedWorkspacePanel({ selected }: { selected: NonNullable<CustomerUsageDashboardData["selectedWorkspace"]> }) {
   return (
-    <Card className="rounded-[18px]">
+    <Card className="rounded-md">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -959,7 +959,7 @@ export default async function CustomerUsagePage({
             {selected ? (
               <SelectedWorkspacePanel selected={selected} />
             ) : (
-              <Card className="rounded-[18px]">
+              <Card className="rounded-md">
                 <CardContent className="pt-6 text-sm text-muted-foreground">No workspace selected.</CardContent>
               </Card>
             )}
