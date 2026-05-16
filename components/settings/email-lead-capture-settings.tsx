@@ -180,6 +180,34 @@ export function EmailLeadCaptureSettings() {
               : "Wait until the setup above is ready before forwarding live leads to this address."}
           </p>
         </div>
+
+        <details className="rounded-[18px] border border-border bg-muted/20 p-4 text-sm">
+          <summary className="cursor-pointer font-medium text-foreground">
+            How to forward leads from Gmail or Outlook
+          </summary>
+          <div className="mt-3 space-y-3 text-muted-foreground">
+            <div>
+              <p className="font-medium text-foreground">Gmail</p>
+              <ol className="ml-5 mt-1 list-decimal space-y-1">
+                <li>In Gmail, open Settings → See all settings → Forwarding and POP/IMAP.</li>
+                <li>Click <span className="font-mono">Add a forwarding address</span>, paste the address above, and submit.</li>
+                <li>Gmail sends a verification email to that address — Earlymark will auto-confirm it within a minute.</li>
+                <li>Back in Settings → Filters and Blocked Addresses, create a new filter with <span className="font-mono">From: hipages.com.au OR airtasker.com OR oneflare.com.au OR serviceseeking.com.au</span> and tick <span className="font-mono">Forward it to</span> your new address.</li>
+              </ol>
+            </div>
+            <div>
+              <p className="font-medium text-foreground">Outlook / Microsoft 365</p>
+              <ol className="ml-5 mt-1 list-decimal space-y-1">
+                <li>Open Settings → Mail → Rules → Add new rule.</li>
+                <li>Condition: <span className="font-mono">From address includes</span> <span className="font-mono">hipages.com.au</span> (repeat for each platform you use).</li>
+                <li>Action: <span className="font-mono">Forward to</span> the address above, then Save.</li>
+              </ol>
+            </div>
+            <p className="text-xs">
+              Prefer one-click setup with no forwarding rules? Connect Gmail or Outlook on the Integrations page — we&apos;ll only read emails from known lead senders.
+            </p>
+          </div>
+        </details>
         <div className="flex items-center justify-between rounded-lg border border-border/50 p-4">
           <div>
             <Label htmlFor="auto-call-leads" className="text-base font-medium">Call new email leads straight away</Label>
