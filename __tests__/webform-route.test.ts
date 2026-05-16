@@ -27,6 +27,7 @@ const hoisted = vi.hoisted(() => ({
   evaluateAutomations: vi.fn(),
   triageIncomingLead: vi.fn(),
   saveTriageRecommendation: vi.fn(),
+  initiateOutboundCall: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({ db: hoisted.db }));
@@ -36,6 +37,9 @@ vi.mock("@/actions/automation-actions", () => ({
 vi.mock("@/lib/ai/triage", () => ({
   triageIncomingLead: hoisted.triageIncomingLead,
   saveTriageRecommendation: hoisted.saveTriageRecommendation,
+}));
+vi.mock("@/lib/outbound-call", () => ({
+  initiateOutboundCall: hoisted.initiateOutboundCall,
 }));
 
 import { POST } from "@/app/api/webhooks/webform/route";
@@ -58,6 +62,7 @@ describe("POST /api/webhooks/webform", () => {
     hoisted.evaluateAutomations.mockResolvedValue(undefined);
     hoisted.triageIncomingLead.mockResolvedValue({ recommendation: "ACCEPT", flags: [] });
     hoisted.saveTriageRecommendation.mockResolvedValue(undefined);
+    hoisted.initiateOutboundCall.mockResolvedValue(undefined);
   });
 
   it("rejects requests that do not include a workspace id", async () => {
@@ -122,6 +127,8 @@ describe("POST /api/webhooks/webform", () => {
       heldForReview: false,
       triageRecommendation: "ACCEPT",
       triageFlags: [],
+      autoCallTriggered: false,
+      autoCallBlockReason: "auto_call_disabled",
     });
     expect(hoisted.db.contact.create).toHaveBeenCalledWith({
       data: {
@@ -211,6 +218,8 @@ describe("POST /api/webhooks/webform", () => {
       heldForReview: true,
       triageRecommendation: "HOLD_REVIEW",
       triageFlags: ["Needs review: Missing address", "Needs review: roofing"],
+      autoCallTriggered: false,
+      autoCallBlockReason: "auto_call_disabled",
     });
     expect(hoisted.saveTriageRecommendation).toHaveBeenCalledWith("deal_1", {
       recommendation: "HOLD_REVIEW",
@@ -226,5 +235,99 @@ describe("POST /api/webhooks/webform", () => {
         link: "/crm/deals/deal_1",
       }),
     });
+  });
+
+  it("triggers the voice agent auto-call when the workspace opts in and the lead has a phone", async () => {
+    hoisted.db.workspace.findUnique.mockResolvedValue({
+      id: "ws_1",
+      name: "Acme Plumbing",
+      autoCallLeads: true,
+      settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
+      ownerId: "owner_1",
+    });
+    hoisted.db.contact.findFirst.mockResolvedValue(null);
+    hoisted.db.contact.create.mockResolvedValue({ id: "contact_1" });
+    hoisted.db.deal.create.mockResolvedValue({ id: "deal_1" });
+    hoisted.db.user.findFirst.mockResolvedValue({ id: "owner_1" });
+
+    const response = await POST(
+      buildJsonRequest({
+        workspace_id: "ws_1",
+        name: "Alex",
+        phone: "0400000000",
+        message: "Blocked drain at the back of the property",
+      }),
+    );
+
+    const body = await response.json();
+    expect(body.autoCallTriggered).toBe(true);
+    expect(body.autoCallBlockReason).toBeNull();
+    expect(hoisted.initiateOutboundCall).toHaveBeenCalledWith({
+      workspaceId: "ws_1",
+      contactPhone: "0400000000",
+      contactName: "Alex",
+      dealId: "deal_1",
+      reason: "webform_lead:website",
+    });
+  });
+
+  it("skips the auto-call when triage holds the lead for review", async () => {
+    hoisted.db.workspace.findUnique.mockResolvedValue({
+      id: "ws_1",
+      name: "Acme Plumbing",
+      autoCallLeads: true,
+      settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
+      ownerId: "owner_1",
+    });
+    hoisted.db.contact.findFirst.mockResolvedValue(null);
+    hoisted.db.contact.create.mockResolvedValue({ id: "contact_1" });
+    hoisted.db.deal.create.mockResolvedValue({ id: "deal_1" });
+    hoisted.db.user.findFirst.mockResolvedValue({ id: "owner_1" });
+    hoisted.triageIncomingLead.mockResolvedValue({
+      recommendation: "HOLD_REVIEW",
+      flags: ["Out of service area"],
+    });
+
+    const response = await POST(
+      buildJsonRequest({
+        workspace_id: "ws_1",
+        name: "Alex",
+        phone: "0400000000",
+        message: "Roof job",
+      }),
+    );
+
+    const body = await response.json();
+    expect(body.autoCallTriggered).toBe(false);
+    expect(body.autoCallBlockReason).toBe("triage_review");
+    expect(hoisted.initiateOutboundCall).not.toHaveBeenCalled();
+  });
+
+  it("skips the auto-call when the lead has no phone number", async () => {
+    hoisted.db.workspace.findUnique.mockResolvedValue({
+      id: "ws_1",
+      name: "Acme Plumbing",
+      autoCallLeads: true,
+      settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
+      ownerId: "owner_1",
+    });
+    hoisted.db.contact.findFirst.mockResolvedValue(null);
+    hoisted.db.contact.create.mockResolvedValue({ id: "contact_1" });
+    hoisted.db.deal.create.mockResolvedValue({ id: "deal_1" });
+    hoisted.db.user.findFirst.mockResolvedValue({ id: "owner_1" });
+
+    const response = await POST(
+      buildJsonRequest({
+        workspace_id: "ws_1",
+        name: "Alex",
+        email: "alex@example.com",
+        message: "Need a quote",
+      }),
+    );
+
+    const body = await response.json();
+    expect(body.autoCallTriggered).toBe(false);
+    expect(body.autoCallBlockReason).toBe("no_phone");
+    expect(hoisted.initiateOutboundCall).not.toHaveBeenCalled();
   });
 });

@@ -1,0 +1,156 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { NextRequest } from "next/server";
+
+const {
+  db,
+  findWorkspaceByTwilioNumber,
+  findContactByPhone,
+  initiateOutboundCall,
+} = vi.hoisted(() => ({
+  db: {
+    contact: { create: vi.fn() },
+    deal: { create: vi.fn() },
+    activity: { create: vi.fn() },
+    webhookEvent: { findFirst: vi.fn(), create: vi.fn() },
+  },
+  findWorkspaceByTwilioNumber: vi.fn(),
+  findContactByPhone: vi.fn(),
+  initiateOutboundCall: vi.fn(),
+}));
+
+vi.mock("@/lib/db", () => ({ db }));
+vi.mock("@/lib/workspace-routing", () => ({
+  findWorkspaceByTwilioNumber,
+  findContactByPhone,
+}));
+vi.mock("@/lib/outbound-call", () => ({ initiateOutboundCall }));
+vi.mock("@/lib/twilio/verify-signature", () => ({
+  readTwilioFormParams: async (req: Request) => {
+    const text = await req.text();
+    const params = new URLSearchParams(text);
+    const out: Record<string, string> = {};
+    params.forEach((v, k) => { out[k] = v; });
+    return out;
+  },
+  verifyTwilioSignature: () => ({ ok: true }),
+  getTwilioRequestPublicUrl: (req: NextRequest) => req.url,
+}));
+
+import { POST } from "@/app/api/webhooks/twilio-voice-status/route";
+
+function buildRequest(fields: Record<string, string>) {
+  return new NextRequest("https://app.example.com/api/webhooks/twilio-voice-status", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams(fields).toString(),
+  });
+}
+
+describe("POST /api/webhooks/twilio-voice-status", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    db.webhookEvent.findFirst.mockResolvedValue(null);
+    db.webhookEvent.create.mockResolvedValue(undefined);
+    db.activity.create.mockResolvedValue({ id: "activity_1" });
+    initiateOutboundCall.mockResolvedValue(undefined);
+  });
+
+  it("creates a deal and queues a callback when the inbound dial gets no answer", async () => {
+    findWorkspaceByTwilioNumber.mockResolvedValue({
+      id: "ws_1",
+      voiceEnabled: true,
+      settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
+    });
+    findContactByPhone.mockResolvedValue(null);
+    db.contact.create.mockResolvedValue({ id: "contact_1", name: "Caller +61400000000" });
+    db.deal.create.mockResolvedValue({ id: "deal_1" });
+
+    const response = await POST(
+      buildRequest({
+        From: "+61400000000",
+        To: "+61411111111",
+        DialCallStatus: "no-answer",
+        CallSid: "CA123",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(db.deal.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        workspaceId: "ws_1",
+        contactId: "contact_1",
+        stage: "NEW",
+        source: "missed_call",
+      }),
+    });
+    expect(initiateOutboundCall).toHaveBeenCalledWith({
+      workspaceId: "ws_1",
+      contactPhone: "+61400000000",
+      contactName: "Caller +61400000000",
+      dealId: "deal_1",
+      reason: "missed_call_callback:no-answer",
+    });
+  });
+
+  it("does not queue a callback when voice is disabled for the workspace", async () => {
+    findWorkspaceByTwilioNumber.mockResolvedValue({
+      id: "ws_1",
+      voiceEnabled: false,
+      settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
+    });
+    findContactByPhone.mockResolvedValue(null);
+    db.contact.create.mockResolvedValue({ id: "contact_1", name: "Caller +61400000000" });
+    db.deal.create.mockResolvedValue({ id: "deal_1" });
+
+    const response = await POST(
+      buildRequest({
+        From: "+61400000000",
+        To: "+61411111111",
+        DialCallStatus: "failed",
+        CallSid: "CA456",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(db.deal.create).toHaveBeenCalled();
+    expect(initiateOutboundCall).not.toHaveBeenCalled();
+  });
+
+  it("ignores completed calls (which were answered, not missed)", async () => {
+    const response = await POST(
+      buildRequest({
+        From: "+61400000000",
+        To: "+61411111111",
+        DialCallStatus: "completed",
+        CallSid: "CA789",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(findWorkspaceByTwilioNumber).not.toHaveBeenCalled();
+    expect(db.deal.create).not.toHaveBeenCalled();
+    expect(initiateOutboundCall).not.toHaveBeenCalled();
+  });
+
+  it("is idempotent — the same CallSid does not create duplicate deals", async () => {
+    findWorkspaceByTwilioNumber.mockResolvedValue({
+      id: "ws_1",
+      voiceEnabled: true,
+      settings: {},
+    });
+    db.webhookEvent.findFirst.mockResolvedValue({ id: "evt_1" });
+
+    const response = await POST(
+      buildRequest({
+        From: "+61400000000",
+        To: "+61411111111",
+        DialCallStatus: "no-answer",
+        CallSid: "CA-DUP",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(db.deal.create).not.toHaveBeenCalled();
+    expect(initiateOutboundCall).not.toHaveBeenCalled();
+  });
+});

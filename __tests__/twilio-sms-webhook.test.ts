@@ -11,6 +11,7 @@ const {
   saveTriageRecommendation,
   findContactByPhone,
   findWorkspaceByTwilioNumber,
+  initiateOutboundCall,
 } = vi.hoisted(() => ({
   waitUntil: vi.fn(),
   prisma: {
@@ -46,6 +47,7 @@ const {
   saveTriageRecommendation: vi.fn(),
   findContactByPhone: vi.fn(),
   findWorkspaceByTwilioNumber: vi.fn(),
+  initiateOutboundCall: vi.fn(),
 }));
 
 vi.mock("@vercel/functions", () => ({
@@ -76,6 +78,10 @@ vi.mock("@/lib/ai/triage", () => ({
 vi.mock("@/lib/workspace-routing", () => ({
   findContactByPhone,
   findWorkspaceByTwilioNumber,
+}));
+
+vi.mock("@/lib/outbound-call", () => ({
+  initiateOutboundCall,
 }));
 
 import { POST } from "@/app/api/twilio/webhook/route";
@@ -125,6 +131,7 @@ describe("POST /api/twilio/webhook", () => {
     triageIncomingLead.mockResolvedValue({ recommendation: "ACCEPT", flags: [] });
     saveTriageRecommendation.mockResolvedValue(undefined);
     findContactByPhone.mockResolvedValue({ id: "contact_1" });
+    initiateOutboundCall.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -309,5 +316,47 @@ describe("POST /api/twilio/webhook", () => {
         }),
       }),
     });
+  });
+
+  it("queues a voice-agent callback for a fresh SMS lead when autoCallLeads is on", async () => {
+    findWorkspaceByTwilioNumber.mockResolvedValue({
+      id: "ws_1",
+      name: "Alpha Plumbing",
+      settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
+      twilioPhoneNumber: "+61485010634",
+      autoCallLeads: true,
+    });
+    findContactByPhone.mockResolvedValue({ id: "contact_1", name: "Alex" });
+
+    const response = await POST(buildSmsRequest());
+    expect(response.status).toBe(200);
+
+    await waitUntil.mock.calls[0][0];
+
+    expect(initiateOutboundCall).toHaveBeenCalledWith({
+      workspaceId: "ws_1",
+      contactPhone: "+61400000000",
+      contactName: "Alex",
+      dealId: "deal_1",
+      reason: "sms_lead",
+    });
+  });
+
+  it("does not queue a callback when autoCallLeads is off", async () => {
+    findWorkspaceByTwilioNumber.mockResolvedValue({
+      id: "ws_1",
+      name: "Alpha Plumbing",
+      settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
+      twilioPhoneNumber: "+61485010634",
+      autoCallLeads: false,
+    });
+    findContactByPhone.mockResolvedValue({ id: "contact_1", name: "Alex" });
+
+    const response = await POST(buildSmsRequest());
+    expect(response.status).toBe(200);
+
+    await waitUntil.mock.calls[0][0];
+
+    expect(initiateOutboundCall).not.toHaveBeenCalled();
   });
 });
