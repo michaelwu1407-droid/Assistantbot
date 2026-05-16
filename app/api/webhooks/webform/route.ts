@@ -29,6 +29,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { evaluateAutomations } from "@/actions/automation-actions";
 import { saveTriageRecommendation, triageIncomingLead } from "@/lib/ai/triage";
+import { initiateOutboundCall } from "@/lib/outbound-call";
+import { isWithinAllowedCallWindow } from "@/lib/call-window";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -87,7 +89,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate workspace exists
-    const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { id: true, name: true } });
+    const workspace = await db.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { id: true, name: true, autoCallLeads: true, settings: true, ownerId: true },
+    });
     if (!workspace) {
       return NextResponse.json({ error: "Workspace not found" }, { status: 404, headers: corsHeaders() });
     }
@@ -164,6 +169,35 @@ export async function POST(req: NextRequest) {
       await saveTriageRecommendation(deal.id, triage).catch(() => {});
     }
 
+    // Auto-call the lead via the voice agent if the workspace has opted in.
+    // Fire-and-forget — keep the webhook response fast and don't fail the
+    // submission if the call queue is unavailable.
+    const withinCallWindow = isWithinAllowedCallWindow(workspace.settings);
+    const hasPhone = phone.length > 0;
+    let autoCallTriggered = false;
+    let autoCallBlockReason: string | null = null;
+
+    if (!workspace.autoCallLeads) {
+      autoCallBlockReason = "auto_call_disabled";
+    } else if (!hasPhone) {
+      autoCallBlockReason = "no_phone";
+    } else if (heldForReview) {
+      autoCallBlockReason = "triage_review";
+    } else if (!withinCallWindow) {
+      autoCallBlockReason = "after_hours";
+    } else {
+      autoCallTriggered = true;
+      initiateOutboundCall({
+        workspaceId,
+        contactPhone: phone,
+        contactName: name,
+        dealId: deal.id,
+        reason: `webform_lead:${source}`,
+      }).catch((err) => {
+        console.error("[Webform webhook] Auto-call failed:", err);
+      });
+    }
+
     // Customer-facing new-lead automations must not fire for held leads.
     if (!heldForReview) {
       evaluateAutomations(workspaceId, {
@@ -211,6 +245,8 @@ export async function POST(req: NextRequest) {
       heldForReview,
       triageRecommendation: triage?.recommendation ?? null,
       triageFlags: triage?.flags ?? [],
+      autoCallTriggered,
+      autoCallBlockReason,
     }, { headers: corsHeaders() });
   } catch (error) {
     console.error("[Webform webhook] Error:", error);
