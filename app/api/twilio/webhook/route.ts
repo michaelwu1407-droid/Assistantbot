@@ -11,7 +11,7 @@ import { assertSafeRecipient } from "@/lib/messaging/safe-recipient"
 import { withCostCeiling } from "@/lib/cost-ceiling"
 import { verifyTwilioFormPost } from "@/lib/twilio/verify-signature"
 import { isWithinAllowedCallWindow } from "@/lib/call-window"
-import { initiateOutboundCall } from "@/lib/outbound-call"
+import { scheduleLeadCallback } from "@/lib/lead-callback"
 
 const TWILIO_SMS_COST_USD = 0.05
 
@@ -329,14 +329,15 @@ export async function POST(req: NextRequest) {
                     // window. Fire-and-forget so the SMS reply path stays fast.
                     const withinCallWindow = isWithinAllowedCallWindow(workspace.settings);
                     if (workspace.autoCallLeads && withinCallWindow) {
-                        initiateOutboundCall({
+                        scheduleLeadCallback({
                             workspaceId,
                             contactPhone: From,
                             contactName: contact.name || `SMS lead ${From}`,
                             dealId: activeDeal.id,
                             reason: "sms_lead",
+                            delaySec: workspace.autoCallDelaySec ?? 60,
                         }).catch((err) => {
-                            console.error("[SMS Webhook] Auto-call failed:", err);
+                            console.error("[SMS Webhook] scheduleLeadCallback failed:", err);
                         });
                     }
                 }

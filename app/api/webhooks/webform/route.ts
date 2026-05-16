@@ -29,7 +29,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { evaluateAutomations } from "@/actions/automation-actions";
 import { saveTriageRecommendation, triageIncomingLead } from "@/lib/ai/triage";
-import { initiateOutboundCall } from "@/lib/outbound-call";
+import { scheduleLeadCallback } from "@/lib/lead-callback";
 import { isWithinAllowedCallWindow } from "@/lib/call-window";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
     // Validate workspace exists
     const workspace = await db.workspace.findUnique({
       where: { id: workspaceId },
-      select: { id: true, name: true, autoCallLeads: true, settings: true, ownerId: true },
+      select: { id: true, name: true, autoCallLeads: true, autoCallDelaySec: true, settings: true, ownerId: true },
     });
     if (!workspace) {
       return NextResponse.json({ error: "Workspace not found" }, { status: 404, headers: corsHeaders() });
@@ -187,14 +187,15 @@ export async function POST(req: NextRequest) {
       autoCallBlockReason = "after_hours";
     } else {
       autoCallTriggered = true;
-      initiateOutboundCall({
+      scheduleLeadCallback({
         workspaceId,
         contactPhone: phone,
         contactName: name,
         dealId: deal.id,
         reason: `webform_lead:${source}`,
+        delaySec: workspace.autoCallDelaySec ?? 60,
       }).catch((err) => {
-        console.error("[Webform webhook] Auto-call failed:", err);
+        console.error("[Webform webhook] scheduleLeadCallback failed:", err);
       });
     }
 

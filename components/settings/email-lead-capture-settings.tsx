@@ -57,6 +57,7 @@ function getReadinessMessage(readiness: LeadCaptureEmailReadiness | null) {
 export function EmailLeadCaptureSettings() {
   const [forwardingEmail, setForwardingEmail] = useState<string>("");
   const [autoCallLeads, setAutoCallLeads] = useState(false);
+  const [autoCallDelaySec, setAutoCallDelaySec] = useState<number>(60);
   const [readiness, setReadiness] = useState<LeadCaptureEmailReadiness | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -74,6 +75,7 @@ export function EmailLeadCaptureSettings() {
         if (!cancelled) {
           setForwardingEmail(email);
           setAutoCallLeads(settings?.autoCallLeads ?? false);
+          setAutoCallDelaySec((settings as { autoCallDelaySec?: number } | null)?.autoCallDelaySec ?? 60);
           setReadiness(nextReadiness);
         }
       } catch {
@@ -118,6 +120,34 @@ export function EmailLeadCaptureSettings() {
       });
       setAutoCallLeads(checked);
       toast.success(checked ? "Tracey will call new leads immediately." : "Auto-call new leads turned off.");
+    } catch {
+      toast.error("Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveDelay = async (nextSec: number) => {
+    const clamped = Math.max(0, Math.min(900, Math.floor(nextSec)));
+    setAutoCallDelaySec(clamped);
+    setSaving(true);
+    try {
+      const settings = await getWorkspaceSettings();
+      if (!settings) throw new Error("No settings");
+      await updateWorkspaceSettings({
+        ...settings,
+        aiPreferences: settings.aiPreferences ?? undefined,
+        jobReminderHours: settings.jobReminderHours ?? undefined,
+        inboundEmailAlias: settings.inboundEmailAlias ?? undefined,
+        agentScriptStyle: (settings.agentScriptStyle as "opening" | "closing") ?? undefined,
+        agentMode: settings.agentMode,
+        workingHoursStart: settings.workingHoursStart ?? "08:00",
+        workingHoursEnd: settings.workingHoursEnd ?? "17:00",
+        agendaNotifyTime: settings.agendaNotifyTime ?? "07:30",
+        wrapupNotifyTime: settings.wrapupNotifyTime ?? "17:30",
+        autoCallDelaySec: clamped,
+      });
+      toast.success(clamped === 0 ? "Tracey will dial new leads immediately." : `Tracey will wait ${clamped}s before dialling new leads.`);
     } catch {
       toast.error("Failed to save");
     } finally {
@@ -222,6 +252,30 @@ export function EmailLeadCaptureSettings() {
             disabled={saving || (readiness ? !readiness.ready : false)}
           />
         </div>
+
+        {autoCallLeads && (
+          <div className="rounded-lg border border-border/50 p-4 space-y-2">
+            <Label htmlFor="auto-call-delay" className="text-base font-medium">Wait before calling back</Label>
+            <p className="text-sm text-muted-foreground">
+              Speed-to-lead research says calling within a minute converts ~4&times; better than waiting 5. 60&nbsp;seconds is the sweet spot &mdash; long enough that the customer hasn&apos;t put their phone down, fast enough to beat competitors.
+            </p>
+            <div className="flex items-center gap-3">
+              <input
+                id="auto-call-delay"
+                type="number"
+                min={0}
+                max={900}
+                step={15}
+                value={autoCallDelaySec}
+                onChange={(e) => setAutoCallDelaySec(Number(e.target.value) || 0)}
+                onBlur={(e) => handleSaveDelay(Number(e.target.value) || 0)}
+                className="w-24 rounded-md border border-border bg-background px-3 py-2 text-sm"
+                disabled={saving}
+              />
+              <span className="text-sm text-muted-foreground">seconds (0&ndash;900)</span>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -8,7 +8,7 @@ import { isTrackableResendEvent, processResendStatusEvent } from "@/lib/resend-s
 import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
 import { withCostCeiling } from "@/lib/cost-ceiling";
 import { isUrgentLead, isWithinAllowedCallWindow } from "@/lib/call-window";
-import { initiateOutboundCall } from "@/lib/outbound-call";
+import { scheduleLeadCallback } from "@/lib/lead-callback";
 
 const RESEND_EMAIL_COST_USD = 0.001;
 
@@ -295,6 +295,7 @@ export async function POST(req: NextRequest) {
             inboundEmail: true,
             inboundEmailAlias: true,
             autoCallLeads: true,
+            autoCallDelaySec: true,
             twilioPhoneNumber: true,
             settings: true,
           },
@@ -333,6 +334,7 @@ export async function POST(req: NextRequest) {
           inboundEmail: true,
           inboundEmailAlias: true,
           autoCallLeads: true,
+          autoCallDelaySec: true,
           twilioPhoneNumber: true,
           settings: true,
         },
@@ -445,14 +447,15 @@ export async function POST(req: NextRequest) {
       let callTriggered = false;
       if (wantsAutoCall && !blockAutoCall) {
         callTriggered = true;
-        initiateOutboundCall({
+        scheduleLeadCallback({
           workspaceId: workspace!.id,
           contactPhone: displayPhone!,
           contactName: leadName,
           dealId: deal.id,
           reason: `email_lead:${platform}`,
+          delaySec: workspace!.autoCallDelaySec ?? 60,
         }).catch((err) => {
-          console.error("[inbound-email] Auto-call failed:", err);
+          console.error("[inbound-email] scheduleLeadCallback failed:", err);
         });
       }
 

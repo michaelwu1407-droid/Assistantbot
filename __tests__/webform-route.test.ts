@@ -27,7 +27,7 @@ const hoisted = vi.hoisted(() => ({
   evaluateAutomations: vi.fn(),
   triageIncomingLead: vi.fn(),
   saveTriageRecommendation: vi.fn(),
-  initiateOutboundCall: vi.fn(),
+  scheduleLeadCallback: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({ db: hoisted.db }));
@@ -38,8 +38,8 @@ vi.mock("@/lib/ai/triage", () => ({
   triageIncomingLead: hoisted.triageIncomingLead,
   saveTriageRecommendation: hoisted.saveTriageRecommendation,
 }));
-vi.mock("@/lib/outbound-call", () => ({
-  initiateOutboundCall: hoisted.initiateOutboundCall,
+vi.mock("@/lib/lead-callback", () => ({
+  scheduleLeadCallback: hoisted.scheduleLeadCallback,
 }));
 
 import { POST } from "@/app/api/webhooks/webform/route";
@@ -62,7 +62,7 @@ describe("POST /api/webhooks/webform", () => {
     hoisted.evaluateAutomations.mockResolvedValue(undefined);
     hoisted.triageIncomingLead.mockResolvedValue({ recommendation: "ACCEPT", flags: [] });
     hoisted.saveTriageRecommendation.mockResolvedValue(undefined);
-    hoisted.initiateOutboundCall.mockResolvedValue(undefined);
+    hoisted.scheduleLeadCallback.mockResolvedValue(undefined);
   });
 
   it("rejects requests that do not include a workspace id", async () => {
@@ -242,6 +242,7 @@ describe("POST /api/webhooks/webform", () => {
       id: "ws_1",
       name: "Acme Plumbing",
       autoCallLeads: true,
+      autoCallDelaySec: 30,
       settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
       ownerId: "owner_1",
     });
@@ -262,12 +263,13 @@ describe("POST /api/webhooks/webform", () => {
     const body = await response.json();
     expect(body.autoCallTriggered).toBe(true);
     expect(body.autoCallBlockReason).toBeNull();
-    expect(hoisted.initiateOutboundCall).toHaveBeenCalledWith({
+    expect(hoisted.scheduleLeadCallback).toHaveBeenCalledWith({
       workspaceId: "ws_1",
       contactPhone: "0400000000",
       contactName: "Alex",
       dealId: "deal_1",
       reason: "webform_lead:website",
+      delaySec: 30,
     });
   });
 
@@ -276,6 +278,7 @@ describe("POST /api/webhooks/webform", () => {
       id: "ws_1",
       name: "Acme Plumbing",
       autoCallLeads: true,
+      autoCallDelaySec: 30,
       settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
       ownerId: "owner_1",
     });
@@ -300,7 +303,7 @@ describe("POST /api/webhooks/webform", () => {
     const body = await response.json();
     expect(body.autoCallTriggered).toBe(false);
     expect(body.autoCallBlockReason).toBe("triage_review");
-    expect(hoisted.initiateOutboundCall).not.toHaveBeenCalled();
+    expect(hoisted.scheduleLeadCallback).not.toHaveBeenCalled();
   });
 
   it("skips the auto-call when the lead has no phone number", async () => {
@@ -308,6 +311,7 @@ describe("POST /api/webhooks/webform", () => {
       id: "ws_1",
       name: "Acme Plumbing",
       autoCallLeads: true,
+      autoCallDelaySec: 30,
       settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
       ownerId: "owner_1",
     });
@@ -328,6 +332,6 @@ describe("POST /api/webhooks/webform", () => {
     const body = await response.json();
     expect(body.autoCallTriggered).toBe(false);
     expect(body.autoCallBlockReason).toBe("no_phone");
-    expect(hoisted.initiateOutboundCall).not.toHaveBeenCalled();
+    expect(hoisted.scheduleLeadCallback).not.toHaveBeenCalled();
   });
 });

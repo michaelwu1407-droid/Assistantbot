@@ -23,7 +23,7 @@ import {
 } from "@/lib/twilio/verify-signature";
 import { findContactByPhone, findWorkspaceByTwilioNumber } from "@/lib/workspace-routing";
 import { isWithinAllowedCallWindow } from "@/lib/call-window";
-import { initiateOutboundCall } from "@/lib/outbound-call";
+import { scheduleLeadCallback } from "@/lib/lead-callback";
 
 export const dynamic = "force-dynamic";
 
@@ -120,14 +120,15 @@ export async function POST(req: NextRequest) {
     const withinCallWindow = isWithinAllowedCallWindow(workspace.settings);
     const wantsAutoCall = Boolean(workspace.voiceEnabled) && withinCallWindow;
     if (wantsAutoCall) {
-      initiateOutboundCall({
+      scheduleLeadCallback({
         workspaceId: workspace.id,
         contactPhone: callerNumber,
         contactName: contact.name || `Caller ${callerNumber}`,
         dealId: deal.id,
         reason: `missed_call_callback:${dialStatus}`,
+        delaySec: workspace.autoCallDelaySec ?? 60,
       }).catch((err) => {
-        console.error("[twilio-voice-status] Callback failed:", err);
+        console.error("[twilio-voice-status] scheduleLeadCallback failed:", err);
       });
     }
 

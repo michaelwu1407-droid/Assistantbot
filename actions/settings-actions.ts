@@ -41,6 +41,7 @@ export async function getWorkspaceSettings() {
             inboundEmail: true,
             inboundEmailAlias: true,
             autoCallLeads: true,
+            autoCallDelaySec: true,
             jobReminderHours: true,
             enableJobReminders: true,
             enableTripSms: true,
@@ -118,6 +119,7 @@ export async function updateWorkspaceSettings(input: {
     invoiceFollowUp?: { message?: string; triggerDays?: number; channel?: string }
     inboundEmailAlias?: string | null
     autoCallLeads?: boolean
+    autoCallDelaySec?: number
     emergencyBypass?: boolean
     emergencyHoursStart?: string
     emergencyHoursEnd?: string
@@ -198,6 +200,7 @@ export async function updateWorkspaceSettings(input: {
             ...(settingsUpdate && { settings: settingsUpdate as Prisma.InputJsonValue }),
             ...(input.inboundEmailAlias !== undefined && { inboundEmailAlias: input.inboundEmailAlias }),
             ...(input.autoCallLeads !== undefined && { autoCallLeads: input.autoCallLeads }),
+            ...(input.autoCallDelaySec !== undefined && { autoCallDelaySec: Math.max(0, Math.min(900, Math.floor(input.autoCallDelaySec))) }),
         }
     })
 

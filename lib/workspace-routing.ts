@@ -17,6 +17,7 @@ export async function findWorkspaceByTwilioNumber(phone?: string) {
     twilioSipTrunkSid: true,
     voiceEnabled: true,
     autoCallLeads: true,
+    autoCallDelaySec: true,
     inboundEmail: true,
   } as const;
 

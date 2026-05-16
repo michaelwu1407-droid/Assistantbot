@@ -9,7 +9,7 @@ const {
   createGoogleGenerativeAI,
   generateObject,
   captureException,
-  initiateOutboundCall,
+  scheduleLeadCallback,
 } = vi.hoisted(() => ({
   db: {
     webhookEvent: { create: vi.fn() },
@@ -32,7 +32,7 @@ const {
   createGoogleGenerativeAI: vi.fn(),
   generateObject: vi.fn(),
   captureException: vi.fn(),
-  initiateOutboundCall: vi.fn(),
+  scheduleLeadCallback: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({ db }));
@@ -41,7 +41,7 @@ vi.mock("@/lib/ai/triage", () => ({ triageIncomingLead, saveTriageRecommendation
 vi.mock("@sentry/nextjs", () => ({ captureException }));
 vi.mock("@ai-sdk/google", () => ({ createGoogleGenerativeAI }));
 vi.mock("ai", () => ({ generateObject }));
-vi.mock("@/lib/outbound-call", () => ({ initiateOutboundCall }));
+vi.mock("@/lib/lead-callback", () => ({ scheduleLeadCallback }));
 
 describe("POST /api/webhooks/inbound-email", () => {
   beforeEach(() => {
@@ -61,7 +61,7 @@ describe("POST /api/webhooks/inbound-email", () => {
     db.actionExecution.updateMany.mockResolvedValue({ count: 1 });
     triageIncomingLead.mockResolvedValue(null);
     saveTriageRecommendation.mockResolvedValue(undefined);
-    initiateOutboundCall.mockResolvedValue(undefined);
+    scheduleLeadCallback.mockResolvedValue(undefined);
     createGoogleGenerativeAI.mockReturnValue(vi.fn());
     generateObject.mockResolvedValue({ object: {} });
   });
@@ -287,6 +287,7 @@ describe("POST /api/webhooks/inbound-email", () => {
       ownerId: "owner_1",
       inboundEmailAlias: "acme",
       autoCallLeads: true,
+      autoCallDelaySec: 45,
       twilioPhoneNumber: "+61200000000",
       settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
     });
@@ -319,12 +320,13 @@ describe("POST /api/webhooks/inbound-email", () => {
         autoCallBlockReason: null,
       }),
     );
-    expect(initiateOutboundCall).toHaveBeenCalledWith({
+    expect(scheduleLeadCallback).toHaveBeenCalledWith({
       workspaceId: "ws_1",
       contactPhone: "0412345678",
       contactName: "Jane Citizen",
       dealId: "deal_1",
       reason: "email_lead:HiPages",
+      delaySec: 45,
     });
   });
 

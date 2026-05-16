@@ -11,7 +11,7 @@ const {
   saveTriageRecommendation,
   findContactByPhone,
   findWorkspaceByTwilioNumber,
-  initiateOutboundCall,
+  scheduleLeadCallback,
 } = vi.hoisted(() => ({
   waitUntil: vi.fn(),
   prisma: {
@@ -47,7 +47,7 @@ const {
   saveTriageRecommendation: vi.fn(),
   findContactByPhone: vi.fn(),
   findWorkspaceByTwilioNumber: vi.fn(),
-  initiateOutboundCall: vi.fn(),
+  scheduleLeadCallback: vi.fn(),
 }));
 
 vi.mock("@vercel/functions", () => ({
@@ -80,8 +80,8 @@ vi.mock("@/lib/workspace-routing", () => ({
   findWorkspaceByTwilioNumber,
 }));
 
-vi.mock("@/lib/outbound-call", () => ({
-  initiateOutboundCall,
+vi.mock("@/lib/lead-callback", () => ({
+  scheduleLeadCallback,
 }));
 
 import { POST } from "@/app/api/twilio/webhook/route";
@@ -131,7 +131,7 @@ describe("POST /api/twilio/webhook", () => {
     triageIncomingLead.mockResolvedValue({ recommendation: "ACCEPT", flags: [] });
     saveTriageRecommendation.mockResolvedValue(undefined);
     findContactByPhone.mockResolvedValue({ id: "contact_1" });
-    initiateOutboundCall.mockResolvedValue(undefined);
+    scheduleLeadCallback.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -325,6 +325,7 @@ describe("POST /api/twilio/webhook", () => {
       settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
       twilioPhoneNumber: "+61485010634",
       autoCallLeads: true,
+      autoCallDelaySec: 120,
     });
     findContactByPhone.mockResolvedValue({ id: "contact_1", name: "Alex" });
 
@@ -333,12 +334,13 @@ describe("POST /api/twilio/webhook", () => {
 
     await waitUntil.mock.calls[0][0];
 
-    expect(initiateOutboundCall).toHaveBeenCalledWith({
+    expect(scheduleLeadCallback).toHaveBeenCalledWith({
       workspaceId: "ws_1",
       contactPhone: "+61400000000",
       contactName: "Alex",
       dealId: "deal_1",
       reason: "sms_lead",
+      delaySec: 120,
     });
   });
 
@@ -357,6 +359,6 @@ describe("POST /api/twilio/webhook", () => {
 
     await waitUntil.mock.calls[0][0];
 
-    expect(initiateOutboundCall).not.toHaveBeenCalled();
+    expect(scheduleLeadCallback).not.toHaveBeenCalled();
   });
 });

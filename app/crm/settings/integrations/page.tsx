@@ -216,17 +216,17 @@ export default function IntegrationsPage() {
                     <CardHeader>
                         <div className="flex items-center gap-2">
                             <Mail className="h-5 w-5 text-blue-500" />
-                            <CardTitle>Lead capture</CardTitle>
+                            <CardTitle>Lead capture — fastest setup (recommended)</CardTitle>
                         </div>
                         <CardDescription>
-                            Connect Gmail or Outlook so Earlymark can pick up lead emails automatically.
+                            Connect Gmail or Outlook once and Earlymark picks up leads from hipages, Airtasker, Oneflare, Service Seeking and your website form automatically — no filters to set up.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="p-4 bg-green-50/50 rounded-lg border border-green-100 flex gap-3 text-green-800 text-sm">
                             <Zap className="h-5 w-5 shrink-0 mt-0.5 text-green-600" />
                             <p>
-                                <strong>How it works:</strong> Connect once and Earlymark will sort incoming lead emails for you automatically.
+                                <strong>Privacy:</strong> Earlymark only reads emails from known lead senders (hipages, Airtasker, Oneflare, etc.) and your website form replies. Personal email, billing and unrelated mail is never read or stored. Prefer to forward only specific emails yourself? Use <strong>Lead email forwarding</strong> below.
                             </p>
                         </div>
 

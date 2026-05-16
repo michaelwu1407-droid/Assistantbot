@@ -5,7 +5,7 @@ const {
   db,
   findWorkspaceByTwilioNumber,
   findContactByPhone,
-  initiateOutboundCall,
+  scheduleLeadCallback,
 } = vi.hoisted(() => ({
   db: {
     contact: { create: vi.fn() },
@@ -15,7 +15,7 @@ const {
   },
   findWorkspaceByTwilioNumber: vi.fn(),
   findContactByPhone: vi.fn(),
-  initiateOutboundCall: vi.fn(),
+  scheduleLeadCallback: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({ db }));
@@ -23,7 +23,7 @@ vi.mock("@/lib/workspace-routing", () => ({
   findWorkspaceByTwilioNumber,
   findContactByPhone,
 }));
-vi.mock("@/lib/outbound-call", () => ({ initiateOutboundCall }));
+vi.mock("@/lib/lead-callback", () => ({ scheduleLeadCallback }));
 vi.mock("@/lib/twilio/verify-signature", () => ({
   readTwilioFormParams: async (req: Request) => {
     const text = await req.text();
@@ -52,13 +52,14 @@ describe("POST /api/webhooks/twilio-voice-status", () => {
     db.webhookEvent.findFirst.mockResolvedValue(null);
     db.webhookEvent.create.mockResolvedValue(undefined);
     db.activity.create.mockResolvedValue({ id: "activity_1" });
-    initiateOutboundCall.mockResolvedValue(undefined);
+    scheduleLeadCallback.mockResolvedValue(undefined);
   });
 
   it("creates a deal and queues a callback when the inbound dial gets no answer", async () => {
     findWorkspaceByTwilioNumber.mockResolvedValue({
       id: "ws_1",
       voiceEnabled: true,
+      autoCallDelaySec: 90,
       settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
     });
     findContactByPhone.mockResolvedValue(null);
@@ -83,12 +84,13 @@ describe("POST /api/webhooks/twilio-voice-status", () => {
         source: "missed_call",
       }),
     });
-    expect(initiateOutboundCall).toHaveBeenCalledWith({
+    expect(scheduleLeadCallback).toHaveBeenCalledWith({
       workspaceId: "ws_1",
       contactPhone: "+61400000000",
       contactName: "Caller +61400000000",
       dealId: "deal_1",
       reason: "missed_call_callback:no-answer",
+      delaySec: 90,
     });
   });
 
@@ -113,7 +115,7 @@ describe("POST /api/webhooks/twilio-voice-status", () => {
 
     expect(response.status).toBe(200);
     expect(db.deal.create).toHaveBeenCalled();
-    expect(initiateOutboundCall).not.toHaveBeenCalled();
+    expect(scheduleLeadCallback).not.toHaveBeenCalled();
   });
 
   it("ignores completed calls (which were answered, not missed)", async () => {
@@ -129,7 +131,7 @@ describe("POST /api/webhooks/twilio-voice-status", () => {
     expect(response.status).toBe(200);
     expect(findWorkspaceByTwilioNumber).not.toHaveBeenCalled();
     expect(db.deal.create).not.toHaveBeenCalled();
-    expect(initiateOutboundCall).not.toHaveBeenCalled();
+    expect(scheduleLeadCallback).not.toHaveBeenCalled();
   });
 
   it("is idempotent — the same CallSid does not create duplicate deals", async () => {
@@ -151,6 +153,6 @@ describe("POST /api/webhooks/twilio-voice-status", () => {
 
     expect(response.status).toBe(200);
     expect(db.deal.create).not.toHaveBeenCalled();
-    expect(initiateOutboundCall).not.toHaveBeenCalled();
+    expect(scheduleLeadCallback).not.toHaveBeenCalled();
   });
 });
