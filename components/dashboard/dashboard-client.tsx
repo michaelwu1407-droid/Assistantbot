@@ -9,6 +9,7 @@ import { ensureDailyNotifications } from "@/actions/notification-actions"
 import { useShellStore } from "@/lib/store"
 import { useDashboardHeaderExtraSetter } from "@/components/dashboard/dashboard-header-extra-context"
 import { Filter, Save, X } from "lucide-react"
+import { SetupWidget } from "@/components/dashboard/setup-widget"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -322,6 +323,8 @@ export function DashboardClient({ workspace, deals, teamMembers }: DashboardClie
                         >
                             <DashboardKpiCards deals={deals} />
                         </div>
+
+                        <SetupWidget />
 
                         <div
                             className={cn(

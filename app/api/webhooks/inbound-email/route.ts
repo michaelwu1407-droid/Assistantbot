@@ -107,12 +107,17 @@ function extractLeadAlias(toEmail: string): string | null {
   return local;
 }
 
-/** Detect platform from From or Subject (HiPages, Airtasker, ServiceSeeking). */
+/** Detect platform from From or Subject. */
 function detectLeadPlatform(from: string, subject: string): string | null {
   const combined = `${from} ${subject}`.toLowerCase();
   if (combined.includes("hipages")) return "HiPages";
   if (combined.includes("airtasker")) return "Airtasker";
   if (combined.includes("serviceseeking")) return "ServiceSeeking";
+  if (combined.includes("oneflare")) return "Oneflare";
+  if (combined.includes("servicetasker")) return "ServiceTasker";
+  if (combined.includes("bark.com")) return "Bark";
+  if (combined.includes("local-services-noreply@google.com") || combined.includes("localservices-noreply@google.com")) return "Google LSA";
+  if (combined.includes("facebookmail.com") || combined.includes("new lead for") || combined.includes("instant form")) return "Meta Lead Ads";
   return null;
 }
 

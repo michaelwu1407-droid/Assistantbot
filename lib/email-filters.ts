@@ -3,7 +3,7 @@ import { decrypt, encrypt } from "@/lib/encryption";
 
 // ─── Lead Provider Email Patterns ───────────────────────────────────────────
 
-const LEAD_PROVIDERS = {
+export const LEAD_PROVIDERS = {
   hipages: {
     domains: ["hipages.com.au", "notifications@hipages.com.au"],
     keywords: ["hipages", "new job", "job request"],
@@ -27,6 +27,14 @@ const LEAD_PROVIDERS = {
   bark: {
     domains: ["bark.com", "notifications@bark.com"],
     keywords: ["bark", "new lead", "project request"],
+  },
+  google_lsa: {
+    domains: ["local-services-noreply@google.com", "localservices-noreply@google.com", "google.com"],
+    keywords: ["local services", "new lead from google", "left you a message"],
+  },
+  meta_lead_ads: {
+    domains: ["facebookmail.com", "notification@facebookmail.com", "noreply@facebookmail.com", "instagram.com"],
+    keywords: ["new lead for", "you have a new lead", "lead ad", "instant form"],
   },
 };
 

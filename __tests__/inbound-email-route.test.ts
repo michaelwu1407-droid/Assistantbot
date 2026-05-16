@@ -398,4 +398,78 @@ describe("POST /api/webhooks/inbound-email", () => {
       }),
     });
   });
+
+  it("recognises Google Local Services Ads notification emails as leads", async () => {
+    db.workspace.findFirst.mockResolvedValue({
+      id: "ws_1",
+      name: "Acme Plumbing",
+      ownerId: "owner_1",
+      inboundEmailAlias: "acme",
+      autoCallLeads: false,
+      autoCallDelaySec: 60,
+      twilioPhoneNumber: "+61200000000",
+      settings: {},
+    });
+    db.contact.findFirst.mockResolvedValue(null);
+    db.contact.create.mockResolvedValue({ id: "contact_1", name: "Jane Citizen" });
+    db.deal.create.mockResolvedValue({ id: "deal_1" });
+
+    const { POST } = await loadRoute();
+    const response = await POST(
+      new NextRequest("https://app.example.com/api/webhooks/inbound-email", {
+        method: "POST",
+        body: JSON.stringify({
+          type: "email.received",
+          data: {
+            to: "acme@inbound.earlymark.ai",
+            from: "Google Local Services <local-services-noreply@google.com>",
+            subject: "Jane left you a message",
+            text: "Name: Jane Citizen Phone: 0412 345 678 Kitchen tap leak",
+          },
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({ leadCapture: true, platform: "Google LSA" }),
+    );
+  });
+
+  it("recognises Meta Lead Ads notification emails as leads", async () => {
+    db.workspace.findFirst.mockResolvedValue({
+      id: "ws_1",
+      name: "Acme Plumbing",
+      ownerId: "owner_1",
+      inboundEmailAlias: "acme",
+      autoCallLeads: false,
+      autoCallDelaySec: 60,
+      twilioPhoneNumber: "+61200000000",
+      settings: {},
+    });
+    db.contact.findFirst.mockResolvedValue(null);
+    db.contact.create.mockResolvedValue({ id: "contact_1", name: "Jane Citizen" });
+    db.deal.create.mockResolvedValue({ id: "deal_1" });
+
+    const { POST } = await loadRoute();
+    const response = await POST(
+      new NextRequest("https://app.example.com/api/webhooks/inbound-email", {
+        method: "POST",
+        body: JSON.stringify({
+          type: "email.received",
+          data: {
+            to: "acme@inbound.earlymark.ai",
+            from: "Facebook <notification@facebookmail.com>",
+            subject: "You have a new lead for Acme Plumbing",
+            text: "Name: Jane Citizen Phone: 0412 345 678 Burst pipe enquiry from instant form",
+          },
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({ leadCapture: true, platform: "Meta Lead Ads" }),
+    );
+  });
 });

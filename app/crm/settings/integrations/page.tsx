@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { connectGoogleCalendar, connectXero, disconnectEmailIntegration, disconnectWorkspaceCalendarIntegration, getIntegrationConnectionReadiness, getIntegrationStatus } from "@/actions/integration-actions"
 import { EmailLeadCaptureSettings } from "@/components/settings/email-lead-capture-settings"
+import { LeadChannelsPanel } from "@/components/settings/lead-channels-panel"
 import { useShellStore } from "@/lib/store"
 import { formatDateTime } from "@/lib/format"
 
@@ -306,6 +307,8 @@ export default function IntegrationsPage() {
                 </Card>
 
                 <EmailLeadCaptureSettings />
+
+                <LeadChannelsPanel />
 
                 <Card>
                     <CardHeader>

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { decrypt, encrypt } from "@/lib/encryption";
 import { parseLeadFromEmail } from "@/lib/ai/lead-parser";
 import { sendIntroSms } from "@/lib/sms";
+import { LEAD_PROVIDERS } from "@/lib/email-filters";
 import type { Prisma } from "@prisma/client";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -340,30 +341,3 @@ async function refreshOutlookToken(integration: any): Promise<string> {
   return tokenData.access_token;
 }
 
-// Import LEAD_PROVIDERS from email-filters
-const LEAD_PROVIDERS = {
-  hipages: {
-    domains: ["hipages.com.au", "notifications@hipages.com.au"],
-    keywords: ["hipages", "new job", "job request"],
-  },
-  airtasker: {
-    domains: ["airtasker.com", "notifications@airtasker.com", "support@airtasker.com"],
-    keywords: ["airtasker", "task", "job posted"],
-  },
-  oneflare: {
-    domains: ["oneflare.com.au", "notifications@oneflare.com.au"],
-    keywords: ["oneflare", "quote request", "job lead"],
-  },
-  serviceseeking: {
-    domains: ["serviceseeking.com.au", "notifications@serviceseeking.com.au"],
-    keywords: ["serviceseeking", "job request", "quote request"],
-  },
-  servicetasker: {
-    domains: ["servicetasker.com.au", "notifications@servicetasker.com.au"],
-    keywords: ["servicetasker", "job match", "task request"],
-  },
-  bark: {
-    domains: ["bark.com", "notifications@bark.com"],
-    keywords: ["bark", "new lead", "project request"],
-  },
-};
