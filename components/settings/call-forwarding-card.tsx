@@ -5,6 +5,7 @@ import { Loader2, PhoneForwarded, PhoneOff, Shield, Smartphone, Sparkles } from 
 import { toast } from "sonner"
 import { getCallForwardingSettings, sendCallForwardingSetupSms, updateCallForwardingSettings } from "@/actions/settings-actions"
 import { getPhoneNumberStatus } from "@/actions/phone-settings"
+import { claimBusinessPhoneNumber } from "@/actions/claim-phone-number"
 import { buildCallForwardingCodes } from "@/lib/call-forwarding"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -64,6 +65,7 @@ export function CallForwardingCard() {
   const [saving, setSaving] = useState(false)
   const [sendingText, setSendingText] = useState(false)
   const [phoneDialogOpen, setPhoneDialogOpen] = useState(false)
+  const [claiming, setClaiming] = useState(false)
 
   const refreshStatus = useCallback(async () => {
     const [forwardingResult, phoneResult] = await Promise.allSettled([
@@ -154,6 +156,25 @@ export function CallForwardingCard() {
     }
   }
 
+  const handleClaimNumber = async () => {
+    if (claiming) return
+    setClaiming(true)
+    try {
+      const result = await claimBusinessPhoneNumber()
+      if (result.success) {
+        toast.success(`Your new business number is ${result.phoneNumber}`)
+        const phoneStatus = await getPhoneNumberStatus()
+        setStatus(phoneStatus)
+      } else {
+        toast.error(result.error || "Could not claim a number")
+      }
+    } catch {
+      toast.error("Could not claim a number")
+    } finally {
+      setClaiming(false)
+    }
+  }
+
   return (
     <>
       <Card className="rounded-[18px] border-border shadow-sm dark:border-slate-800">
@@ -192,14 +213,25 @@ export function CallForwardingCard() {
             </div>
 
             <div className="rounded-[18px] border border-border bg-card/70 p-4 dark:border-white/10 dark:bg-card/5">
-              <div className="space-y-1">
+              <div className="space-y-2">
                 <p className="app-micro-label">Your new business number</p>
                 <p className="text-sm font-medium text-foreground dark:text-white">
                   {traceyPhone || "Not provisioned yet"}
                 </p>
-                  <p className="text-xs text-muted-foreground">
-                    Give this to customers. Every call is answered, qualified and booked by Tracey.
-                  </p>
+                <p className="text-xs text-muted-foreground">
+                  Give this to customers. Every call is answered, qualified and booked by Tracey.
+                </p>
+                {!traceyPhone && (
+                  <Button
+                    size="sm"
+                    type="button"
+                    className="rounded-full"
+                    onClick={handleClaimNumber}
+                    disabled={claiming}
+                  >
+                    {claiming ? "Claiming…" : "Claim my business number"}
+                  </Button>
+                )}
               </div>
             </div>
           </div>

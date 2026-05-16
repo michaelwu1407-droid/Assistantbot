@@ -32,7 +32,7 @@ function withProvisioningDiagnostics(
   };
 }
 
-type TriggerSource = "stripe-webhook" | "billing-success" | "onboarding-check" | "onboarding-activation";
+type TriggerSource = "stripe-webhook" | "billing-success" | "onboarding-check" | "onboarding-activation" | "manual_claim";
 
 export type WorkspaceProvisioningStatus =
   | "not_requested"
