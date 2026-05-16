@@ -7,6 +7,8 @@ import * as Sentry from "@sentry/nextjs";
 import { isTrackableResendEvent, processResendStatusEvent } from "@/lib/resend-status-events";
 import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
 import { withCostCeiling } from "@/lib/cost-ceiling";
+import { isUrgentLead, isWithinAllowedCallWindow } from "@/lib/call-window";
+import { initiateOutboundCall } from "@/lib/outbound-call";
 
 const RESEND_EMAIL_COST_USD = 0.001;
 
@@ -127,46 +129,6 @@ function parseLeadContactDetails(textBody: string): { phone: string | null; name
   const nameMatch = normalized.match(NAME_REGEX);
   const name = nameMatch ? nameMatch[1].trim() : null;
   return { phone, name };
-}
-
-function parseHHMM(value: string): { h: number; m: number } | null {
-  const match = value.match(/^(\d{1,2}):(\d{2})$/);
-  if (!match) return null;
-  const h = Number(match[1]);
-  const m = Number(match[2]);
-  if (!Number.isFinite(h) || !Number.isFinite(m) || h < 0 || h > 23 || m < 0 || m > 59) return null;
-  return { h, m };
-}
-
-function minutesNowInSydney(): number {
-  const time = new Date().toLocaleTimeString("en-AU", {
-    hour12: false,
-    timeZone: "Australia/Sydney",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  const parsed = parseHHMM(time);
-  if (!parsed) return 0;
-  return parsed.h * 60 + parsed.m;
-}
-
-function isWithinAllowedCallWindow(settings: unknown): boolean {
-  const s = (settings as Record<string, unknown>) ?? {};
-  const startRaw = typeof s.callAllowedStart === "string" ? s.callAllowedStart : "08:00";
-  const endRaw = typeof s.callAllowedEnd === "string" ? s.callAllowedEnd : "20:00";
-  const start = parseHHMM(startRaw);
-  const end = parseHHMM(endRaw);
-  if (!start || !end) return true;
-  const now = minutesNowInSydney();
-  const startM = start.h * 60 + start.m;
-  const endM = end.h * 60 + end.m;
-  if (endM >= startM) return now >= startM && now <= endM;
-  return now >= startM || now <= endM;
-}
-
-function isUrgentLead(subject: string, body: string): boolean {
-  const text = `${subject} ${body}`.toLowerCase();
-  return /(urgent|emergency|asap|immediate|today|now|critical|priority)/.test(text);
 }
 
 // ─── Email Address Extraction ────────────────────────────────────────
@@ -477,11 +439,24 @@ export async function POST(req: NextRequest) {
             ? "triage_review"
             : null;
 
-      // Auto-call via LiveKit: outbound calls are handled by the livekit-agent Python microservice via SIP trunk.
-      // When autoCallLeads is enabled, the microservice picks up and dials the lead.
-      const callTriggered = false;
+      // Auto-call via LiveKit: routes through the outbound queue, which the
+      // livekit-agent Python worker picks up and dials over the SIP trunk.
+      const wantsAutoCall = Boolean(workspace!.autoCallLeads && displayPhone);
+      let callTriggered = false;
+      if (wantsAutoCall && !blockAutoCall) {
+        callTriggered = true;
+        initiateOutboundCall({
+          workspaceId: workspace!.id,
+          contactPhone: displayPhone!,
+          contactName: leadName,
+          dealId: deal.id,
+          reason: `email_lead:${platform}`,
+        }).catch((err) => {
+          console.error("[inbound-email] Auto-call failed:", err);
+        });
+      }
 
-      if (workspace!.ownerId && blockAutoCall) {
+      if (workspace!.ownerId && wantsAutoCall && blockAutoCall) {
         const triageTitle = triage?.recommendation === "HOLD_REVIEW" && triage.flags.length > 0
           ? "Lead flagged for review"
           : urgentLead ? "Urgent lead requires manual follow-up" : "After-hours lead requires manual follow-up";
