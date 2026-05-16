@@ -163,7 +163,7 @@ export function CallForwardingCard() {
             Phone & call handling
           </CardTitle>
           <CardDescription>
-            Add your mobile, choose how Tracey should answer, then turn call forwarding on from your phone.
+            Your Tracey number below is your new business number — give it to customers, print it on your van and quotes. Already have a number you can&apos;t change? Set up call forwarding from your phone at the bottom.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -193,12 +193,12 @@ export function CallForwardingCard() {
 
             <div className="rounded-[18px] border border-border bg-card/70 p-4 dark:border-white/10 dark:bg-card/5">
               <div className="space-y-1">
-                <p className="app-micro-label">Tracey number</p>
+                <p className="app-micro-label">Your new business number</p>
                 <p className="text-sm font-medium text-foreground dark:text-white">
                   {traceyPhone || "Not provisioned yet"}
                 </p>
                   <p className="text-xs text-muted-foreground">
-                    This is the number your business calls can forward to.
+                    Give this to customers. Every call is answered, qualified and booked by Tracey.
                   </p>
               </div>
             </div>

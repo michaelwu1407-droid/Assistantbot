@@ -22,14 +22,37 @@ export async function getOnboardingProgress() {
         return { shouldShow: false, completed: 0, total: 5, steps: [] };
     }
 
-    const [businessProfile, services, templates, documents] = await Promise.all([
+    const [businessProfile, services, templates, documents, workspaceMeta, inboxConnections] = await Promise.all([
         db.businessProfile.findUnique({ where: { userId } }),
         db.serviceItem.count({ where: { businessProfile: { userId } } }),
         db.smsTemplate.count({ where: { userId } }),
         db.businessDocument.count({ where: { workspaceId } }),
+        db.workspace.findUnique({
+            where: { id: workspaceId },
+            select: { twilioPhoneNumber: true, autoCallLeads: true },
+        }),
+        db.emailIntegration.count({ where: { userId, isActive: true } }),
     ]);
 
     const steps = [
+        {
+            id: "phone_number",
+            title: "Claim your business phone number",
+            isComplete: !!workspaceMeta?.twilioPhoneNumber,
+            href: "/crm/settings",
+        },
+        {
+            id: "connect_inbox",
+            title: "Connect your inbox to capture hipages, Airtasker & website leads",
+            isComplete: inboxConnections > 0,
+            href: "/crm/settings/integrations",
+        },
+        {
+            id: "auto_call",
+            title: "Turn on auto-call for new leads",
+            isComplete: !!workspaceMeta?.autoCallLeads,
+            href: "/crm/settings/integrations",
+        },
         {
             id: "profile",
             title: "Add your Business Details",
@@ -40,13 +63,7 @@ export async function getOnboardingProgress() {
             id: "services",
             title: "List your Services",
             isComplete: services > 0,
-            href: "/crm/settings/my-business", // or services
-        },
-        {
-            id: "agent_mode",
-            title: "Configure AI Voice Preferences",
-            isComplete: true, // Completed in onboarding wizard already
-            href: "/crm/settings/agent",
+            href: "/crm/settings/my-business",
         },
         {
             id: "templates",
