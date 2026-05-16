@@ -65,9 +65,12 @@ function dtmfChallengeTwiml(gatewayUrl: string, calledNumber: string) {
 }
 
 function forwardToLiveKitTwiml(sipTrunkDomain: string) {
+  // action= makes Twilio POST the dial outcome to /twilio-voice-status when
+  // the leg ends — used to capture missed calls (no-answer/busy/failed) and
+  // open a callback lead in the tradie's CRM.
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial>
+  <Dial action="/api/webhooks/twilio-voice-status" method="POST">
     <Sip>${sipTrunkDomain}</Sip>
   </Dial>
 </Response>`;
