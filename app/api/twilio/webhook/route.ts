@@ -10,6 +10,8 @@ import { isReplyableSmsAddress } from "@/lib/sms-address"
 import { assertSafeRecipient } from "@/lib/messaging/safe-recipient"
 import { withCostCeiling } from "@/lib/cost-ceiling"
 import { verifyTwilioFormPost } from "@/lib/twilio/verify-signature"
+import { isWithinAllowedCallWindow } from "@/lib/call-window"
+import { initiateOutboundCall } from "@/lib/outbound-call"
 
 const TWILIO_SMS_COST_USD = 0.05
 
@@ -320,6 +322,22 @@ export async function POST(req: NextRequest) {
                             },
                         });
                         return;
+                    }
+
+                    // Auto-call the new SMS lead via the voice agent if the
+                    // workspace has opted in and we're inside the calling
+                    // window. Fire-and-forget so the SMS reply path stays fast.
+                    const withinCallWindow = isWithinAllowedCallWindow(workspace.settings);
+                    if (workspace.autoCallLeads && withinCallWindow) {
+                        initiateOutboundCall({
+                            workspaceId,
+                            contactPhone: From,
+                            contactName: contact.name || `SMS lead ${From}`,
+                            dealId: activeDeal.id,
+                            reason: "sms_lead",
+                        }).catch((err) => {
+                            console.error("[SMS Webhook] Auto-call failed:", err);
+                        });
                     }
                 }
 
