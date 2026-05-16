@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getLeadChannels, type LeadChannel } from "@/actions/lead-channels";
+import { getLeadChannels, type LeadChannel, type LeadChannelStatus } from "@/actions/lead-channels";
 
 type ChannelData = Awaited<ReturnType<typeof getLeadChannels>>;
 
@@ -12,6 +12,14 @@ const CATEGORY_ORDER: LeadChannel["category"][] = [
   "Your own channels",
   "Phone & SMS",
 ];
+
+const STATUS_LABEL: Record<LeadChannelStatus, string> = {
+  live: "Live",
+  platform_setup_required: "1 step left on the platform",
+  needs_inbox: "Connect your inbox first",
+  needs_phone: "Claim your business number first",
+  needs_form_check: "Confirm your form emails you",
+};
 
 export function LeadChannelsPanel() {
   const [data, setData] = useState<ChannelData | null>(null);
@@ -51,14 +59,14 @@ export function LeadChannelsPanel() {
       <CardHeader>
         <CardTitle>Where your leads come from</CardTitle>
         <CardDescription>
-          Tracey captures leads from {totalCount} sources. You&apos;ve got <strong>{liveCount} of {totalCount}</strong> live right now &mdash; complete the steps above to light up the rest.
+          Tracey can capture leads from {totalCount} sources. <strong>{liveCount} live, {totalCount - liveCount} need one more step.</strong> Expand any channel below to see exactly what to do.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {grouped.map(({ category, items }) => (
           <div key={category} className="space-y-2">
             <p className="app-micro-label">{category}</p>
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="space-y-2">
               {items.map((channel) => (
                 <ChannelRow key={channel.id} channel={channel} />
               ))}
@@ -72,28 +80,46 @@ export function LeadChannelsPanel() {
 
 function ChannelRow({ channel }: { channel: LeadChannel }) {
   const isLive = channel.status === "live";
+  const hasSteps = (channel.setupSteps?.length ?? 0) > 0;
+
   return (
-    <div
+    <details
       className={
         isLive
           ? "rounded-md border border-emerald-200 bg-emerald-50/50 p-3 dark:border-emerald-900/40 dark:bg-emerald-900/10"
-          : "rounded-md border border-border bg-muted/20 p-3"
+          : "rounded-md border border-amber-200 bg-amber-50/40 p-3 dark:border-amber-900/40 dark:bg-amber-900/10"
       }
     >
-      <div className="flex items-start gap-2">
+      <summary className="flex cursor-pointer items-start gap-2 list-none">
         {isLive ? (
           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
         ) : (
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
         )}
-        <div className="min-w-0 space-y-1">
-          <p className="text-sm font-medium text-foreground">{channel.name}</p>
+        <div className="min-w-0 flex-1 space-y-1">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-medium text-foreground">{channel.name}</p>
+            <span
+              className={
+                isLive
+                  ? "text-xs font-medium text-emerald-700 dark:text-emerald-400"
+                  : "text-xs font-medium text-amber-700 dark:text-amber-400"
+              }
+            >
+              {STATUS_LABEL[channel.status]}
+            </span>
+          </div>
           <p className="text-xs text-muted-foreground">{channel.description}</p>
-          {!isLive && channel.setupHint && (
-            <p className="text-xs text-amber-700 dark:text-amber-400">{channel.setupHint}</p>
-          )}
         </div>
-      </div>
-    </div>
+      </summary>
+
+      {hasSteps && (
+        <ol className="mt-3 ml-7 list-decimal space-y-1.5 text-xs text-foreground">
+          {channel.setupSteps!.map((step, i) => (
+            <li key={i}>{step}</li>
+          ))}
+        </ol>
+      )}
+    </details>
   );
 }

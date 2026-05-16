@@ -1,17 +1,24 @@
 "use server";
 
 /**
- * getLeadChannels — returns every lead source the app can capture, with a
- * live status badge for the current tradie's workspace. Powers the
- * customer-facing "Where your leads come from" panel on the integrations
- * page and dashboard, so the tradie can see at a glance which channels are
- * working and which still need a one-time setup step.
+ * getLeadChannels — returns every lead source the app can capture, with an
+ * honest status per channel. Used by the "Where your leads come from" panel
+ * so the tradie can see exactly what's working and what they still need to
+ * configure on the platform's own side. We deliberately distinguish
+ * "platform_setup_required" (inbox is connected but the platform itself
+ * needs the lead email turned on) from "live" so we don't lie about
+ * coverage.
  */
 import { db } from "@/lib/db";
 import { getAuthUserId } from "@/lib/auth";
 import { getOrCreateWorkspace } from "./workspace-actions";
 
-export type LeadChannelStatus = "live" | "needs_setup" | "auto";
+export type LeadChannelStatus =
+  | "live"
+  | "platform_setup_required"
+  | "needs_inbox"
+  | "needs_phone"
+  | "needs_form_check";
 
 export type LeadChannel = {
   id: string;
@@ -19,7 +26,7 @@ export type LeadChannel = {
   category: "Lead platforms" | "Your own channels" | "Phone & SMS";
   status: LeadChannelStatus;
   description: string;
-  setupHint?: string;
+  setupSteps?: string[];
 };
 
 export async function getLeadChannels(): Promise<{
@@ -46,112 +53,121 @@ export async function getLeadChannels(): Promise<{
   const inboxConnected = inboxCount > 0;
   const hasPhoneNumber = !!workspace?.twilioPhoneNumber;
 
-  const inboxStatus = (): LeadChannelStatus => (inboxConnected ? "live" : "needs_setup");
-  const phoneStatus = (): LeadChannelStatus => (hasPhoneNumber ? "live" : "needs_setup");
+  // Platforms that *default* to emailing the tradie's registered address.
+  // Once the inbox is connected and the tradie's platform login email
+  // matches that inbox, leads flow with zero extra config.
+  const defaultEmailPlatform = (name: string, displayName: string): LeadChannel => ({
+    id: name,
+    name: displayName,
+    category: "Lead platforms",
+    status: inboxConnected ? "live" : "needs_inbox",
+    description: inboxConnected
+      ? `New ${displayName} leads land in Tracey as long as your ${displayName} account uses the inbox you connected above.`
+      : `${displayName} emails new leads to your registered email. Connect that inbox above and Tracey will start capturing them.`,
+    setupSteps: inboxConnected
+      ? [
+          `Check that your ${displayName} account login email matches the inbox you connected above. If it doesn't, change it in ${displayName} settings.`,
+        ]
+      : [
+          "Connect your Gmail or Outlook on this page.",
+          `Make sure that inbox is the same email address you use to log in to ${displayName}.`,
+        ],
+  });
 
   const channels: LeadChannel[] = [
-    // ─── Paid lead platforms — all email-based ─────────────────────────
-    {
-      id: "hipages",
-      name: "hipages",
-      category: "Lead platforms",
-      status: inboxStatus(),
-      description: "Auto-captured from your hipages lead emails.",
-      setupHint: inboxConnected ? undefined : "Connect your inbox above to start capturing hipages leads.",
-    },
-    {
-      id: "airtasker",
-      name: "Airtasker",
-      category: "Lead platforms",
-      status: inboxStatus(),
-      description: "Auto-captured from your Airtasker notification emails.",
-      setupHint: inboxConnected ? undefined : "Connect your inbox above.",
-    },
-    {
-      id: "oneflare",
-      name: "Oneflare",
-      category: "Lead platforms",
-      status: inboxStatus(),
-      description: "Auto-captured from your Oneflare lead emails.",
-      setupHint: inboxConnected ? undefined : "Connect your inbox above.",
-    },
-    {
-      id: "serviceseeking",
-      name: "Service Seeking",
-      category: "Lead platforms",
-      status: inboxStatus(),
-      description: "Auto-captured from Service Seeking notifications.",
-      setupHint: inboxConnected ? undefined : "Connect your inbox above.",
-    },
-    {
-      id: "bark",
-      name: "Bark",
-      category: "Lead platforms",
-      status: inboxStatus(),
-      description: "Auto-captured from Bark lead emails.",
-      setupHint: inboxConnected ? undefined : "Connect your inbox above.",
-    },
+    defaultEmailPlatform("hipages", "hipages"),
+    defaultEmailPlatform("airtasker", "Airtasker"),
+    defaultEmailPlatform("oneflare", "Oneflare"),
+    defaultEmailPlatform("serviceseeking", "Service Seeking"),
+    defaultEmailPlatform("bark", "Bark"),
+
+    // Google LSA — even with inbox connected, lead email notifications are
+    // off by default in the LSA dashboard. We must say so honestly.
     {
       id: "google_lsa",
       name: "Google Local Services Ads",
       category: "Lead platforms",
-      status: inboxStatus(),
+      status: inboxConnected ? "platform_setup_required" : "needs_inbox",
       description: inboxConnected
-        ? "Captured once you turn on email notifications in your Google LSA dashboard."
-        : "Auto-captured from Google LSA email notifications.",
-      setupHint: inboxConnected
-        ? "In Google Ads → Local Services → Settings, set the lead email to the inbox you connected here. New LSA leads will land in Tracey automatically."
-        : "Connect your inbox above, then turn on lead email notifications in Google LSA.",
+        ? "One more step on Google's side. Once you turn on lead email notifications inside Google LSA, those leads will land here."
+        : "Captured via email — Google LSA emails the lead details when you turn on notifications in their dashboard.",
+      setupSteps: [
+        ...(inboxConnected ? [] : ["Connect your Gmail or Outlook on this page."]),
+        "Open ads.google.com → Local Services → Settings → Notifications.",
+        "Turn on \"Email lead notifications\" and set the email to the inbox you connected here.",
+        "Save. The next lead Google sends you will show up in Tracey within a minute.",
+      ],
     },
+
+    // Meta Lead Ads — Facebook Pages only email leads to addresses listed
+    // under Lead Access. Inbox connection alone doesn't unlock anything.
     {
       id: "meta_lead_ads",
       name: "Facebook / Instagram Lead Ads",
       category: "Lead platforms",
-      status: inboxStatus(),
+      status: inboxConnected ? "platform_setup_required" : "needs_inbox",
       description: inboxConnected
-        ? "Captured once you set your Facebook Page to email new leads."
-        : "Auto-captured from Meta Lead Ads notification emails.",
-      setupHint: inboxConnected
-        ? "In Facebook Page → Settings → Lead Access, add the inbox you connected here as a CRM email recipient. New Lead Ad submissions will land in Tracey."
-        : "Connect your inbox above, then enable Lead Access email forwarding on your Facebook Page.",
+        ? "One more step on Meta's side. Add your connected inbox to your Facebook Page's Lead Access list and new lead-form submissions will land here."
+        : "Captured via email — Meta forwards Lead Ad submissions to email addresses you nominate on your Page.",
+      setupSteps: [
+        ...(inboxConnected ? [] : ["Connect your Gmail or Outlook on this page."]),
+        "Open business.facebook.com → your Page → Settings → Lead Access (under Page Roles).",
+        "Click \"Assign new CRM\" → add the inbox you connected here as a CRM email recipient.",
+        "Save. The next lead from any Lead Ad on this Page will land in Tracey.",
+      ],
     },
 
-    // ─── Channels the tradie owns ──────────────────────────────────────
+    // Website form — the big honesty fix. Three things must all be true:
+    // (1) the tradie has a website form, (2) it's set to email them on
+    // submit, (3) that email arrives in the connected inbox.
     {
       id: "website_form",
       name: "Your website contact form",
       category: "Your own channels",
-      status: inboxStatus(),
+      status: inboxConnected ? "needs_form_check" : "needs_inbox",
       description: inboxConnected
-        ? "Your existing website form keeps emailing you — Tracey captures those too."
-        : "Most website forms already email you. Once your inbox is connected, those leads are captured automatically.",
-      setupHint: inboxConnected ? undefined : "Connect your inbox above.",
+        ? "Most website forms (Wix, Squarespace, WordPress, GoDaddy) email you on submit by default — those land here automatically. Some custom or builder forms only save submissions to a dashboard and don't email anyone; those need a one-time fix."
+        : "Connect your inbox first, then we'll check your website form is set to email you.",
+      setupSteps: [
+        ...(inboxConnected ? [] : ["Connect your Gmail or Outlook on this page."]),
+        "On your website, fill in your own contact form with a test name and your phone number, then submit.",
+        "Check the connected inbox within 2 minutes. If the form submission arrived as an email, you're done — Tracey will capture it next time.",
+        "If nothing arrived: open your site builder (Wix / Squarespace / WordPress / your form plugin) and find the form's settings. Turn on \"Email notifications\" or set the recipient to the inbox you connected above.",
+      ],
     },
 
-    // ─── Phone & SMS — all tied to the Tracey number ───────────────────
+    // Phone & SMS — all tied to the Tracey number being provisioned.
     {
       id: "inbound_calls",
       name: "Inbound phone calls",
       category: "Phone & SMS",
-      status: phoneStatus(),
-      description: "Tracey answers every call to your business number, qualifies the customer and books the job.",
-      setupHint: hasPhoneNumber ? undefined : "Claim your business phone number in Settings.",
+      status: hasPhoneNumber ? "live" : "needs_phone",
+      description: hasPhoneNumber
+        ? "Tracey answers every call to your business number, qualifies the customer and books the job."
+        : "Once your business number is provisioned, every inbound call is answered by Tracey.",
+      setupSteps: hasPhoneNumber
+        ? ["Give your business number out to customers (van signage, quotes, invoices, website footer)."]
+        : ["Open Settings → Phone & call handling and click \"Claim my business number\"."],
     },
     {
       id: "missed_calls",
-      name: "Missed calls",
+      name: "Missed calls (auto-callback)",
       category: "Phone & SMS",
-      status: phoneStatus(),
-      description: "If a call isn't answered, Tracey creates a lead and calls the customer back automatically.",
-      setupHint: hasPhoneNumber ? undefined : "Claim your business phone number in Settings.",
+      status: hasPhoneNumber ? "live" : "needs_phone",
+      description: "If a call isn't answered, Tracey creates a lead and calls the customer back automatically — closing the biggest leak in most tradie businesses.",
+      setupSteps: hasPhoneNumber
+        ? []
+        : ["Claim your business number in Settings → Phone & call handling."],
     },
     {
       id: "inbound_sms",
       name: "Inbound SMS",
       category: "Phone & SMS",
-      status: phoneStatus(),
+      status: hasPhoneNumber ? "live" : "needs_phone",
       description: "Texts to your business number become leads and trigger an auto-callback.",
-      setupHint: hasPhoneNumber ? undefined : "Claim your business phone number in Settings.",
+      setupSteps: hasPhoneNumber
+        ? []
+        : ["Claim your business number in Settings → Phone & call handling."],
     },
   ];
 
