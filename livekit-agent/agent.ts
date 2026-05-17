@@ -121,6 +121,7 @@ const DEMO_WRAP_UP_MS = 3 * 60 * 1000;
 const DEMO_HARD_CUT_MS = 5 * 60 * 1000;
 const GOODBYE_DISCONNECT_BUFFER_MS = 5000;
 const DEMO_OUTBOUND_GREETING_CONNECT_TIMEOUT_MS = 20_000;
+const INBOUND_DEMO_GREETING_BRIDGE_GRACE_MS = Number(process.env.INBOUND_DEMO_GREETING_BRIDGE_GRACE_MS || 1200);
 
 const WRAP_UP_SCRIPT =
   "This is taking a bit longer than expected, and I want to get it resolved for you as quickly as possible. Tell the caller that you are going to pass this straight to your manager so they can address it as soon as possible, then ask: is there anything else I should know before I pass it on? Keep it brief, natural, and in the caller's language.";
@@ -1515,6 +1516,10 @@ function getGoodbyeLine(callType: CallType): string {
 
 function getParticipantSipStatus(participant: { attributes?: Record<string, string> | null }) {
   return readSipCallStatus((participant.attributes || {}) as Record<string, string>);
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, Math.max(0, ms)));
 }
 
 async function waitForDemoOutboundLegReady(params: {
@@ -3170,11 +3175,16 @@ export default defineAgent({
         ctx.room.disconnect().catch(() => {});
         return;
       }
+    } else if (callType === "inbound_demo" && INBOUND_DEMO_GREETING_BRIDGE_GRACE_MS > 0) {
+      // Twilio PSTN -> SIP bridge calls can report the SIP participant before
+      // the media bridge is fully ready. A short grace avoids speaking the
+      // fixed greeting into a not-yet-audible leg.
+      await delay(INBOUND_DEMO_GREETING_BRIDGE_GRACE_MS);
     }
 
     await session.say(greeting, {
       ...(greetingFrame ? { audio: audioFrameToReadableStream(greetingFrame) } : {}),
-      allowInterruptions: false,
+      allowInterruptions: callType === "inbound_demo",
       addToChatCtx: callType !== "demo",
     });
     if (callType === "demo") {
