@@ -102,6 +102,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Workspace not found" }, { status: 404, headers: corsHeaders() });
     }
 
+    // Honeypot: bots fill this hidden field, real users don't see it.
+    // Silently accept (200) so bots don't get signal we detected them.
+    if ((body.company_website || "").trim()) {
+      console.info(`[Webform webhook] honeypot tripped for workspace ${workspaceId} — silent accept`);
+      return NextResponse.json({ success: true }, { headers: corsHeaders() });
+    }
+
     const name = (body.name || body.full_name || body.customer_name || "Website Enquiry").trim();
     const email = (body.email || body.customer_email || "").toLowerCase().trim();
     const phone = (body.phone || body.mobile || body.customer_phone || "").trim();
@@ -246,9 +253,22 @@ export async function POST(req: NextRequest) {
       // Notification failure is non-blocking
     }
 
-    // If redirect_url provided, redirect (for traditional HTML form POST)
+    // If redirect_url provided, redirect (for traditional HTML form POST).
+    // Resolve against the request URL so relative paths like
+    // "/quote/xxx/thanks" work, and refuse cross-origin redirects to
+    // prevent open-redirect abuse.
     if (redirectUrl) {
-      return NextResponse.redirect(redirectUrl, { status: 303, headers: corsHeaders() });
+      try {
+        const resolved = new URL(redirectUrl, req.url);
+        const reqOrigin = new URL(req.url).origin;
+        if (resolved.origin !== reqOrigin) {
+          console.warn(`[Webform webhook] refusing cross-origin redirect to ${resolved.origin}`);
+        } else {
+          return NextResponse.redirect(resolved.toString(), { status: 303, headers: corsHeaders() });
+        }
+      } catch {
+        console.warn(`[Webform webhook] ignoring malformed redirect_url: ${redirectUrl}`);
+      }
     }
 
     return NextResponse.json({

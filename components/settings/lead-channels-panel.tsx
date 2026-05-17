@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { CheckCircle2, AlertCircle, Loader2, Copy } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getLeadChannels, type LeadChannel, type LeadChannelStatus } from "@/actions/lead-channels";
 
@@ -114,6 +115,10 @@ function ChannelRow({ channel }: { channel: LeadChannel }) {
         </div>
       </summary>
 
+      {channel.shareableLink && (
+        <ShareableLink link={channel.shareableLink} />
+      )}
+
       {hasSteps && (
         <ol className="mt-3 ml-7 list-decimal space-y-1.5 text-xs text-foreground">
           {channel.setupSteps!.map((step, i) => (
@@ -122,5 +127,37 @@ function ChannelRow({ channel }: { channel: LeadChannel }) {
         </ol>
       )}
     </details>
+  );
+}
+
+function ShareableLink({ link }: { link: { label: string; path: string } }) {
+  const fullUrl =
+    typeof window !== "undefined" ? `${window.location.origin}${link.path}` : link.path;
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(fullUrl);
+      toast.success("Link copied — paste it into your website or share it with customers.");
+    } catch {
+      toast.error("Couldn't copy automatically — select and copy the link instead.");
+    }
+  };
+
+  return (
+    <div className="mt-3 ml-7 rounded-md border border-border bg-background p-3 space-y-1.5">
+      <p className="app-field-label">{link.label}</p>
+      <div className="flex items-center gap-2">
+        <code className="flex-1 truncate rounded-md bg-muted/40 px-2 py-1.5 text-xs font-mono text-foreground">
+          {fullUrl}
+        </code>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1.5 text-xs font-medium hover:bg-muted/40"
+        >
+          <Copy className="h-3.5 w-3.5" /> Copy
+        </button>
+      </div>
+    </div>
   );
 }

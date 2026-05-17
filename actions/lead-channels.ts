@@ -28,6 +28,7 @@ export type LeadChannel = {
   status: LeadChannelStatus;
   description: string;
   setupSteps?: string[];
+  shareableLink?: { label: string; path: string };  // rendered prominently with copy button
 };
 
 export async function getLeadChannels(): Promise<{
@@ -150,23 +151,20 @@ export async function getLeadChannels(): Promise<{
       ],
     },
 
-    // Website form — the big honesty fix. Three things must all be true:
-    // (1) the tradie has a website form, (2) it's set to email them on
-    // submit, (3) that email arrives in the connected inbox.
+    // Website form — we host the form ourselves. The tradie shares the
+    // /quote/<workspaceId> link from their site (or anywhere — business
+    // cards, GMB, SMS). No tradie-side email-forwarding setup, no testing,
+    // no dependency on their site builder. Works 100% out of the box.
     {
       id: "website_form",
       name: "Your website contact form",
       category: "Your own channels",
-      status: inboxConnected ? "needs_form_check" : "needs_inbox",
-      description: inboxConnected
-        ? "Most website forms (Wix, Squarespace, WordPress, GoDaddy) email you on submit by default — those land here automatically. Some custom or builder forms only save submissions to a dashboard and don't email anyone; those need a one-time fix."
-        : "Connect your inbox first, then we'll check your website form is set to email you.",
+      status: "live",
+      description: `Your hosted quote form is live and ready. Share the link below from your website ("Get a Quote" button), Google Business profile, SMS replies — anywhere customers can click. Every submission lands in Tracey and triggers a callback.`,
+      shareableLink: { label: "Your quote form", path: `/quote/${workspaceId}` },
       setupSteps: [
-        ...(inboxConnected ? [] : ["Connect your Gmail or Outlook on this page."]),
-        "On your website, fill in your own contact form with a test name and your phone number, then submit.",
-        "Check the connected inbox within 2 minutes. If the form submission arrived as an email, you're done — Tracey will capture it next time.",
-        "If nothing arrived: open your site builder (Wix / Squarespace / WordPress / your form plugin) and find the form's settings. Turn on \"Email notifications\" or set the recipient to the inbox you connected above.",
-        "Once you've confirmed it works, delete the test lead from your CRM (Deals → find your test name → Delete).",
+        `Add a button on your website labelled "Get a Quote" that links to your quote form URL. Most site builders (Wix, Squarespace, WordPress, GoDaddy) have a one-click "Add button" widget.`,
+        `Also paste the link in your Google Business profile, your email signature, and your SMS auto-replies so customers can reach you anywhere.`,
       ],
     },
 

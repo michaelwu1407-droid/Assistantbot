@@ -90,6 +90,26 @@ describe("POST /api/webhooks/webform", () => {
     expect(await response.json()).toEqual({ error: "Invalid secret" });
   });
 
+  it("silently accepts honeypot-tripped submissions without creating a deal", async () => {
+    hoisted.db.workspace.findUnique.mockResolvedValue({ id: "ws_1", name: "Acme" });
+
+    const response = await POST(
+      buildJsonRequest({
+        workspace_id: "ws_1",
+        name: "Real-looking name",
+        phone: "0400000000",
+        message: "I am a bot",
+        company_website: "https://spam.example.com",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ success: true });
+    expect(hoisted.db.contact.create).not.toHaveBeenCalled();
+    expect(hoisted.db.deal.create).not.toHaveBeenCalled();
+    expect(hoisted.scheduleLeadCallback).not.toHaveBeenCalled();
+  });
+
   it("creates a contact, lead, activity, and owner notification for a valid enquiry", async () => {
     hoisted.db.workspace.findUnique.mockResolvedValue({
       id: "ws_1",
