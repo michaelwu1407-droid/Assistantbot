@@ -23,7 +23,10 @@ import Sparkles from "lucide-react/dist/esm/icons/sparkles"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { sendSMS } from "@/actions/messaging-actions"
-import { requestTraceyRecall } from "@/actions/voice-call-actions"
+import {
+  markCallbackHandledByMe,
+  requestTraceyRecall,
+} from "@/actions/voice-call-actions"
 import { toast } from "sonner"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -201,6 +204,7 @@ export function InboxView({
   })
   const [expandedActivityIds, setExpandedActivityIds] = useState<Record<string, boolean>>({})
   const [recallingActivityId, setRecallingActivityId] = useState<string | null>(null)
+  const [handlingActivityId, setHandlingActivityId] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
   const messageText = messageDrafts[messageMode]
 
@@ -494,6 +498,28 @@ If the request is to contact the customer, use the appropriate customer-contact 
     }
   }
 
+  const handleTakeOverCallback = async (item: ActivityView) => {
+    if (!selectedContact?.id) return
+    setHandlingActivityId(item.id)
+    try {
+      const result = await markCallbackHandledByMe({
+        contactId: selectedContact.id,
+        dealId: item.dealId || selectedActivity?.dealId || null,
+      })
+      if (result.success) {
+        toast.success(`We'll leave ${selectedContact.name} with your team from here`)
+        router.refresh()
+      } else {
+        toast.error(result.error || "Couldn't mark this callback as handled by your team.")
+      }
+    } catch (error) {
+      console.error("[Inbox] Manual callback takeover failed:", error)
+      toast.error("Couldn't mark this callback as handled by your team.")
+    } finally {
+      setHandlingActivityId(null)
+    }
+  }
+
   return (
     <>
       <div className="flex flex-col md:flex-row h-full glass-card rounded-2xl overflow-hidden">
@@ -760,6 +786,18 @@ If the request is to contact the customer, use the appropriate customer-contact 
                   detailInteractions.map((item) => {
                     const meta = getTimelineMeta(item)
                     const callbackWorkflow = item.workflow?.kind === "callback" ? item.workflow : null
+                    const hasLaterCallbackEvent = Boolean(
+                      callbackWorkflow && detailInteractions.some((other) => {
+                        if (other.id === item.id) return false
+                        const otherWorkflow = other.workflow?.kind === "callback" ? other.workflow : null
+                        if (!otherWorkflow) return false
+                        const sameDeal = Boolean(item.dealId && other.dealId && item.dealId === other.dealId)
+                        const sameContactFallback = !item.dealId && item.contactId && other.contactId === item.contactId
+                        if (!sameDeal && !sameContactFallback) return false
+                        return new Date(other.createdAt).getTime() > new Date(item.createdAt).getTime()
+                      }),
+                    )
+                    const showCallbackAction = Boolean(callbackWorkflow?.recallEligible && !hasLaterCallbackEvent)
                     const outbound = meta.direction === "outbound"
                     const expanded = expandedActivityIds[item.id] ?? shouldExpandByDefault(item)
                     const { icon, containerClass, label } = channelIconAndStyle(meta.channel)
@@ -873,19 +911,29 @@ If the request is to contact the customer, use the appropriate customer-contact 
                               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{meta.summary}</p>
                             ) : null}
 
-                            {callbackWorkflow?.recallEligible && (
+                            {showCallbackAction && (
                               <div className="mt-3 flex flex-wrap items-center gap-2">
                                 <Button
                                   type="button"
                                   size="sm"
                                   className="h-8"
-                                  disabled={recallingActivityId === item.id}
+                                  disabled={recallingActivityId === item.id || handlingActivityId === item.id}
                                   onClick={() => handleRecallWithTracey(item)}
                                 >
                                   {recallingActivityId === item.id ? "Calling…" : "Recall with Tracey"}
                                 </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8"
+                                  disabled={recallingActivityId === item.id || handlingActivityId === item.id}
+                                  onClick={() => handleTakeOverCallback(item)}
+                                >
+                                  {handlingActivityId === item.id ? "Saving..." : "I'll handle this"}
+                                </Button>
                                 <p className="text-xs text-muted-foreground">
-                                  Or use the call/text buttons above if you want to handle it yourself.
+                                  Use the call/text buttons above if you want to follow up yourself.
                                 </p>
                               </div>
                             )}

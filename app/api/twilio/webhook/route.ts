@@ -17,6 +17,11 @@ import {
     hasRecentAutomaticCallbackAttempt,
     recordCallbackEvent,
 } from "@/lib/callback-events"
+import {
+    assessInboundLeadGuard,
+    buildInboundLeadGuardCopy,
+    recordInboundLeadGuardEvent,
+} from "@/lib/inbound-lead-guard"
 
 const TWILIO_SMS_COST_USD = 0.05
 
@@ -342,6 +347,61 @@ export async function POST(req: NextRequest) {
                                 triggerSource: "inbound_sms",
                                 callbackKind: "automatic",
                                 blockReason: "triage_review",
+                            },
+                        });
+                        return;
+                    }
+
+                    const leadGuard = await assessInboundLeadGuard({
+                        workspaceId,
+                        channel: "inbound_sms",
+                        contactPhone: From,
+                    });
+                    if (leadGuard.blocked && leadGuard.payload) {
+                        const payload = {
+                            ...leadGuard.payload,
+                            contactId,
+                            dealId: deal.id,
+                            contactPhone: From,
+                        };
+                        await recordInboundLeadGuardEvent(payload);
+                        const leadGuardCopy = buildInboundLeadGuardCopy(payload);
+                        await prisma.activity.create({
+                            data: {
+                                type: "NOTE",
+                                title: leadGuardCopy.title,
+                                content: leadGuardCopy.description,
+                                contactId,
+                                dealId: deal.id,
+                            },
+                        }).catch(() => {});
+                        await recordSmsWebhookEvent({
+                            eventType: "sms.reply",
+                            status: "success",
+                            payload: {
+                                workspaceId,
+                                workspaceName: workspace.name,
+                                from: To,
+                                to: From,
+                                messageSid: MessageSid || null,
+                                autoRespondEnabled: false,
+                                autoCallBlocked: true,
+                                autoCallBlockReason: "spam_review",
+                                replySuppressedReason: "lead_guard_review",
+                            },
+                        });
+                        await recordCallbackEvent({
+                            eventType: "callback_blocked",
+                            payload: {
+                                workspaceId,
+                                contactId,
+                                contactPhone: From,
+                                contactName: contact.name || From,
+                                dealId: deal.id,
+                                reason: "sms_lead",
+                                triggerSource: "inbound_sms",
+                                callbackKind: "automatic",
+                                blockReason: "spam_review",
                             },
                         });
                         return;

@@ -37,6 +37,11 @@ import {
   hasRecentAutomaticCallbackAttempt,
   recordCallbackEvent,
 } from "@/lib/callback-events";
+import {
+  assessInboundLeadGuard,
+  buildInboundLeadGuardCopy,
+  recordInboundLeadGuardEvent,
+} from "@/lib/inbound-lead-guard";
 import { normalizePhone } from "@/lib/phone-utils";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -250,7 +255,15 @@ export async function POST(req: NextRequest) {
     const withinCallWindow = isWithinAllowedCallWindow(workspace.settings);
     const hasPhone = phone.length > 0;
     let autoCallTriggered = false;
-    let autoCallBlockReason: AutoCallBlockReason | "no_lead_phone" | "triage_review" | "after_hours" | null = null;
+    let autoCallBlockReason:
+      | AutoCallBlockReason
+      | "no_lead_phone"
+      | "triage_review"
+      | "after_hours"
+      | "callback_recently_attempted"
+      | "spam_review"
+      | null = null;
+    let leadGuardReason: string | null = null;
 
     if (!eligibility.allowed) {
       autoCallBlockReason = eligibility.reason;
@@ -260,27 +273,58 @@ export async function POST(req: NextRequest) {
       autoCallBlockReason = "triage_review";
     } else if (!withinCallWindow) {
       autoCallBlockReason = "after_hours";
-    } else if (await hasRecentAutomaticCallbackAttempt({
-      workspaceId,
-      contactId: contact.id,
-      contactPhone: phone,
-    })) {
-      autoCallBlockReason = "callback_recently_attempted";
     } else {
-      autoCallTriggered = true;
-      scheduleLeadCallback({
+      const leadGuard = await assessInboundLeadGuard({
+        workspaceId,
+        channel: "webform",
+        contactPhone: phone,
+        contactEmail: email || null,
+        ipAddress: requestIp,
+      });
+      if (leadGuard.blocked && leadGuard.payload) {
+        autoCallBlockReason = "spam_review";
+        leadGuardReason = leadGuard.payload.reason;
+        const payload = {
+          ...leadGuard.payload,
+          contactId: contact.id,
+          dealId: deal.id,
+          contactPhone: phone || leadGuard.payload.contactPhone || null,
+          contactEmail: email || leadGuard.payload.contactEmail || null,
+          ipAddress: requestIp,
+        };
+        await recordInboundLeadGuardEvent(payload);
+        const leadGuardCopy = buildInboundLeadGuardCopy(payload);
+        await db.activity.create({
+          data: {
+            type: "NOTE",
+            title: leadGuardCopy.title,
+            content: leadGuardCopy.description,
+            dealId: deal.id,
+            contactId: contact.id,
+          },
+        }).catch(() => {});
+      } else if (await hasRecentAutomaticCallbackAttempt({
         workspaceId,
         contactId: contact.id,
         contactPhone: phone,
-        contactName: name,
-        dealId: deal.id,
-        reason: `webform_lead:${source}`,
-        delaySec: workspace.autoCallDelaySec === 60 ? 0 : (workspace.autoCallDelaySec ?? 0),
-        triggerSource: "webform",
-        callbackKind: "automatic",
-      }).catch((err) => {
-        console.error("[Webform webhook] scheduleLeadCallback failed:", err);
-      });
+      })) {
+        autoCallBlockReason = "callback_recently_attempted";
+      } else {
+        autoCallTriggered = true;
+        scheduleLeadCallback({
+          workspaceId,
+          contactId: contact.id,
+          contactPhone: phone,
+          contactName: name,
+          dealId: deal.id,
+          reason: `webform_lead:${source}`,
+          delaySec: workspace.autoCallDelaySec === 60 ? 0 : (workspace.autoCallDelaySec ?? 0),
+          triggerSource: "webform",
+          callbackKind: "automatic",
+        }).catch((err) => {
+          console.error("[Webform webhook] scheduleLeadCallback failed:", err);
+        });
+      }
     }
 
     if (autoCallBlockReason) {
@@ -317,6 +361,7 @@ export async function POST(req: NextRequest) {
           autoCallTriggered,
           autoCallBlocked: !autoCallTriggered,
           autoCallBlockReason,
+          leadGuardReason,
           triageRecommendation: triage?.recommendation ?? null,
           triageFlags: triage?.flags ?? [],
         },
@@ -385,6 +430,7 @@ export async function POST(req: NextRequest) {
       triageFlags: triage?.flags ?? [],
       autoCallTriggered,
       autoCallBlockReason,
+      leadGuardReason,
     }, { headers: corsHeaders() });
   } catch (error) {
     console.error("[Webform webhook] Error:", error);

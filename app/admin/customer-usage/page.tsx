@@ -768,8 +768,35 @@ function SelectedWorkspacePanel({ selected }: { selected: NonNullable<CustomerUs
           <div className="mb-2 text-sm font-semibold text-foreground">Lead callbacks</div>
           <DetailItem label="Callback events in range" value={formatNumber(selected.callbacks.totalEventsInRange)} />
           <DetailItem label="Auto requested / manual requested" value={`${selected.callbacks.automaticRequested} / ${selected.callbacks.manualRequested}`} />
+          <DetailItem label="Manual takeovers" value={formatNumber(selected.callbacks.manualTakeovers)} />
           <DetailItem label="Blocked / dispatched" value={`${selected.callbacks.blocked} / ${selected.callbacks.dispatched}`} />
           <DetailItem label="Answered / no answer / failed" value={`${selected.callbacks.answered} / ${selected.callbacks.noAnswer} / ${selected.callbacks.failed}`} />
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <div className="rounded-xl border border-border bg-muted/30 px-3 py-2 text-xs">
+              <div className="font-medium text-foreground">By source</div>
+              <div className="mt-2 space-y-1 text-muted-foreground">
+                {selected.callbacks.bySource.length === 0 ? (
+                  <div>None recorded.</div>
+                ) : (
+                  selected.callbacks.bySource.map((item) => (
+                    <div key={item.source}>{item.source}: {item.count}</div>
+                  ))
+                )}
+              </div>
+            </div>
+            <div className="rounded-xl border border-border bg-muted/30 px-3 py-2 text-xs">
+              <div className="font-medium text-foreground">Blocked reasons</div>
+              <div className="mt-2 space-y-1 text-muted-foreground">
+                {selected.callbacks.byBlockReason.length === 0 ? (
+                  <div>No blocked callback reasons in range.</div>
+                ) : (
+                  selected.callbacks.byBlockReason.map((item) => (
+                    <div key={item.reason}>{item.reason}: {item.count}</div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
           <div className="mt-3 space-y-2">
             {selected.callbacks.recentEvents.length === 0 ? (
               <EmptyState>No callback lifecycle events recorded in this range.</EmptyState>
@@ -784,6 +811,44 @@ function SelectedWorkspacePanel({ selected }: { selected: NonNullable<CustomerUs
                     {event.callbackKind} {event.outcome ? `| ${event.outcome}` : ""}{event.contactPhone ? ` | ${event.contactPhone}` : ""}
                   </div>
                   <div className="mt-1 text-foreground">{event.detail}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section>
+          <div className="mb-2 text-sm font-semibold text-foreground">Lead capture health</div>
+          <DetailItem label="Active inboxes" value={formatNumber(selected.leadCapture.activeInboxCount)} />
+          <DetailItem label="Inbox connected at" value={formatDate(selected.leadCapture.inboxConnectedAt)} />
+          <DetailItem label="Website leads seen" value={formatNumber(selected.leadCapture.websiteLeadCount)} />
+          <DetailItem label="Suspicious lead holds in range" value={formatNumber(selected.leadCapture.suspiciousHoldsInRange)} />
+          <div className="mt-3 space-y-2">
+            {selected.leadCapture.channels.map((channel) => (
+              <div key={channel.id} className="rounded-xl border border-border bg-muted/30 px-3 py-2 text-xs">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-medium text-foreground">{channel.name}</span>
+                  <span className="text-muted-foreground">{channel.status}</span>
+                </div>
+                <div className="mt-1 text-muted-foreground">
+                  Last lead seen: {formatDate(channel.lastLeadSeenAt)}
+                </div>
+                <div className="mt-1 text-foreground">{channel.description}</div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 space-y-2">
+            {selected.leadCapture.recentGuardEvents.length === 0 ? (
+              <EmptyState>No suspicious lead holds recorded recently.</EmptyState>
+            ) : (
+              selected.leadCapture.recentGuardEvents.map((event) => (
+                <div key={event.id} className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-medium text-amber-950">{event.title}</span>
+                    <span className="text-amber-800">{formatDate(event.createdAt)}</span>
+                  </div>
+                  <div className="mt-1 text-amber-800">{event.channel} | {event.reason}</div>
+                  <div className="mt-1 text-amber-950">{event.detail}</div>
                 </div>
               ))
             )}

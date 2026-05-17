@@ -14,6 +14,11 @@ import {
   hasRecentAutomaticCallbackAttempt,
   recordCallbackEvent,
 } from "@/lib/callback-events";
+import {
+  assessInboundLeadGuard,
+  buildInboundLeadGuardCopy,
+  recordInboundLeadGuardEvent,
+} from "@/lib/inbound-lead-guard";
 import { normalizePhone } from "@/lib/phone-utils";
 
 const RESEND_EMAIL_COST_USD = 0.001;
@@ -457,16 +462,48 @@ export async function POST(req: NextRequest) {
       // conditions). Block reasons are logged and stored on the webhook event
       // so operators can debug why a lead wasn't dialled.
       let blockReason: string | null = null;
+      let leadGuardReason: string | null = null;
       if (!eligibility.allowed) blockReason = eligibility.reason;
       else if (!hasLeadPhone) blockReason = "no_lead_phone";
       else if (urgentLead) blockReason = "urgent";
       else if (!withinCallWindow) blockReason = "after_hours";
       else if (triage?.recommendation === "HOLD_REVIEW") blockReason = "triage_review";
-      else if (await hasRecentAutomaticCallbackAttempt({
-        workspaceId: workspace!.id,
-        contactId: contact.id,
-        contactPhone: displayPhone,
-      })) blockReason = "callback_recently_attempted";
+      else {
+        const leadGuard = await assessInboundLeadGuard({
+          workspaceId: workspace!.id,
+          channel: "inbound_email",
+          contactPhone: displayPhone,
+          contactEmail: leadEmail,
+        });
+        if (leadGuard.blocked && leadGuard.payload) {
+          blockReason = "spam_review";
+          leadGuardReason = leadGuard.payload.reason;
+          const payload = {
+            ...leadGuard.payload,
+            contactId: contact.id,
+            dealId: deal.id,
+            contactPhone: displayPhone || leadGuard.payload.contactPhone || null,
+            contactEmail: leadEmail || leadGuard.payload.contactEmail || null,
+          };
+          await recordInboundLeadGuardEvent(payload);
+          const leadGuardCopy = buildInboundLeadGuardCopy(payload);
+          await db.activity.create({
+            data: {
+              type: "NOTE",
+              title: leadGuardCopy.title,
+              content: leadGuardCopy.description,
+              contactId: contact.id,
+              dealId: deal.id,
+            },
+          }).catch(() => {});
+        } else if (await hasRecentAutomaticCallbackAttempt({
+          workspaceId: workspace!.id,
+          contactId: contact.id,
+          contactPhone: displayPhone,
+        })) {
+          blockReason = "callback_recently_attempted";
+        }
+      }
 
       const blockAutoCall = blockReason !== null;
       let callTriggered = false;
@@ -555,6 +592,7 @@ export async function POST(req: NextRequest) {
             callTriggered,
             autoCallBlocked: blockAutoCall,
             autoCallBlockReason: blockReason,
+            leadGuardReason,
             triageRecommendation: triage?.recommendation ?? null,
             triageFlags: triage?.flags ?? [],
           },
@@ -572,6 +610,7 @@ export async function POST(req: NextRequest) {
         callTriggered,
         autoCallBlocked: blockAutoCall,
         autoCallBlockReason: blockReason,
+        leadGuardReason,
         triageRecommendation: triage?.recommendation ?? null,
         triageFlags: triage?.flags ?? [],
       });

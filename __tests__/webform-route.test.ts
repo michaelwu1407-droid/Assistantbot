@@ -34,6 +34,8 @@ const hoisted = vi.hoisted(() => ({
   scheduleLeadCallback: vi.fn(),
   hasRecentAutomaticCallbackAttempt: vi.fn(),
   recordCallbackEvent: vi.fn(),
+  assessInboundLeadGuard: vi.fn(),
+  recordInboundLeadGuardEvent: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({ db: hoisted.db }));
@@ -50,6 +52,14 @@ vi.mock("@/lib/lead-callback", () => ({
 vi.mock("@/lib/callback-events", () => ({
   hasRecentAutomaticCallbackAttempt: hoisted.hasRecentAutomaticCallbackAttempt,
   recordCallbackEvent: hoisted.recordCallbackEvent,
+}));
+vi.mock("@/lib/inbound-lead-guard", () => ({
+  assessInboundLeadGuard: hoisted.assessInboundLeadGuard,
+  buildInboundLeadGuardCopy: ({ reason }: { reason: string }) => ({
+    title: "Lead held for spam review",
+    description: `Held because ${reason}`,
+  }),
+  recordInboundLeadGuardEvent: hoisted.recordInboundLeadGuardEvent,
 }));
 
 import { POST } from "@/app/api/webhooks/webform/route";
@@ -75,6 +85,9 @@ describe("POST /api/webhooks/webform", () => {
     hoisted.scheduleLeadCallback.mockResolvedValue(undefined);
     hoisted.hasRecentAutomaticCallbackAttempt.mockResolvedValue(false);
     hoisted.recordCallbackEvent.mockResolvedValue(undefined);
+    hoisted.assessInboundLeadGuard.mockResolvedValue({ blocked: false, payload: null });
+    hoisted.recordInboundLeadGuardEvent.mockResolvedValue(undefined);
+    hoisted.db.activity.create.mockResolvedValue({ id: "activity_1" });
     hoisted.db.webhookEvent.count.mockResolvedValue(0);
     hoisted.db.webhookEvent.create.mockResolvedValue(undefined);
   });
@@ -163,6 +176,7 @@ describe("POST /api/webhooks/webform", () => {
       triageFlags: [],
       autoCallTriggered: false,
       autoCallBlockReason: "auto_call_disabled",
+      leadGuardReason: null,
     });
     expect(hoisted.db.contact.create).toHaveBeenCalledWith({
       data: {
@@ -254,6 +268,7 @@ describe("POST /api/webhooks/webform", () => {
       triageFlags: ["Needs review: Missing address", "Needs review: roofing"],
       autoCallTriggered: false,
       autoCallBlockReason: "auto_call_disabled",
+      leadGuardReason: null,
     });
     expect(hoisted.saveTriageRecommendation).toHaveBeenCalledWith("deal_1", {
       recommendation: "HOLD_REVIEW",
@@ -378,6 +393,53 @@ describe("POST /api/webhooks/webform", () => {
     const body = await response.json();
     expect(body.autoCallTriggered).toBe(false);
     expect(body.autoCallBlockReason).toBe("no_lead_phone");
+    expect(hoisted.scheduleLeadCallback).not.toHaveBeenCalled();
+  });
+
+  it("holds suspicious website bursts for review instead of auto-calling", async () => {
+    hoisted.db.workspace.findUnique.mockResolvedValue({
+      id: "ws_1",
+      name: "Acme Plumbing",
+      autoCallLeads: true,
+      autoCallDelaySec: 30,
+      voiceEnabled: true,
+      agentMode: "EXECUTION",
+      twilioPhoneNumber: "+61200000000",
+      settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
+      ownerId: "owner_1",
+    });
+    hoisted.db.contact.findFirst.mockResolvedValue(null);
+    hoisted.db.contact.create.mockResolvedValue({ id: "contact_1" });
+    hoisted.db.deal.create.mockResolvedValue({ id: "deal_1" });
+    hoisted.db.user.findFirst.mockResolvedValue({ id: "owner_1" });
+    hoisted.assessInboundLeadGuard.mockResolvedValue({
+      blocked: true,
+      payload: {
+        workspaceId: "ws_1",
+        channel: "webform",
+        reason: "webform_ip_burst",
+        eventCount: 5,
+        windowMinutes: 15,
+        ipAddress: "203.0.113.10",
+      },
+    });
+
+    const response = await POST(
+      buildJsonRequest({
+        workspace_id: "ws_1",
+        name: "Alex",
+        phone: "0400000000",
+        message: "Blocked drain at the back of the property",
+      }, {
+        "x-forwarded-for": "203.0.113.10",
+      }),
+    );
+
+    const body = await response.json();
+    expect(body.autoCallTriggered).toBe(false);
+    expect(body.autoCallBlockReason).toBe("spam_review");
+    expect(body.leadGuardReason).toBe("webform_ip_burst");
+    expect(hoisted.recordInboundLeadGuardEvent).toHaveBeenCalled();
     expect(hoisted.scheduleLeadCallback).not.toHaveBeenCalled();
   });
 });

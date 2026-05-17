@@ -12,6 +12,8 @@ const {
   scheduleLeadCallback,
   hasRecentAutomaticCallbackAttempt,
   recordCallbackEvent,
+  assessInboundLeadGuard,
+  recordInboundLeadGuardEvent,
 } = vi.hoisted(() => ({
   db: {
     webhookEvent: { create: vi.fn() },
@@ -37,6 +39,8 @@ const {
   scheduleLeadCallback: vi.fn(),
   hasRecentAutomaticCallbackAttempt: vi.fn(),
   recordCallbackEvent: vi.fn(),
+  assessInboundLeadGuard: vi.fn(),
+  recordInboundLeadGuardEvent: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({ db }));
@@ -49,6 +53,14 @@ vi.mock("@/lib/lead-callback", () => ({ scheduleLeadCallback }));
 vi.mock("@/lib/callback-events", () => ({
   hasRecentAutomaticCallbackAttempt,
   recordCallbackEvent,
+}));
+vi.mock("@/lib/inbound-lead-guard", () => ({
+  assessInboundLeadGuard,
+  buildInboundLeadGuardCopy: ({ reason }: { reason: string }) => ({
+    title: "Lead held for spam review",
+    description: `Held because ${reason}`,
+  }),
+  recordInboundLeadGuardEvent,
 }));
 
 describe("POST /api/webhooks/inbound-email", () => {
@@ -72,6 +84,8 @@ describe("POST /api/webhooks/inbound-email", () => {
     scheduleLeadCallback.mockResolvedValue(undefined);
     hasRecentAutomaticCallbackAttempt.mockResolvedValue(false);
     recordCallbackEvent.mockResolvedValue(undefined);
+    assessInboundLeadGuard.mockResolvedValue({ blocked: false, payload: null });
+    recordInboundLeadGuardEvent.mockResolvedValue(undefined);
     createGoogleGenerativeAI.mockReturnValue(vi.fn());
     generateObject.mockResolvedValue({ object: {} });
   });

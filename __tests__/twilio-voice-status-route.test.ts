@@ -8,6 +8,8 @@ const {
   scheduleLeadCallback,
   hasRecentAutomaticCallbackAttempt,
   recordCallbackEvent,
+  assessInboundLeadGuard,
+  recordInboundLeadGuardEvent,
 } = vi.hoisted(() => ({
   db: {
     contact: { create: vi.fn() },
@@ -20,6 +22,8 @@ const {
   scheduleLeadCallback: vi.fn(),
   hasRecentAutomaticCallbackAttempt: vi.fn(),
   recordCallbackEvent: vi.fn(),
+  assessInboundLeadGuard: vi.fn(),
+  recordInboundLeadGuardEvent: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({ db }));
@@ -31,6 +35,14 @@ vi.mock("@/lib/lead-callback", () => ({ scheduleLeadCallback }));
 vi.mock("@/lib/callback-events", () => ({
   hasRecentAutomaticCallbackAttempt,
   recordCallbackEvent,
+}));
+vi.mock("@/lib/inbound-lead-guard", () => ({
+  assessInboundLeadGuard,
+  buildInboundLeadGuardCopy: ({ reason }: { reason: string }) => ({
+    title: "Lead held for spam review",
+    description: `Held because ${reason}`,
+  }),
+  recordInboundLeadGuardEvent,
 }));
 vi.mock("@/lib/twilio/verify-signature", () => ({
   readTwilioFormParams: async (req: Request) => {
@@ -63,6 +75,8 @@ describe("POST /api/webhooks/twilio-voice-status", () => {
     scheduleLeadCallback.mockResolvedValue(undefined);
     hasRecentAutomaticCallbackAttempt.mockResolvedValue(false);
     recordCallbackEvent.mockResolvedValue(undefined);
+    assessInboundLeadGuard.mockResolvedValue({ blocked: false, payload: null });
+    recordInboundLeadGuardEvent.mockResolvedValue(undefined);
   });
 
   it("creates a deal and queues a callback when the inbound dial gets no answer", async () => {

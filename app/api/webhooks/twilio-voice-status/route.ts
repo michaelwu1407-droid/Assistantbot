@@ -29,6 +29,11 @@ import {
   hasRecentAutomaticCallbackAttempt,
   recordCallbackEvent,
 } from "@/lib/callback-events";
+import {
+  assessInboundLeadGuard,
+  buildInboundLeadGuardCopy,
+  recordInboundLeadGuardEvent,
+} from "@/lib/inbound-lead-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -125,15 +130,21 @@ export async function POST(req: NextRequest) {
     // the Twilio webhook still responds quickly.
     const eligibility = canAutoCallLead(workspace);
     const withinCallWindow = isWithinAllowedCallWindow(workspace.settings);
+    const leadGuard = await assessInboundLeadGuard({
+      workspaceId: workspace.id,
+      channel: "missed_call",
+      contactPhone: callerNumber,
+    });
     const recentlyAttempted = await hasRecentAutomaticCallbackAttempt({
       workspaceId: workspace.id,
       contactId: contact.id,
       contactPhone: callerNumber,
     });
-    const wantsAutoCall = eligibility.allowed && withinCallWindow && !recentlyAttempted;
+    const wantsAutoCall = eligibility.allowed && withinCallWindow && !leadGuard.blocked && !recentlyAttempted;
     let blockReason: string | null = null;
     if (!eligibility.allowed) blockReason = eligibility.reason;
     else if (!withinCallWindow) blockReason = "after_hours";
+    else if (leadGuard.blocked) blockReason = "spam_review";
     else if (recentlyAttempted) blockReason = "callback_recently_attempted";
 
     if (wantsAutoCall) {
@@ -154,6 +165,25 @@ export async function POST(req: NextRequest) {
       console.info(
         `[twilio-voice-status] auto-callback blocked for missed call ${callSid} (workspace ${workspace.id}): ${blockReason}`,
       );
+      if (leadGuard.blocked && leadGuard.payload) {
+        const payload = {
+          ...leadGuard.payload,
+          contactId: contact.id,
+          dealId: deal.id,
+          contactPhone: callerNumber,
+        };
+        await recordInboundLeadGuardEvent(payload);
+        const leadGuardCopy = buildInboundLeadGuardCopy(payload);
+        await db.activity.create({
+          data: {
+            type: "NOTE",
+            title: leadGuardCopy.title,
+            content: leadGuardCopy.description,
+            contactId: contact.id,
+            dealId: deal.id,
+          },
+        }).catch(() => {});
+      }
       await recordCallbackEvent({
         eventType: "callback_blocked",
         payload: {

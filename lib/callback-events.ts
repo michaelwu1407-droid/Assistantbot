@@ -11,7 +11,8 @@ export type CallbackEventType =
   | "callback_blocked"
   | "callback_dispatched"
   | "callback_dispatch_failed"
-  | "callback_call_finished";
+  | "callback_call_finished"
+  | "callback_taken_over";
 
 export type CallbackOutcome =
   | "answered"
@@ -238,6 +239,8 @@ function formatBlockReason(reason: string | null | undefined) {
       return "urgent leads require manual follow-up";
     case "callback_recently_attempted":
       return "Tracey already tried this prospect recently";
+    case "spam_review":
+      return "the lead looked like repeat spam or duplicate traffic";
     default:
       return reason ? reason.replace(/_/g, " ") : "the callback could not be sent";
   }
@@ -361,6 +364,16 @@ export function getCallbackEventCopy(row: CallbackEventRow) {
     };
   }
 
+  if (row.eventType === "callback_taken_over") {
+    return {
+      payload,
+      title: "You'll handle the next step",
+      description: "Tracey will stand down here so you or your team can follow up directly from this thread.",
+      body: "Tracey will stand down here so you or your team can follow up directly from this thread.",
+      recallEligible: false,
+      outcome: "manual_takeover",
+    };
+  }
+
   return null;
 }
-

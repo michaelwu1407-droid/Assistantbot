@@ -4,7 +4,10 @@ import { db } from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { scheduleLeadCallback } from "@/lib/lead-callback";
-import { hasRecentCallbackInProgress } from "@/lib/callback-events";
+import {
+  hasRecentCallbackInProgress,
+  recordCallbackEvent,
+} from "@/lib/callback-events";
 
 export type VoiceCallView = {
   id: string;
@@ -154,6 +157,74 @@ export async function requestTraceyRecall(input: {
 
   revalidatePath("/crm/inbox");
   revalidatePath(`/crm/deals/${dealId}`);
+  revalidatePath(`/crm/contacts/${contact.id}`);
+
+  return { success: true };
+}
+
+export async function markCallbackHandledByMe(input: {
+  contactId: string;
+  dealId?: string | null;
+}) {
+  const authUser = await getAuthUser();
+  if (!authUser?.email) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  const user = await db.user.findFirst({
+    where: { email: authUser.email },
+    select: { id: true, workspaceId: true },
+  });
+  if (!user?.workspaceId) {
+    return { success: false, error: "Workspace not found" };
+  }
+
+  const contact = await db.contact.findFirst({
+    where: {
+      id: input.contactId,
+      workspaceId: user.workspaceId,
+    },
+    select: {
+      id: true,
+      name: true,
+      phone: true,
+    },
+  });
+
+  if (!contact) {
+    return { success: false, error: "Contact not found" };
+  }
+
+  let dealId = input.dealId || null;
+  if (!dealId) {
+    const latestDeal = await db.deal.findFirst({
+      where: {
+        workspaceId: user.workspaceId,
+        contactId: contact.id,
+      },
+      orderBy: { updatedAt: "desc" },
+      select: { id: true },
+    });
+    dealId = latestDeal?.id || null;
+  }
+
+  await recordCallbackEvent({
+    eventType: "callback_taken_over",
+    payload: {
+      workspaceId: user.workspaceId,
+      contactId: contact.id,
+      contactPhone: contact.phone || null,
+      contactName: contact.name || null,
+      dealId,
+      reason: "manual_takeover:inbox",
+      triggerSource: "inbox_manual_takeover",
+      callbackKind: "manual",
+      initiatedByUserId: user.id,
+    },
+  });
+
+  revalidatePath("/crm/inbox");
+  if (dealId) revalidatePath(`/crm/deals/${dealId}`);
   revalidatePath(`/crm/contacts/${contact.id}`);
 
   return { success: true };
