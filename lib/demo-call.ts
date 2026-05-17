@@ -129,19 +129,23 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function buildDemoConferenceName() {
+  return `earlymark-demo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 function normalizeTwilioCallStatus(status?: string | null) {
   return (status || "").trim().toLowerCase().replace(/\s+/g, "-");
 }
 
-function isTwilioCallRingingOrConnected(status?: string | null) {
-  return ["ringing", "in-progress", "completed"].includes(normalizeTwilioCallStatus(status));
+function isTwilioCallAnswered(status?: string | null) {
+  return normalizeTwilioCallStatus(status) === "in-progress";
 }
 
 function isTwilioCallTerminalFailure(status?: string | null) {
-  return ["busy", "failed", "no-answer", "canceled"].includes(normalizeTwilioCallStatus(status));
+  return ["busy", "failed", "no-answer", "canceled", "completed"].includes(normalizeTwilioCallStatus(status));
 }
 
-async function waitForTwilioBridgeConnection(callSid: string) {
+async function waitForTwilioCallAnswered(callSid: string) {
   const timeoutMs = getDemoCallConnectionTimeoutMs();
   const pollMs = getDemoCallConnectionPollMs();
   const deadline = Date.now() + timeoutMs;
@@ -151,7 +155,7 @@ async function waitForTwilioBridgeConnection(callSid: string) {
     const call = await twilioMasterClient?.calls(callSid).fetch() as { status?: string | null } | undefined;
     lastStatus = call?.status || lastStatus;
 
-    if (isTwilioCallRingingOrConnected(lastStatus)) {
+    if (isTwilioCallAnswered(lastStatus)) {
       return { connectionVerified: true, callStatus: lastStatus };
     }
     if (isTwilioCallTerminalFailure(lastStatus)) {
@@ -179,6 +183,23 @@ function buildTwilioSipBridgeTwiml(sipTarget: string) {
 </Response>`;
 }
 
+function buildTwilioConferenceTwiml(conferenceName: string) {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Dial>
+    <Conference beep="false" startConferenceOnEnter="true" endConferenceOnExit="true" waitUrl="">${escapeXml(conferenceName)}</Conference>
+  </Dial>
+</Response>`;
+}
+
+function buildDemoUnavailableTwiml() {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="Polly.Olivia">Sorry, Tracey could not join this call. Please try again in a moment.</Say>
+  <Hangup />
+</Response>`;
+}
+
 async function initiateDemoCallViaTwilioSipBridge(params: {
   normalizedPhone: string;
   preferredCallerNumber?: string | null;
@@ -201,25 +222,49 @@ async function initiateDemoCallViaTwilioSipBridge(params: {
     throw new Error("No LiveKit SIP target is configured for demo-call fallback.");
   }
 
+  const conferenceName = buildDemoConferenceName();
+  const conferenceTwiml = buildTwilioConferenceTwiml(conferenceName);
   const createdCall = await twilioMasterClient.calls.create({
     to: params.normalizedPhone,
     from: callerNumber,
     timeout: 20,
-    twiml: buildTwilioSipBridgeTwiml(sipTarget),
+    twiml: conferenceTwiml,
   }) as { sid: string; status?: string | null };
 
-  const connectionCheck = params.waitForConnection === false
+  const handsetCheck = params.waitForConnection === false
     ? { connectionVerified: false, callStatus: createdCall.status || null }
-    : await waitForTwilioBridgeConnection(createdCall.sid);
+    : await waitForTwilioCallAnswered(createdCall.sid);
 
-  if (params.waitForConnection !== false && !connectionCheck.connectionVerified) {
-    if (!isTwilioCallTerminalFailure(connectionCheck.callStatus)) {
+  if (params.waitForConnection !== false && !handsetCheck.connectionVerified) {
+    if (!isTwilioCallTerminalFailure(handsetCheck.callStatus)) {
       await twilioMasterClient.calls(createdCall.sid).update({ status: "canceled" }).catch(() => undefined);
     }
-    const statusMessage = connectionCheck.callStatus
-      ? `last Twilio status: ${connectionCheck.callStatus}`
+    const statusMessage = handsetCheck.callStatus
+      ? `last Twilio status: ${handsetCheck.callStatus}`
       : "Twilio never returned a call status";
-    throw new Error(`Twilio SIP bridge demo call did not reach the handset (${statusMessage}).`);
+    throw new Error(`Twilio demo call did not reach the handset (${statusMessage}).`);
+  }
+
+  let sipCallStatus = handsetCheck.callStatus;
+  if (params.waitForConnection !== false) {
+    const sipCall = await twilioMasterClient.calls.create({
+      to: sipTarget,
+      from: callerNumber,
+      timeout: 20,
+      twiml: conferenceTwiml,
+    }) as { sid: string; status?: string | null };
+    const sipCheck = await waitForTwilioCallAnswered(sipCall.sid);
+    sipCallStatus = sipCheck.callStatus;
+    if (!sipCheck.connectionVerified) {
+      await twilioMasterClient.calls(createdCall.sid).update({ twiml: buildDemoUnavailableTwiml() }).catch(() => undefined);
+      if (!isTwilioCallTerminalFailure(sipCheck.callStatus)) {
+        await twilioMasterClient.calls(sipCall.sid).update({ status: "canceled" }).catch(() => undefined);
+      }
+      const statusMessage = sipCheck.callStatus
+        ? `last SIP bridge status: ${sipCheck.callStatus}`
+        : "Twilio never returned a SIP bridge status";
+      throw new Error(`Twilio SIP conference bridge did not connect Tracey (${statusMessage}).`);
+    }
   }
 
   return {
@@ -232,8 +277,8 @@ async function initiateDemoCallViaTwilioSipBridge(params: {
       : [`Used Twilio SIP bridge fallback because the LiveKit control API failed: ${getErrorMessage(params.directError)}`],
     transport: "twilio_sip_bridge",
     callSid: createdCall.sid,
-    connectionVerified: connectionCheck.connectionVerified,
-    sipCallStatus: connectionCheck.callStatus,
+    connectionVerified: handsetCheck.connectionVerified,
+    sipCallStatus,
   };
 }
 

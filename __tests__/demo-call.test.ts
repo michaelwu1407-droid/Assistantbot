@@ -75,7 +75,7 @@ describe("demo-call outbound routing", () => {
     process.env.DEMO_CALL_CONNECTION_POLL_MS = "1";
     process.env.VOICE_MONITOR_PROBE_CALLER_NUMBER = "+61434955958";
     createTwilioCall.mockResolvedValue({ sid: "CA_demo", status: "queued" });
-    fetchTwilioCall.mockResolvedValue({ status: "ringing" });
+    fetchTwilioCall.mockResolvedValue({ status: "in-progress" });
     updateTwilioCall.mockResolvedValue({ status: "canceled" });
     getParticipant.mockResolvedValue({
       attributes: {
@@ -243,11 +243,20 @@ describe("demo-call outbound routing", () => {
 
     expect(createRoom).not.toHaveBeenCalled();
     expect(createSipParticipant).not.toHaveBeenCalled();
-    expect(createTwilioCall).toHaveBeenCalledWith(
+    expect(createTwilioCall).toHaveBeenNthCalledWith(
+      1,
       expect.objectContaining({
         to: "+61434955958",
         from: "+61485010634",
-        twiml: expect.stringContaining("<Sip>sip:+61485010634@live.earlymark.ai:5060;transport=tcp;region=au1</Sip>"),
+        twiml: expect.stringContaining("<Conference"),
+      }),
+    );
+    expect(createTwilioCall).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        to: "sip:+61485010634@live.earlymark.ai:5060;transport=tcp;region=au1",
+        from: "+61485010634",
+        twiml: expect.stringContaining("<Conference"),
       }),
     );
     expect(result.roomName).toBe("twilio-bridge-CA_demo");
@@ -255,7 +264,7 @@ describe("demo-call outbound routing", () => {
     expect(result.transport).toBe("twilio_sip_bridge");
     expect(result.callSid).toBe("CA_demo");
     expect(result.connectionVerified).toBe(true);
-    expect(result.sipCallStatus).toBe("ringing");
+    expect(result.sipCallStatus).toBe("in-progress");
     expect(result.warnings).toEqual(
       expect.arrayContaining([expect.stringMatching(/Twilio SIP bridge fallback/i)]),
     );
@@ -298,7 +307,7 @@ describe("demo-call outbound routing", () => {
         to: "+61434955958",
         from: "+61485010634",
         timeout: 20,
-        twiml: expect.stringContaining("<Sip>sip:+61485010634@live.earlymark.ai:5060;transport=tcp;region=au1</Sip>"),
+        twiml: expect.stringContaining("<Conference"),
       }),
     );
     expect(result.roomName).toBe("twilio-bridge-CA_demo");
@@ -342,7 +351,7 @@ describe("demo-call outbound routing", () => {
     );
     expect(result.transport).toBe("twilio_sip_bridge");
     expect(result.connectionVerified).toBe(true);
-    expect(result.sipCallStatus).toBe("ringing");
+    expect(result.sipCallStatus).toBe("in-progress");
     expect(result.warnings).toEqual(
       expect.arrayContaining([expect.stringMatching(/LiveKit control API failed/i)]),
     );
@@ -362,7 +371,7 @@ describe("demo-call outbound routing", () => {
         waitForConnection: true,
         allowTwilioSipBridgeFallback: false,
       },
-    )).rejects.toThrow(/Twilio SIP bridge demo call did not reach the handset \(last Twilio status: queued\)/i);
+    )).rejects.toThrow(/Twilio demo call did not reach the handset \(last Twilio status: queued\)/i);
 
     expect(updateTwilioCall).toHaveBeenCalledWith({ status: "canceled" });
   });
