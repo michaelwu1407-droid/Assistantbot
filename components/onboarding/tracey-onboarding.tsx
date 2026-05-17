@@ -1489,6 +1489,21 @@ export function TraceyOnboarding() {
                       </ul>
                     </div>
 
+                    {/* Auto-callback notice — surfaces the autoCallLeads default
+                        so the tradie knows about it from day 1 (per CLAUDE.md
+                        "shown to the tradie, they can toggle later in settings"). */}
+                    <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-900/40 dark:bg-emerald-900/10">
+                      <div className="flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 mt-0.5" />
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-foreground">Tracey will also call new leads right away</p>
+                          <p className="text-xs text-muted-foreground">
+                            As soon as a new lead lands (from hipages, your website form, an SMS, or a missed call), Tracey calls the customer to qualify and book the job. This is on by default because speed-to-lead doubles your conversion. You can change the wait time or turn auto-call off in <span className="font-medium text-foreground">Settings → Integrations</span>.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Connection Options */}
                     <div className="space-y-3">
                       <Label className="text-sm font-medium">Choose how to connect your inbox:</Label>
