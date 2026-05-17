@@ -215,7 +215,7 @@ export function EmailLeadCaptureSettings() {
           </p>
         </div>
 
-        <details className="rounded-[18px] border border-border bg-muted/20 p-4 text-sm">
+        <details className="rounded-md border border-border bg-muted/20 p-4 text-sm">
           <summary className="cursor-pointer font-medium text-foreground">
             How to forward leads from Gmail or Outlook
           </summary>
