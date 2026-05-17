@@ -28,7 +28,6 @@ export type LeadChannel = {
   status: LeadChannelStatus;
   description: string;
   setupSteps?: string[];
-  shareableLink?: { label: string; path: string };  // rendered prominently with copy button
 };
 
 export async function getLeadChannels(): Promise<{
@@ -157,21 +156,20 @@ export async function getLeadChannels(): Promise<{
       ],
     },
 
-    // Website form — we host the form ourselves. The tradie shares the
-    // /quote/<workspaceId> link from their site (or anywhere — business
-    // cards, GMB, SMS). No tradie-side email-forwarding setup, no testing,
-    // no dependency on their site builder. Works 100% out of the box.
+    // Website form — captured automatically via the tradie's connected
+    // inbox. Every mainstream site builder (Wix, Squarespace, WordPress,
+    // GoDaddy, Shopify) emails the site owner on form submit by default,
+    // so once the inbox is connected, those submissions land here without
+    // any further setup or testing on the tradie's part.
     {
       id: "website_form",
       name: "Your website contact form",
       category: "Your own channels",
-      status: "live",
-      description: `Your hosted quote form is live and ready. Share the link below from your website ("Get a Quote" button), Google Business profile, SMS replies — anywhere customers can click. Every submission lands in Tracey and triggers a callback.`,
-      shareableLink: { label: "Your quote form", path: `/quote/${workspaceId}` },
-      setupSteps: [
-        `Add a button on your website labelled "Get a Quote" that links to your quote form URL. Most site builders (Wix, Squarespace, WordPress, GoDaddy) have a one-click "Add button" widget.`,
-        `Also paste the link in your Google Business profile, your email signature, and your SMS auto-replies so customers can reach you anywhere.`,
-      ],
+      status: inboxConnected ? "live" : "needs_inbox",
+      description: inboxConnected
+        ? "Captured automatically. Your existing website form (Wix, Squarespace, WordPress, GoDaddy, etc.) emails you on submit — we pick those up from your connected inbox and create a lead with a callback."
+        : "Your existing website form emails you when someone submits — once you connect your inbox, those land here automatically. Connect Gmail or Outlook above to switch this on.",
+      setupSteps: inboxConnected ? [] : ["Connect your Gmail or Outlook on this page."],
     },
 
     // Phone & SMS — all tied to the Tracey number being provisioned.
