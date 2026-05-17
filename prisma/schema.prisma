@@ -142,8 +142,8 @@ model Workspace {
   inboundEmailAlias String?  @unique
   // When true, inbound lead signals (HiPages, Airtasker, webform, SMS, missed call) trigger an outbound voice-agent callback to the lead.
   autoCallLeads     Boolean  @default(true)
-  // Seconds to wait after a lead arrives before the voice agent dials. 60s is the speed-to-lead sweet spot; tradies can raise it for less aggressive follow-up.
-  autoCallDelaySec  Int      @default(60)
+  // Seconds to wait after a lead arrives before the voice agent dials. Defaults to 0 (immediate); tradies can pick from plain-English presets (Immediate / 1 min / 5 min / 15 min) in settings.
+  autoCallDelaySec  Int      @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

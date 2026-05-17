@@ -45,8 +45,14 @@ export async function getLeadChannels(): Promise<{
   const workspaceView = await getOrCreateWorkspace(userId);
   const workspaceId = workspaceView.id;
 
+  // Count inboxes across every member of the workspace — not just the
+  // current user. A teammate who hasn't connected their own Gmail still
+  // benefits from the owner's connection (e.g. hipages emails the owner's
+  // registered address, not each teammate). Per-user counts here would
+  // misleadingly tell teammates the workspace isn't capturing leads when
+  // it actually is.
   const [inboxCount, workspace] = await Promise.all([
-    db.emailIntegration.count({ where: { userId, isActive: true } }),
+    db.emailIntegration.count({ where: { user: { workspaceId }, isActive: true } }),
     db.workspace.findUnique({
       where: { id: workspaceId },
       select: { twilioPhoneNumber: true, ownerId: true },

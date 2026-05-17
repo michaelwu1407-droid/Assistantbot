@@ -11,6 +11,13 @@ import { getLeadCaptureEmailReadiness, getOrAllocateLeadCaptureEmail, getWorkspa
 
 type LeadCaptureEmailReadiness = Awaited<ReturnType<typeof getLeadCaptureEmailReadiness>>;
 
+const AUTO_CALL_DELAY_PRESETS: { seconds: number; label: string }[] = [
+  { seconds: 0, label: "Immediate" },
+  { seconds: 60, label: "Wait 1 min" },
+  { seconds: 300, label: "Wait 5 min" },
+  { seconds: 900, label: "Wait 15 min" },
+];
+
 function formatDate(value: string | null | undefined) {
   if (!value) return null;
   return new Date(value).toLocaleString("en-AU", {
@@ -57,7 +64,7 @@ function getReadinessMessage(readiness: LeadCaptureEmailReadiness | null) {
 export function EmailLeadCaptureSettings() {
   const [forwardingEmail, setForwardingEmail] = useState<string>("");
   const [autoCallLeads, setAutoCallLeads] = useState(false);
-  const [autoCallDelaySec, setAutoCallDelaySec] = useState<number>(60);
+  const [autoCallDelaySec, setAutoCallDelaySec] = useState<number>(0);
   const [readiness, setReadiness] = useState<LeadCaptureEmailReadiness | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -75,7 +82,7 @@ export function EmailLeadCaptureSettings() {
         if (!cancelled) {
           setForwardingEmail(email);
           setAutoCallLeads(settings?.autoCallLeads ?? false);
-          setAutoCallDelaySec((settings as { autoCallDelaySec?: number } | null)?.autoCallDelaySec ?? 60);
+          setAutoCallDelaySec((settings as { autoCallDelaySec?: number } | null)?.autoCallDelaySec ?? 0);
           setReadiness(nextReadiness);
         }
       } catch {
@@ -254,29 +261,30 @@ export function EmailLeadCaptureSettings() {
         </div>
 
         {autoCallLeads && (
-          <div className="rounded-lg border border-border/50 p-4 space-y-2">
-            <Label htmlFor="auto-call-delay" className="text-base font-medium">Wait before calling back</Label>
-            <p className="text-sm text-muted-foreground">
-              Speed-to-lead research says calling within a minute converts ~4&times; better than waiting 5. 60&nbsp;seconds is the sweet spot &mdash; long enough that the customer hasn&apos;t put their phone down, fast enough to beat competitors.
-            </p>
-            <div className="flex items-center gap-3">
-              <input
-                id="auto-call-delay"
-                type="number"
-                min={0}
-                max={900}
-                step={15}
-                value={autoCallDelaySec}
-                onChange={(e) => setAutoCallDelaySec(Number(e.target.value) || 0)}
-                onBlur={(e) => handleSaveDelay(Number(e.target.value) || 0)}
-                className="w-24 rounded-md border border-border bg-background px-3 py-2 text-sm"
-                disabled={saving}
-              />
-              <span className="text-sm text-muted-foreground">seconds (0&ndash;900)</span>
+          <div className="rounded-lg border border-border/50 p-4 space-y-3">
+            <div className="space-y-1">
+              <Label className="text-base font-medium">When should Tracey call back?</Label>
+              <p className="text-sm text-muted-foreground">
+                Faster is almost always better &mdash; speed-to-lead research says contacting a fresh lead within a minute converts ~4&times; better than waiting 5. Pick a different option below if you&apos;d like a short pause first.
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Note: our scheduler checks for due callbacks every ~5&nbsp;minutes, so any delay under 5&nbsp;minutes rounds up to the next check. Set to 0 to dial immediately on receipt (no scheduler involved).
-            </p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {AUTO_CALL_DELAY_PRESETS.map((preset) => (
+                <button
+                  key={preset.seconds}
+                  type="button"
+                  disabled={saving}
+                  onClick={() => handleSaveDelay(preset.seconds)}
+                  className={
+                    autoCallDelaySec === preset.seconds
+                      ? "rounded-md border border-foreground bg-foreground text-background px-3 py-2 text-sm font-medium"
+                      : "rounded-md border border-border bg-background px-3 py-2 text-sm hover:bg-muted/40"
+                  }
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </CardContent>

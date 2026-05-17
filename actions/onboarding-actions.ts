@@ -33,7 +33,12 @@ export async function getOnboardingProgress() {
             where: { id: workspaceId },
             select: { twilioPhoneNumber: true, ownerId: true },
         }),
-        db.emailIntegration.count({ where: { userId, isActive: true } }),
+        // Count workspace-wide — a teammate inherits the owner's connection
+        // for lead-capture purposes (hipages emails the owner's registered
+        // address, not each teammate). Per-user count would misleadingly
+        // tell teammates to connect their own inbox when the workspace is
+        // already capturing leads through the owner's.
+        db.emailIntegration.count({ where: { user: { workspaceId }, isActive: true } }),
     ]);
 
     const isOwner = workspaceMeta?.ownerId === userId;
