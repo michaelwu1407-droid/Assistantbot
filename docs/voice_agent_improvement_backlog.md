@@ -160,3 +160,65 @@ human review to prioritise.
 - Single LiveKit Cloud project = single point of failure.
 - Single Twilio sub-account = one billing/regulatory event from outage.
 - No status page or paging integration today.
+
+---
+
+## 2026-05-17 — Current diagnosis: homepage Tracey demo failure
+
+Symptom reported by user: homepage Tracey demo form submits cleanly, "Tracey is
+calling you now!" appears, no call arrives, no failure email reaches the admin.
+
+### Architecture confirmed
+Two Docker containers in `ops/docker/worker-compose.yml`:
+
+| Container                 | Surfaces            | Handles                          |
+|---------------------------|---------------------|----------------------------------|
+| `earlymark-sales-agent`   | `demo, inbound_demo`| Homepage demo + inbound demo line|
+| `earlymark-customer-agent`| `normal`            | Real customer calls              |
+
+Both subscribe to the same LiveKit unnamed worker pool. Routing happens in
+`livekit-agent/worker-entry.ts:143-167`. A demo room is named `demo-${ts}-...`
+(`lib/demo-call.ts:430`), classified as surface `"demo"` by `inferSurface()`
+(`worker-entry.ts:59`), so **only the sales-agent container can take it.**
+
+### Most likely root cause
+`earlymark-sales-agent` is **down or unhealthy** in production. Failure mode
+matches exactly:
+1. `initiateDemoCall` creates room + SIP participant (works — pure LiveKit API)
+2. Twilio dials the prospect (works — Twilio is fine)
+3. LiveKit offers the agent job to the pool
+4. Customer-agent sees surface `"demo"`, silently `job.reject()`s
+   (`worker-entry.ts:165` — no log, no metric)
+5. No other worker available → job times out → no agent ever joins
+6. With OLD `waitForConnection: false`, the action had already returned
+   success → no exception → no failure email
+
+This also matches "worked once then stopped" — a single container crash with
+`bootReady` never going true would leave Docker's `restart: unless-stopped`
+looping forever while staying unhealthy.
+
+### Already shipped on `claude/fix-tracey-demo-voice-G2TTm`
+- `a9739e8` — flipped `actions/demo-call-action.ts` to `waitForConnection: true`
+  so terminal SIP failures now throw and `dispatchDemoCallFailureAlert` fires.
+  Future failed submissions will produce a real diagnostic email.
+
+### Required next step (user-side, cannot do from code sandbox)
+On the host running `ops/docker/worker-compose.yml`:
+```
+docker ps
+docker logs earlymark-sales-agent --tail 200
+docker inspect --format '{{.State.Health.Status}}' earlymark-sales-agent
+```
+Most likely findings:
+- Container exited / restarting → boot failure in logs, usually a missing env
+  var (`DEEPGRAM_API_KEY`, `GROQ_API_KEY`, `CARTESIA_API_KEY`) or LiveKit auth.
+- `(unhealthy)` → heartbeat snapshot stale; same root cause class.
+- `(healthy)` → bug is elsewhere; most likely trunk resolution picking a dead
+  trunk in `lib/demo-call.ts:299-368`, or `LIVEKIT_SIP_TRUNK_ID` mismatch.
+
+### Cheap code-side improvement worth doing next
+Add a `console.warn` in `livekit-agent/worker-entry.ts:165` when a job is
+rejected because the inferred surface is outside this worker's accepted list.
+Today this rejection path is completely silent. One log line per rejected job
+makes "sales-agent is down" detectable in LiveKit dashboard / container logs
+the moment it happens. No runtime cost, no behaviour change.
