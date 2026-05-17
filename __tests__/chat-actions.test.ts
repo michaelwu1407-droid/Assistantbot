@@ -652,7 +652,7 @@ describe("chat-actions", () => {
     });
     expect(result).toEqual({
       success: true,
-      message: 'Created deal "Blocked Drain" worth $420.',
+      message: 'Created deal "Blocked Drain" worth $420.00.',
       dealId: "deal_1",
     });
     expect(hoisted.revalidatePath).toHaveBeenCalledWith("/crm", "layout");
@@ -695,7 +695,7 @@ describe("chat-actions", () => {
     });
     expect(result).toEqual({
       success: true,
-      message: "Job created: Blocked Drain for Alex Harper, $420.",
+      message: "Job created: Blocked Drain for Alex Harper, $420.00.",
       dealId: "deal_1",
     });
   });

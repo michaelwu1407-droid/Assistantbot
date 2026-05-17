@@ -641,7 +641,7 @@ describe("integration: chat agent CRM mutation flow", () => {
     expect(payload.text).toContain('Created deal "Blocked Drain"');
     expect(payload.toolOutput).toEqual({
       success: true,
-      message: 'Created deal "Blocked Drain" worth $420.',
+      message: 'Created deal "Blocked Drain" worth $420.00.',
       dealId: "deal_1",
     });
 

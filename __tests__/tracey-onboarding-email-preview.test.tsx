@@ -9,6 +9,7 @@ const {
   saveBusinessProfileForProvisioning,
   getProvisioningIntentForOnboarding,
   getLeadCaptureEmailReadiness,
+  getWorkspaceSettings,
   getAuthUser,
   createInvite,
   toastSuccess,
@@ -19,6 +20,7 @@ const {
   saveBusinessProfileForProvisioning: vi.fn(),
   getProvisioningIntentForOnboarding: vi.fn(),
   getLeadCaptureEmailReadiness: vi.fn(),
+  getWorkspaceSettings: vi.fn(),
   getAuthUser: vi.fn(),
   createInvite: vi.fn(),
   toastSuccess: vi.fn(),
@@ -68,6 +70,7 @@ vi.mock("@/actions/tracey-onboarding", () => ({
 
 vi.mock("@/actions/settings-actions", () => ({
   getLeadCaptureEmailReadiness,
+  getWorkspaceSettings,
 }));
 
 vi.mock("@/lib/auth-client", () => ({
@@ -171,6 +174,9 @@ describe("Tracey onboarding lead email preview", () => {
       receivingConfirmed: false,
       domain: "inbound.earlymark.ai",
       lastInboundEmailSuccessAt: null,
+    });
+    getWorkspaceSettings.mockResolvedValue({
+      autoCallLeads: true,
     });
     getProvisioningIntentForOnboarding.mockResolvedValue({
       success: true,

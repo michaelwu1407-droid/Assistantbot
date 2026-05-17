@@ -137,7 +137,7 @@ describe("search-actions", () => {
         id: "deal_1",
         type: "deal",
         title: "Kitchen plumbing",
-        subtitle: "Scheduled • $1,250",
+        subtitle: "Scheduled • $1,250.00",
         url: "/crm/deals/deal_1",
         score: 0.94,
       },

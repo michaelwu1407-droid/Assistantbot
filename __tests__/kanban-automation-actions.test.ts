@@ -106,7 +106,7 @@ describe("kanban-automation-actions", () => {
     expect(createNotification).toHaveBeenCalledWith({
       userId: "user_1",
       title: "Call Scheduled",
-      message: "Kitchen plumbing: call on 05/04/2026",
+      message: "Kitchen plumbing: call on 5 Apr 2026",
       type: "SYSTEM",
       link: "/crm?dealId=deal_1",
     });

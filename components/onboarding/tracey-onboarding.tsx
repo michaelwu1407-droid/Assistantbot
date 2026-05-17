@@ -551,17 +551,23 @@ export function TraceyOnboarding() {
         if (authUser.email) {
           setEmail((current) => current || authUser.email || "")
         }
-        const [readiness, provisioningIntent, workspaceSettings] = await Promise.all([
+        const [readinessResult, provisioningIntentResult, workspaceSettingsResult] = await Promise.allSettled([
           getLeadCaptureEmailReadiness(),
           getProvisioningIntentForOnboarding(),
-          getWorkspaceSettings(),
+          typeof getWorkspaceSettings === "function" ? getWorkspaceSettings() : Promise.resolve(null),
         ])
         if (active) {
-          setLeadCaptureEmailReadiness(readiness)
-          if (typeof workspaceSettings?.autoCallLeads === "boolean") {
-            setAutoCallLeads(workspaceSettings.autoCallLeads)
+          if (readinessResult.status === "fulfilled") {
+            setLeadCaptureEmailReadiness(readinessResult.value)
           }
-          if (provisioningIntent.success) {
+          if (
+            workspaceSettingsResult.status === "fulfilled" &&
+            typeof workspaceSettingsResult.value?.autoCallLeads === "boolean"
+          ) {
+            setAutoCallLeads(workspaceSettingsResult.value.autoCallLeads)
+          }
+          if (provisioningIntentResult.status === "fulfilled" && provisioningIntentResult.value.success) {
+            const provisioningIntent = provisioningIntentResult.value
             setProvisionPhoneNumberRequested(provisioningIntent.provisionPhoneNumberRequested)
             if (!provisioningIntent.provisionPhoneNumberRequested) {
               setProvisioningStatus("not_requested")

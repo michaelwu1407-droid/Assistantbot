@@ -9,13 +9,14 @@ const {
   getWorkspaceCalendarStatus,
 } = vi.hoisted(() => ({
   requireCurrentWorkspaceAccess: vi.fn(),
-  db: {
-    user: {
-      findUnique: vi.fn(),
-    },
-    emailIntegration: {
-      deleteMany: vi.fn(),
-    },
+    db: {
+      workspace: {
+        findUnique: vi.fn(),
+      },
+      emailIntegration: {
+        findMany: vi.fn(),
+        deleteMany: vi.fn(),
+      },
   },
   buildXeroAuthUrl: vi.fn((workspaceId: string) => `xero:${workspaceId}`),
   buildGoogleCalendarAuthUrl: vi.fn((workspaceId: string) => `calendar:${workspaceId}`),
@@ -63,11 +64,12 @@ describe("integration-actions", () => {
       role: "OWNER",
       workspaceId: "ws_1",
     });
-    db.user.findUnique.mockResolvedValue({
-      workspaceId: "ws_1",
-      emailIntegrations: [{ id: "gmail_1", provider: "gmail", emailAddress: "owner@example.com", isActive: true }],
-      workspace: { settings: { xero_access_token: "token", xero_tenant_id: "tenant" } },
+    db.workspace.findUnique.mockResolvedValue({
+      settings: { xero_access_token: "token", xero_tenant_id: "tenant" },
     });
+    db.emailIntegration.findMany.mockResolvedValue([
+      { id: "gmail_1", provider: "gmail", emailAddress: "owner@example.com", isActive: true },
+    ]);
     getWorkspaceCalendarStatus.mockResolvedValue({
       connected: true,
       provider: "google",
@@ -88,9 +90,9 @@ describe("integration-actions", () => {
       xeroConnected: true,
       calendarIntegration: { connected: true },
     });
-    expect(db.user.findUnique).toHaveBeenCalledWith(
+    expect(db.workspace.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: "app_user_1" },
+        where: { id: "ws_1" },
       }),
     );
     expect(getWorkspaceCalendarStatus).toHaveBeenCalledWith("ws_1");
