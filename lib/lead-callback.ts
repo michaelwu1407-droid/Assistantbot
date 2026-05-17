@@ -13,14 +13,23 @@
  */
 import { db } from "@/lib/db";
 import { initiateOutboundCall } from "@/lib/outbound-call";
+import {
+  recordCallbackEvent,
+  type CallbackDispatchMode,
+  type CallbackKind,
+} from "@/lib/callback-events";
 
 export type ScheduleLeadCallbackInput = {
   workspaceId: string;
+  contactId?: string | null;
   contactPhone: string;
   contactName?: string;
   dealId: string;
   reason: string;
   delaySec: number;
+  triggerSource?: string | null;
+  callbackKind?: CallbackKind | null;
+  initiatedByUserId?: string | null;
 };
 
 export type ScheduleLeadCallbackResult =
@@ -33,8 +42,26 @@ export async function scheduleLeadCallback(
   const delaySec = Number.isFinite(input.delaySec) && input.delaySec > 0
     ? Math.floor(input.delaySec)
     : 0;
+  const dispatchMode: CallbackDispatchMode = delaySec === 0 ? "immediate" : "scheduled";
+  const callbackKind = input.callbackKind || "automatic";
 
   if (delaySec === 0) {
+    await recordCallbackEvent({
+      eventType: "callback_requested",
+      payload: {
+        workspaceId: input.workspaceId,
+        contactId: input.contactId || null,
+        contactPhone: input.contactPhone,
+        contactName: input.contactName || null,
+        dealId: input.dealId,
+        reason: input.reason,
+        triggerSource: input.triggerSource || null,
+        callbackKind,
+        dispatchMode,
+        initiatedByUserId: input.initiatedByUserId || null,
+      },
+    });
+
     // Fire-and-forget so the caller (a webhook handler) returns fast.
     initiateOutboundCall({
       workspaceId: input.workspaceId,
@@ -42,8 +69,44 @@ export async function scheduleLeadCallback(
       contactName: input.contactName,
       dealId: input.dealId,
       reason: input.reason,
+    }).then((result) => {
+      return recordCallbackEvent({
+        eventType: "callback_dispatched",
+        payload: {
+          workspaceId: input.workspaceId,
+          contactId: input.contactId || null,
+          contactPhone: input.contactPhone,
+          contactName: input.contactName || null,
+          dealId: input.dealId,
+          reason: input.reason,
+          triggerSource: input.triggerSource || null,
+          callbackKind,
+          dispatchMode,
+          initiatedByUserId: input.initiatedByUserId || null,
+          roomName: result.roomName,
+          resolvedTrunkId: result.resolvedTrunkId,
+          callerNumber: result.callerNumber,
+        },
+      });
     }).catch((err) => {
       console.error("[lead-callback] Immediate dial failed:", err);
+      return recordCallbackEvent({
+        eventType: "callback_dispatch_failed",
+        status: "error",
+        error: err instanceof Error ? err.message : String(err),
+        payload: {
+          workspaceId: input.workspaceId,
+          contactId: input.contactId || null,
+          contactPhone: input.contactPhone,
+          contactName: input.contactName || null,
+          dealId: input.dealId,
+          reason: input.reason,
+          triggerSource: input.triggerSource || null,
+          callbackKind,
+          dispatchMode,
+          initiatedByUserId: input.initiatedByUserId || null,
+        },
+      });
     });
     return { dispatched: "immediate" };
   }
@@ -58,6 +121,24 @@ export async function scheduleLeadCallback(
       completed: false,
     },
     select: { id: true },
+  });
+
+  await recordCallbackEvent({
+    eventType: "callback_requested",
+    payload: {
+      workspaceId: input.workspaceId,
+      contactId: input.contactId || null,
+      contactPhone: input.contactPhone,
+      contactName: input.contactName || null,
+      dealId: input.dealId,
+      reason: input.reason,
+      triggerSource: input.triggerSource || null,
+      callbackKind,
+      dispatchMode,
+      initiatedByUserId: input.initiatedByUserId || null,
+      taskId: task.id,
+      dueAt: dueAt.toISOString(),
+    },
   });
 
   return { dispatched: "scheduled", taskId: task.id, dueAt };

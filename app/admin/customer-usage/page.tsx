@@ -774,6 +774,32 @@ function SelectedWorkspacePanel({ selected }: { selected: NonNullable<CustomerUs
         </section>
 
         <section>
+          <div className="mb-2 text-sm font-semibold text-foreground">Lead callbacks</div>
+          <DetailItem label="Callback events in range" value={formatNumber(selected.callbacks.totalEventsInRange)} />
+          <DetailItem label="Auto requested / manual requested" value={`${selected.callbacks.automaticRequested} / ${selected.callbacks.manualRequested}`} />
+          <DetailItem label="Blocked / dispatched" value={`${selected.callbacks.blocked} / ${selected.callbacks.dispatched}`} />
+          <DetailItem label="Answered / no answer / failed" value={`${selected.callbacks.answered} / ${selected.callbacks.noAnswer} / ${selected.callbacks.failed}`} />
+          <div className="mt-3 space-y-2">
+            {selected.callbacks.recentEvents.length === 0 ? (
+              <EmptyState>No callback lifecycle events recorded in this range.</EmptyState>
+            ) : (
+              selected.callbacks.recentEvents.map((event) => (
+                <div key={event.id} className="rounded-xl border border-border bg-muted/30 px-3 py-2 text-xs">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="font-medium text-foreground">{event.title}</span>
+                    <span className="text-muted-foreground">{formatDate(event.createdAt)}</span>
+                  </div>
+                  <div className="mt-1 text-muted-foreground">
+                    {event.callbackKind} {event.outcome ? `| ${event.outcome}` : ""}{event.contactPhone ? ` | ${event.contactPhone}` : ""}
+                  </div>
+                  <div className="mt-1 text-foreground">{event.detail}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section>
           <div className="mb-2 text-sm font-semibold text-foreground">Costs</div>
           <DetailItem label="Twilio month spend" value={formatMoney(selected.costs.twilioMonthSpend, selected.costs.twilioCurrency)} />
           <DetailItem label="Sub rev - Twilio" value={formatMoney(selected.costs.subRevenueMinusTwilio, selected.costs.subRevenueMinusTwilioCurrency)} />

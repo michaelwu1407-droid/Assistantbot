@@ -40,7 +40,7 @@ import {
   getProvisioningIntentForOnboarding,
   type TraceyOnboardingData,
 } from "@/actions/tracey-onboarding"
-import { getLeadCaptureEmailReadiness } from "@/actions/settings-actions"
+import { getLeadCaptureEmailReadiness, getWorkspaceSettings } from "@/actions/settings-actions"
 import { getAuthUser } from "@/lib/auth-client"
 import { createInvite } from "@/actions/invite-actions"
 import { WeeklyHoursEditor } from "@/components/ui/weekly-hours-editor"
@@ -491,6 +491,7 @@ export function TraceyOnboarding() {
   const [inboxConnectionType, setInboxConnectionType] = useState<"oauth" | "forward" | null>(null)
   const [preGenLeadsEmail, setPreGenLeadsEmail] = useState<string | null>(null)
   const [leadCaptureEmailReadiness, setLeadCaptureEmailReadiness] = useState<LeadCaptureEmailReadiness | null>(null)
+  const [autoCallLeads, setAutoCallLeads] = useState(true)
   const leadCaptureStatusCopy = getLeadCaptureStatusCopy(leadCaptureEmailReadiness)
 
   // Optional team invites on the last step
@@ -553,12 +554,16 @@ export function TraceyOnboarding() {
         if (authUser.email) {
           setEmail((current) => current || authUser.email || "")
         }
-        const [readiness, provisioningIntent] = await Promise.all([
+        const [readiness, provisioningIntent, workspaceSettings] = await Promise.all([
           getLeadCaptureEmailReadiness(),
           getProvisioningIntentForOnboarding(),
+          getWorkspaceSettings(),
         ])
         if (active) {
           setLeadCaptureEmailReadiness(readiness)
+          if (typeof workspaceSettings?.autoCallLeads === "boolean") {
+            setAutoCallLeads(workspaceSettings.autoCallLeads)
+          }
           if (provisioningIntent.success) {
             setProvisionPhoneNumberRequested(provisioningIntent.provisionPhoneNumberRequested)
             if (!provisioningIntent.provisionPhoneNumberRequested) {
@@ -963,6 +968,7 @@ export function TraceyOnboarding() {
         })),
         referralSource,
         acceptsMultilingual,
+        autoCallLeads,
       }
 
       const result = await saveTraceyOnboarding(data)
@@ -1502,6 +1508,20 @@ export function TraceyOnboarding() {
                           </p>
                         </div>
                       </div>
+                    </div>
+
+                    <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-white/70 px-4 py-3 dark:border-emerald-900/40 dark:bg-emerald-950/20">
+                      <div className="space-y-1 pr-4">
+                        <p className="text-sm font-medium text-foreground">Auto-call new leads</p>
+                        <p className="text-xs text-muted-foreground">
+                          Leave this on if you want Tracey to ring fresh leads automatically the moment they arrive.
+                        </p>
+                      </div>
+                      <Switch
+                        id="onboarding-auto-call"
+                        checked={autoCallLeads}
+                        onCheckedChange={setAutoCallLeads}
+                      />
                     </div>
 
                     {/* Connection Options */}

@@ -41,7 +41,13 @@ export async function getOnboardingProgress() {
         // address, not each teammate). Per-user count would misleadingly
         // tell teammates to connect their own inbox when the workspace is
         // already capturing leads through the owner's.
-        db.emailIntegration.count({ where: { user: { workspaceId }, isActive: true } }),
+        db.emailIntegration.count({
+            where: {
+                user: { workspaceId },
+                isActive: true,
+                OR: [{ tokenExpiry: null }, { tokenExpiry: { gt: new Date() } }],
+            },
+        }),
     ]);
 
     const isOwner = workspaceMeta?.ownerId === userId;
@@ -80,9 +86,9 @@ export async function getOnboardingProgress() {
         ...phoneStep,
         {
             id: "connect_inbox",
-            title: "Connect your inbox to capture hipages, Airtasker & website leads",
+            title: "Connect your inbox, then check Lead Channels for what goes live next",
             isComplete: inboxConnections > 0,
-            href: "/crm/settings/integrations",
+            href: "/crm/settings/integrations#lead-channels",
         },
         {
             id: "profile",

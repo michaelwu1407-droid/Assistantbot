@@ -95,7 +95,7 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/crm/settings/integrations?success=${provider}_connected${warning ? `&warning=${warning}` : ""}`,
+      `${process.env.NEXT_PUBLIC_APP_URL}/crm/settings/integrations?success=${provider}_connected&focus=lead_channels${warning ? `&warning=${warning}` : ""}`,
     );
   } catch (err) {
     console.error("OAuth callback error:", err);

@@ -13,6 +13,10 @@ import { verifyTwilioFormPost } from "@/lib/twilio/verify-signature"
 import { isWithinAllowedCallWindow } from "@/lib/call-window"
 import { scheduleLeadCallback } from "@/lib/lead-callback"
 import { canAutoCallLead } from "@/lib/auto-call-eligibility"
+import {
+    hasRecentAutomaticCallbackAttempt,
+    recordCallbackEvent,
+} from "@/lib/callback-events"
 
 const TWILIO_SMS_COST_USD = 0.05
 
@@ -29,6 +33,8 @@ type SmsWebhookEventPayload = {
     responseMessageSid?: string | null;
     autoRespondEnabled?: boolean;
     replySuppressedReason?: string | null;
+    autoCallBlocked?: boolean;
+    autoCallBlockReason?: string | null;
 };
 
 const ACTIVE_DEAL_STAGES = ["NEW", "CONTACTED", "NEGOTIATION", "SCHEDULED", "PIPELINE", "INVOICED", "PENDING_COMPLETION"] as const;
@@ -320,6 +326,22 @@ export async function POST(req: NextRequest) {
                                 to: From,
                                 messageSid: MessageSid || null,
                                 autoRespondEnabled: false,
+                                autoCallBlocked: true,
+                                autoCallBlockReason: "triage_review",
+                            },
+                        });
+                        await recordCallbackEvent({
+                            eventType: "callback_blocked",
+                            payload: {
+                                workspaceId,
+                                contactId,
+                                contactPhone: From,
+                                contactName: contact.name || From,
+                                dealId: deal.id,
+                                reason: "sms_lead",
+                                triggerSource: "inbound_sms",
+                                callbackKind: "automatic",
+                                blockReason: "triage_review",
                             },
                         });
                         return;
@@ -332,22 +354,62 @@ export async function POST(req: NextRequest) {
                     // the SMS reply path stays fast.
                     const eligibility = canAutoCallLead(workspace);
                     const withinCallWindow = isWithinAllowedCallWindow(workspace.settings);
-                    if (eligibility.allowed && withinCallWindow) {
+                    const recentlyAttempted = await hasRecentAutomaticCallbackAttempt({
+                        workspaceId,
+                        contactId,
+                        contactPhone: From,
+                    });
+                    if (eligibility.allowed && withinCallWindow && !recentlyAttempted) {
                         scheduleLeadCallback({
                             workspaceId,
+                            contactId,
                             contactPhone: From,
                             contactName: contact.name || `SMS lead ${From}`,
                             dealId: activeDeal.id,
                             reason: "sms_lead",
-                            delaySec: workspace.autoCallDelaySec ?? 60,
+                            delaySec: workspace.autoCallDelaySec === 60 ? 0 : (workspace.autoCallDelaySec ?? 0),
+                            triggerSource: "inbound_sms",
+                            callbackKind: "automatic",
                         }).catch((err) => {
                             console.error("[SMS Webhook] scheduleLeadCallback failed:", err);
                         });
                     } else {
-                        const reason = !eligibility.allowed ? eligibility.reason : "after_hours";
+                        const reason = !eligibility.allowed
+                            ? eligibility.reason
+                            : recentlyAttempted
+                                ? "callback_recently_attempted"
+                                : "after_hours";
                         console.info(
                             `[SMS Webhook] auto-call blocked for deal ${activeDeal.id} (workspace ${workspaceId}): ${reason}`,
                         );
+                        await recordSmsWebhookEvent({
+                            eventType: "sms.reply",
+                            status: "success",
+                            payload: {
+                                workspaceId,
+                                workspaceName: workspace.name,
+                                from: To,
+                                to: From,
+                                messageSid: MessageSid || null,
+                                autoRespondEnabled: false,
+                                autoCallBlocked: true,
+                                autoCallBlockReason: reason,
+                            },
+                        });
+                        await recordCallbackEvent({
+                            eventType: "callback_blocked",
+                            payload: {
+                                workspaceId,
+                                contactId,
+                                contactPhone: From,
+                                contactName: contact.name || From,
+                                dealId: activeDeal.id,
+                                reason: "sms_lead",
+                                triggerSource: "inbound_sms",
+                                callbackKind: "automatic",
+                                blockReason: reason,
+                            },
+                        });
                     }
                 }
 

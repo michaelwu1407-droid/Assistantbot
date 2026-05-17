@@ -6,6 +6,10 @@ import { getAuthUser } from "@/lib/auth";
 import { runIdempotent } from "@/lib/idempotency";
 import { revalidatePath } from "next/cache";
 import { appendSupportTicketNote } from "@/lib/support-tickets";
+import {
+  CALLBACK_EVENT_PROVIDER,
+  getCallbackEventCopy,
+} from "@/lib/callback-events";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -30,6 +34,15 @@ export interface ActivityView {
   summary?: string | null;
   subject?: string | null;
   durationLabel?: string | null;
+  workflow?: {
+    kind: "callback";
+    eventType: string;
+    callbackKind: "automatic" | "manual";
+    recallEligible: boolean;
+    outcome: string | null;
+    triggerSource: string | null;
+    blockReason: string | null;
+  } | null;
 }
 
 type VoiceCallActivityRow = {
@@ -43,11 +56,22 @@ type VoiceCallActivityRow = {
   startedAt: Date;
   endedAt: Date | null;
   contactId: string | null;
+  dealId: string | null;
+  metadata: unknown;
   contact?: {
     name: string | null;
     phone: string | null;
     email: string | null;
   } | null;
+};
+
+type CallbackEventActivityRow = {
+  id: string;
+  eventType: string;
+  status: string;
+  error: string | null;
+  createdAt: Date;
+  payload: unknown;
 };
 
 type ChatMessageActivityRow = {
@@ -119,6 +143,14 @@ function inferVoiceDirection(callType: string): "inbound" | "outbound" {
   return (callType || "").toLowerCase().includes("outbound") ? "outbound" : "inbound";
 }
 
+function isOutboundCallbackVoiceCall(call: Pick<VoiceCallActivityRow, "callType" | "metadata">) {
+  if ((call.callType || "").toLowerCase().includes("outbound")) return true;
+  if (!call.metadata || typeof call.metadata !== "object") return false;
+  const roomMetadata = (call.metadata as Record<string, unknown>).roomMetadata;
+  if (!roomMetadata || typeof roomMetadata !== "object") return false;
+  return (roomMetadata as Record<string, unknown>).outbound === true;
+}
+
 function readMetadataString(metadata: unknown, key: string): string | null {
   if (!metadata || typeof metadata !== "object") return null;
   const value = (metadata as Record<string, unknown>)[key];
@@ -149,6 +181,7 @@ function formatMessageTitle(channel: NonNullable<ActivityView["channel"]>, direc
 function mapVoiceCallToActivity(call: VoiceCallActivityRow): ActivityView {
   const transcriptSnippet = snippet(call.transcriptText, 220);
   const summary = snippet(call.summary, 140);
+  const outboundCallback = isOutboundCallbackVoiceCall(call);
   const callerIdentity =
     call.contact?.name ||
     call.callerName ||
@@ -159,23 +192,72 @@ function mapVoiceCallToActivity(call: VoiceCallActivityRow): ActivityView {
   return {
     id: `voice-call:${call.id}`,
     type: "call",
-    title: formatVoiceCallTitle(call.callType),
+    title: outboundCallback ? "Tracey callback" : formatVoiceCallTitle(call.callType),
     description: summary || `Phone call with ${callerIdentity}`,
     content: transcriptSnippet || summary,
     time: relativeTime(call.startedAt),
     createdAt: call.startedAt,
+    dealId: call.dealId ?? undefined,
     contactId: call.contactId ?? undefined,
     contactName: call.contact?.name || call.callerName || call.businessName || undefined,
     contactPhone: call.contact?.phone || call.callerPhone || undefined,
     contactEmail: call.contact?.email || undefined,
     channel: "call",
-    direction: inferVoiceDirection(call.callType),
+    direction: outboundCallback ? "outbound" : inferVoiceDirection(call.callType),
     preview: summary || transcriptSnippet,
     body: transcriptSnippet || summary,
     transcript: call.transcriptText,
     summary: call.summary,
     subject: null,
     durationLabel: formatDurationLabel(call.startedAt, call.endedAt),
+    workflow: outboundCallback
+      ? {
+          kind: "callback",
+          eventType: "callback_call_finished",
+          callbackKind: "automatic",
+          recallEligible: false,
+          outcome: null,
+          triggerSource: "voice_agent",
+          blockReason: null,
+        }
+      : null,
+  };
+}
+
+function mapCallbackEventToActivity(event: CallbackEventActivityRow): ActivityView | null {
+  const copy = getCallbackEventCopy(event);
+  if (!copy) return null;
+
+  return {
+    id: `callback-event:${event.id}`,
+    type: "note",
+    title: copy.title,
+    description: copy.description,
+    content: copy.body,
+    time: relativeTime(event.createdAt),
+    createdAt: event.createdAt,
+    dealId: copy.payload.dealId ?? undefined,
+    contactId: copy.payload.contactId ?? undefined,
+    contactName: copy.payload.contactName ?? undefined,
+    contactPhone: copy.payload.contactPhone ?? undefined,
+    contactEmail: undefined,
+    channel: "system",
+    direction: "system",
+    preview: copy.description,
+    body: copy.body,
+    transcript: null,
+    summary: copy.description,
+    subject: null,
+    durationLabel: null,
+    workflow: {
+      kind: "callback",
+      eventType: event.eventType,
+      callbackKind: copy.payload.callbackKind || "automatic",
+      recallEligible: copy.recallEligible,
+      outcome: copy.outcome,
+      triggerSource: copy.payload.triggerSource || null,
+      blockReason: copy.payload.blockReason || null,
+    },
   };
 }
 
@@ -368,6 +450,8 @@ export async function getActivities(options?: {
             startedAt: true,
             endedAt: true,
             contactId: true,
+            dealId: true,
+            metadata: true,
             contact: {
               select: {
                 name: true,
@@ -394,6 +478,24 @@ export async function getActivities(options?: {
             ? { workspaceId: options.workspaceId }
             : null;
 
+    const callbackEventWhere: Record<string, unknown> | null =
+      options?.contactId
+        ? {
+            provider: CALLBACK_EVENT_PROVIDER,
+            payload: { path: ["contactId"], equals: options.contactId },
+          }
+        : dealContext?.contactId
+          ? {
+              provider: CALLBACK_EVENT_PROVIDER,
+              payload: { path: ["contactId"], equals: dealContext.contactId },
+            }
+          : options?.workspaceId
+            ? {
+                provider: CALLBACK_EVENT_PROVIDER,
+                payload: { path: ["workspaceId"], equals: options.workspaceId },
+              }
+            : null;
+
     const chatMessages = chatMessageWhere
       ? await db.chatMessage.findMany({
           where: {
@@ -412,6 +514,22 @@ export async function getActivities(options?: {
             metadata: true,
             workspaceId: true,
             createdAt: true,
+          },
+        })
+      : [];
+
+    const callbackEvents = callbackEventWhere
+      ? await db.webhookEvent.findMany({
+          where: callbackEventWhere,
+          orderBy: { createdAt: "desc" },
+          take: options?.limit ?? 20,
+          select: {
+            id: true,
+            eventType: true,
+            status: true,
+            error: true,
+            createdAt: true,
+            payload: true,
           },
         })
       : [];
@@ -491,8 +609,11 @@ export async function getActivities(options?: {
         chatContactById.get(readMetadataString(message.metadata, "contactId") ?? "") ?? null,
       ),
     );
+    const callbackEventRows = callbackEvents
+      .map((event) => mapCallbackEventToActivity(event))
+      .filter((event): event is ActivityView => Boolean(event));
 
-    return [...activityRows, ...voiceCalls.map(mapVoiceCallToActivity), ...voicemailRows, ...chatMessageRows]
+    return [...activityRows, ...voiceCalls.map(mapVoiceCallToActivity), ...voicemailRows, ...chatMessageRows, ...callbackEventRows]
       .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())
       .slice(0, options?.limit ?? 20);
   } catch (error) {

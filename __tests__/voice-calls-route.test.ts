@@ -18,6 +18,7 @@ const hoisted = vi.hoisted(() => ({
   findWorkspaceByTwilioNumber: vi.fn(),
   isVoiceAgentSecretAuthorized: vi.fn(),
   syncVoiceCallToCRM: vi.fn(),
+  recordCallbackEvent: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -35,6 +36,9 @@ vi.mock("@/lib/voice-agent-auth", () => ({
 
 vi.mock("@/lib/post-call-sync", () => ({
   syncVoiceCallToCRM: hoisted.syncVoiceCallToCRM,
+}));
+vi.mock("@/lib/callback-events", () => ({
+  recordCallbackEvent: hoisted.recordCallbackEvent,
 }));
 
 import { POST } from "@/app/api/internal/voice-calls/route";
@@ -56,6 +60,7 @@ describe("POST /api/internal/voice-calls", () => {
       dealCreated: true,
       skipped: false,
     });
+    hoisted.recordCallbackEvent.mockResolvedValue(undefined);
   });
 
   function makePayload(overrides: Record<string, unknown> = {}) {
@@ -196,6 +201,62 @@ describe("POST /api/internal/voice-calls", () => {
         type: "CALL",
         title: "Voice call handled by Tracey",
         contactId: "contact_1",
+      }),
+    });
+  });
+
+  it("persists outbound callbacks separately and records the callback outcome without CRM sync", async () => {
+    const response = await POST(
+      new NextRequest("https://earlymark.ai/api/internal/voice-calls", {
+        method: "POST",
+        headers: { "x-voice-agent-secret": "secret" },
+        body: JSON.stringify(
+          makePayload({
+            transcriptTurns: [],
+            transcriptText: "",
+            metadata: {
+              roomMetadata: {
+                outbound: true,
+                dealId: "deal_1",
+                reason: "manual_recall:inbox",
+              },
+              sipAttributes: {
+                "sip.call_status": "no_answer",
+              },
+              providerCallIds: {
+                twilioCallSid: "CA123",
+              },
+            },
+          }),
+        ),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(hoisted.db.voiceCall.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          callType: "outbound_callback",
+          dealId: "deal_1",
+          summary: "Tracey called Jane Citizen, but nobody picked up.",
+        }),
+        update: expect.objectContaining({
+          callType: "outbound_callback",
+          dealId: "deal_1",
+        }),
+      }),
+    );
+    expect(hoisted.syncVoiceCallToCRM).not.toHaveBeenCalled();
+    expect(hoisted.db.activity.create).not.toHaveBeenCalled();
+    expect(hoisted.recordCallbackEvent).toHaveBeenCalledWith({
+      eventType: "callback_call_finished",
+      payload: expect.objectContaining({
+        workspaceId: "ws_1",
+        contactId: "contact_1",
+        dealId: "deal_1",
+        callbackKind: "manual",
+        callStatus: "no_answer",
+        providerCallSid: "CA123",
       }),
     });
   });

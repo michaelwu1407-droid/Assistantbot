@@ -6,6 +6,8 @@ const {
   findWorkspaceByTwilioNumber,
   findContactByPhone,
   scheduleLeadCallback,
+  hasRecentAutomaticCallbackAttempt,
+  recordCallbackEvent,
 } = vi.hoisted(() => ({
   db: {
     contact: { create: vi.fn() },
@@ -16,6 +18,8 @@ const {
   findWorkspaceByTwilioNumber: vi.fn(),
   findContactByPhone: vi.fn(),
   scheduleLeadCallback: vi.fn(),
+  hasRecentAutomaticCallbackAttempt: vi.fn(),
+  recordCallbackEvent: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({ db }));
@@ -24,6 +28,10 @@ vi.mock("@/lib/workspace-routing", () => ({
   findContactByPhone,
 }));
 vi.mock("@/lib/lead-callback", () => ({ scheduleLeadCallback }));
+vi.mock("@/lib/callback-events", () => ({
+  hasRecentAutomaticCallbackAttempt,
+  recordCallbackEvent,
+}));
 vi.mock("@/lib/twilio/verify-signature", () => ({
   readTwilioFormParams: async (req: Request) => {
     const text = await req.text();
@@ -53,6 +61,8 @@ describe("POST /api/webhooks/twilio-voice-status", () => {
     db.webhookEvent.create.mockResolvedValue(undefined);
     db.activity.create.mockResolvedValue({ id: "activity_1" });
     scheduleLeadCallback.mockResolvedValue(undefined);
+    hasRecentAutomaticCallbackAttempt.mockResolvedValue(false);
+    recordCallbackEvent.mockResolvedValue(undefined);
   });
 
   it("creates a deal and queues a callback when the inbound dial gets no answer", async () => {
@@ -89,11 +99,14 @@ describe("POST /api/webhooks/twilio-voice-status", () => {
     });
     expect(scheduleLeadCallback).toHaveBeenCalledWith({
       workspaceId: "ws_1",
+      contactId: "contact_1",
       contactPhone: "+61400000000",
       contactName: "Caller +61400000000",
       dealId: "deal_1",
       reason: "missed_call_callback:no-answer",
       delaySec: 90,
+      triggerSource: "missed_call",
+      callbackKind: "automatic",
     });
   });
 
@@ -119,6 +132,14 @@ describe("POST /api/webhooks/twilio-voice-status", () => {
     expect(response.status).toBe(200);
     expect(db.deal.create).toHaveBeenCalled();
     expect(scheduleLeadCallback).not.toHaveBeenCalled();
+    expect(recordCallbackEvent).toHaveBeenCalledWith({
+      eventType: "callback_blocked",
+      payload: expect.objectContaining({
+        workspaceId: "ws_1",
+        contactId: "contact_1",
+        blockReason: "auto_call_disabled",
+      }),
+    });
   });
 
   it("ignores completed calls (which were answered, not missed)", async () => {

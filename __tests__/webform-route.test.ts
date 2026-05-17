@@ -23,11 +23,17 @@ const hoisted = vi.hoisted(() => ({
     notification: {
       create: vi.fn(),
     },
+    webhookEvent: {
+      count: vi.fn(),
+      create: vi.fn(),
+    },
   },
   evaluateAutomations: vi.fn(),
   triageIncomingLead: vi.fn(),
   saveTriageRecommendation: vi.fn(),
   scheduleLeadCallback: vi.fn(),
+  hasRecentAutomaticCallbackAttempt: vi.fn(),
+  recordCallbackEvent: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({ db: hoisted.db }));
@@ -40,6 +46,10 @@ vi.mock("@/lib/ai/triage", () => ({
 }));
 vi.mock("@/lib/lead-callback", () => ({
   scheduleLeadCallback: hoisted.scheduleLeadCallback,
+}));
+vi.mock("@/lib/callback-events", () => ({
+  hasRecentAutomaticCallbackAttempt: hoisted.hasRecentAutomaticCallbackAttempt,
+  recordCallbackEvent: hoisted.recordCallbackEvent,
 }));
 
 import { POST } from "@/app/api/webhooks/webform/route";
@@ -63,6 +73,10 @@ describe("POST /api/webhooks/webform", () => {
     hoisted.triageIncomingLead.mockResolvedValue({ recommendation: "ACCEPT", flags: [] });
     hoisted.saveTriageRecommendation.mockResolvedValue(undefined);
     hoisted.scheduleLeadCallback.mockResolvedValue(undefined);
+    hoisted.hasRecentAutomaticCallbackAttempt.mockResolvedValue(false);
+    hoisted.recordCallbackEvent.mockResolvedValue(undefined);
+    hoisted.db.webhookEvent.count.mockResolvedValue(0);
+    hoisted.db.webhookEvent.create.mockResolvedValue(undefined);
   });
 
   it("rejects requests that do not include a workspace id", async () => {
@@ -288,11 +302,14 @@ describe("POST /api/webhooks/webform", () => {
     expect(body.autoCallBlockReason).toBeNull();
     expect(hoisted.scheduleLeadCallback).toHaveBeenCalledWith({
       workspaceId: "ws_1",
+      contactId: "contact_1",
       contactPhone: "+61400000000",
       contactName: "Alex",
       dealId: "deal_1",
       reason: "webform_lead:website",
       delaySec: 30,
+      triggerSource: "webform",
+      callbackKind: "automatic",
     });
   });
 

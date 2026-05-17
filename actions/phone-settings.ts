@@ -134,6 +134,7 @@ export async function getPhoneNumberStatus() {
         twilioPhoneNumber: true,
         twilioSubaccountId: true,
         twilioSipTrunkSid: true,
+        settings: true,
       },
     })
   ]);
@@ -141,6 +142,8 @@ export async function getPhoneNumberStatus() {
   if (!user || !workspace) {
     throw new Error("User or workspace not found");
   }
+
+  const settings = (workspace.settings as Record<string, unknown> | null) ?? {};
 
   return {
     // Personal phone
@@ -156,5 +159,11 @@ export async function getPhoneNumberStatus() {
     hasVoiceAgent: !!workspace.twilioSipTrunkSid,
     setupComplete: !!workspace.twilioPhoneNumber && !!workspace.twilioSubaccountId,
     isOwner: workspace.ownerId === actor.id,
+    provisioningStatus: typeof settings.onboardingProvisioningStatus === "string"
+      ? settings.onboardingProvisioningStatus
+      : null,
+    provisioningError: typeof settings.onboardingProvisioningError === "string"
+      ? settings.onboardingProvisioningError
+      : null,
   };
 }

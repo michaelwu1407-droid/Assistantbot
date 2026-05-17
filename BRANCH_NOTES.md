@@ -4,6 +4,23 @@ End-to-end review and rebuild of how leads reach the CRM and the voice agent, pl
 
 ---
 
+## ✅ Post-closeout fixes landed on this branch
+
+These were tightened after the original closeout review to remove customer-facing trust gaps:
+
+- **Dishonest one-minute callback delay removed.** The `Wait 1 min` preset is gone, legacy `60s` values are normalised to `Immediate`, and all four lead-entry handlers now treat the old `60` default as immediate dispatch rather than silently waiting for the 5-minute cron.
+- **Lead Channels is more truthful.** Teammates no longer see copy that says *you connected the inbox* when the workspace owner did. Workspace-wide inbox counts now ignore expired OAuth tokens, default email platforms can surface a `needs_routing_check` state after 30 quiet days, and the website-form row no longer overpromises `Live` just because an inbox exists.
+- **Inbox-connect flow now points to the next job.** After Gmail/Outlook OAuth, the integrations page scrolls the user down to **Where your leads come from** and shows a clear prompt explaining what is live now and what still needs one more step.
+- **Onboarding now has a real auto-call toggle.** The inbox step still explains the feature, but it also gives the tradie a real on/off switch instead of an informational notice only.
+- **Phone-number claim is now asynchronous.** Claiming a business number returns immediately, provisioning runs in the background, and the settings UI polls status instead of blocking the user on a long synchronous server action.
+- **Webform telemetry is now operationally useful.** The webform route now records `WebhookEvent` rows, includes auto-call block reasons, rate-limits repeated submissions by source, and is surfaced as an advanced/manual integration option rather than hidden dead-ish infrastructure.
+- **SMS blocked auto-calls are visible too.** The Twilio SMS path now records blocked auto-call reasons consistently so ops can query them across channels instead of only on email and missed-call flows.
+- **Callback outcomes are now visible in the inbox thread.** Tradies now see `queued`, `called`, `no answer`, `busy`, and `failed to start` as simple system timeline events inside the prospect conversation instead of needing ops-level debugging.
+- **Automatic recall loops are now guarded.** We allow one recent automatic callback attempt per prospect, then leave the next step to the tradie with a clear `Recall with Tracey` action in the inbox if the call did not connect.
+- **Admin monitoring now sees callback lifecycle detail too.** The internal customer-usage page now shows callback counts and recent events by kind, outcome, source channel, block reason, and linked deal/contact.
+
+---
+
 ## ✅ What's done on this branch
 
 ### Lead capture — all four channels now actually fire the voice agent
@@ -32,6 +49,30 @@ Per-lead blocks (`urgent`, `after_hours`, `triage_review`, `no_lead_phone`) are 
 
 When the workspace's `autoCallDelaySec` is `0` (the default), the handler dispatches immediately through `initiateOutboundCall` — no cron involved. When the tradie has picked a wait time, a `Task` is created with title prefix `"Scheduled call:"`, picked up by the existing `/api/cron/scheduled-calls` cron (GitHub Actions workflow added: `.github/workflows/scheduled-calls.yml`, 5-minute schedule).
 
+### Callback journey is now first-class in inbox + admin
+
+A shared `tracey_callback` event stream now records callback lifecycle state instead of leaving it implicit in webhook logs and generic call rows:
+
+- `callback_requested`
+- `callback_dispatched`
+- `callback_dispatch_failed`
+- `callback_blocked`
+- `callback_call_finished`
+
+Those events now power:
+
+- Inbox conversation timeline rows like `Tracey callback queued`, `Tracey called the prospect`, and `No answer to Tracey callback`
+- A manual `Recall with Tracey` action in the inbox when a retry makes sense
+- Internal admin callback monitoring with recent event history and roll-up counts per workspace
+
+### Outbound contact guardrail: one automatic attempt, then human choice
+
+To reduce the risk of Tracey over-calling prospects, repeat **automatic** callbacks to the same lead are blocked within a recent cooldown window. The default product flow is now:
+
+1. A fresh lead arrives
+2. Tracey makes one automatic callback attempt
+3. If the callback does not connect, the tradie sees the outcome in the inbox and chooses whether to `Recall with Tracey` or handle the lead themselves
+
 ### Provisioning lock prevents double-buying numbers
 
 `ensureWorkspaceProvisioned` now claims a workspace-scoped lock via the unique `ActionExecution.idempotencyKey` immediately before the Twilio purchase. Concurrent calls (e.g. Stripe webhook redelivery + onboarding wizard finish) can't both reach the buy stage. Stale locks (>5 min, still `IN_PROGRESS`) auto-reclaim so a crashed prior attempt doesn't permanently jam.
@@ -50,7 +91,7 @@ When the workspace's `autoCallDelaySec` is `0` (the default), the handler dispat
 - **Dashboard `SetupWidget`** now actually renders on the dashboard (was built but never mounted). 30-day cutoff removed so existing tradies see new channels too. Auto-call step removed (it's on by default; surfacing it as a "to do" was noise).
 - **Lead Channels panel** (`components/settings/lead-channels-panel.tsx`) — new. Shows all 11 capture sources grouped by category with honest per-channel statuses: `live` / `platform_setup_required` / `needs_inbox` / `needs_phone` / `phone_not_provisioned`. Expandable rows give exact-clicks walkthroughs for Google LSA, Meta Lead Ads, and the inbox-connect flow.
 - **Pending vs failed provisioning state** in the dashboard checklist: pending (Stripe still confirming, or attempt in flight) stays silent — only genuine failures or legacy "never opted in" cases surface a recovery step.
-- **Auto-call settings** moved from a numeric seconds input to plain-English presets (Immediate / Wait 1 min / Wait 5 min / Wait 15 min). Default: Immediate.
+- **Auto-call settings** moved from a numeric seconds input to plain-English presets (Immediate / Wait 5 min / Wait 15 min). Default: Immediate.
 - **Onboarding wizard** now shows a visible notice during the inbox step explaining that auto-callback is on and where to change it.
 - **Gmail / Outlook forwarding walkthrough** added to the lead-capture settings panel with exact filter conditions per platform.
 - **Privacy framing** on the inbox-connect card sharpened to say we *act on* known lead senders rather than overstating that we *only read* them.
@@ -79,6 +120,9 @@ Full suite green: **254 test files, 1150 tests**. Includes new coverage for:
 - The four auto-call paths (webform, email, SMS, missed-call)
 - The `canAutoCallLead` policy gate
 - The `scheduleLeadCallback` helper (immediate vs scheduled dispatch)
+- Callback lifecycle visibility in the inbox activity stream
+- Manual recall from the inbox after `no answer`
+- Outbound callback persistence + outcome recording from the voice-agent webhook
 - Google LSA + Meta Lead Ads sender detection end-to-end
 - Provisioning lock (bail on concurrent, return existing number on completed-prior)
 - Webform honeypot
@@ -99,15 +143,15 @@ The text walkthroughs in the Lead Channels panel are functional but text-heavy. 
 
 ### 3. Cron-scheduler delay floor (CLAUDE.md principle, partially mitigated)
 
-GitHub Actions cron has a 5-minute schedule floor. We default to Immediate (which bypasses the cron entirely), so the principle is satisfied for the default. But the "Wait 1 min" preset is dishonest — actual delay is 1–5 min depending on cron timing. **Options**: (a) drop the "Wait 1 min" preset, (b) move the cron to a per-minute scheduler (Vercel Cron, Upstash QStash, Inngest) — infra work, no code change.
+GitHub Actions cron has a 5-minute schedule floor. We default to Immediate (which bypasses the cron entirely), so the principle is satisfied for the default. The dishonest `Wait 1 min` preset has now been removed, but any future "short wait" option still needs a real per-minute scheduler (Vercel Cron, Upstash QStash, Inngest) before it can be shown honestly.
 
 ### 4. Subscription-pending state for tradies still in the Stripe window
 
-We hide the "your number isn't set up" recovery step during the pending window (per audit fix), but we don't show *anything* positive either. A first-session tradie sees no signal that provisioning is happening. **Suggestion**: a soft "Your business number is being set up — usually takes a few seconds" status row that disappears once the number lands.
+The onboarding wizard now shows pending/provisioning copy and the settings claim flow runs in the background, but any non-onboarding surfaces should keep using the same calm "we're setting up your number" language so pending states never look broken.
 
 ### 5. Detect "inbox connected but no platform leads arriving"
 
-The Lead Channels panel marks hipages/Airtasker/etc. as `live` the moment the inbox is connected. If the tradie's hipages registered email ≠ connected inbox, they'd see "Live" forever and never know nothing's coming through. **Suggestion**: track last-lead-seen-per-platform per workspace; if `inbox_connected_at` is >30 days ago AND no leads from platform X ever, surface an amber badge.
+Default email platforms now surface an amber routing-check state after 30 quiet days with no real lead from that platform, but richer health detection (for example per-platform "last lead seen" timestamps across more ingestion paths and richer diagnostics in ops) would still be valuable.
 
 ### 6. Operational visibility for blocked auto-calls
 

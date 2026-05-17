@@ -10,6 +10,10 @@ import { withCostCeiling } from "@/lib/cost-ceiling";
 import { isUrgentLead, isWithinAllowedCallWindow } from "@/lib/call-window";
 import { scheduleLeadCallback } from "@/lib/lead-callback";
 import { canAutoCallLead } from "@/lib/auto-call-eligibility";
+import {
+  hasRecentAutomaticCallbackAttempt,
+  recordCallbackEvent,
+} from "@/lib/callback-events";
 import { normalizePhone } from "@/lib/phone-utils";
 
 const RESEND_EMAIL_COST_USD = 0.001;
@@ -458,6 +462,11 @@ export async function POST(req: NextRequest) {
       else if (urgentLead) blockReason = "urgent";
       else if (!withinCallWindow) blockReason = "after_hours";
       else if (triage?.recommendation === "HOLD_REVIEW") blockReason = "triage_review";
+      else if (await hasRecentAutomaticCallbackAttempt({
+        workspaceId: workspace!.id,
+        contactId: contact.id,
+        contactPhone: displayPhone,
+      })) blockReason = "callback_recently_attempted";
 
       const blockAutoCall = blockReason !== null;
       let callTriggered = false;
@@ -465,11 +474,14 @@ export async function POST(req: NextRequest) {
         callTriggered = true;
         scheduleLeadCallback({
           workspaceId: workspace!.id,
+          contactId: contact.id,
           contactPhone: displayPhone!,
           contactName: leadName,
           dealId: deal.id,
           reason: `email_lead:${platform}`,
-          delaySec: workspace!.autoCallDelaySec ?? 60,
+          delaySec: workspace!.autoCallDelaySec === 60 ? 0 : (workspace!.autoCallDelaySec ?? 0),
+          triggerSource: "inbound_email",
+          callbackKind: "automatic",
         }).catch((err) => {
           console.error("[inbound-email] scheduleLeadCallback failed:", err);
         });
@@ -477,6 +489,20 @@ export async function POST(req: NextRequest) {
         console.info(
           `[inbound-email] auto-call blocked for deal ${deal.id} (workspace ${workspace!.id}, platform ${platform}): ${blockReason}`,
         );
+        await recordCallbackEvent({
+          eventType: "callback_blocked",
+          payload: {
+            workspaceId: workspace!.id,
+            contactId: contact.id,
+            contactPhone: displayPhone,
+            contactName: leadName,
+            dealId: deal.id,
+            reason: `email_lead:${platform}`,
+            triggerSource: "inbound_email",
+            callbackKind: "automatic",
+            blockReason,
+          },
+        });
       }
 
       // Only notify the owner of a "needs manual follow-up" when the

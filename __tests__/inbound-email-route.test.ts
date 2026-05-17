@@ -10,6 +10,8 @@ const {
   generateObject,
   captureException,
   scheduleLeadCallback,
+  hasRecentAutomaticCallbackAttempt,
+  recordCallbackEvent,
 } = vi.hoisted(() => ({
   db: {
     webhookEvent: { create: vi.fn() },
@@ -33,6 +35,8 @@ const {
   generateObject: vi.fn(),
   captureException: vi.fn(),
   scheduleLeadCallback: vi.fn(),
+  hasRecentAutomaticCallbackAttempt: vi.fn(),
+  recordCallbackEvent: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({ db }));
@@ -42,6 +46,10 @@ vi.mock("@sentry/nextjs", () => ({ captureException }));
 vi.mock("@ai-sdk/google", () => ({ createGoogleGenerativeAI }));
 vi.mock("ai", () => ({ generateObject }));
 vi.mock("@/lib/lead-callback", () => ({ scheduleLeadCallback }));
+vi.mock("@/lib/callback-events", () => ({
+  hasRecentAutomaticCallbackAttempt,
+  recordCallbackEvent,
+}));
 
 describe("POST /api/webhooks/inbound-email", () => {
   beforeEach(() => {
@@ -62,6 +70,8 @@ describe("POST /api/webhooks/inbound-email", () => {
     triageIncomingLead.mockResolvedValue(null);
     saveTriageRecommendation.mockResolvedValue(undefined);
     scheduleLeadCallback.mockResolvedValue(undefined);
+    hasRecentAutomaticCallbackAttempt.mockResolvedValue(false);
+    recordCallbackEvent.mockResolvedValue(undefined);
     createGoogleGenerativeAI.mockReturnValue(vi.fn());
     generateObject.mockResolvedValue({ object: {} });
   });
@@ -328,11 +338,14 @@ describe("POST /api/webhooks/inbound-email", () => {
     );
     expect(scheduleLeadCallback).toHaveBeenCalledWith({
       workspaceId: "ws_1",
+      contactId: "contact_1",
       contactPhone: "+61412345678",
       contactName: "Jane Citizen",
       dealId: "deal_1",
       reason: "email_lead:HiPages",
       delaySec: 45,
+      triggerSource: "inbound_email",
+      callbackKind: "automatic",
     });
   });
 

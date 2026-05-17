@@ -9,6 +9,7 @@ const hoisted = vi.hoisted(() => ({
     },
   },
   initiateOutboundCall: vi.fn(),
+  recordCallbackEvent: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -17,6 +18,9 @@ vi.mock("@/lib/db", () => ({
 
 vi.mock("@/lib/outbound-call", () => ({
   initiateOutboundCall: hoisted.initiateOutboundCall,
+}));
+vi.mock("@/lib/callback-events", () => ({
+  recordCallbackEvent: hoisted.recordCallbackEvent,
 }));
 
 import { GET } from "@/app/api/cron/scheduled-calls/route";
@@ -29,7 +33,12 @@ describe("GET /api/cron/scheduled-calls", () => {
     process.env.CRON_SECRET = "secret";
     hoisted.db.task.findMany.mockResolvedValue([]);
     hoisted.db.task.update.mockResolvedValue(undefined);
-    hoisted.initiateOutboundCall.mockResolvedValue(undefined);
+    hoisted.initiateOutboundCall.mockResolvedValue({
+      roomName: "room_1",
+      resolvedTrunkId: "trunk_1",
+      callerNumber: "+61411111111",
+    });
+    hoisted.recordCallbackEvent.mockResolvedValue(undefined);
   });
 
   afterAll(() => {
@@ -48,6 +57,7 @@ describe("GET /api/cron/scheduled-calls", () => {
     hoisted.db.task.findMany.mockResolvedValue([
       {
         id: "task_1",
+        title: "Scheduled call: auto-callback (Call about quote)",
         description: "Call about quote",
         deal: {
           id: "deal_1",
@@ -58,6 +68,7 @@ describe("GET /api/cron/scheduled-calls", () => {
       },
       {
         id: "task_2",
+        title: "Scheduled call: auto-callback (Missing phone)",
         description: "Missing phone",
         deal: {
           id: "deal_2",
@@ -83,6 +94,31 @@ describe("GET /api/cron/scheduled-calls", () => {
       reason: "Call about quote",
     });
     expect(hoisted.db.task.update).toHaveBeenCalledTimes(2);
+    expect(hoisted.recordCallbackEvent).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        eventType: "callback_dispatched",
+        payload: expect.objectContaining({
+          workspaceId: "ws_1",
+          contactId: "contact_1",
+          contactPhone: "+61400000000",
+          callbackKind: "automatic",
+          dispatchMode: "scheduled",
+        }),
+      }),
+    );
+    expect(hoisted.recordCallbackEvent).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        eventType: "callback_dispatch_failed",
+        error: "Missing workspace or contact phone",
+        payload: expect.objectContaining({
+          workspaceId: "ws_1",
+          contactId: "contact_2",
+          callbackKind: "automatic",
+        }),
+      }),
+    );
     await expect(response.json()).resolves.toEqual(
       expect.objectContaining({
         success: true,

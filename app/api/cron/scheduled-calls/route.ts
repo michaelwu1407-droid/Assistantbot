@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { initiateOutboundCall } from "@/lib/outbound-call";
+import { recordCallbackEvent } from "@/lib/callback-events";
 
 export const dynamic = "force-dynamic";
+
+function isAutoCallbackTask(title: string) {
+  return (title || "").toLowerCase().includes("auto-callback");
+}
 
 /**
  * Cron: Check for scheduled call tasks that are due and place outbound calls.
@@ -42,6 +47,7 @@ export async function GET(request: NextRequest) {
     const results: Array<{ taskId: string; success: boolean; error?: string }> = [];
 
     for (const task of dueCalls) {
+      const autoCallbackTask = isAutoCallbackTask(task.title);
       if (!task.deal?.workspaceId || !task.deal.contact?.phone) {
         // Mark task as completed with a note that it couldn't be placed
         await db.task.update({
@@ -52,12 +58,30 @@ export async function GET(request: NextRequest) {
             description: `${task.description || ""}\n[Auto-skipped: missing workspace or contact phone]`.trim(),
           },
         });
+        if (autoCallbackTask && task.deal?.workspaceId) {
+          await recordCallbackEvent({
+            eventType: "callback_dispatch_failed",
+            status: "error",
+            error: "Missing workspace or contact phone",
+            payload: {
+              workspaceId: task.deal.workspaceId,
+              contactId: task.deal.contact?.id || null,
+              contactPhone: task.deal.contact?.phone || null,
+              contactName: task.deal.contact?.name || null,
+              dealId: task.deal.id,
+              reason: task.description || `Scheduled follow-up for ${task.deal.title}`,
+              triggerSource: "scheduled_calls_cron",
+              callbackKind: "automatic",
+              dispatchMode: "scheduled",
+            },
+          });
+        }
         results.push({ taskId: task.id, success: false, error: "Missing workspace or contact phone" });
         continue;
       }
 
       try {
-        await initiateOutboundCall({
+        const dispatchResult = await initiateOutboundCall({
           workspaceId: task.deal.workspaceId,
           contactPhone: task.deal.contact.phone,
           contactName: task.deal.contact.name || undefined,
@@ -71,9 +95,47 @@ export async function GET(request: NextRequest) {
           data: { completed: true, completedAt: new Date() },
         });
 
+        if (autoCallbackTask) {
+          await recordCallbackEvent({
+            eventType: "callback_dispatched",
+            payload: {
+              workspaceId: task.deal.workspaceId,
+              contactId: task.deal.contact.id,
+              contactPhone: task.deal.contact.phone,
+              contactName: task.deal.contact.name || null,
+              dealId: task.deal.id,
+              reason: task.description || `Scheduled follow-up for ${task.deal.title}`,
+              triggerSource: "scheduled_calls_cron",
+              callbackKind: "automatic",
+              dispatchMode: "scheduled",
+              roomName: dispatchResult.roomName,
+              resolvedTrunkId: dispatchResult.resolvedTrunkId,
+              callerNumber: dispatchResult.callerNumber,
+            },
+          });
+        }
+
         results.push({ taskId: task.id, success: true });
       } catch (error) {
         console.error(`[scheduled-calls] Failed to place call for task ${task.id}:`, error);
+        if (autoCallbackTask) {
+          await recordCallbackEvent({
+            eventType: "callback_dispatch_failed",
+            status: "error",
+            error: error instanceof Error ? error.message : "Call placement failed",
+            payload: {
+              workspaceId: task.deal.workspaceId,
+              contactId: task.deal.contact.id,
+              contactPhone: task.deal.contact.phone,
+              contactName: task.deal.contact.name || null,
+              dealId: task.deal.id,
+              reason: task.description || `Scheduled follow-up for ${task.deal.title}`,
+              triggerSource: "scheduled_calls_cron",
+              callbackKind: "automatic",
+              dispatchMode: "scheduled",
+            },
+          });
+        }
         results.push({
           taskId: task.id,
           success: false,

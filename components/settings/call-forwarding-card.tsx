@@ -5,7 +5,6 @@ import { Loader2, PhoneForwarded, PhoneOff, Shield, Smartphone, Sparkles } from 
 import { toast } from "sonner"
 import { getCallForwardingSettings, sendCallForwardingSetupSms, updateCallForwardingSettings } from "@/actions/settings-actions"
 import { getPhoneNumberStatus } from "@/actions/phone-settings"
-import { claimBusinessPhoneNumber } from "@/actions/claim-phone-number"
 import { buildCallForwardingCodes } from "@/lib/call-forwarding"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -21,6 +20,8 @@ type PhoneStatus = {
   phoneNumber: string | null
   hasPhoneNumber: boolean
   isOwner: boolean
+  provisioningStatus?: string | null
+  provisioningError?: string | null
 }
 
 const BACKUP_DELAYS = [12, 15, 20, 25, 30, 35, 40]
@@ -87,6 +88,8 @@ export function CallForwardingCard() {
         phoneNumber: phoneResult.value.phoneNumber || null,
         hasPhoneNumber: !!phoneResult.value.hasPhoneNumber,
         isOwner: !!phoneResult.value.isOwner,
+        provisioningStatus: phoneResult.value.provisioningStatus || null,
+        provisioningError: phoneResult.value.provisioningError || null,
       })
     }
   }, [])
@@ -104,6 +107,9 @@ export function CallForwardingCard() {
   const personalPhone = status?.personalPhone || null
   const traceyPhone = status?.phoneNumber || null
   const hasTraceyNumber = Boolean(status?.hasPhoneNumber && traceyPhone)
+  const isProvisioningNumber =
+    !hasTraceyNumber &&
+    (status?.provisioningStatus === "requested" || status?.provisioningStatus === "provisioning")
   const codes = useMemo(() => (traceyPhone ? buildCallForwardingCodes(traceyPhone, delaySec) : null), [traceyPhone, delaySec])
   const activeModeGuidance = MODE_GUIDANCE[active]
   const activeDialerHref = active === "backup" ? codes?.backupHref : active === "full" ? codes?.fullHref : codes?.offHref
@@ -162,20 +168,55 @@ export function CallForwardingCard() {
     if (claiming) return
     setClaiming(true)
     try {
-      const result = await claimBusinessPhoneNumber()
-      if (result.success) {
-        toast.success(`Your new business number is ${result.phoneNumber}`)
-        const phoneStatus = await getPhoneNumberStatus()
-        setStatus(phoneStatus)
+      const response = await fetch("/api/phone/claim-business-number", { method: "POST" })
+      const result = await response.json()
+      if (response.ok && result.success) {
+        if (result.phoneNumber) {
+          toast.success(`Your new business number is ${result.phoneNumber}`)
+        } else {
+          toast.success("We are setting up your business number now. This usually takes a few seconds.")
+        }
+        await refreshStatus()
       } else {
         toast.error(result.error || "Could not claim a number")
+        setClaiming(false)
       }
     } catch {
       toast.error("Could not claim a number")
-    } finally {
       setClaiming(false)
     }
   }
+
+  useEffect(() => {
+    if (!claiming) return
+    if (hasTraceyNumber) {
+      setClaiming(false)
+      return
+    }
+
+    const interval = window.setInterval(async () => {
+      try {
+        await refreshStatus()
+      } catch {
+        // Keep polling quietly while provisioning runs in the background.
+      }
+    }, 4000)
+
+    return () => window.clearInterval(interval)
+  }, [claiming, hasTraceyNumber, refreshStatus])
+
+  useEffect(() => {
+    if (!claiming) return
+    if (hasTraceyNumber) {
+      toast.success(`Your new business number is ${traceyPhone}`)
+      setClaiming(false)
+      return
+    }
+    if (status?.provisioningStatus === "failed" || status?.provisioningStatus === "blocked_duplicate") {
+      toast.error(status.provisioningError || "Number setup needs attention before it can finish.")
+      setClaiming(false)
+    }
+  }, [claiming, hasTraceyNumber, status?.provisioningError, status?.provisioningStatus, traceyPhone])
 
   return (
     <>
@@ -229,10 +270,20 @@ export function CallForwardingCard() {
                     type="button"
                     className="rounded-full"
                     onClick={handleClaimNumber}
-                    disabled={claiming}
+                    disabled={claiming || isProvisioningNumber}
                   >
                     {claiming ? "Claiming…" : "Claim my business number"}
                   </Button>
+                  {(claiming || isProvisioningNumber) && (
+                    <p className="text-xs text-muted-foreground">
+                      We&apos;re provisioning your business number in the background now. You can keep using the app while we finish.
+                    </p>
+                  )}
+                  {!claiming && status?.provisioningError && (
+                    <p className="text-xs text-amber-700 dark:text-amber-400">
+                      {status.provisioningError}
+                    </p>
+                  )}
                 )}
                 {!traceyPhone && !status?.isOwner && (
                   <p className="text-xs text-muted-foreground">

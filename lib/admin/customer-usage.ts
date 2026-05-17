@@ -4,6 +4,11 @@ import type { WebhookDiagnostic } from "@/actions/webhook-actions";
 import { getWebhookDiagnostics } from "@/actions/webhook-actions";
 import { getBillingIntervalForPriceId, getPlanLabelForPriceId } from "@/lib/billing-plan";
 import {
+  CALLBACK_EVENT_PROVIDER,
+  getCallbackEventCopy,
+  parseCallbackPayload,
+} from "@/lib/callback-events";
+import {
   getConfiguredVoiceLlmModel,
   getConfiguredVoiceLlmProvider,
   getVoiceLlmRate,
@@ -286,6 +291,27 @@ export type CustomerUsageDashboardData = {
         status: string;
         updatedAt: string;
         details: unknown;
+      }>;
+    };
+    callbacks: {
+      totalEventsInRange: number;
+      automaticRequested: number;
+      manualRequested: number;
+      blocked: number;
+      dispatched: number;
+      answered: number;
+      noAnswer: number;
+      failed: number;
+      recentEvents: Array<{
+        id: string;
+        createdAt: string;
+        title: string;
+        detail: string;
+        callbackKind: string;
+        outcome: string | null;
+        status: string;
+        contactPhone: string | null;
+        dealId: string | null;
       }>;
     };
     costs: {
@@ -1163,6 +1189,7 @@ export async function getCustomerUsageDashboardData(
     deals,
     invoices,
     voiceCalls,
+    callbackEvents,
     activityLogs,
     incidents,
     feedback,
@@ -1227,6 +1254,20 @@ export async function getCustomerUsageDashboardData(
             name: true,
           },
         },
+      },
+    }),
+    db.webhookEvent.findMany({
+      where: {
+        provider: CALLBACK_EVENT_PROVIDER,
+        createdAt: { gte: rangeStart90d },
+      },
+      select: {
+        id: true,
+        eventType: true,
+        status: true,
+        error: true,
+        payload: true,
+        createdAt: true,
       },
     }),
     db.activityLog.findMany({
@@ -1307,6 +1348,15 @@ export async function getCustomerUsageDashboardData(
     const existing = callsByWorkspace.get(call.workspaceId) || [];
     existing.push(call);
     callsByWorkspace.set(call.workspaceId, existing);
+  }
+
+  const callbackEventsByWorkspace = new Map<string, typeof callbackEvents>();
+  for (const event of callbackEvents) {
+    const payload = parseCallbackPayload(event.payload);
+    if (!payload?.workspaceId) continue;
+    const existing = callbackEventsByWorkspace.get(payload.workspaceId) || [];
+    existing.push(event);
+    callbackEventsByWorkspace.set(payload.workspaceId, existing);
   }
 
   const activityByWorkspace = new Map<string, typeof activityLogs>();
@@ -1515,10 +1565,12 @@ export async function getCustomerUsageDashboardData(
         const workspaceContacts = contactsByWorkspace.get(workspace.id) || [];
         const workspaceInvoices = invoicesByWorkspace.get(workspace.id) || [];
         const workspaceCalls = callsByWorkspace.get(workspace.id) || [];
+        const workspaceCallbackEvents = callbackEventsByWorkspace.get(workspace.id) || [];
         const workspaceIncidents = incidentsByWorkspace.get(workspace.id) || [];
         const workspaceFeedback = feedbackByWorkspace.get(workspace.id) || [];
         const provider = providerByWorkspace.get(workspace.id)!;
         const callsInRange = workspaceCalls.filter((call) => call.startedAt >= rangeStart);
+        const callbacksInRange = workspaceCallbackEvents.filter((event) => event.createdAt >= rangeStart);
         const inboundCallsInRange = callsInRange.filter((call) => inferCallDirection(call.callType) === "inbound");
         const outboundCallsInRange = callsInRange.filter((call) => inferCallDirection(call.callType) === "outbound");
         const completedCallsInRange = callsInRange.filter((call) => Boolean(call.endedAt));
@@ -1553,6 +1605,26 @@ export async function getCustomerUsageDashboardData(
         );
         const feedbackInRange = workspaceFeedback.filter((item) => item.createdAt >= rangeStart);
         const lowScoresInRange = feedbackInRange.filter((item) => item.score <= 6);
+        const callbackSummaries = callbacksInRange
+          .map((event) => {
+            const copy = getCallbackEventCopy(event);
+            return copy
+              ? {
+                  id: event.id,
+                  createdAt: event.createdAt.toISOString(),
+                  title: copy.title,
+                  detail: copy.description,
+                  callbackKind: copy.payload.callbackKind || "automatic",
+                  outcome: copy.outcome,
+                  status: event.status,
+                  contactPhone: copy.payload.contactPhone || null,
+                  dealId: copy.payload.dealId || null,
+                  eventType: event.eventType,
+                }
+              : null;
+          })
+          .filter((event): event is NonNullable<typeof event> => Boolean(event))
+          .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
 
         return {
           row: selectedRow,
@@ -1669,6 +1741,29 @@ export async function getCustomerUsageDashboardData(
               status: incident.status,
               updatedAt: incident.updatedAt.toISOString(),
               details: incident.details ?? null,
+            })),
+          },
+          callbacks: {
+            totalEventsInRange: callbacksInRange.length,
+            automaticRequested: callbackSummaries.filter((event) => event.eventType === "callback_requested" && event.callbackKind === "automatic").length,
+            manualRequested: callbackSummaries.filter((event) => event.eventType === "callback_requested" && event.callbackKind === "manual").length,
+            blocked: callbackSummaries.filter((event) => event.eventType === "callback_blocked").length,
+            dispatched: callbackSummaries.filter((event) => event.eventType === "callback_dispatched").length,
+            answered: callbackSummaries.filter((event) => event.eventType === "callback_call_finished" && event.outcome === "answered").length,
+            noAnswer: callbackSummaries.filter((event) => event.eventType === "callback_call_finished" && event.outcome === "no_answer").length,
+            failed: callbackSummaries.filter((event) =>
+              event.eventType === "callback_dispatch_failed"
+              || (event.eventType === "callback_call_finished" && ["busy", "failed", "canceled", "completed", "unknown"].includes(event.outcome || "unknown"))).length,
+            recentEvents: callbackSummaries.slice(0, 12).map((event) => ({
+              id: event.id,
+              createdAt: event.createdAt,
+              title: event.title,
+              detail: event.detail,
+              callbackKind: event.callbackKind,
+              outcome: event.outcome,
+              status: event.status,
+              contactPhone: event.contactPhone,
+              dealId: event.dealId,
             })),
           },
           costs: {

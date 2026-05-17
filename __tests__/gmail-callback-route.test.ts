@@ -94,7 +94,7 @@ describe("GET /api/auth/gmail/callback", () => {
     );
 
     expect(response.headers.get("location")).toBe(
-      "https://earlymark.ai/crm/settings/integrations?success=gmail_connected",
+      "https://earlymark.ai/crm/settings/integrations?success=gmail_connected&focus=lead_channels",
     );
     expect(hoisted.upsertEmailIntegrationFromOAuth).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -159,7 +159,7 @@ describe("GET /api/auth/gmail/callback", () => {
     );
 
     expect(response.headers.get("location")).toBe(
-      "https://earlymark.ai/crm/settings/integrations?success=gmail_connected&warning=gmail_automation_setup_incomplete",
+      "https://earlymark.ai/crm/settings/integrations?success=gmail_connected&focus=lead_channels&warning=gmail_automation_setup_incomplete",
     );
   });
 });

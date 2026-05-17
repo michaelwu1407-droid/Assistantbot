@@ -4,14 +4,14 @@
  * getLeadChannels — returns every lead source the app can capture, with an
  * honest status per channel. Used by the "Where your leads come from" panel
  * so the tradie can see exactly what's working and what they still need to
- * configure on the platform's own side. We deliberately distinguish
- * "platform_setup_required" (inbox is connected but the platform itself
- * needs the lead email turned on) from "live" so we don't lie about
- * coverage.
+ * configure on the platform's own side.
  */
 import { db } from "@/lib/db";
 import { getAuthUserId } from "@/lib/auth";
 import { getOrCreateWorkspace } from "./workspace-actions";
+
+const LEAD_HEALTH_LOOKBACK_DAYS = 30;
+const LEAD_PLATFORM_EVENT_TYPE = "email.received";
 
 export type LeadChannelStatus =
   | "live"
@@ -19,7 +19,8 @@ export type LeadChannelStatus =
   | "needs_inbox"
   | "needs_phone"
   | "needs_form_check"
-  | "phone_not_provisioned";  // teammate-visible: workspace has no number, but it's not on this user to fix
+  | "needs_routing_check"
+  | "phone_not_provisioned";
 
 export type LeadChannel = {
   id: string;
@@ -29,6 +30,28 @@ export type LeadChannel = {
   description: string;
   setupSteps?: string[];
 };
+
+function getInboxOwnerLabel(isOwner: boolean) {
+  return isOwner ? "the inbox you connected above" : "the inbox the workspace owner connected above";
+}
+
+async function getLastPlatformLeadSeenAt(workspaceId: string, platform: string) {
+  const event = await db.webhookEvent.findFirst({
+    where: {
+      provider: "resend",
+      eventType: LEAD_PLATFORM_EVENT_TYPE,
+      status: "success",
+      AND: [
+        { payload: { path: ["workspaceId"], equals: workspaceId } },
+        { payload: { path: ["platform"], equals: platform } },
+        { payload: { path: ["leadCapture"], equals: true } },
+      ],
+    },
+    orderBy: { createdAt: "desc" },
+    select: { createdAt: true },
+  });
+  return event?.createdAt ?? null;
+}
 
 export async function getLeadChannels(): Promise<{
   inboxConnected: boolean;
@@ -43,24 +66,64 @@ export async function getLeadChannels(): Promise<{
 
   const workspaceView = await getOrCreateWorkspace(userId);
   const workspaceId = workspaceView.id;
+  const staleThreshold = new Date(Date.now() - LEAD_HEALTH_LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
+  const activeInboxFilter = {
+    isActive: true,
+    OR: [{ tokenExpiry: null }, { tokenExpiry: { gt: new Date() } }],
+  } as const;
 
-  // Count inboxes across every member of the workspace — not just the
-  // current user. A teammate who hasn't connected their own Gmail still
-  // benefits from the owner's connection (e.g. hipages emails the owner's
-  // registered address, not each teammate). Per-user counts here would
-  // misleadingly tell teammates the workspace isn't capturing leads when
-  // it actually is.
-  const [inboxCount, workspace] = await Promise.all([
-    db.emailIntegration.count({ where: { user: { workspaceId }, isActive: true } }),
+  const [
+    inboxCount,
+    firstActiveInbox,
+    workspace,
+    websiteLeadCount,
+    hiPagesSeenAt,
+    airtaskerSeenAt,
+    oneflareSeenAt,
+    serviceSeekingSeenAt,
+    barkSeenAt,
+  ] = await Promise.all([
+    db.emailIntegration.count({
+      where: {
+        user: { workspaceId },
+        ...activeInboxFilter,
+      },
+    }),
+    db.emailIntegration.findFirst({
+      where: {
+        user: { workspaceId },
+        ...activeInboxFilter,
+      },
+      orderBy: { createdAt: "asc" },
+      select: { createdAt: true },
+    }),
     db.workspace.findUnique({
       where: { id: workspaceId },
       select: { twilioPhoneNumber: true, ownerId: true },
     }),
+    db.deal.count({
+      where: {
+        workspaceId,
+        OR: [
+          { source: "website" },
+          { source: "webform" },
+          { metadata: { path: ["leadSource"], equals: "website" } },
+          { metadata: { path: ["leadSource"], equals: "webform" } },
+        ],
+      },
+    }),
+    getLastPlatformLeadSeenAt(workspaceId, "HiPages"),
+    getLastPlatformLeadSeenAt(workspaceId, "Airtasker"),
+    getLastPlatformLeadSeenAt(workspaceId, "Oneflare"),
+    getLastPlatformLeadSeenAt(workspaceId, "ServiceSeeking"),
+    getLastPlatformLeadSeenAt(workspaceId, "Bark"),
   ]);
 
   const inboxConnected = inboxCount > 0;
   const hasPhoneNumber = !!workspace?.twilioPhoneNumber;
   const isOwner = workspace?.ownerId === userId;
+  const connectedInboxLabel = getInboxOwnerLabel(isOwner);
+  const inboxHasGoneQuietLongEnough = Boolean(firstActiveInbox?.createdAt && firstActiveInbox.createdAt <= staleThreshold);
 
   function phoneChannel(params: {
     id: string;
@@ -92,90 +155,118 @@ export async function getLeadChannels(): Promise<{
     };
   }
 
-  // Platforms that *default* to emailing the tradie's registered address.
-  // Once the inbox is connected and the tradie's platform login email
-  // matches that inbox, leads flow with zero extra config.
-  const defaultEmailPlatform = (name: string, displayName: string): LeadChannel => ({
-    id: name,
-    name: displayName,
-    category: "Lead platforms",
-    status: inboxConnected ? "live" : "needs_inbox",
-    description: inboxConnected
-      ? `New ${displayName} leads land in Tracey as long as your ${displayName} account uses the inbox you connected above.`
-      : `${displayName} emails new leads to your registered email. Connect that inbox above and Tracey will start capturing them.`,
-    setupSteps: inboxConnected
-      ? [
-          `Check that your ${displayName} account login email matches the inbox you connected above. If it doesn't, change it in ${displayName} settings.`,
-        ]
-      : [
+  const defaultEmailPlatform = (
+    id: string,
+    displayName: string,
+    seenAt: Date | null,
+  ): LeadChannel => {
+    if (!inboxConnected) {
+      return {
+        id,
+        name: displayName,
+        category: "Lead platforms",
+        status: "needs_inbox",
+        description: `${displayName} emails new leads to your registered email. Connect Gmail or Outlook here and Tracey will start capturing them.`,
+        setupSteps: [
           "Connect your Gmail or Outlook on this page.",
           `Make sure that inbox is the same email address you use to log in to ${displayName}.`,
         ],
-  });
+      };
+    }
+
+    if (!seenAt && inboxHasGoneQuietLongEnough) {
+      return {
+        id,
+        name: displayName,
+        category: "Lead platforms",
+        status: "needs_routing_check",
+        description: `Your inbox is connected, but Earlymark still hasn't seen a ${displayName} lead. Double-check that your ${displayName} account uses ${connectedInboxLabel}.`,
+        setupSteps: [
+          `Check that your ${displayName} account login email matches ${connectedInboxLabel}.`,
+          `If the emails differ, update ${displayName} to send leads to that inbox instead.`,
+        ],
+      };
+    }
+
+    return {
+      id,
+      name: displayName,
+      category: "Lead platforms",
+      status: "live",
+      description: `New ${displayName} leads land in Tracey as long as your ${displayName} account uses ${connectedInboxLabel}.`,
+      setupSteps: [
+        `Check that your ${displayName} account login email matches ${connectedInboxLabel}. If it doesn't, change it in ${displayName} settings.`,
+      ],
+    };
+  };
+
+  const websiteFormChannel: LeadChannel = !inboxConnected
+    ? {
+        id: "website_form",
+        name: "Your website contact form",
+        category: "Your own channels",
+        status: "needs_inbox",
+        description: "Your existing website form can land in Tracey once it emails your connected Gmail or Outlook inbox.",
+        setupSteps: ["Connect your Gmail or Outlook on this page."],
+      }
+    : websiteLeadCount > 0
+      ? {
+          id: "website_form",
+          name: "Your website contact form",
+          category: "Your own channels",
+          status: "live",
+          description: "Website enquiries have already reached Earlymark from this workspace, so the form path is live.",
+          setupSteps: [],
+        }
+      : {
+          id: "website_form",
+          name: "Your website contact form",
+          category: "Your own channels",
+          status: "needs_form_check",
+          description: "Captured automatically if your website form is set to email you. That's the default for Wix, Squarespace Business, and many WordPress setups, but not every site builder or plugin works that way.",
+          setupSteps: [
+            "Make sure your website form sends enquiries to the same inbox connected above.",
+            "If your site uses a custom form or stores submissions only in a dashboard, use the advanced webform endpoint below instead.",
+          ],
+        };
 
   const channels: LeadChannel[] = [
-    defaultEmailPlatform("hipages", "hipages"),
-    defaultEmailPlatform("airtasker", "Airtasker"),
-    defaultEmailPlatform("oneflare", "Oneflare"),
-    defaultEmailPlatform("serviceseeking", "Service Seeking"),
-    defaultEmailPlatform("bark", "Bark"),
-
-    // Google LSA — even with inbox connected, lead email notifications are
-    // off by default in the LSA dashboard. We must say so honestly.
+    defaultEmailPlatform("hipages", "hipages", hiPagesSeenAt),
+    defaultEmailPlatform("airtasker", "Airtasker", airtaskerSeenAt),
+    defaultEmailPlatform("oneflare", "Oneflare", oneflareSeenAt),
+    defaultEmailPlatform("serviceseeking", "Service Seeking", serviceSeekingSeenAt),
+    defaultEmailPlatform("bark", "Bark", barkSeenAt),
     {
       id: "google_lsa",
       name: "Google Local Services Ads",
       category: "Lead platforms",
       status: inboxConnected ? "platform_setup_required" : "needs_inbox",
       description: inboxConnected
-        ? "One more step on Google's side. Once you turn on lead email notifications inside Google LSA, those leads will land here."
+        ? `One more step on Google's side. Once you turn on lead email notifications inside Google LSA and point them to ${connectedInboxLabel}, those leads will land here.`
         : "Captured via email — Google LSA emails the lead details when you turn on notifications in their dashboard.",
       setupSteps: [
         ...(inboxConnected ? [] : ["Connect your Gmail or Outlook on this page."]),
         "Open ads.google.com → Local Services → Settings → Notifications.",
-        "Turn on \"Email lead notifications\" and set the email to the inbox you connected here.",
+        `Turn on "Email lead notifications" and set the email to ${connectedInboxLabel}.`,
         "Save. The next lead Google sends you will show up in Tracey within a minute.",
       ],
     },
-
-    // Meta Lead Ads — Facebook Pages only email leads to addresses listed
-    // under Lead Access. Inbox connection alone doesn't unlock anything.
     {
       id: "meta_lead_ads",
       name: "Facebook / Instagram Lead Ads",
       category: "Lead platforms",
       status: inboxConnected ? "platform_setup_required" : "needs_inbox",
       description: inboxConnected
-        ? "One more step on Meta's side. Add your connected inbox to your Facebook Page's Lead Access list and new lead-form submissions will land here."
+        ? `One more step on Meta's side. Add ${connectedInboxLabel} to your Facebook Page's Lead Access list and new lead-form submissions will land here.`
         : "Captured via email — Meta forwards Lead Ad submissions to email addresses you nominate on your Page.",
       setupSteps: [
         ...(inboxConnected ? [] : ["Connect your Gmail or Outlook on this page."]),
         "Open business.facebook.com → your Page → Settings → Lead Access (under Page Roles).",
-        "Click \"Assign new CRM\" → add the inbox you connected here as a CRM email recipient.",
+        `Click "Assign new CRM" and add ${connectedInboxLabel} as a CRM email recipient.`,
         "Save. The next lead from any Lead Ad on this Page will land in Tracey.",
       ],
     },
-
-    // Website form — captured automatically via the tradie's connected
-    // inbox. Every mainstream site builder (Wix, Squarespace, WordPress,
-    // GoDaddy, Shopify) emails the site owner on form submit by default,
-    // so once the inbox is connected, those submissions land here without
-    // any further setup or testing on the tradie's part.
-    {
-      id: "website_form",
-      name: "Your website contact form",
-      category: "Your own channels",
-      status: inboxConnected ? "live" : "needs_inbox",
-      description: inboxConnected
-        ? "Captured automatically. Your existing website form (Wix, Squarespace, WordPress, GoDaddy, etc.) emails you on submit — we pick those up from your connected inbox and create a lead with a callback."
-        : "Your existing website form emails you when someone submits — once you connect your inbox, those land here automatically. Connect Gmail or Outlook above to switch this on.",
-      setupSteps: inboxConnected ? [] : ["Connect your Gmail or Outlook on this page."],
-    },
-
-    // Phone & SMS — all tied to the Tracey number being provisioned.
-    // Owner sees a "claim it" CTA on the unprovisioned case. Teammates
-    // can't manage workspace infra so they get a read-only status and no
-    // "click here to fix" steps.
+    websiteFormChannel,
     phoneChannel({
       id: "inbound_calls",
       name: "Inbound phone calls",

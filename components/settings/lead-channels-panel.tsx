@@ -19,6 +19,7 @@ const STATUS_LABEL: Record<LeadChannelStatus, string> = {
   needs_inbox: "Connect your inbox first",
   needs_phone: "Claim your business number first",
   needs_form_check: "Confirm your form emails you",
+  needs_routing_check: "Check where the leads are going",
   phone_not_provisioned: "Workspace owner action needed",
 };
 

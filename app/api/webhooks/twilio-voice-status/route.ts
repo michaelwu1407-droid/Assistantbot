@@ -25,6 +25,10 @@ import { findContactByPhone, findWorkspaceByTwilioNumber } from "@/lib/workspace
 import { isWithinAllowedCallWindow } from "@/lib/call-window";
 import { scheduleLeadCallback } from "@/lib/lead-callback";
 import { canAutoCallLead } from "@/lib/auto-call-eligibility";
+import {
+  hasRecentAutomaticCallbackAttempt,
+  recordCallbackEvent,
+} from "@/lib/callback-events";
 
 export const dynamic = "force-dynamic";
 
@@ -121,19 +125,28 @@ export async function POST(req: NextRequest) {
     // the Twilio webhook still responds quickly.
     const eligibility = canAutoCallLead(workspace);
     const withinCallWindow = isWithinAllowedCallWindow(workspace.settings);
-    const wantsAutoCall = eligibility.allowed && withinCallWindow;
+    const recentlyAttempted = await hasRecentAutomaticCallbackAttempt({
+      workspaceId: workspace.id,
+      contactId: contact.id,
+      contactPhone: callerNumber,
+    });
+    const wantsAutoCall = eligibility.allowed && withinCallWindow && !recentlyAttempted;
     let blockReason: string | null = null;
     if (!eligibility.allowed) blockReason = eligibility.reason;
     else if (!withinCallWindow) blockReason = "after_hours";
+    else if (recentlyAttempted) blockReason = "callback_recently_attempted";
 
     if (wantsAutoCall) {
       scheduleLeadCallback({
         workspaceId: workspace.id,
+        contactId: contact.id,
         contactPhone: callerNumber,
         contactName: contact.name || `Caller ${callerNumber}`,
         dealId: deal.id,
         reason: `missed_call_callback:${dialStatus}`,
-        delaySec: workspace.autoCallDelaySec ?? 60,
+        delaySec: workspace.autoCallDelaySec === 60 ? 0 : (workspace.autoCallDelaySec ?? 0),
+        triggerSource: "missed_call",
+        callbackKind: "automatic",
       }).catch((err) => {
         console.error("[twilio-voice-status] scheduleLeadCallback failed:", err);
       });
@@ -141,6 +154,21 @@ export async function POST(req: NextRequest) {
       console.info(
         `[twilio-voice-status] auto-callback blocked for missed call ${callSid} (workspace ${workspace.id}): ${blockReason}`,
       );
+      await recordCallbackEvent({
+        eventType: "callback_blocked",
+        payload: {
+          workspaceId: workspace.id,
+          contactId: contact.id,
+          contactPhone: callerNumber,
+          contactName: contact.name || `Caller ${callerNumber}`,
+          dealId: deal.id,
+          reason: `missed_call_callback:${dialStatus}`,
+          triggerSource: "missed_call",
+          callbackKind: "automatic",
+          blockReason,
+          providerCallSid: callSid,
+        },
+      });
     }
 
     await db.webhookEvent.create({

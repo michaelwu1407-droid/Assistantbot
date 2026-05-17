@@ -13,7 +13,6 @@ type LeadCaptureEmailReadiness = Awaited<ReturnType<typeof getLeadCaptureEmailRe
 
 const AUTO_CALL_DELAY_PRESETS: { seconds: number; label: string }[] = [
   { seconds: 0, label: "Immediate" },
-  { seconds: 60, label: "Wait 1 min" },
   { seconds: 300, label: "Wait 5 min" },
   { seconds: 900, label: "Wait 15 min" },
 ];
@@ -80,9 +79,10 @@ export function EmailLeadCaptureSettings() {
           getLeadCaptureEmailReadiness(),
         ]);
         if (!cancelled) {
+          const savedDelay = (settings as { autoCallDelaySec?: number } | null)?.autoCallDelaySec ?? 0;
           setForwardingEmail(email);
           setAutoCallLeads(settings?.autoCallLeads ?? false);
-          setAutoCallDelaySec((settings as { autoCallDelaySec?: number } | null)?.autoCallDelaySec ?? 0);
+          setAutoCallDelaySec(savedDelay === 60 ? 0 : savedDelay);
           setReadiness(nextReadiness);
         }
       } catch {

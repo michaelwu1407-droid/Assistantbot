@@ -18,6 +18,11 @@ import { getInboundLeadEmailReadiness } from "@/lib/inbound-lead-email-readiness
 import { DEFAULT_WORKSPACE_TIMEZONE, inferTimezoneFromAddress, isValidIanaTimezone } from "@/lib/timezone"
 import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access"
 
+function normalizeAutoCallDelaySec(value: number | null | undefined): number {
+    if (value === 60) return 0
+    return Math.max(0, Math.min(900, Math.floor(value ?? 0)))
+}
+
 async function getWorkspaceId(): Promise<string> {
     const actor = await requireCurrentWorkspaceAccess()
     return actor.workspaceId
@@ -58,6 +63,7 @@ export async function getWorkspaceSettings() {
         : inferTimezoneFromAddress(base.location)
     return {
         ...base,
+        autoCallDelaySec: normalizeAutoCallDelaySec(base.autoCallDelaySec),
         workspaceTimezone: resolvedWorkspaceTimezone || DEFAULT_WORKSPACE_TIMEZONE,
         agentMode: normalizeAppAgentMode(base.agentMode),
         agentScriptStyle: (s.agentScriptStyle as string) ?? "opening",
@@ -200,7 +206,7 @@ export async function updateWorkspaceSettings(input: {
             ...(settingsUpdate && { settings: settingsUpdate as Prisma.InputJsonValue }),
             ...(input.inboundEmailAlias !== undefined && { inboundEmailAlias: input.inboundEmailAlias }),
             ...(input.autoCallLeads !== undefined && { autoCallLeads: input.autoCallLeads }),
-            ...(input.autoCallDelaySec !== undefined && { autoCallDelaySec: Math.max(0, Math.min(900, Math.floor(input.autoCallDelaySec))) }),
+            ...(input.autoCallDelaySec !== undefined && { autoCallDelaySec: normalizeAutoCallDelaySec(input.autoCallDelaySec) }),
         }
     })
 
@@ -373,6 +379,8 @@ export async function getWorkspaceSettingsById(workspaceId: string) {
             autoUpdateGlossary: true,
             callOutFee: true,
             inboundEmail: true,
+            autoCallLeads: true,
+            autoCallDelaySec: true,
             location: true,
             settings: true,
         }
@@ -386,6 +394,7 @@ export async function getWorkspaceSettingsById(workspaceId: string) {
         : inferTimezoneFromAddress(base.location)
     return {
         ...base,
+        autoCallDelaySec: normalizeAutoCallDelaySec(base.autoCallDelaySec),
         workspaceTimezone: resolvedWorkspaceTimezone || DEFAULT_WORKSPACE_TIMEZONE,
         agentMode: normalizeAppAgentMode(base.agentMode),
         agentScriptStyle: (s.agentScriptStyle as string) ?? "opening",

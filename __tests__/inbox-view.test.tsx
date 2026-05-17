@@ -3,8 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-const { sendSMS, toastSuccess, toastError, toastInfo } = vi.hoisted(() => ({
+const { sendSMS, requestTraceyRecall, toastSuccess, toastError, toastInfo } = vi.hoisted(() => ({
   sendSMS: vi.fn(),
+  requestTraceyRecall: vi.fn(),
   toastSuccess: vi.fn(),
   toastError: vi.fn(),
   toastInfo: vi.fn(),
@@ -22,6 +23,12 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    refresh: vi.fn(),
+  }),
+}));
+
 vi.mock("@/lib/store", () => ({
   useShellStore: (selector?: (state: Record<string, unknown>) => unknown) => {
     const state = {
@@ -34,6 +41,10 @@ vi.mock("@/lib/store", () => ({
 
 vi.mock("@/actions/messaging-actions", () => ({
   sendSMS,
+}));
+
+vi.mock("@/actions/voice-call-actions", () => ({
+  requestTraceyRecall,
 }));
 
 vi.mock("sonner", () => ({
@@ -49,6 +60,7 @@ import { InboxView } from "@/components/crm/inbox-view";
 describe("InboxView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    requestTraceyRecall.mockResolvedValue({ success: true });
   });
 
   afterEach(() => {
@@ -489,6 +501,58 @@ describe("InboxView", () => {
     expect(screen.getByText("Urgent callback requested")).toBeInTheDocument();
     expect(screen.getByText(/Caller: 0400000001/i)).toBeInTheDocument();
     expect(screen.queryByText(/Show full transcript/i)).not.toBeInTheDocument();
+  });
+
+  it("shows callback journey items in the conversation thread and lets the tradie trigger a recall", async () => {
+    const user = userEvent.setup();
+    render(
+      <InboxView
+        workspaceId="ws_1"
+        initialInteractions={[
+          {
+            id: "activity_1",
+            type: "note",
+            channel: "system",
+            direction: "system",
+            title: "No answer to Tracey callback",
+            description: "Nobody picked up. You can ask Tracey to try once more or handle it yourself.",
+            content: "Nobody picked up. You can ask Tracey to try once more or handle it yourself.",
+            preview: "Nobody picked up.",
+            time: "Just now",
+            createdAt: new Date("2026-04-03T10:00:00.000Z"),
+            contactId: "contact_a",
+            contactName: "Alice Example",
+            contactPhone: "0400000001",
+            contactEmail: "alice@example.com",
+            dealId: "deal_1",
+            workflow: {
+              kind: "callback",
+              eventType: "callback_call_finished",
+              callbackKind: "automatic",
+              recallEligible: true,
+              outcome: "no_answer",
+              triggerSource: "voice_agent",
+              blockReason: null,
+            },
+          },
+        ]}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Alice Example" })).toBeInTheDocument());
+
+    expect(screen.getByText("No answer to Tracey callback")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Recall with Tracey/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Recall with Tracey/i }));
+
+    await waitFor(() =>
+      expect(requestTraceyRecall).toHaveBeenCalledWith({
+        contactId: "contact_a",
+        dealId: "deal_1",
+      }),
+    );
+    expect(toastSuccess).toHaveBeenCalledWith("Tracey is calling Alice Example now");
   });
 });
 
