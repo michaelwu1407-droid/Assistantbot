@@ -110,3 +110,53 @@ It captures worthwhile voice-agent improvements after the recent reliability rec
 3. Add Deepgram keyterms.
 4. Trial better EOU / turn detection on `inbound_demo`.
 5. Reassess whether the next biggest bottleneck is still TTS before touching model-routing strategy.
+
+---
+
+## 2026-05-17 — Reliability + cost-adjusted backlog (review needed)
+
+Captured from a working session investigating a homepage Tracey demo failure
+where no failure email reached the admin. The immediate fix shipped on
+`claude/fix-tracey-demo-voice-G2TTm` (a9739e8) — flipped the demo action to
+`waitForConnection: true` so terminal SIP failures throw and the failure-alert
+email actually fires. The items below are deferred for another AI agent or
+human review to prioritise.
+
+### Free / pure-code changes (no runtime cost)
+- **Agent-joined verification** — extend the SIP-connected check so the action
+  also asserts the LiveKit agent worker joined the room within Xs. Today
+  "SIP answered + agent worker never showed up" still reports success and the
+  prospect hears silence.
+- **Fail-loud env validation at startup** — throw on boot if `RESEND_API_KEY`,
+  `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `LIVEKIT_URL`,
+  `LIVEKIT_SIP_TRUNK_ID`, `VOICE_ALERT_EMAIL_TO` are missing. Silent skips in
+  `lib/voice-incident-alert.ts` and `lib/demo-lead-email.ts` are how the user
+  ended up with zero notifications.
+- **Pre-warm the LiveKit room in parallel with `createSipParticipant`** —
+  currently sequential in `lib/demo-call.ts:431-449`. ~200–400ms saving.
+- **Cache the outbound trunk-health probe for ~60s** — also saves cost by
+  short-circuiting dial attempts when the trunk is known dead.
+- **STT endpointing tune** — Deepgram `endpointing` + `vad_events` params for
+  faster turn-taking. Config only.
+
+### Has ongoing cost — needs a call
+- **TTS pre-roll on `ringing` instead of `connected`** — Cartesia is billed
+  per character; if X% of dials never answer, that's X% wasted TTS spend.
+  Worth it only if unanswered-rate is low and the perceived-latency win
+  matters more than the spend.
+- **Twilio bridge as automatic secondary on LiveKit failures** — adds a
+  Twilio call leg per LiveKit failure. Fine as a circuit-breaker fallback;
+  expensive as a default. Code path already exists, just gated behind
+  `preferTwilioSipBridge` / `allowTwilioSipBridgeFallback`.
+- **Provider swaps for cost** — Nova-3 → Nova-2 (~30% cheaper, marginal phone-
+  audio accuracy loss); Cartesia → ElevenLabs Flash (faster + cheaper, voice
+  change). Quality risk, not a free win.
+
+### Explicitly deferred this session
+- Synthetic canary calls (cost concern).
+- SMS alert channel (email channel is meant to cover this).
+
+### Out of code scope (operational, but flagged)
+- Single LiveKit Cloud project = single point of failure.
+- Single Twilio sub-account = one billing/regulatory event from outage.
+- No status page or paging integration today.
