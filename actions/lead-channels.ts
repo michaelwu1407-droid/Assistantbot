@@ -166,6 +166,7 @@ export async function getLeadChannels(): Promise<{
         "On your website, fill in your own contact form with a test name and your phone number, then submit.",
         "Check the connected inbox within 2 minutes. If the form submission arrived as an email, you're done — Tracey will capture it next time.",
         "If nothing arrived: open your site builder (Wix / Squarespace / WordPress / your form plugin) and find the form's settings. Turn on \"Email notifications\" or set the recipient to the inbox you connected above.",
+        "Once you've confirmed it works, delete the test lead from your CRM (Deals → find your test name → Delete).",
       ],
     },
 

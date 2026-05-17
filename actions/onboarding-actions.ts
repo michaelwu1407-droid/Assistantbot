@@ -16,10 +16,12 @@ export async function getOnboardingProgress() {
         select: { createdAt: true },
     });
 
-    // Only show the widget if they signed up within the last ~60 days (or "first month" per requirements, I'll use 30)
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    if (!workspace || workspace.createdAt < thirtyDaysAgo) {
-        return { shouldShow: false, completed: 0, total: 5, steps: [] };
+    // The widget shows for any workspace that still has incomplete setup
+    // steps, regardless of age. New lead channels (LSA, Meta, etc.) and
+    // recovery cases (provisioning failed) are valuable to surface for
+    // existing tradies too — they shouldn't be hidden after 30 days.
+    if (!workspace) {
+        return { shouldShow: false, completed: 0, total: 0, steps: [] };
     }
 
     const [businessProfile, services, templates, documents, workspaceMeta, inboxConnections] = await Promise.all([

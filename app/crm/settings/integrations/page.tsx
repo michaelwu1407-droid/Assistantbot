@@ -227,7 +227,7 @@ export default function IntegrationsPage() {
                         <div className="p-4 bg-green-50/50 rounded-lg border border-green-100 flex gap-3 text-green-800 text-sm">
                             <Zap className="h-5 w-5 shrink-0 mt-0.5 text-green-600" />
                             <p>
-                                <strong>Privacy:</strong> Earlymark only reads emails from known lead senders (hipages, Airtasker, Oneflare, etc.) and your website form replies. Personal email, billing and unrelated mail is never read or stored. Prefer to forward only specific emails yourself? Use <strong>Lead email forwarding</strong> below.
+                                <strong>Privacy:</strong> Earlymark only <strong>acts on</strong> emails from known lead senders (hipages, Airtasker, Oneflare, Google LSA, Meta Lead Ads, your website form). Personal email, billing and anything else is ignored and never stored. Want even tighter control? Use the forwarding alias in the <strong>Lead email forwarding</strong> section below — we then only ever see what you choose to forward.
                             </p>
                         </div>
 
