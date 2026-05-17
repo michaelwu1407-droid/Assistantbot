@@ -20,6 +20,7 @@ type PhoneStatus = {
   name: string
   phoneNumber: string | null
   hasPhoneNumber: boolean
+  isOwner: boolean
 }
 
 const BACKUP_DELAYS = [12, 15, 20, 25, 30, 35, 40]
@@ -85,6 +86,7 @@ export function CallForwardingCard() {
         name: phoneResult.value.name,
         phoneNumber: phoneResult.value.phoneNumber || null,
         hasPhoneNumber: !!phoneResult.value.hasPhoneNumber,
+        isOwner: !!phoneResult.value.isOwner,
       })
     }
   }, [])
@@ -184,7 +186,7 @@ export function CallForwardingCard() {
             Phone & call handling
           </CardTitle>
           <CardDescription>
-            Your Tracey number below is your new business number — give it to customers, print it on your van and quotes. Already have a number you can&apos;t change? Set up call forwarding from your phone at the bottom.
+            Your Tracey number below is your business number — give it to customers, print it on your van and quotes. Every call is answered by Tracey.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -221,7 +223,7 @@ export function CallForwardingCard() {
                 <p className="text-xs text-muted-foreground">
                   Give this to customers. Every call is answered, qualified and booked by Tracey.
                 </p>
-                {!traceyPhone && (
+                {!traceyPhone && status?.isOwner && (
                   <Button
                     size="sm"
                     type="button"
@@ -231,6 +233,11 @@ export function CallForwardingCard() {
                   >
                     {claiming ? "Claiming…" : "Claim my business number"}
                   </Button>
+                )}
+                {!traceyPhone && !status?.isOwner && (
+                  <p className="text-xs text-muted-foreground">
+                    Your business hasn&apos;t been assigned a Tracey number yet. The workspace owner can claim one from their settings.
+                  </p>
                 )}
               </div>
             </div>

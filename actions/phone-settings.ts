@@ -130,6 +130,7 @@ export async function getPhoneNumberStatus() {
       select: {
         id: true,
         name: true,
+        ownerId: true,
         twilioPhoneNumber: true,
         twilioSubaccountId: true,
         twilioSipTrunkSid: true,
@@ -154,5 +155,6 @@ export async function getPhoneNumberStatus() {
     hasSubaccount: !!workspace.twilioSubaccountId,
     hasVoiceAgent: !!workspace.twilioSipTrunkSid,
     setupComplete: !!workspace.twilioPhoneNumber && !!workspace.twilioSubaccountId,
+    isOwner: workspace.ownerId === actor.id,
   };
 }

@@ -18,7 +18,8 @@ export type LeadChannelStatus =
   | "platform_setup_required"
   | "needs_inbox"
   | "needs_phone"
-  | "needs_form_check";
+  | "needs_form_check"
+  | "phone_not_provisioned";  // teammate-visible: workspace has no number, but it's not on this user to fix
 
 export type LeadChannel = {
   id: string;
@@ -32,11 +33,12 @@ export type LeadChannel = {
 export async function getLeadChannels(): Promise<{
   inboxConnected: boolean;
   hasPhoneNumber: boolean;
+  isOwner: boolean;
   channels: LeadChannel[];
 }> {
   const userId = await getAuthUserId();
   if (!userId) {
-    return { inboxConnected: false, hasPhoneNumber: false, channels: [] };
+    return { inboxConnected: false, hasPhoneNumber: false, isOwner: false, channels: [] };
   }
 
   const workspaceView = await getOrCreateWorkspace(userId);
@@ -46,12 +48,43 @@ export async function getLeadChannels(): Promise<{
     db.emailIntegration.count({ where: { userId, isActive: true } }),
     db.workspace.findUnique({
       where: { id: workspaceId },
-      select: { twilioPhoneNumber: true },
+      select: { twilioPhoneNumber: true, ownerId: true },
     }),
   ]);
 
   const inboxConnected = inboxCount > 0;
   const hasPhoneNumber = !!workspace?.twilioPhoneNumber;
+  const isOwner = workspace?.ownerId === userId;
+
+  function phoneChannel(params: {
+    id: string;
+    name: string;
+    liveDescription: string;
+    pendingDescription: string;
+    liveSteps: string[];
+    isOwner: boolean;
+    hasPhoneNumber: boolean;
+  }): LeadChannel {
+    if (params.hasPhoneNumber) {
+      return {
+        id: params.id, name: params.name, category: "Phone & SMS",
+        status: "live", description: params.liveDescription, setupSteps: params.liveSteps,
+      };
+    }
+    if (params.isOwner) {
+      return {
+        id: params.id, name: params.name, category: "Phone & SMS",
+        status: "needs_phone", description: params.pendingDescription,
+        setupSteps: ["Open Settings → Phone & call handling and click \"Claim my business number\"."],
+      };
+    }
+    return {
+      id: params.id, name: params.name, category: "Phone & SMS",
+      status: "phone_not_provisioned",
+      description: "Your business hasn't been assigned a Tracey number yet. The workspace owner can set this up in their settings.",
+      setupSteps: [],
+    };
+  }
 
   // Platforms that *default* to emailing the tradie's registered address.
   // Once the inbox is connected and the tradie's platform login email
@@ -137,39 +170,34 @@ export async function getLeadChannels(): Promise<{
     },
 
     // Phone & SMS — all tied to the Tracey number being provisioned.
-    {
+    // Owner sees a "claim it" CTA on the unprovisioned case. Teammates
+    // can't manage workspace infra so they get a read-only status and no
+    // "click here to fix" steps.
+    phoneChannel({
       id: "inbound_calls",
       name: "Inbound phone calls",
-      category: "Phone & SMS",
-      status: hasPhoneNumber ? "live" : "needs_phone",
-      description: hasPhoneNumber
-        ? "Tracey answers every call to your business number, qualifies the customer and books the job."
-        : "Once your business number is provisioned, every inbound call is answered by Tracey.",
-      setupSteps: hasPhoneNumber
-        ? ["Give your business number out to customers (van signage, quotes, invoices, website footer)."]
-        : ["Open Settings → Phone & call handling and click \"Claim my business number\"."],
-    },
-    {
+      liveDescription: "Tracey answers every call to your business number, qualifies the customer and books the job.",
+      pendingDescription: "Once your business number is provisioned, every inbound call is answered by Tracey.",
+      liveSteps: ["Give your business number out to customers (van signage, quotes, invoices, website footer)."],
+      isOwner, hasPhoneNumber,
+    }),
+    phoneChannel({
       id: "missed_calls",
       name: "Missed calls (auto-callback)",
-      category: "Phone & SMS",
-      status: hasPhoneNumber ? "live" : "needs_phone",
-      description: "If a call isn't answered, Tracey creates a lead and calls the customer back automatically — closing the biggest leak in most tradie businesses.",
-      setupSteps: hasPhoneNumber
-        ? []
-        : ["Claim your business number in Settings → Phone & call handling."],
-    },
-    {
+      liveDescription: "If a call isn't answered, Tracey creates a lead and calls the customer back automatically — closing the biggest leak in most tradie businesses.",
+      pendingDescription: "Once your business number is provisioned, missed calls become leads with an auto-callback.",
+      liveSteps: [],
+      isOwner, hasPhoneNumber,
+    }),
+    phoneChannel({
       id: "inbound_sms",
       name: "Inbound SMS",
-      category: "Phone & SMS",
-      status: hasPhoneNumber ? "live" : "needs_phone",
-      description: "Texts to your business number become leads and trigger an auto-callback.",
-      setupSteps: hasPhoneNumber
-        ? []
-        : ["Claim your business number in Settings → Phone & call handling."],
-    },
+      liveDescription: "Texts to your business number become leads and trigger an auto-callback.",
+      pendingDescription: "Once your business number is provisioned, inbound SMS becomes leads with an auto-callback.",
+      liveSteps: [],
+      isOwner, hasPhoneNumber,
+    }),
   ];
 
-  return { inboxConnected, hasPhoneNumber, channels };
+  return { inboxConnected, hasPhoneNumber, isOwner, channels };
 }

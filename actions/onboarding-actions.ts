@@ -29,28 +29,33 @@ export async function getOnboardingProgress() {
         db.businessDocument.count({ where: { workspaceId } }),
         db.workspace.findUnique({
             where: { id: workspaceId },
-            select: { twilioPhoneNumber: true, autoCallLeads: true },
+            select: { twilioPhoneNumber: true, ownerId: true },
         }),
         db.emailIntegration.count({ where: { userId, isActive: true } }),
     ]);
 
-    const steps = [
-        {
-            id: "phone_number",
-            title: "Claim your business phone number",
-            isComplete: !!workspaceMeta?.twilioPhoneNumber,
+    const isOwner = workspaceMeta?.ownerId === userId;
+    const needsPhoneRecovery = isOwner && !workspaceMeta?.twilioPhoneNumber;
+
+    // Only surface the phone-number step in the rare recovery case: this
+    // user is the workspace owner AND the workspace doesn't have a number
+    // (auto-provision happens at signup, so normally there's nothing to do
+    // here). Teammates never see it; they don't manage workspace infra.
+    const phoneStep = needsPhoneRecovery
+        ? [{
+            id: "phone_number" as const,
+            title: "Your business number isn't set up — click to retry",
+            isComplete: false,
             href: "/crm/settings",
-        },
+        }]
+        : [];
+
+    const steps = [
+        ...phoneStep,
         {
             id: "connect_inbox",
             title: "Connect your inbox to capture hipages, Airtasker & website leads",
             isComplete: inboxConnections > 0,
-            href: "/crm/settings/integrations",
-        },
-        {
-            id: "auto_call",
-            title: "Turn on auto-call for new leads",
-            isComplete: !!workspaceMeta?.autoCallLeads,
             href: "/crm/settings/integrations",
         },
         {

@@ -37,6 +37,16 @@ export async function claimBusinessPhoneNumber(): Promise<
   });
 
   if (!workspace) return { success: false, error: "Workspace not found" };
+
+  // Authorisation: only the workspace owner can claim the workspace's
+  // business number. Teammates share the resource but don't manage it.
+  if (workspace.ownerId !== userId) {
+    console.warn(
+      `[claim-phone-number] User ${userId} (not owner) attempted to claim number for workspace ${workspaceId}`,
+    );
+    return { success: false, error: "Only the workspace owner can claim a business number." };
+  }
+
   if (workspace.twilioPhoneNumber) {
     return { success: true, phoneNumber: workspace.twilioPhoneNumber };
   }
