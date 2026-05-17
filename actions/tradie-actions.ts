@@ -793,7 +793,7 @@ export async function markInvoicePaid(invoiceId: string) {
     data: {
       type: "NOTE",
       title: "Invoice paid",
-      content: `Invoice ${invoice.number} marked as paid (${formatCurrency(invoice.total)})`,
+      content: `Invoice ${invoice.number} marked as paid (${formatCurrency(Number(invoice.total))})`,
       dealId: invoice.dealId,
       contactId: invoice.deal.contactId,
       userId: actor.id,
