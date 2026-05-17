@@ -9,6 +9,7 @@ import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
 import { withCostCeiling } from "@/lib/cost-ceiling";
 import { isUrgentLead, isWithinAllowedCallWindow } from "@/lib/call-window";
 import { scheduleLeadCallback } from "@/lib/lead-callback";
+import { canAutoCallLead } from "@/lib/auto-call-eligibility";
 
 const RESEND_EMAIL_COST_USD = 0.001;
 
@@ -301,6 +302,8 @@ export async function POST(req: NextRequest) {
             inboundEmailAlias: true,
             autoCallLeads: true,
             autoCallDelaySec: true,
+            voiceEnabled: true,
+            agentMode: true,
             twilioPhoneNumber: true,
             settings: true,
           },
@@ -340,6 +343,8 @@ export async function POST(req: NextRequest) {
           inboundEmailAlias: true,
           autoCallLeads: true,
           autoCallDelaySec: true,
+          voiceEnabled: true,
+          agentMode: true,
           twilioPhoneNumber: true,
           settings: true,
         },
@@ -437,20 +442,22 @@ export async function POST(req: NextRequest) {
 
       const urgentLead = isUrgentLead(subject, textBody);
       const withinCallWindow = isWithinAllowedCallWindow(workspace!.settings);
-      const blockAutoCall = urgentLead || !withinCallWindow || (triage?.recommendation === "HOLD_REVIEW");
-      const blockReason = urgentLead
-        ? "urgent"
-        : !withinCallWindow
-          ? "after_hours"
-          : triage?.recommendation === "HOLD_REVIEW"
-            ? "triage_review"
-            : null;
+      const eligibility = canAutoCallLead(workspace!);
+      const hasLeadPhone = Boolean(displayPhone);
 
-      // Auto-call via LiveKit: routes through the outbound queue, which the
-      // livekit-agent Python worker picks up and dials over the SIP trunk.
-      const wantsAutoCall = Boolean(workspace!.autoCallLeads && displayPhone);
+      // Decide the single block reason (workspace policy first, then per-lead
+      // conditions). Block reasons are logged and stored on the webhook event
+      // so operators can debug why a lead wasn't dialled.
+      let blockReason: string | null = null;
+      if (!eligibility.allowed) blockReason = eligibility.reason;
+      else if (!hasLeadPhone) blockReason = "no_lead_phone";
+      else if (urgentLead) blockReason = "urgent";
+      else if (!withinCallWindow) blockReason = "after_hours";
+      else if (triage?.recommendation === "HOLD_REVIEW") blockReason = "triage_review";
+
+      const blockAutoCall = blockReason !== null;
       let callTriggered = false;
-      if (wantsAutoCall && !blockAutoCall) {
+      if (!blockAutoCall) {
         callTriggered = true;
         scheduleLeadCallback({
           workspaceId: workspace!.id,
@@ -462,9 +469,19 @@ export async function POST(req: NextRequest) {
         }).catch((err) => {
           console.error("[inbound-email] scheduleLeadCallback failed:", err);
         });
+      } else {
+        console.info(
+          `[inbound-email] auto-call blocked for deal ${deal.id} (workspace ${workspace!.id}, platform ${platform}): ${blockReason}`,
+        );
       }
 
-      if (workspace!.ownerId && wantsAutoCall && blockAutoCall) {
+      // Only notify the owner of a "needs manual follow-up" when the
+      // workspace IS otherwise eligible to auto-call but a per-lead
+      // condition (urgent/after-hours/triage hold) prevented the dial.
+      // Workspace-level blocks (auto-call off, mode != EXECUTION) are
+      // intentional choices and don't deserve a nag.
+      const perLeadBlock = blockAutoCall && eligibility.allowed;
+      if (workspace!.ownerId && perLeadBlock) {
         const triageTitle = triage?.recommendation === "HOLD_REVIEW" && triage.flags.length > 0
           ? "Lead flagged for review"
           : urgentLead ? "Urgent lead requires manual follow-up" : "After-hours lead requires manual follow-up";

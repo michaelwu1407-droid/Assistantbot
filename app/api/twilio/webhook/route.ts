@@ -12,6 +12,7 @@ import { withCostCeiling } from "@/lib/cost-ceiling"
 import { verifyTwilioFormPost } from "@/lib/twilio/verify-signature"
 import { isWithinAllowedCallWindow } from "@/lib/call-window"
 import { scheduleLeadCallback } from "@/lib/lead-callback"
+import { canAutoCallLead } from "@/lib/auto-call-eligibility"
 
 const TWILIO_SMS_COST_USD = 0.05
 
@@ -325,10 +326,13 @@ export async function POST(req: NextRequest) {
                     }
 
                     // Auto-call the new SMS lead via the voice agent if the
-                    // workspace has opted in and we're inside the calling
-                    // window. Fire-and-forget so the SMS reply path stays fast.
+                    // workspace policy allows it (autoCallLeads on, voice not
+                    // disabled, agent mode EXECUTION, workspace has a number)
+                    // and we're inside the calling window. Fire-and-forget so
+                    // the SMS reply path stays fast.
+                    const eligibility = canAutoCallLead(workspace);
                     const withinCallWindow = isWithinAllowedCallWindow(workspace.settings);
-                    if (workspace.autoCallLeads && withinCallWindow) {
+                    if (eligibility.allowed && withinCallWindow) {
                         scheduleLeadCallback({
                             workspaceId,
                             contactPhone: From,
@@ -339,6 +343,11 @@ export async function POST(req: NextRequest) {
                         }).catch((err) => {
                             console.error("[SMS Webhook] scheduleLeadCallback failed:", err);
                         });
+                    } else {
+                        const reason = !eligibility.allowed ? eligibility.reason : "after_hours";
+                        console.info(
+                            `[SMS Webhook] auto-call blocked for deal ${activeDeal.id} (workspace ${workspaceId}): ${reason}`,
+                        );
                     }
                 }
 

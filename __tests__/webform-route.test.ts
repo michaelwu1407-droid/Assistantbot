@@ -243,6 +243,9 @@ describe("POST /api/webhooks/webform", () => {
       name: "Acme Plumbing",
       autoCallLeads: true,
       autoCallDelaySec: 30,
+      voiceEnabled: true,
+      agentMode: "EXECUTION",
+      twilioPhoneNumber: "+61200000000",
       settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
       ownerId: "owner_1",
     });
@@ -279,6 +282,9 @@ describe("POST /api/webhooks/webform", () => {
       name: "Acme Plumbing",
       autoCallLeads: true,
       autoCallDelaySec: 30,
+      voiceEnabled: true,
+      agentMode: "EXECUTION",
+      twilioPhoneNumber: "+61200000000",
       settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
       ownerId: "owner_1",
     });
@@ -312,6 +318,9 @@ describe("POST /api/webhooks/webform", () => {
       name: "Acme Plumbing",
       autoCallLeads: true,
       autoCallDelaySec: 30,
+      voiceEnabled: true,
+      agentMode: "EXECUTION",
+      twilioPhoneNumber: "+61200000000",
       settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
       ownerId: "owner_1",
     });
@@ -331,7 +340,7 @@ describe("POST /api/webhooks/webform", () => {
 
     const body = await response.json();
     expect(body.autoCallTriggered).toBe(false);
-    expect(body.autoCallBlockReason).toBe("no_phone");
+    expect(body.autoCallBlockReason).toBe("no_lead_phone");
     expect(hoisted.scheduleLeadCallback).not.toHaveBeenCalled();
   });
 });

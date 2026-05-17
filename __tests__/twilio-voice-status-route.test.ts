@@ -59,7 +59,10 @@ describe("POST /api/webhooks/twilio-voice-status", () => {
     findWorkspaceByTwilioNumber.mockResolvedValue({
       id: "ws_1",
       voiceEnabled: true,
+      autoCallLeads: true,
       autoCallDelaySec: 90,
+      agentMode: "EXECUTION",
+      twilioPhoneNumber: "+61411111111",
       settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
     });
     findContactByPhone.mockResolvedValue(null);

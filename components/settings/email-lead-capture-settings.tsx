@@ -274,6 +274,9 @@ export function EmailLeadCaptureSettings() {
               />
               <span className="text-sm text-muted-foreground">seconds (0&ndash;900)</span>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Note: our scheduler checks for due callbacks every ~5&nbsp;minutes, so any delay under 5&nbsp;minutes rounds up to the next check. Set to 0 to dial immediately on receipt (no scheduler involved).
+            </p>
           </div>
         )}
       </CardContent>

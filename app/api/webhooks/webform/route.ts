@@ -31,6 +31,7 @@ import { evaluateAutomations } from "@/actions/automation-actions";
 import { saveTriageRecommendation, triageIncomingLead } from "@/lib/ai/triage";
 import { scheduleLeadCallback } from "@/lib/lead-callback";
 import { isWithinAllowedCallWindow } from "@/lib/call-window";
+import { canAutoCallLead, type AutoCallBlockReason } from "@/lib/auto-call-eligibility";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -91,7 +92,11 @@ export async function POST(req: NextRequest) {
     // Validate workspace exists
     const workspace = await db.workspace.findUnique({
       where: { id: workspaceId },
-      select: { id: true, name: true, autoCallLeads: true, autoCallDelaySec: true, settings: true, ownerId: true },
+      select: {
+        id: true, name: true, settings: true, ownerId: true,
+        autoCallLeads: true, autoCallDelaySec: true,
+        voiceEnabled: true, agentMode: true, twilioPhoneNumber: true,
+      },
     });
     if (!workspace) {
       return NextResponse.json({ error: "Workspace not found" }, { status: 404, headers: corsHeaders() });
@@ -169,18 +174,19 @@ export async function POST(req: NextRequest) {
       await saveTriageRecommendation(deal.id, triage).catch(() => {});
     }
 
-    // Auto-call the lead via the voice agent if the workspace has opted in.
-    // Fire-and-forget — keep the webhook response fast and don't fail the
-    // submission if the call queue is unavailable.
+    // Decide whether to dispatch an auto-callback via the voice agent.
+    // Workspace-level policy comes from canAutoCallLead; per-lead reasons
+    // (no phone on this lead, after-hours, triage held) are checked here.
+    const eligibility = canAutoCallLead(workspace);
     const withinCallWindow = isWithinAllowedCallWindow(workspace.settings);
     const hasPhone = phone.length > 0;
     let autoCallTriggered = false;
-    let autoCallBlockReason: string | null = null;
+    let autoCallBlockReason: AutoCallBlockReason | "no_lead_phone" | "triage_review" | "after_hours" | null = null;
 
-    if (!workspace.autoCallLeads) {
-      autoCallBlockReason = "auto_call_disabled";
+    if (!eligibility.allowed) {
+      autoCallBlockReason = eligibility.reason;
     } else if (!hasPhone) {
-      autoCallBlockReason = "no_phone";
+      autoCallBlockReason = "no_lead_phone";
     } else if (heldForReview) {
       autoCallBlockReason = "triage_review";
     } else if (!withinCallWindow) {
@@ -197,6 +203,12 @@ export async function POST(req: NextRequest) {
       }).catch((err) => {
         console.error("[Webform webhook] scheduleLeadCallback failed:", err);
       });
+    }
+
+    if (autoCallBlockReason) {
+      console.info(
+        `[Webform webhook] auto-call blocked for deal ${deal.id} (workspace ${workspaceId}): ${autoCallBlockReason}`,
+      );
     }
 
     // Customer-facing new-lead automations must not fire for held leads.

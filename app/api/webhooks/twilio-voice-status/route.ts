@@ -24,6 +24,7 @@ import {
 import { findContactByPhone, findWorkspaceByTwilioNumber } from "@/lib/workspace-routing";
 import { isWithinAllowedCallWindow } from "@/lib/call-window";
 import { scheduleLeadCallback } from "@/lib/lead-callback";
+import { canAutoCallLead } from "@/lib/auto-call-eligibility";
 
 export const dynamic = "force-dynamic";
 
@@ -114,11 +115,17 @@ export async function POST(req: NextRequest) {
       },
     }).catch(() => {});
 
-    // Queue an automatic callback if the workspace has opted in and we're
-    // inside the configured calling window. Fire-and-forget so the Twilio
-    // webhook still responds quickly.
+    // Queue an automatic callback if the workspace policy allows it (auto-
+    // call on, voice enabled, agent mode EXECUTION, workspace has a number)
+    // and we're inside the configured calling window. Fire-and-forget so
+    // the Twilio webhook still responds quickly.
+    const eligibility = canAutoCallLead(workspace);
     const withinCallWindow = isWithinAllowedCallWindow(workspace.settings);
-    const wantsAutoCall = Boolean(workspace.voiceEnabled) && withinCallWindow;
+    const wantsAutoCall = eligibility.allowed && withinCallWindow;
+    let blockReason: string | null = null;
+    if (!eligibility.allowed) blockReason = eligibility.reason;
+    else if (!withinCallWindow) blockReason = "after_hours";
+
     if (wantsAutoCall) {
       scheduleLeadCallback({
         workspaceId: workspace.id,
@@ -130,6 +137,10 @@ export async function POST(req: NextRequest) {
       }).catch((err) => {
         console.error("[twilio-voice-status] scheduleLeadCallback failed:", err);
       });
+    } else {
+      console.info(
+        `[twilio-voice-status] auto-callback blocked for missed call ${callSid} (workspace ${workspace.id}): ${blockReason}`,
+      );
     }
 
     await db.webhookEvent.create({
@@ -146,7 +157,7 @@ export async function POST(req: NextRequest) {
           calledNumber,
           dialStatus,
           callbackQueued: wantsAutoCall,
-          blockReason: wantsAutoCall ? null : (!workspace.voiceEnabled ? "voice_disabled" : "after_hours"),
+          blockReason,
         },
       },
     }).catch(() => {});

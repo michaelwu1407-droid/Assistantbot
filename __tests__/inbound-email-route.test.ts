@@ -163,6 +163,8 @@ describe("POST /api/webhooks/inbound-email", () => {
       ownerId: "owner_1",
       inboundEmailAlias: "acme",
       autoCallLeads: true,
+      voiceEnabled: true,
+      agentMode: "EXECUTION",
       twilioPhoneNumber: "+61200000000",
       settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
     });
@@ -224,6 +226,8 @@ describe("POST /api/webhooks/inbound-email", () => {
       ownerId: "owner_1",
       inboundEmailAlias: "acme",
       autoCallLeads: true,
+      voiceEnabled: true,
+      agentMode: "EXECUTION",
       twilioPhoneNumber: "+61200000000",
       settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
     });
@@ -288,6 +292,8 @@ describe("POST /api/webhooks/inbound-email", () => {
       inboundEmailAlias: "acme",
       autoCallLeads: true,
       autoCallDelaySec: 45,
+      voiceEnabled: true,
+      agentMode: "EXECUTION",
       twilioPhoneNumber: "+61200000000",
       settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
     });

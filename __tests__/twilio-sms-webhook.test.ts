@@ -326,6 +326,8 @@ describe("POST /api/twilio/webhook", () => {
       twilioPhoneNumber: "+61485010634",
       autoCallLeads: true,
       autoCallDelaySec: 120,
+      voiceEnabled: true,
+      agentMode: "EXECUTION",
     });
     findContactByPhone.mockResolvedValue({ id: "contact_1", name: "Alex" });
 
