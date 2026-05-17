@@ -14,6 +14,11 @@ const {
     user: {
       findMany: vi.fn(),
     },
+    actionExecution: {
+      create: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
+    },
   },
   logger: {
     info: vi.fn(),
@@ -42,6 +47,10 @@ describe("ensureWorkspaceProvisioned", () => {
     db.workspace.findFirst.mockResolvedValue(null);
     db.workspace.update.mockResolvedValue({});
     db.user.findMany.mockResolvedValue([]);
+    // Default: lock acquires cleanly so provisioning flow proceeds.
+    db.actionExecution.create.mockResolvedValue({ id: "lock_1" });
+    db.actionExecution.findUnique.mockResolvedValue(null);
+    db.actionExecution.update.mockResolvedValue({ id: "lock_1" });
   });
 
   it("persists stage and Twilio diagnostics when provisioning fails", async () => {
@@ -162,5 +171,74 @@ describe("ensureWorkspaceProvisioned", () => {
         },
       }),
     );
+  });
+
+  it("bails out without re-buying when a concurrent provisioning attempt holds the lock", async () => {
+    db.workspace.findUnique.mockResolvedValueOnce({
+      id: "ws_racing",
+      ownerId: "user_racing",
+      subscriptionStatus: "active",
+      twilioPhoneNumber: null,
+      settings: { provisionPhoneNumberRequested: true },
+    });
+    db.actionExecution.create.mockRejectedValueOnce(
+      Object.assign(new Error("Unique constraint failed"), { code: "P2002" }),
+    );
+    db.actionExecution.findUnique.mockResolvedValueOnce({
+      id: "lock_existing",
+      idempotencyKey: "workspace_provisioning:ws_racing",
+      actionType: "workspace_provisioning",
+      status: "IN_PROGRESS",
+      updatedAt: new Date(), // fresh lock — not stale
+    });
+
+    const result = await ensureWorkspaceProvisioned({
+      workspaceId: "ws_racing",
+      businessName: "Racing Plumbers",
+      ownerPhone: "0400000000",
+      triggerSource: "stripe-webhook",
+    });
+
+    expect(result).toMatchObject({
+      success: false,
+      provisioningStatus: "provisioning",
+    });
+    expect(provisionTradieCommsWithFallback).not.toHaveBeenCalled();
+  });
+
+  it("returns the existing phone number when the lock shows a completed prior attempt", async () => {
+    db.workspace.findUnique
+      .mockResolvedValueOnce({
+        id: "ws_done",
+        ownerId: "user_done",
+        subscriptionStatus: "active",
+        twilioPhoneNumber: null,
+        settings: { provisionPhoneNumberRequested: true },
+      })
+      .mockResolvedValueOnce({ twilioPhoneNumber: "+61485010634" });
+    db.actionExecution.create.mockRejectedValueOnce(
+      Object.assign(new Error("Unique constraint failed"), { code: "P2002" }),
+    );
+    db.actionExecution.findUnique.mockResolvedValueOnce({
+      id: "lock_done",
+      idempotencyKey: "workspace_provisioning:ws_done",
+      actionType: "workspace_provisioning",
+      status: "COMPLETED",
+      updatedAt: new Date(),
+    });
+
+    const result = await ensureWorkspaceProvisioned({
+      workspaceId: "ws_done",
+      businessName: "Done Plumbers",
+      ownerPhone: "0400000000",
+      triggerSource: "stripe-webhook",
+    });
+
+    expect(result).toMatchObject({
+      success: true,
+      provisioningStatus: "already_provisioned",
+      phoneNumber: "+61485010634",
+    });
+    expect(provisionTradieCommsWithFallback).not.toHaveBeenCalled();
   });
 });

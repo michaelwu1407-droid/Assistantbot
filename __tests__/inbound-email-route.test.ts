@@ -205,7 +205,7 @@ describe("POST /api/webhooks/inbound-email", () => {
       data: expect.objectContaining({
         workspaceId: "ws_1",
         name: "Jane Citizen",
-        phone: "0412345678",
+        phone: "+61412345678",
       }),
     });
     expect(db.notification.create).toHaveBeenCalled();
@@ -328,7 +328,7 @@ describe("POST /api/webhooks/inbound-email", () => {
     );
     expect(scheduleLeadCallback).toHaveBeenCalledWith({
       workspaceId: "ws_1",
-      contactPhone: "0412345678",
+      contactPhone: "+61412345678",
       contactName: "Jane Citizen",
       dealId: "deal_1",
       reason: "email_lead:HiPages",

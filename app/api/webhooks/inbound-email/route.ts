@@ -10,6 +10,7 @@ import { withCostCeiling } from "@/lib/cost-ceiling";
 import { isUrgentLead, isWithinAllowedCallWindow } from "@/lib/call-window";
 import { scheduleLeadCallback } from "@/lib/lead-callback";
 import { canAutoCallLead } from "@/lib/auto-call-eligibility";
+import { normalizePhone } from "@/lib/phone-utils";
 
 const RESEND_EMAIL_COST_USD = 0.001;
 
@@ -368,7 +369,10 @@ export async function POST(req: NextRequest) {
     if (platform) {
       const { phone, name } = parseLeadContactDetails(textBody);
       const leadName = name || sender.name || "Lead";
-      const displayPhone = phone || null;
+      // Normalise to E.164 so phone format is consistent with the SMS
+      // and missed-call handlers (which get E.164 from Twilio natively).
+      const normalised = normalizePhone(phone || "");
+      const displayPhone = normalised || null;
       const leadEmail = (sender.email && sender.email.trim()) || null;
       if (!displayPhone && !leadEmail) {
         await db.webhookEvent.create({

@@ -32,6 +32,7 @@ import { saveTriageRecommendation, triageIncomingLead } from "@/lib/ai/triage";
 import { scheduleLeadCallback } from "@/lib/lead-callback";
 import { isWithinAllowedCallWindow } from "@/lib/call-window";
 import { canAutoCallLead, type AutoCallBlockReason } from "@/lib/auto-call-eligibility";
+import { normalizePhone } from "@/lib/phone-utils";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -111,7 +112,10 @@ export async function POST(req: NextRequest) {
 
     const name = (body.name || body.full_name || body.customer_name || "Website Enquiry").trim();
     const email = (body.email || body.customer_email || "").toLowerCase().trim();
-    const phone = (body.phone || body.mobile || body.customer_phone || "").trim();
+    // Normalise to E.164 at the boundary so Contact.phone is consistent
+    // across channels (otherwise the same customer can appear twice with
+    // different formats depending on which channel found them first).
+    const phone = normalizePhone((body.phone || body.mobile || body.customer_phone || "").trim());
     const message = (body.message || body.enquiry || body.description || "").trim();
     const jobType = (body.job_type || body.service_type || body.work_type || "").trim();
     const address = (body.address || body.location || body.site_address || "").trim();

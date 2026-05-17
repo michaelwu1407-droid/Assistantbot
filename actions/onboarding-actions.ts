@@ -31,7 +31,10 @@ export async function getOnboardingProgress() {
         db.businessDocument.count({ where: { workspaceId } }),
         db.workspace.findUnique({
             where: { id: workspaceId },
-            select: { twilioPhoneNumber: true, ownerId: true },
+            select: {
+                twilioPhoneNumber: true, ownerId: true,
+                subscriptionStatus: true, settings: true,
+            },
         }),
         // Count workspace-wide — a teammate inherits the owner's connection
         // for lead-capture purposes (hipages emails the owner's registered
@@ -42,20 +45,36 @@ export async function getOnboardingProgress() {
     ]);
 
     const isOwner = workspaceMeta?.ownerId === userId;
-    const needsPhoneRecovery = isOwner && !workspaceMeta?.twilioPhoneNumber;
+    const wsSettings = (workspaceMeta?.settings as Record<string, unknown> | null) ?? {};
+    const provisioningStatus = wsSettings.onboardingProvisioningStatus as string | undefined;
+    const subscriptionActive = workspaceMeta?.subscriptionStatus === "active";
 
-    // Only surface the phone-number step in the rare recovery case: this
-    // user is the workspace owner AND the workspace doesn't have a number
-    // (auto-provision happens at signup, so normally there's nothing to do
-    // here). Teammates never see it; they don't manage workspace infra.
-    const phoneStep = needsPhoneRecovery
-        ? [{
+    // Distinguish three "no number" states so we don't nag tradies during
+    // states they can't fix:
+    //   - Pending: Stripe not yet confirmed OR provisioning attempt in flight
+    //     → no checklist step. The system will finish on its own.
+    //   - Failed: provisioning genuinely failed → owner sees recovery step.
+    //   - Legacy: an older workspace that never had auto-provision run →
+    //     owner sees a one-time claim step.
+    // Teammates never see any of this; workspace infra isn't theirs.
+    const hasNumber = !!workspaceMeta?.twilioPhoneNumber;
+    const isPendingProvision = !hasNumber && (
+        !subscriptionActive ||
+        provisioningStatus === "provisioning" ||
+        provisioningStatus === "requested"
+    );
+    const isFailedProvision = !hasNumber && !isPendingProvision && provisioningStatus === "failed";
+
+    const phoneStep = (!isOwner || hasNumber || isPendingProvision)
+        ? []
+        : [{
             id: "phone_number" as const,
-            title: "Your business number isn't set up — click to retry",
+            title: isFailedProvision
+                ? "Your business number didn't set up — click to retry"
+                : "Claim your business number",
             isComplete: false,
             href: "/crm/settings",
-        }]
-        : [];
+        }];
 
     const steps = [
         ...phoneStep,

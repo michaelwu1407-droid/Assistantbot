@@ -155,7 +155,7 @@ describe("POST /api/webhooks/webform", () => {
         workspaceId: "ws_1",
         name: "Alex",
         email: "alex@example.com",
-        phone: "0400000000",
+        phone: "+61400000000",
       },
     });
     expect(hoisted.db.deal.create).toHaveBeenCalledWith({
@@ -288,7 +288,7 @@ describe("POST /api/webhooks/webform", () => {
     expect(body.autoCallBlockReason).toBeNull();
     expect(hoisted.scheduleLeadCallback).toHaveBeenCalledWith({
       workspaceId: "ws_1",
-      contactPhone: "0400000000",
+      contactPhone: "+61400000000",
       contactName: "Alex",
       dealId: "deal_1",
       reason: "webform_lead:website",
