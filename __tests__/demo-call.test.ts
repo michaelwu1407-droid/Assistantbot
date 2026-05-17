@@ -1,14 +1,41 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { createRoom, createSipParticipant, listSipOutboundTrunk, listSipInboundTrunk, createTwilioCall, getParticipant, deleteRoom } = vi.hoisted(() => ({
-  createRoom: vi.fn(),
-  createSipParticipant: vi.fn(),
-  listSipOutboundTrunk: vi.fn(),
-  listSipInboundTrunk: vi.fn(),
-  createTwilioCall: vi.fn(),
-  getParticipant: vi.fn(),
-  deleteRoom: vi.fn(),
-}));
+const {
+  createRoom,
+  createSipParticipant,
+  listSipOutboundTrunk,
+  listSipInboundTrunk,
+  createTwilioCall,
+  fetchTwilioCall,
+  updateTwilioCall,
+  twilioCalls,
+  getParticipant,
+  deleteRoom,
+} = vi.hoisted(() => {
+  const createTwilioCall = vi.fn();
+  const fetchTwilioCall = vi.fn();
+  const updateTwilioCall = vi.fn();
+  const twilioCalls = Object.assign(
+    vi.fn(() => ({
+      fetch: fetchTwilioCall,
+      update: updateTwilioCall,
+    })),
+    { create: createTwilioCall },
+  );
+
+  return {
+    createRoom: vi.fn(),
+    createSipParticipant: vi.fn(),
+    listSipOutboundTrunk: vi.fn(),
+    listSipInboundTrunk: vi.fn(),
+    createTwilioCall,
+    fetchTwilioCall,
+    updateTwilioCall,
+    twilioCalls,
+    getParticipant: vi.fn(),
+    deleteRoom: vi.fn(),
+  };
+});
 
 vi.mock("livekit-server-sdk", () => ({
   RoomServiceClient: class {
@@ -25,9 +52,7 @@ vi.mock("livekit-server-sdk", () => ({
 
 vi.mock("@/lib/twilio", () => ({
   twilioMasterClient: {
-    calls: {
-      create: createTwilioCall,
-    },
+    calls: twilioCalls,
   },
 }));
 
@@ -49,7 +74,9 @@ describe("demo-call outbound routing", () => {
     process.env.DEMO_CALL_CONNECTION_TIMEOUT_MS = "5";
     process.env.DEMO_CALL_CONNECTION_POLL_MS = "1";
     process.env.VOICE_MONITOR_PROBE_CALLER_NUMBER = "+61434955958";
-    createTwilioCall.mockResolvedValue({ sid: "CA_demo" });
+    createTwilioCall.mockResolvedValue({ sid: "CA_demo", status: "queued" });
+    fetchTwilioCall.mockResolvedValue({ status: "ringing" });
+    updateTwilioCall.mockResolvedValue({ status: "canceled" });
     getParticipant.mockResolvedValue({
       attributes: {
         "sip.callStatus": "active",
@@ -227,8 +254,8 @@ describe("demo-call outbound routing", () => {
     expect(result.resolvedTrunkId).toBe("twilio-sip-bridge:+61485010634");
     expect(result.transport).toBe("twilio_sip_bridge");
     expect(result.callSid).toBe("CA_demo");
-    expect(result.connectionVerified).toBe(false);
-    expect(result.sipCallStatus).toBeNull();
+    expect(result.connectionVerified).toBe(true);
+    expect(result.sipCallStatus).toBe("ringing");
     expect(result.warnings).toEqual(
       expect.arrayContaining([expect.stringMatching(/Twilio SIP bridge fallback/i)]),
     );
@@ -278,6 +305,8 @@ describe("demo-call outbound routing", () => {
     expect(result.resolvedTrunkId).toBe("twilio-sip-bridge:+61485010634");
     expect(result.transport).toBe("twilio_sip_bridge");
     expect(result.callSid).toBe("CA_demo");
+    expect(result.connectionVerified).toBe(false);
+    expect(result.sipCallStatus).toBe("queued");
     expect(result.warnings).toEqual([]);
   });
 
@@ -312,11 +341,30 @@ describe("demo-call outbound routing", () => {
       }),
     );
     expect(result.transport).toBe("twilio_sip_bridge");
-    expect(result.connectionVerified).toBe(false);
-    expect(result.sipCallStatus).toBeNull();
+    expect(result.connectionVerified).toBe(true);
+    expect(result.sipCallStatus).toBe("ringing");
     expect(result.warnings).toEqual(
       expect.arrayContaining([expect.stringMatching(/LiveKit control API failed/i)]),
     );
+  });
+
+  it("throws when the preferred Twilio bridge never reaches the handset", async () => {
+    fetchTwilioCall.mockResolvedValue({ status: "queued" });
+
+    await expect(initiateDemoCall(
+      {
+        phone: "0434 955 958",
+        firstName: "Michael",
+        businessName: "Alexandria Automotive Services",
+      },
+      {
+        preferTwilioSipBridge: true,
+        waitForConnection: true,
+        allowTwilioSipBridgeFallback: false,
+      },
+    )).rejects.toThrow(/Twilio SIP bridge demo call did not reach the handset \(last Twilio status: queued\)/i);
+
+    expect(updateTwilioCall).toHaveBeenCalledWith({ status: "canceled" });
   });
 
   it("can skip connection polling for the public callback path", async () => {

@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       businessName,
     }, {
       preferTwilioSipBridge: true,
-      waitForConnection: false,
+      waitForConnection: true,
     });
 
     console.log("[demo-call] Initiated:", {

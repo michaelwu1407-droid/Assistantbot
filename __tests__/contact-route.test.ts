@@ -121,7 +121,8 @@ describe("public contact route", () => {
         email: "miguel@example.com",
       },
       {
-        waitForConnection: false,
+        preferTwilioSipBridge: true,
+        waitForConnection: true,
       },
     );
     expect(hoisted.markDemoLeadInitiated).toHaveBeenCalledWith("lead_1", {

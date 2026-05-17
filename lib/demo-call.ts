@@ -129,6 +129,41 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function normalizeTwilioCallStatus(status?: string | null) {
+  return (status || "").trim().toLowerCase().replace(/\s+/g, "-");
+}
+
+function isTwilioCallRingingOrConnected(status?: string | null) {
+  return ["ringing", "in-progress", "completed"].includes(normalizeTwilioCallStatus(status));
+}
+
+function isTwilioCallTerminalFailure(status?: string | null) {
+  return ["busy", "failed", "no-answer", "canceled"].includes(normalizeTwilioCallStatus(status));
+}
+
+async function waitForTwilioBridgeConnection(callSid: string) {
+  const timeoutMs = getDemoCallConnectionTimeoutMs();
+  const pollMs = getDemoCallConnectionPollMs();
+  const deadline = Date.now() + timeoutMs;
+  let lastStatus: string | null = null;
+
+  while (Date.now() < deadline) {
+    const call = await twilioMasterClient?.calls(callSid).fetch() as { status?: string | null } | undefined;
+    lastStatus = call?.status || lastStatus;
+
+    if (isTwilioCallRingingOrConnected(lastStatus)) {
+      return { connectionVerified: true, callStatus: lastStatus };
+    }
+    if (isTwilioCallTerminalFailure(lastStatus)) {
+      return { connectionVerified: false, callStatus: lastStatus };
+    }
+
+    await sleep(Math.min(pollMs, Math.max(1, deadline - Date.now())));
+  }
+
+  return { connectionVerified: false, callStatus: lastStatus };
+}
+
 function getTwilioBridgeCallerNumber(preferred?: string | null) {
   return [preferred, ...getKnownCallerNumbers()]
     .map((value) => normalizePhone(value))
@@ -149,6 +184,7 @@ async function initiateDemoCallViaTwilioSipBridge(params: {
   preferredCallerNumber?: string | null;
   directError?: unknown;
   preferred?: boolean;
+  waitForConnection?: boolean;
 }): Promise<DemoCallResult> {
   if (!twilioMasterClient) {
     throw new Error("Twilio is not configured for demo-call fallback.");
@@ -170,7 +206,21 @@ async function initiateDemoCallViaTwilioSipBridge(params: {
     from: callerNumber,
     timeout: 20,
     twiml: buildTwilioSipBridgeTwiml(sipTarget),
-  }) as { sid: string };
+  }) as { sid: string; status?: string | null };
+
+  const connectionCheck = params.waitForConnection === false
+    ? { connectionVerified: false, callStatus: createdCall.status || null }
+    : await waitForTwilioBridgeConnection(createdCall.sid);
+
+  if (params.waitForConnection !== false && !connectionCheck.connectionVerified) {
+    if (!isTwilioCallTerminalFailure(connectionCheck.callStatus)) {
+      await twilioMasterClient.calls(createdCall.sid).update({ status: "canceled" }).catch(() => undefined);
+    }
+    const statusMessage = connectionCheck.callStatus
+      ? `last Twilio status: ${connectionCheck.callStatus}`
+      : "Twilio never returned a call status";
+    throw new Error(`Twilio SIP bridge demo call did not reach the handset (${statusMessage}).`);
+  }
 
   return {
     roomName: `twilio-bridge-${createdCall.sid}`,
@@ -182,8 +232,8 @@ async function initiateDemoCallViaTwilioSipBridge(params: {
       : [`Used Twilio SIP bridge fallback because the LiveKit control API failed: ${getErrorMessage(params.directError)}`],
     transport: "twilio_sip_bridge",
     callSid: createdCall.sid,
-    connectionVerified: false,
-    sipCallStatus: null,
+    connectionVerified: connectionCheck.connectionVerified,
+    sipCallStatus: connectionCheck.callStatus,
   };
 }
 
@@ -393,6 +443,7 @@ export async function initiateDemoCall(
         normalizedPhone,
         preferredCallerNumber,
         preferred: true,
+        waitForConnection: options.waitForConnection,
       });
     } catch (error) {
       preferredBridgeError = error;
@@ -492,6 +543,7 @@ export async function initiateDemoCall(
         normalizedPhone,
         preferredCallerNumber,
         directError,
+        waitForConnection: options.waitForConnection,
       });
     } catch (fallbackError) {
       throw new Error(
