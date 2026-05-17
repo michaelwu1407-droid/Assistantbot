@@ -9,6 +9,9 @@ const {
   createGoogleGenerativeAI,
   generateObject,
   captureException,
+  scheduleLeadCallback,
+  hasRecentAutomaticCallbackAttempt,
+  recordCallbackEvent,
 } = vi.hoisted(() => ({
   db: {
     webhookEvent: { create: vi.fn() },
@@ -31,6 +34,9 @@ const {
   createGoogleGenerativeAI: vi.fn(),
   generateObject: vi.fn(),
   captureException: vi.fn(),
+  scheduleLeadCallback: vi.fn(),
+  hasRecentAutomaticCallbackAttempt: vi.fn(),
+  recordCallbackEvent: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({ db }));
@@ -39,6 +45,11 @@ vi.mock("@/lib/ai/triage", () => ({ triageIncomingLead, saveTriageRecommendation
 vi.mock("@sentry/nextjs", () => ({ captureException }));
 vi.mock("@ai-sdk/google", () => ({ createGoogleGenerativeAI }));
 vi.mock("ai", () => ({ generateObject }));
+vi.mock("@/lib/lead-callback", () => ({ scheduleLeadCallback }));
+vi.mock("@/lib/callback-events", () => ({
+  hasRecentAutomaticCallbackAttempt,
+  recordCallbackEvent,
+}));
 
 describe("POST /api/webhooks/inbound-email", () => {
   beforeEach(() => {
@@ -58,6 +69,9 @@ describe("POST /api/webhooks/inbound-email", () => {
     db.actionExecution.updateMany.mockResolvedValue({ count: 1 });
     triageIncomingLead.mockResolvedValue(null);
     saveTriageRecommendation.mockResolvedValue(undefined);
+    scheduleLeadCallback.mockResolvedValue(undefined);
+    hasRecentAutomaticCallbackAttempt.mockResolvedValue(false);
+    recordCallbackEvent.mockResolvedValue(undefined);
     createGoogleGenerativeAI.mockReturnValue(vi.fn());
     generateObject.mockResolvedValue({ object: {} });
   });
@@ -159,6 +173,8 @@ describe("POST /api/webhooks/inbound-email", () => {
       ownerId: "owner_1",
       inboundEmailAlias: "acme",
       autoCallLeads: true,
+      voiceEnabled: true,
+      agentMode: "EXECUTION",
       twilioPhoneNumber: "+61200000000",
       settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
     });
@@ -199,7 +215,7 @@ describe("POST /api/webhooks/inbound-email", () => {
       data: expect.objectContaining({
         workspaceId: "ws_1",
         name: "Jane Citizen",
-        phone: "0412345678",
+        phone: "+61412345678",
       }),
     });
     expect(db.notification.create).toHaveBeenCalled();
@@ -220,6 +236,8 @@ describe("POST /api/webhooks/inbound-email", () => {
       ownerId: "owner_1",
       inboundEmailAlias: "acme",
       autoCallLeads: true,
+      voiceEnabled: true,
+      agentMode: "EXECUTION",
       twilioPhoneNumber: "+61200000000",
       settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
     });
@@ -273,6 +291,61 @@ describe("POST /api/webhooks/inbound-email", () => {
         type: "WARNING",
         link: "/crm/deals/deal_1",
       }),
+    });
+  });
+
+  it("dials the lead via the voice agent when autoCallLeads is on and triage clears", async () => {
+    db.workspace.findFirst.mockResolvedValue({
+      id: "ws_1",
+      name: "Acme Plumbing",
+      ownerId: "owner_1",
+      inboundEmailAlias: "acme",
+      autoCallLeads: true,
+      autoCallDelaySec: 45,
+      voiceEnabled: true,
+      agentMode: "EXECUTION",
+      twilioPhoneNumber: "+61200000000",
+      settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
+    });
+    db.contact.findFirst.mockResolvedValue(null);
+    db.contact.create.mockResolvedValue({ id: "contact_1", name: "Jane Citizen" });
+    db.deal.create.mockResolvedValue({ id: "deal_1" });
+    triageIncomingLead.mockResolvedValue({ recommendation: "ACCEPT", flags: [] });
+
+    const { POST } = await loadRoute();
+    const response = await POST(
+      new NextRequest("https://app.example.com/api/webhooks/inbound-email", {
+        method: "POST",
+        body: JSON.stringify({
+          type: "email.received",
+          data: {
+            to: "acme@inbound.earlymark.ai",
+            from: "HiPages Notifications <notifications@hipages.com.au>",
+            subject: "New lead from HiPages",
+            text: "Name: Jane Citizen Phone: 0412 345 678 Kitchen tap leak",
+          },
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({
+        callTriggered: true,
+        autoCallBlocked: false,
+        autoCallBlockReason: null,
+      }),
+    );
+    expect(scheduleLeadCallback).toHaveBeenCalledWith({
+      workspaceId: "ws_1",
+      contactId: "contact_1",
+      contactPhone: "+61412345678",
+      contactName: "Jane Citizen",
+      dealId: "deal_1",
+      reason: "email_lead:HiPages",
+      delaySec: 45,
+      triggerSource: "inbound_email",
+      callbackKind: "automatic",
     });
   });
 
@@ -343,5 +416,79 @@ describe("POST /api/webhooks/inbound-email", () => {
         content: "Thanks, we can help with that.",
       }),
     });
+  });
+
+  it("recognises Google Local Services Ads notification emails as leads", async () => {
+    db.workspace.findFirst.mockResolvedValue({
+      id: "ws_1",
+      name: "Acme Plumbing",
+      ownerId: "owner_1",
+      inboundEmailAlias: "acme",
+      autoCallLeads: false,
+      autoCallDelaySec: 60,
+      twilioPhoneNumber: "+61200000000",
+      settings: {},
+    });
+    db.contact.findFirst.mockResolvedValue(null);
+    db.contact.create.mockResolvedValue({ id: "contact_1", name: "Jane Citizen" });
+    db.deal.create.mockResolvedValue({ id: "deal_1" });
+
+    const { POST } = await loadRoute();
+    const response = await POST(
+      new NextRequest("https://app.example.com/api/webhooks/inbound-email", {
+        method: "POST",
+        body: JSON.stringify({
+          type: "email.received",
+          data: {
+            to: "acme@inbound.earlymark.ai",
+            from: "Google Local Services <local-services-noreply@google.com>",
+            subject: "Jane left you a message",
+            text: "Name: Jane Citizen Phone: 0412 345 678 Kitchen tap leak",
+          },
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({ leadCapture: true, platform: "Google LSA" }),
+    );
+  });
+
+  it("recognises Meta Lead Ads notification emails as leads", async () => {
+    db.workspace.findFirst.mockResolvedValue({
+      id: "ws_1",
+      name: "Acme Plumbing",
+      ownerId: "owner_1",
+      inboundEmailAlias: "acme",
+      autoCallLeads: false,
+      autoCallDelaySec: 60,
+      twilioPhoneNumber: "+61200000000",
+      settings: {},
+    });
+    db.contact.findFirst.mockResolvedValue(null);
+    db.contact.create.mockResolvedValue({ id: "contact_1", name: "Jane Citizen" });
+    db.deal.create.mockResolvedValue({ id: "deal_1" });
+
+    const { POST } = await loadRoute();
+    const response = await POST(
+      new NextRequest("https://app.example.com/api/webhooks/inbound-email", {
+        method: "POST",
+        body: JSON.stringify({
+          type: "email.received",
+          data: {
+            to: "acme@inbound.earlymark.ai",
+            from: "Facebook <notification@facebookmail.com>",
+            subject: "You have a new lead for Acme Plumbing",
+            text: "Name: Jane Citizen Phone: 0412 345 678 Burst pipe enquiry from instant form",
+          },
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({ leadCapture: true, platform: "Meta Lead Ads" }),
+    );
   });
 });

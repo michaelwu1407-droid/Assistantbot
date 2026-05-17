@@ -4,6 +4,13 @@ import { db } from "@/lib/db";
 import { findContactByPhone, findWorkspaceByTwilioNumber } from "@/lib/workspace-routing";
 import { isVoiceAgentSecretAuthorized } from "@/lib/voice-agent-auth";
 import { syncVoiceCallToCRM } from "@/lib/post-call-sync";
+import { recordCallbackEvent } from "@/lib/callback-events";
+import {
+  isSipCallConnectedStatus,
+  isSipCallTerminalFailureStatus,
+  normalizeSipCallStatus,
+  readSipCallStatus,
+} from "@/lib/sip-call-status";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +68,88 @@ function getUrgentEscalation(payload: z.infer<typeof voiceCallPayloadSchema>) {
   return { reason: reason || "Urgent or human callback requested" };
 }
 
+function getNestedRecord(value: unknown, key: string) {
+  if (!value || typeof value !== "object") return null;
+  const candidate = (value as Record<string, unknown>)[key];
+  return candidate && typeof candidate === "object" && !Array.isArray(candidate)
+    ? (candidate as Record<string, unknown>)
+    : null;
+}
+
+function readOptionalString(value: unknown, key: string) {
+  if (!value || typeof value !== "object") return null;
+  const candidate = (value as Record<string, unknown>)[key];
+  return typeof candidate === "string" && candidate.trim() ? candidate.trim() : null;
+}
+
+function getSipAttributes(payload: z.infer<typeof voiceCallPayloadSchema>) {
+  const raw = getNestedRecord(payload.metadata, "sipAttributes");
+  if (!raw) return null;
+
+  return Object.fromEntries(
+    Object.entries(raw).flatMap(([key, value]) =>
+      typeof value === "string" ? [[key, value]] : [],
+    ),
+  ) as Record<string, string>;
+}
+
+function deriveCallbackOutcome(params: {
+  transcriptText: string;
+  transcriptTurns: Array<{ role: "user" | "assistant"; text: string; createdAt: number }>;
+  sipCallStatus: string | null;
+}) {
+  if (params.transcriptText || params.transcriptTurns.length > 0 || isSipCallConnectedStatus(params.sipCallStatus)) {
+    return "answered";
+  }
+
+  const normalized = normalizeSipCallStatus(params.sipCallStatus);
+  if (!normalized) return "unknown";
+  if (normalized === "busy") return "busy";
+  if (normalized === "no_answer") return "no_answer";
+  if (normalized === "canceled" || normalized === "cancelled") return "canceled";
+  if (normalized === "completed") return "completed";
+  if (isSipCallTerminalFailureStatus(normalized)) return "failed";
+  return "unknown";
+}
+
+function buildOutboundCallbackSummary(params: {
+  callerName?: string;
+  callerPhone?: string;
+  transcriptText?: string;
+  outcome: string;
+}) {
+  const callerLabel = params.callerName || params.callerPhone || "the prospect";
+  const firstMeaningfulLine = (params.transcriptText || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .find((line) => line.startsWith("Caller:"));
+
+  if (params.outcome === "answered") {
+    const summaryParts = [`Tracey reached ${callerLabel}.`];
+    if (firstMeaningfulLine) {
+      summaryParts.push(firstMeaningfulLine.replace(/^Caller:\s*/i, "").slice(0, 180));
+    }
+    return summaryParts.join(" ");
+  }
+
+  if (params.outcome === "no_answer") {
+    return `Tracey called ${callerLabel}, but nobody picked up.`;
+  }
+  if (params.outcome === "busy") {
+    return `Tracey called ${callerLabel}, but the line was busy.`;
+  }
+  if (params.outcome === "canceled") {
+    return `Tracey started a callback to ${callerLabel}, but it was canceled before it connected.`;
+  }
+  if (params.outcome === "completed") {
+    return `Tracey's callback to ${callerLabel} completed without a usable conversation transcript.`;
+  }
+  if (params.outcome === "failed") {
+    return `Tracey's callback to ${callerLabel} failed to connect.`;
+  }
+  return `Tracey attempted a callback to ${callerLabel}.`;
+}
+
 async function findWorkspaceIdByCalledNumber(calledPhone?: string) {
   const workspace = await findWorkspaceByTwilioNumber(calledPhone);
   return workspace?.id ?? null;
@@ -90,11 +179,35 @@ export async function POST(req: NextRequest) {
       where: { callId: payload.callId },
       select: { callId: true },
     });
+    const roomMetadata = getNestedRecord(payload.metadata, "roomMetadata");
+    const isOutboundCallback = Boolean(
+      roomMetadata?.outbound === true || roomMetadata?.outbound === "true",
+    );
+    const callbackDealId = readOptionalString(roomMetadata, "dealId");
+    const callbackReason = readOptionalString(roomMetadata, "reason");
+    const callbackKind = callbackReason?.startsWith("manual_recall:") ? "manual" : "automatic";
+    const sipAttributes = getSipAttributes(payload);
+    const sipCallStatus = readSipCallStatus(sipAttributes);
     const workspaceId = await findWorkspaceIdByCalledNumber(payload.calledPhone);
     const contactId = workspaceId ? await findContactId(workspaceId, payload.callerPhone) : null;
     const transcriptText = payload.transcriptText.trim();
     const urgentEscalation = getUrgentEscalation(payload);
-    const baseSummary = buildSummary(payload.callType, payload.callerName, payload.callerPhone, transcriptText);
+    const callbackOutcome = isOutboundCallback
+      ? deriveCallbackOutcome({
+          transcriptText,
+          transcriptTurns: payload.transcriptTurns,
+          sipCallStatus,
+        })
+      : null;
+    const persistedCallType = isOutboundCallback ? "outbound_callback" : payload.callType;
+    const baseSummary = isOutboundCallback
+      ? buildOutboundCallbackSummary({
+          callerName: payload.callerName,
+          callerPhone: payload.callerPhone,
+          transcriptText,
+          outcome: callbackOutcome || "unknown",
+        })
+      : buildSummary(payload.callType, payload.callerName, payload.callerPhone, transcriptText);
     const summary = urgentEscalation
       ? `${baseSummary} Manager callback requested: ${urgentEscalation.reason}.`
       : baseSummary;
@@ -103,11 +216,12 @@ export async function POST(req: NextRequest) {
       where: { callId: payload.callId },
       update: {
         source: payload.source,
-        callType: payload.callType,
+        callType: persistedCallType,
         roomName: payload.roomName,
         participantIdentity: payload.participantIdentity,
         workspaceId: workspaceId ?? undefined,
         contactId: contactId ?? undefined,
+        dealId: callbackDealId || undefined,
         callerPhone: payload.callerPhone,
         calledPhone: payload.calledPhone,
         callerName: payload.callerName,
@@ -124,11 +238,12 @@ export async function POST(req: NextRequest) {
       create: {
         callId: payload.callId,
         source: payload.source,
-        callType: payload.callType,
+        callType: persistedCallType,
         roomName: payload.roomName,
         participantIdentity: payload.participantIdentity,
         workspaceId: workspaceId ?? undefined,
         contactId: contactId ?? undefined,
+        dealId: callbackDealId || undefined,
         callerPhone: payload.callerPhone,
         calledPhone: payload.calledPhone,
         callerName: payload.callerName,
@@ -145,8 +260,26 @@ export async function POST(req: NextRequest) {
     });
 
     // ── Post-call CRM sync: create Contact + Deal for normal calls ──
+    if (workspaceId && isOutboundCallback && !existingVoiceCall && callbackOutcome) {
+      await recordCallbackEvent({
+        eventType: "callback_call_finished",
+        payload: {
+          workspaceId,
+          contactId,
+          contactPhone: payload.callerPhone || null,
+          contactName: payload.callerName || null,
+          dealId: callbackDealId,
+          reason: callbackReason,
+          triggerSource: "voice_agent",
+          callbackKind,
+          callStatus: callbackOutcome,
+          providerCallSid: readOptionalString(getNestedRecord(payload.metadata, "providerCallIds"), "twilioCallSid"),
+        },
+      });
+    }
+
     let syncResult = null;
-    if (workspaceId && payload.callType === "normal" && transcriptText) {
+    if (workspaceId && payload.callType === "normal" && transcriptText && !isOutboundCallback) {
       try {
         syncResult = await syncVoiceCallToCRM(workspaceId, {
           callId: payload.callId,
@@ -192,7 +325,7 @@ export async function POST(req: NextRequest) {
     }
 
     // For non-normal calls or if sync was skipped, still log activity
-    if (workspaceId && transcriptText && (!syncResult || syncResult.skipped)) {
+    if (workspaceId && transcriptText && (!syncResult || syncResult.skipped) && !isOutboundCallback) {
       await db.activity.create({
         data: {
           type: "CALL",

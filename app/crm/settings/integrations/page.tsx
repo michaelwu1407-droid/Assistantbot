@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { connectGoogleCalendar, connectXero, disconnectEmailIntegration, disconnectWorkspaceCalendarIntegration, getIntegrationConnectionReadiness, getIntegrationStatus } from "@/actions/integration-actions"
 import { EmailLeadCaptureSettings } from "@/components/settings/email-lead-capture-settings"
+import { LeadChannelsPanel } from "@/components/settings/lead-channels-panel"
+import { WebformEmbedSection } from "@/components/settings/webform-embed-section"
 import { useShellStore } from "@/lib/store"
 import { formatDateTime } from "@/lib/format"
 
@@ -50,7 +52,10 @@ export default function IntegrationsPage() {
     const [calendarLoading, setCalendarLoading] = useState(false)
     const [xeroStatus, setXeroStatus] = useState<"idle" | "connecting" | "connected">("idle")
     const [emailIntegrations, setEmailIntegrations] = useState<EmailIntegrationView[]>([])
+    const [workspaceId, setWorkspaceId] = useState<string | null>(null)
+    const [showLeadChannelPrompt, setShowLeadChannelPrompt] = useState(false)
     const [loadingIntegrations, setLoadingIntegrations] = useState(true)
+    const leadChannelsRef = useRef<HTMLDivElement | null>(null)
     const [readiness, setReadiness] = useState<IntegrationReadinessView>({
         gmail: { ready: false, reason: "Checking Gmail setup..." },
         outlook: { ready: false, reason: "Checking Outlook setup..." },
@@ -85,6 +90,12 @@ export default function IntegrationsPage() {
                     : `${success === "gmail_connected" ? "Gmail" : "Outlook"} connected successfully!`
             )
             refreshIntegrationStatus()
+            if ((success === "gmail_connected" || success === "outlook_connected") && searchParams.get("focus") === "lead_channels") {
+                setShowLeadChannelPrompt(true)
+                window.setTimeout(() => {
+                    leadChannelsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+                }, 200)
+            }
         }
         if (warning) {
             toast.warning(`Connected, but background automation still needs attention: ${warning.replace(/_/g, " ")}`)
@@ -102,6 +113,7 @@ export default function IntegrationsPage() {
                 getIntegrationStatus(),
                 getIntegrationConnectionReadiness(),
             ])
+            setWorkspaceId(status.workspaceId)
             setEmailIntegrations(status.emailIntegrations)
             setXeroStatus(status.xeroConnected ? "connected" : "idle")
             setCalendarIntegration(status.calendarIntegration)
@@ -216,17 +228,17 @@ export default function IntegrationsPage() {
                     <CardHeader>
                         <div className="flex items-center gap-2">
                             <Mail className="h-5 w-5 text-blue-500" />
-                            <CardTitle>Lead capture</CardTitle>
+                            <CardTitle>Lead capture — fastest setup (recommended)</CardTitle>
                         </div>
                         <CardDescription>
-                            Connect Gmail or Outlook so Earlymark can pick up lead emails automatically.
+                            Connect Gmail or Outlook once and Earlymark picks up leads from hipages, Airtasker, Oneflare, Service Seeking and your website form automatically — no filters to set up.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="p-4 bg-green-50/50 rounded-lg border border-green-100 flex gap-3 text-green-800 text-sm">
                             <Zap className="h-5 w-5 shrink-0 mt-0.5 text-green-600" />
                             <p>
-                                <strong>How it works:</strong> Connect once and Earlymark will sort incoming lead emails for you automatically.
+                                <strong>Privacy:</strong> Earlymark only <strong>acts on</strong> emails from known lead senders (hipages, Airtasker, Oneflare, Google LSA, Meta Lead Ads, your website form). Personal email, billing and anything else is ignored and never stored. Want even tighter control? Use the forwarding alias in the <strong>Lead email forwarding</strong> section below — we then only ever see what you choose to forward.
                             </p>
                         </div>
 
@@ -272,6 +284,23 @@ export default function IntegrationsPage() {
                             </div>
                         )}
 
+                        {emailIntegrations.length > 0 && (
+                            <div className="rounded-lg border border-blue-200 bg-blue-50/70 p-4 text-sm text-blue-900">
+                                <p className="font-medium">Inbox connected.</p>
+                                <p className="mt-1">
+                                    Next, scroll down to <span className="font-medium">Where your leads come from</span> to see what is live now and what still needs one more step on Google LSA, Meta, or your website.
+                                </p>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="mt-3 border-blue-200 bg-white text-blue-900 hover:bg-blue-100"
+                                    onClick={() => leadChannelsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                                >
+                                    Show Lead Channels
+                                </Button>
+                            </div>
+                        )}
+
                         {loadingIntegrations ? (
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -306,6 +335,20 @@ export default function IntegrationsPage() {
                 </Card>
 
                 <EmailLeadCaptureSettings />
+
+                <div id="lead-channels" ref={leadChannelsRef} className="space-y-3">
+                    {showLeadChannelPrompt && (
+                        <div className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-4 text-sm text-emerald-900">
+                            <p className="font-medium">Your inbox connection is live.</p>
+                            <p className="mt-1">
+                                This panel shows what Tracey can capture right now, where a platform still needs one more setup step, and where a lead path looks suspiciously quiet.
+                            </p>
+                        </div>
+                    )}
+                    <LeadChannelsPanel />
+                </div>
+
+                {workspaceId ? <WebformEmbedSection workspaceId={workspaceId} /> : null}
 
                 <Card>
                     <CardHeader>

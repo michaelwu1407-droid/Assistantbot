@@ -19,6 +19,9 @@ type PhoneStatus = {
   name: string
   phoneNumber: string | null
   hasPhoneNumber: boolean
+  isOwner: boolean
+  provisioningStatus?: string | null
+  provisioningError?: string | null
 }
 
 const BACKUP_DELAYS = [12, 15, 20, 25, 30, 35, 40]
@@ -64,6 +67,7 @@ export function CallForwardingCard() {
   const [saving, setSaving] = useState(false)
   const [sendingText, setSendingText] = useState(false)
   const [phoneDialogOpen, setPhoneDialogOpen] = useState(false)
+  const [claiming, setClaiming] = useState(false)
 
   const refreshStatus = useCallback(async () => {
     const [forwardingResult, phoneResult] = await Promise.allSettled([
@@ -83,6 +87,9 @@ export function CallForwardingCard() {
         name: phoneResult.value.name,
         phoneNumber: phoneResult.value.phoneNumber || null,
         hasPhoneNumber: !!phoneResult.value.hasPhoneNumber,
+        isOwner: !!phoneResult.value.isOwner,
+        provisioningStatus: phoneResult.value.provisioningStatus || null,
+        provisioningError: phoneResult.value.provisioningError || null,
       })
     }
   }, [])
@@ -100,6 +107,9 @@ export function CallForwardingCard() {
   const personalPhone = status?.personalPhone || null
   const traceyPhone = status?.phoneNumber || null
   const hasTraceyNumber = Boolean(status?.hasPhoneNumber && traceyPhone)
+  const isProvisioningNumber =
+    !hasTraceyNumber &&
+    (status?.provisioningStatus === "requested" || status?.provisioningStatus === "provisioning")
   const codes = useMemo(() => (traceyPhone ? buildCallForwardingCodes(traceyPhone, delaySec) : null), [traceyPhone, delaySec])
   const activeModeGuidance = MODE_GUIDANCE[active]
   const activeDialerHref = active === "backup" ? codes?.backupHref : active === "full" ? codes?.fullHref : codes?.offHref
@@ -154,6 +164,60 @@ export function CallForwardingCard() {
     }
   }
 
+  const handleClaimNumber = async () => {
+    if (claiming) return
+    setClaiming(true)
+    try {
+      const response = await fetch("/api/phone/claim-business-number", { method: "POST" })
+      const result = await response.json()
+      if (response.ok && result.success) {
+        if (result.phoneNumber) {
+          toast.success(`Your new business number is ${result.phoneNumber}`)
+        } else {
+          toast.success("We are setting up your business number now. This usually takes a few seconds.")
+        }
+        await refreshStatus()
+      } else {
+        toast.error(result.error || "Could not claim a number")
+        setClaiming(false)
+      }
+    } catch {
+      toast.error("Could not claim a number")
+      setClaiming(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!claiming) return
+    if (hasTraceyNumber) {
+      setClaiming(false)
+      return
+    }
+
+    const interval = window.setInterval(async () => {
+      try {
+        await refreshStatus()
+      } catch {
+        // Keep polling quietly while provisioning runs in the background.
+      }
+    }, 4000)
+
+    return () => window.clearInterval(interval)
+  }, [claiming, hasTraceyNumber, refreshStatus])
+
+  useEffect(() => {
+    if (!claiming) return
+    if (hasTraceyNumber) {
+      toast.success(`Your new business number is ${traceyPhone}`)
+      setClaiming(false)
+      return
+    }
+    if (status?.provisioningStatus === "failed" || status?.provisioningStatus === "blocked_duplicate") {
+      toast.error(status.provisioningError || "Number setup needs attention before it can finish.")
+      setClaiming(false)
+    }
+  }, [claiming, hasTraceyNumber, status?.provisioningError, status?.provisioningStatus, traceyPhone])
+
   return (
     <>
       <Card className="rounded-[18px] border-border shadow-sm dark:border-slate-800">
@@ -163,7 +227,7 @@ export function CallForwardingCard() {
             Phone & call handling
           </CardTitle>
           <CardDescription>
-            Add your mobile, choose how Tracey should answer, then turn call forwarding on from your phone.
+            Your Tracey number below is your business number — give it to customers, print it on your van and quotes. Every call is answered by Tracey.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -192,14 +256,40 @@ export function CallForwardingCard() {
             </div>
 
             <div className="rounded-[18px] border border-border bg-card/70 p-4 dark:border-white/10 dark:bg-card/5">
-              <div className="space-y-1">
-                <p className="app-micro-label">Tracey number</p>
+              <div className="space-y-2">
+                <p className="app-micro-label">Your new business number</p>
                 <p className="text-sm font-medium text-foreground dark:text-white">
                   {traceyPhone || "Not provisioned yet"}
                 </p>
+                <p className="text-xs text-muted-foreground">
+                  Give this to customers. Every call is answered, qualified and booked by Tracey.
+                </p>
+                {!traceyPhone && status?.isOwner && (
+                  <Button
+                    size="sm"
+                    type="button"
+                    className="rounded-full"
+                    onClick={handleClaimNumber}
+                    disabled={claiming || isProvisioningNumber}
+                  >
+                    {claiming ? "Claiming…" : "Claim my business number"}
+                  </Button>
+                  {(claiming || isProvisioningNumber) && (
+                    <p className="text-xs text-muted-foreground">
+                      We&apos;re provisioning your business number in the background now. You can keep using the app while we finish.
+                    </p>
+                  )}
+                  {!claiming && status?.provisioningError && (
+                    <p className="text-xs text-amber-700 dark:text-amber-400">
+                      {status.provisioningError}
+                    </p>
+                  )}
+                )}
+                {!traceyPhone && !status?.isOwner && (
                   <p className="text-xs text-muted-foreground">
-                    This is the number your business calls can forward to.
+                    Your business hasn&apos;t been assigned a Tracey number yet. The workspace owner can claim one from their settings.
                   </p>
+                )}
               </div>
             </div>
           </div>

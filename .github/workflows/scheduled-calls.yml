@@ -1,0 +1,54 @@
+name: Scheduled Calls
+
+# Drives /api/cron/scheduled-calls, which dials any Task with title prefix
+# "Scheduled call:" whose dueAt has passed. This is what makes the
+# autoCallDelaySec workspace setting actually fire — without this job
+# nothing scans the queue.
+#
+# GitHub Actions enforces a 5-minute minimum schedule, so the real-world
+# delay floor for auto-callbacks is ~5 minutes regardless of the per-
+# workspace autoCallDelaySec setting. For finer granularity, swap this
+# trigger for Vercel Cron, Upstash QStash, or a per-minute external
+# scheduler hitting the same endpoint.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger scheduled-calls cron
+        env:
+          APP_BASE_URL: ${{ secrets.APP_URL || secrets.NEXT_PUBLIC_APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -eu
+          if [ -z "${APP_BASE_URL:-}" ]; then
+            echo "APP_URL or NEXT_PUBLIC_APP_URL secret is missing."
+            exit 1
+          fi
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "CRON_SECRET secret is missing."
+            exit 1
+          fi
+          APP_BASE_URL="${APP_BASE_URL%/}"
+          if [ "${APP_BASE_URL}" = "https://earlymark.ai" ]; then
+            APP_BASE_URL="https://www.earlymark.ai"
+          fi
+
+          response_file="$(mktemp)"
+          status_code="$(
+            curl --location --show-error --silent \
+              --output "${response_file}" \
+              --write-out "%{http_code}" \
+              -H "Authorization: Bearer ${CRON_SECRET}" \
+              "${APP_BASE_URL}/api/cron/scheduled-calls"
+          )"
+          cat "${response_file}"
+          if [ "${status_code}" -ne 200 ]; then
+            echo "/api/cron/scheduled-calls returned HTTP ${status_code}"
+            exit 1
+          fi

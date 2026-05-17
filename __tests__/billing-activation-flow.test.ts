@@ -43,6 +43,11 @@ const {
       findFirst: vi.fn(),
       create: vi.fn(),
     },
+    actionExecution: {
+      create: vi.fn().mockResolvedValue({ id: "lock_1" }),
+      findUnique: vi.fn().mockResolvedValue(null),
+      update: vi.fn().mockResolvedValue({ id: "lock_1" }),
+    },
   },
   getAuthUserId: vi.fn(),
   requireCurrentWorkspaceAccess: vi.fn(),

@@ -1,7 +1,8 @@
 /**
  * Webform Webhook — /api/webhooks/webform
  *
- * Accepts POST requests from contact forms embedded on the tradie's website.
+ * Accepts POST requests from contact forms embedded on the tradie's website
+ * or from advanced manual integrations (custom sites, Zapier, Make, etc).
  * Creates or finds a contact and opens a new lead (Deal) in the CRM tagged
  * with source = "website".
  *
@@ -29,10 +30,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { evaluateAutomations } from "@/actions/automation-actions";
 import { saveTriageRecommendation, triageIncomingLead } from "@/lib/ai/triage";
+import { scheduleLeadCallback } from "@/lib/lead-callback";
+import { isWithinAllowedCallWindow } from "@/lib/call-window";
+import { canAutoCallLead, type AutoCallBlockReason } from "@/lib/auto-call-eligibility";
+import {
+  hasRecentAutomaticCallbackAttempt,
+  recordCallbackEvent,
+} from "@/lib/callback-events";
+import { normalizePhone } from "@/lib/phone-utils";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export const dynamic = "force-dynamic";
+const WEBFORM_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const WEBFORM_RATE_LIMIT_MAX = 20;
 
 function corsHeaders() {
   return {
@@ -73,6 +84,10 @@ async function parsePayload(req: NextRequest): Promise<Record<string, string>> {
 export async function POST(req: NextRequest) {
   try {
     const body = await parsePayload(req);
+    const requestIp =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      req.headers.get("x-real-ip")?.trim() ||
+      "unknown";
 
     // Resolve workspace — prefer explicit workspace_id, fall back to subdomain header
     const workspaceId = body.workspace_id || req.headers.get("x-workspace-id") || "";
@@ -87,14 +102,78 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate workspace exists
-    const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { id: true, name: true } });
+    const workspace = await db.workspace.findUnique({
+      where: { id: workspaceId },
+      select: {
+        id: true, name: true, settings: true, ownerId: true,
+        autoCallLeads: true, autoCallDelaySec: true,
+        voiceEnabled: true, agentMode: true, twilioPhoneNumber: true,
+      },
+    });
     if (!workspace) {
       return NextResponse.json({ error: "Workspace not found" }, { status: 404, headers: corsHeaders() });
     }
 
+    const recentSubmissionCount = await db.webhookEvent.count({
+      where: {
+        provider: "webform",
+        eventType: "lead_received",
+        createdAt: { gt: new Date(Date.now() - WEBFORM_RATE_LIMIT_WINDOW_MS) },
+        AND: [
+          { payload: { path: ["workspaceId"], equals: workspaceId } },
+          { payload: { path: ["ip"], equals: requestIp } },
+        ],
+      },
+    }).catch(() => 0);
+
+    if (recentSubmissionCount >= WEBFORM_RATE_LIMIT_MAX) {
+      await db.webhookEvent.create({
+        data: {
+          provider: "webform",
+          eventType: "lead_received",
+          status: "error",
+          error: "Rate limit exceeded",
+          payload: {
+            workspaceId,
+            ip: requestIp,
+            source: body.source || "website",
+            rateLimited: true,
+          },
+        },
+      }).catch(() => {});
+      return NextResponse.json(
+        { error: "Too many submissions from this source. Please wait a few minutes and try again." },
+        { status: 429, headers: corsHeaders() },
+      );
+    }
+
+    // Honeypot: bots fill this hidden field, real users don't see it.
+    // Silently accept (200) so bots don't get signal we detected them.
+    if ((body.company_website || "").trim()) {
+      console.info(`[Webform webhook] honeypot tripped for workspace ${workspaceId} — silent accept`);
+      await db.webhookEvent.create({
+        data: {
+          provider: "webform",
+          eventType: "lead_received",
+          status: "error",
+          error: "Honeypot tripped",
+          payload: {
+            workspaceId,
+            ip: requestIp,
+            source: body.source || "website",
+            honeypotTripped: true,
+          },
+        },
+      }).catch(() => {});
+      return NextResponse.json({ success: true }, { headers: corsHeaders() });
+    }
+
     const name = (body.name || body.full_name || body.customer_name || "Website Enquiry").trim();
     const email = (body.email || body.customer_email || "").toLowerCase().trim();
-    const phone = (body.phone || body.mobile || body.customer_phone || "").trim();
+    // Normalise to E.164 at the boundary so Contact.phone is consistent
+    // across channels (otherwise the same customer can appear twice with
+    // different formats depending on which channel found them first).
+    const phone = normalizePhone((body.phone || body.mobile || body.customer_phone || "").trim());
     const message = (body.message || body.enquiry || body.description || "").trim();
     const jobType = (body.job_type || body.service_type || body.work_type || "").trim();
     const address = (body.address || body.location || body.site_address || "").trim();
@@ -164,6 +243,86 @@ export async function POST(req: NextRequest) {
       await saveTriageRecommendation(deal.id, triage).catch(() => {});
     }
 
+    // Decide whether to dispatch an auto-callback via the voice agent.
+    // Workspace-level policy comes from canAutoCallLead; per-lead reasons
+    // (no phone on this lead, after-hours, triage held) are checked here.
+    const eligibility = canAutoCallLead(workspace);
+    const withinCallWindow = isWithinAllowedCallWindow(workspace.settings);
+    const hasPhone = phone.length > 0;
+    let autoCallTriggered = false;
+    let autoCallBlockReason: AutoCallBlockReason | "no_lead_phone" | "triage_review" | "after_hours" | null = null;
+
+    if (!eligibility.allowed) {
+      autoCallBlockReason = eligibility.reason;
+    } else if (!hasPhone) {
+      autoCallBlockReason = "no_lead_phone";
+    } else if (heldForReview) {
+      autoCallBlockReason = "triage_review";
+    } else if (!withinCallWindow) {
+      autoCallBlockReason = "after_hours";
+    } else if (await hasRecentAutomaticCallbackAttempt({
+      workspaceId,
+      contactId: contact.id,
+      contactPhone: phone,
+    })) {
+      autoCallBlockReason = "callback_recently_attempted";
+    } else {
+      autoCallTriggered = true;
+      scheduleLeadCallback({
+        workspaceId,
+        contactId: contact.id,
+        contactPhone: phone,
+        contactName: name,
+        dealId: deal.id,
+        reason: `webform_lead:${source}`,
+        delaySec: workspace.autoCallDelaySec === 60 ? 0 : (workspace.autoCallDelaySec ?? 0),
+        triggerSource: "webform",
+        callbackKind: "automatic",
+      }).catch((err) => {
+        console.error("[Webform webhook] scheduleLeadCallback failed:", err);
+      });
+    }
+
+    if (autoCallBlockReason) {
+      console.info(
+        `[Webform webhook] auto-call blocked for deal ${deal.id} (workspace ${workspaceId}): ${autoCallBlockReason}`,
+      );
+      await recordCallbackEvent({
+        eventType: "callback_blocked",
+        payload: {
+          workspaceId,
+          contactId: contact.id,
+          contactPhone: phone,
+          contactName: name,
+          dealId: deal.id,
+          reason: `webform_lead:${source}`,
+          triggerSource: "webform",
+          callbackKind: "automatic",
+          blockReason: autoCallBlockReason,
+        },
+      });
+    }
+
+    await db.webhookEvent.create({
+      data: {
+        provider: "webform",
+        eventType: "lead_received",
+        status: "success",
+        payload: {
+          workspaceId,
+          contactId: contact.id,
+          dealId: deal.id,
+          ip: requestIp,
+          source,
+          autoCallTriggered,
+          autoCallBlocked: !autoCallTriggered,
+          autoCallBlockReason,
+          triageRecommendation: triage?.recommendation ?? null,
+          triageFlags: triage?.flags ?? [],
+        },
+      },
+    }).catch(() => {});
+
     // Customer-facing new-lead automations must not fire for held leads.
     if (!heldForReview) {
       evaluateAutomations(workspaceId, {
@@ -199,9 +358,22 @@ export async function POST(req: NextRequest) {
       // Notification failure is non-blocking
     }
 
-    // If redirect_url provided, redirect (for traditional HTML form POST)
+    // If redirect_url provided, redirect (for traditional HTML form POST).
+    // Resolve against the request URL so relative paths like
+    // "/quote/xxx/thanks" work, and refuse cross-origin redirects to
+    // prevent open-redirect abuse.
     if (redirectUrl) {
-      return NextResponse.redirect(redirectUrl, { status: 303, headers: corsHeaders() });
+      try {
+        const resolved = new URL(redirectUrl, req.url);
+        const reqOrigin = new URL(req.url).origin;
+        if (resolved.origin !== reqOrigin) {
+          console.warn(`[Webform webhook] refusing cross-origin redirect to ${resolved.origin}`);
+        } else {
+          return NextResponse.redirect(resolved.toString(), { status: 303, headers: corsHeaders() });
+        }
+      } catch {
+        console.warn(`[Webform webhook] ignoring malformed redirect_url: ${redirectUrl}`);
+      }
     }
 
     return NextResponse.json({
@@ -211,9 +383,19 @@ export async function POST(req: NextRequest) {
       heldForReview,
       triageRecommendation: triage?.recommendation ?? null,
       triageFlags: triage?.flags ?? [],
+      autoCallTriggered,
+      autoCallBlockReason,
     }, { headers: corsHeaders() });
   } catch (error) {
     console.error("[Webform webhook] Error:", error);
+    await db.webhookEvent.create({
+      data: {
+        provider: "webform",
+        eventType: "lead_received",
+        status: "error",
+        error: error instanceof Error ? error.message : "Unknown webform error",
+      },
+    }).catch(() => {});
     return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: corsHeaders() });
   }
 }

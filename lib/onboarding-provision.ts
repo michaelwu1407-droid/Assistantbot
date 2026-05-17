@@ -32,7 +32,7 @@ function withProvisioningDiagnostics(
   };
 }
 
-type TriggerSource = "stripe-webhook" | "billing-success" | "onboarding-check" | "onboarding-activation";
+type TriggerSource = "stripe-webhook" | "billing-success" | "onboarding-check" | "onboarding-activation" | "manual_claim";
 
 export type WorkspaceProvisioningStatus =
   | "not_requested"
@@ -238,6 +238,51 @@ export async function ensureWorkspaceProvisioned(params: {
     }
   }
 
+  // Idempotency lock — prevent two concurrent calls (e.g. Stripe webhook
+  // redelivery + onboarding wizard finish) from both reaching the Twilio
+  // buy-a-number stage. We claim a workspace-scoped lock via the unique
+  // idempotencyKey on ActionExecution; a competing call hits the unique
+  // constraint and bails. Stale locks (>5 min, status still IN_PROGRESS)
+  // are reclaimable so a crashed prior attempt doesn't permanently jam.
+  const lockKey = `workspace_provisioning:${workspace.id}`;
+  const STALE_LOCK_MS = 5 * 60 * 1000;
+  try {
+    await db.actionExecution.create({
+      data: { idempotencyKey: lockKey, actionType: "workspace_provisioning", status: "IN_PROGRESS" },
+    });
+  } catch {
+    const existing = await db.actionExecution.findUnique({ where: { idempotencyKey: lockKey } });
+    const isStale = existing && existing.status === "IN_PROGRESS"
+      && Date.now() - existing.updatedAt.getTime() > STALE_LOCK_MS;
+    if (existing?.status === "COMPLETED") {
+      const fresh = await db.workspace.findUnique({
+        where: { id: workspace.id }, select: { twilioPhoneNumber: true },
+      });
+      if (fresh?.twilioPhoneNumber) {
+        return {
+          success: true, phoneNumber: fresh.twilioPhoneNumber,
+          provisioningStatus: "already_provisioned",
+          elapsedMs: Date.now() - startedAt,
+        };
+      }
+    }
+    if (!isStale) {
+      logger.info("ONBOARDING PROVISION: Skipping — another attempt is in flight", {
+        workspaceId: workspace.id, triggerSource: params.triggerSource,
+      });
+      return {
+        success: false, provisioningStatus: "provisioning",
+        error: "Another provisioning attempt is already in flight for this workspace.",
+        elapsedMs: Date.now() - startedAt,
+      };
+    }
+    // Stale lock — reclaim it so a crashed prior attempt doesn't jam us.
+    await db.actionExecution.update({
+      where: { idempotencyKey: lockKey },
+      data: { status: "IN_PROGRESS", updatedAt: new Date() },
+    });
+  }
+
   await db.workspace.update({
     where: { id: workspace.id },
     data: {
@@ -261,6 +306,13 @@ export async function ensureWorkspaceProvisioned(params: {
     params.businessName,
     params.ownerPhone || ""
   );
+
+  // Release the lock so future calls (if needed) can re-acquire and so
+  // the row reflects final state for ops visibility.
+  await db.actionExecution.update({
+    where: { idempotencyKey: lockKey },
+    data: { status: result.success ? "COMPLETED" : "FAILED", error: result.error ?? null },
+  }).catch((err) => logger.error("ONBOARDING PROVISION: lock release failed", { err: String(err) }));
 
   const elapsedMs = Date.now() - startedAt;
   const latestWorkspace = await db.workspace.findUnique({

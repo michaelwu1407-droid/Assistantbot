@@ -10,6 +10,7 @@ function formatDateTime(date: Date) {
 
 function formatCallType(callType: string) {
   if (callType === "normal") return "Customer workspace";
+  if (callType === "outbound_callback") return "Tracey callback";
   if (callType === "demo") return "Interview form demo";
   if (callType === "inbound_demo") return "Earlymark inbound";
   return callType;

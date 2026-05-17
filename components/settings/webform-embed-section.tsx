@@ -18,6 +18,7 @@ export function WebformEmbedSection({ workspaceId }: WebformEmbedSectionProps) {
 
   const htmlSnippet = `<form action="${endpoint}" method="POST">
   <input type="hidden" name="workspace_id" value="${workspaceId}" />
+  <input type="hidden" name="company_website" value="" />
   <!-- Optional: redirect back to your thank-you page after submission -->
   <input type="hidden" name="redirect_url" value="https://yoursite.com/thank-you" />
 
@@ -41,6 +42,7 @@ export function WebformEmbedSection({ workspaceId }: WebformEmbedSectionProps) {
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
     workspace_id: "${workspaceId}",
+    company_website: "",
     name: "Jane Smith",
     email: "jane@example.com",
     phone: "0412 345 678",
@@ -70,11 +72,10 @@ export function WebformEmbedSection({ workspaceId }: WebformEmbedSectionProps) {
       <CardHeader>
         <div className="flex items-center gap-2">
           <Code2 className="h-5 w-5 text-emerald-600" />
-          <CardTitle>Embed Lead Form</CardTitle>
+          <CardTitle>Advanced Webform Endpoint</CardTitle>
         </div>
         <CardDescription>
-          Add a contact form to your website that automatically creates leads in your CRM.
-          Submissions trigger any &quot;New lead&quot; automations you&apos;ve set up.
+          Use this if your website does not already email enquiries into your connected inbox, or if you want a direct form-to-CRM integration from a custom site, Zapier, or Make.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -117,6 +118,10 @@ export function WebformEmbedSection({ workspaceId }: WebformEmbedSectionProps) {
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
           </Button>
         </div>
+
+        <p className="text-xs text-muted-foreground">
+          Include the hidden <code className="bg-muted px-1 rounded">company_website</code> field as a honeypot so Earlymark can silently drop basic bot spam.
+        </p>
 
         <p className="text-xs text-muted-foreground">
           The HTML form uses a <code className="bg-muted px-1 rounded">redirect_url</code> field

@@ -104,6 +104,7 @@ const TraceyOnboardingSchema = z.object({
   // Step 6: Provisioning
   referralSource: z.string().trim().optional(),
   acceptsMultilingual: z.boolean().default(false),
+  autoCallLeads: z.boolean().default(true),
 }).transform(data => {
   // Enforce emergency consistency
   if (!data.emergencyService) {
@@ -376,6 +377,7 @@ export async function saveTraceyOnboarding(
           workingHoursStart: firstOpenHours.start,
           workingHoursEnd: firstOpenHours.end,
           callOutFee: d.globalCallOutFee ?? 0,
+          autoCallLeads: d.autoCallLeads,
           settings: nextSettings,
         },
       });

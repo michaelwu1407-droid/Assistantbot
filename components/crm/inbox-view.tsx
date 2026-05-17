@@ -23,8 +23,10 @@ import Sparkles from "lucide-react/dist/esm/icons/sparkles"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { sendSMS } from "@/actions/messaging-actions"
+import { requestTraceyRecall } from "@/actions/voice-call-actions"
 import { toast } from "sonner"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   Select,
   SelectContent,
@@ -172,6 +174,7 @@ export function InboxView({
   workspaceId,
   initialContactId = null,
 }: InboxViewProps) {
+  const router = useRouter()
   const { viewMode, tutorialStepIndex } = useShellStore()
   const isTutorialInboxStep = viewMode === "TUTORIAL" && TUTORIAL_STEPS[tutorialStepIndex]?.id === "nav-inbox"
   const interactions = isTutorialInboxStep ? [...FAKE_TUTORIAL_INBOX, ...initialInteractions] : initialInteractions
@@ -197,6 +200,7 @@ export function InboxView({
     tracey: "",
   })
   const [expandedActivityIds, setExpandedActivityIds] = useState<Record<string, boolean>>({})
+  const [recallingActivityId, setRecallingActivityId] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
   const messageText = messageDrafts[messageMode]
 
@@ -291,7 +295,7 @@ export function InboxView({
   // Filter interactions for the RHS based on detail tab
   const detailInteractions = selectedContact
     ? detailTab === "conversations"
-      ? selectedContact.interactions.filter(a => !isSystemEvent(a))
+      ? selectedContact.interactions.filter(a => !isSystemEvent(a) || a.workflow?.kind === "callback")
       : selectedContact.interactions.filter(a => isSystemEvent(a))
     : []
 
@@ -465,6 +469,28 @@ If the request is to contact the customer, use the appropriate customer-contact 
       toast.error("Failed to send message")
     } finally {
       setSending(false)
+    }
+  }
+
+  const handleRecallWithTracey = async (item: ActivityView) => {
+    if (!selectedContact?.id) return
+    setRecallingActivityId(item.id)
+    try {
+      const result = await requestTraceyRecall({
+        contactId: selectedContact.id,
+        dealId: item.dealId || selectedActivity?.dealId || null,
+      })
+      if (result.success) {
+        toast.success(`Tracey is calling ${selectedContact.name} now`)
+        router.refresh()
+      } else {
+        toast.error(result.error || "Tracey couldn't place that recall.")
+      }
+    } catch (error) {
+      console.error("[Inbox] Recall request failed:", error)
+      toast.error("Tracey couldn't place that recall.")
+    } finally {
+      setRecallingActivityId(null)
     }
   }
 
@@ -733,6 +759,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
                 ) : (
                   detailInteractions.map((item) => {
                     const meta = getTimelineMeta(item)
+                    const callbackWorkflow = item.workflow?.kind === "callback" ? item.workflow : null
                     const outbound = meta.direction === "outbound"
                     const expanded = expandedActivityIds[item.id] ?? shouldExpandByDefault(item)
                     const { icon, containerClass, label } = channelIconAndStyle(meta.channel)
@@ -845,6 +872,23 @@ If the request is to contact the customer, use the appropriate customer-contact 
                             ) : meta.summary ? (
                               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{meta.summary}</p>
                             ) : null}
+
+                            {callbackWorkflow?.recallEligible && (
+                              <div className="mt-3 flex flex-wrap items-center gap-2">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  className="h-8"
+                                  disabled={recallingActivityId === item.id}
+                                  onClick={() => handleRecallWithTracey(item)}
+                                >
+                                  {recallingActivityId === item.id ? "Calling…" : "Recall with Tracey"}
+                                </Button>
+                                <p className="text-xs text-muted-foreground">
+                                  Or use the call/text buttons above if you want to handle it yourself.
+                                </p>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>

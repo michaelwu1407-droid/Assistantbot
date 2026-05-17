@@ -68,40 +68,40 @@ export async function getIntegrationStatus() {
   const actor = await requireCurrentWorkspaceAccess().catch(() => null);
   if (!actor?.workspaceId) {
     return {
+      workspaceId: null,
       emailIntegrations: [],
       xeroConnected: false,
       calendarIntegration: { connected: false, provider: "google", emailAddress: null, lastSyncAt: null, calendarId: null },
     };
   }
 
-  const user = await db.user.findUnique({
-    where: { id: actor.id },
-    select: {
-      workspaceId: true,
-      emailIntegrations: {
-        orderBy: { createdAt: "desc" },
-        select: {
-          id: true,
-          provider: true,
-          emailAddress: true,
-          isActive: true,
-          lastSyncAt: true,
-        },
+  const [workspace, emailIntegrations] = await Promise.all([
+    db.workspace.findUnique({
+      where: { id: actor.workspaceId },
+      select: { settings: true },
+    }),
+    db.emailIntegration.findMany({
+      where: { user: { workspaceId: actor.workspaceId } },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        provider: true,
+        emailAddress: true,
+        isActive: true,
+        lastSyncAt: true,
       },
-      workspace: {
-        select: { settings: true },
-      },
-    },
-  });
+    }),
+  ]);
 
-  const settings = (user?.workspace.settings as Record<string, unknown> | undefined) ?? {};
-  const workspaceId = user?.workspaceId ?? actor.workspaceId;
+  const settings = (workspace?.settings as Record<string, unknown> | undefined) ?? {};
+  const workspaceId = actor.workspaceId;
   const calendarIntegration = workspaceId
     ? await getWorkspaceCalendarStatus(workspaceId)
     : { connected: false, provider: "google", emailAddress: null, lastSyncAt: null, calendarId: null };
 
   return {
-    emailIntegrations: user?.emailIntegrations ?? [],
+    workspaceId,
+    emailIntegrations,
     xeroConnected: Boolean(settings.xero_access_token && settings.xero_tenant_id),
     calendarIntegration,
   };

@@ -71,6 +71,8 @@ describe("getActivities", () => {
         startedAt: new Date("2026-03-16T10:00:00.000Z"),
         endedAt: new Date("2026-03-16T10:03:00.000Z"),
         contactId: "contact_1",
+        dealId: "deal_1",
+        metadata: null,
         contact: { name: "Alex", phone: "0400 000 000", email: "alex@example.com" },
       },
     ]);
@@ -123,6 +125,8 @@ describe("getActivities", () => {
         startedAt: new Date("2026-03-16T11:00:00.000Z"),
         endedAt: null,
         contactId: "contact_42",
+        dealId: null,
+        metadata: null,
         contact: {
           name: "Michael",
           phone: "0434 955 958",
@@ -229,6 +233,51 @@ describe("getActivities", () => {
       title: "Inbound SMS",
       direction: "inbound",
       body: "Need a quote for a blocked drain",
+    });
+  });
+
+  it("maps callback webhook events into the activity stream with recall-ready workflow metadata", async () => {
+    dbMocks.webhookEvent.findMany.mockResolvedValue([
+      {
+        id: "evt_1",
+        eventType: "callback_call_finished",
+        status: "success",
+        error: null,
+        createdAt: new Date("2026-03-16T13:00:00.000Z"),
+        payload: {
+          workspaceId: "ws_123",
+          contactId: "contact_1",
+          contactName: "Alex",
+          contactPhone: "0400 000 000",
+          dealId: "deal_1",
+          callbackKind: "automatic",
+          callStatus: "no_answer",
+          triggerSource: "voice_agent",
+        },
+      },
+    ]);
+
+    const result = await getActivities({
+      workspaceId: "ws_123",
+      typeIn: ["CALL", "NOTE"],
+      limit: 10,
+    });
+
+    expect(result[0]).toMatchObject({
+      id: "callback-event:evt_1",
+      title: "No answer to Tracey callback",
+      contactId: "contact_1",
+      contactName: "Alex",
+      channel: "system",
+      direction: "system",
+      workflow: {
+        kind: "callback",
+        eventType: "callback_call_finished",
+        callbackKind: "automatic",
+        recallEligible: true,
+        outcome: "no_answer",
+        triggerSource: "voice_agent",
+      },
     });
   });
 });

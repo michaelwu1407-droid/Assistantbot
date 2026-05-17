@@ -95,7 +95,7 @@ describe("GET /api/auth/outlook/callback", () => {
     );
 
     expect(response.headers.get("location")).toBe(
-      "https://earlymark.ai/crm/settings/integrations?success=outlook_connected",
+      "https://earlymark.ai/crm/settings/integrations?success=outlook_connected&focus=lead_channels",
     );
     expect(hoisted.upsertEmailIntegrationFromOAuth).toHaveBeenCalledWith(
       expect.objectContaining({

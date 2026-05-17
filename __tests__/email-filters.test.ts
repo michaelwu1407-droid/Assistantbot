@@ -149,4 +149,13 @@ describe("email filter provisioning", () => {
       data: { webhookId: "subscription_789" },
     });
   });
+
+  it("includes Google LSA and Meta Lead Ads in the LEAD_PROVIDERS list", async () => {
+    const { LEAD_PROVIDERS } = await import("@/lib/email-filters");
+    expect(Object.keys(LEAD_PROVIDERS)).toEqual(
+      expect.arrayContaining(["hipages", "airtasker", "google_lsa", "meta_lead_ads"]),
+    );
+    expect(LEAD_PROVIDERS.google_lsa.domains).toContain("local-services-noreply@google.com");
+    expect(LEAD_PROVIDERS.meta_lead_ads.domains).toContain("facebookmail.com");
+  });
 });
