@@ -14,6 +14,8 @@ const {
   scheduleLeadCallback,
   hasRecentAutomaticCallbackAttempt,
   recordCallbackEvent,
+  assessInboundLeadGuard,
+  recordInboundLeadGuardEvent,
 } = vi.hoisted(() => ({
   waitUntil: vi.fn(),
   prisma: {
@@ -52,6 +54,8 @@ const {
   scheduleLeadCallback: vi.fn(),
   hasRecentAutomaticCallbackAttempt: vi.fn(),
   recordCallbackEvent: vi.fn(),
+  assessInboundLeadGuard: vi.fn(),
+  recordInboundLeadGuardEvent: vi.fn(),
 }));
 
 vi.mock("@vercel/functions", () => ({
@@ -90,6 +94,14 @@ vi.mock("@/lib/lead-callback", () => ({
 vi.mock("@/lib/callback-events", () => ({
   hasRecentAutomaticCallbackAttempt,
   recordCallbackEvent,
+}));
+vi.mock("@/lib/inbound-lead-guard", () => ({
+  assessInboundLeadGuard,
+  buildInboundLeadGuardCopy: ({ reason }: { reason: string }) => ({
+    title: "Lead held for spam review",
+    description: `Held because ${reason}`,
+  }),
+  recordInboundLeadGuardEvent,
 }));
 
 import { POST } from "@/app/api/twilio/webhook/route";
@@ -142,6 +154,8 @@ describe("POST /api/twilio/webhook", () => {
     scheduleLeadCallback.mockResolvedValue(undefined);
     hasRecentAutomaticCallbackAttempt.mockResolvedValue(false);
     recordCallbackEvent.mockResolvedValue(undefined);
+    assessInboundLeadGuard.mockResolvedValue({ blocked: false, payload: null });
+    recordInboundLeadGuardEvent.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -375,5 +389,39 @@ describe("POST /api/twilio/webhook", () => {
     await waitUntil.mock.calls[0][0];
 
     expect(scheduleLeadCallback).not.toHaveBeenCalled();
+  });
+
+  it("suppresses Tracey outreach when a new SMS lead looks like a suspicious burst", async () => {
+    findWorkspaceByTwilioNumber.mockResolvedValue({
+      id: "ws_1",
+      name: "Alpha Plumbing",
+      settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
+      twilioPhoneNumber: "+61485010634",
+      autoCallLeads: true,
+      autoCallDelaySec: 120,
+      voiceEnabled: true,
+      agentMode: "EXECUTION",
+    });
+    findContactByPhone.mockResolvedValue({ id: "contact_1", name: "Alex" });
+    assessInboundLeadGuard.mockResolvedValue({
+      blocked: true,
+      payload: {
+        workspaceId: "ws_1",
+        channel: "inbound_sms",
+        reason: "phone_burst",
+        eventCount: 3,
+        windowMinutes: 30,
+        contactPhone: "+61400000000",
+      },
+    });
+
+    const response = await POST(buildSmsRequest());
+    expect(response.status).toBe(200);
+
+    await waitUntil.mock.calls[0][0];
+
+    expect(recordInboundLeadGuardEvent).toHaveBeenCalled();
+    expect(scheduleLeadCallback).not.toHaveBeenCalled();
+    expect(generateSMSResponse).not.toHaveBeenCalled();
   });
 });

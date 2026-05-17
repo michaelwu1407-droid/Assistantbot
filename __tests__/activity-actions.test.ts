@@ -280,4 +280,42 @@ describe("getActivities", () => {
       },
     });
   });
+
+  it("maps callback takeover events into the activity stream without another recall CTA", async () => {
+    dbMocks.webhookEvent.findMany.mockResolvedValue([
+      {
+        id: "evt_2",
+        eventType: "callback_taken_over",
+        status: "success",
+        error: null,
+        createdAt: new Date("2026-03-16T13:05:00.000Z"),
+        payload: {
+          workspaceId: "ws_123",
+          contactId: "contact_1",
+          contactName: "Alex",
+          contactPhone: "0400 000 000",
+          dealId: "deal_1",
+          callbackKind: "manual",
+          triggerSource: "inbox_manual_takeover",
+        },
+      },
+    ]);
+
+    const result = await getActivities({
+      workspaceId: "ws_123",
+      typeIn: ["CALL", "NOTE"],
+      limit: 10,
+    });
+
+    expect(result[0]).toMatchObject({
+      id: "callback-event:evt_2",
+      title: "You'll handle the next step",
+      workflow: {
+        kind: "callback",
+        eventType: "callback_taken_over",
+        callbackKind: "manual",
+        recallEligible: false,
+      },
+    });
+  });
 });

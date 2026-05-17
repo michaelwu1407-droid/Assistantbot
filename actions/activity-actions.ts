@@ -249,15 +249,15 @@ function mapCallbackEventToActivity(event: CallbackEventActivityRow): ActivityVi
     summary: copy.description,
     subject: null,
     durationLabel: null,
-    workflow: {
-      kind: "callback",
-      eventType: event.eventType,
-      callbackKind: copy.payload.callbackKind || "automatic",
-      recallEligible: copy.recallEligible,
-      outcome: copy.outcome,
-      triggerSource: copy.payload.triggerSource || null,
-      blockReason: copy.payload.blockReason || null,
-    },
+      workflow: {
+        kind: "callback",
+        eventType: event.eventType,
+        callbackKind: copy.payload.callbackKind || "automatic",
+        recallEligible: copy.recallEligible,
+        outcome: copy.outcome ?? null,
+        triggerSource: copy.payload.triggerSource || null,
+        blockReason: copy.payload.blockReason || null,
+      },
   };
 }
 

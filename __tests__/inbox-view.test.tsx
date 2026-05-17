@@ -3,9 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-const { sendSMS, requestTraceyRecall, toastSuccess, toastError, toastInfo } = vi.hoisted(() => ({
+const { sendSMS, requestTraceyRecall, markCallbackHandledByMe, toastSuccess, toastError, toastInfo } = vi.hoisted(() => ({
   sendSMS: vi.fn(),
   requestTraceyRecall: vi.fn(),
+  markCallbackHandledByMe: vi.fn(),
   toastSuccess: vi.fn(),
   toastError: vi.fn(),
   toastInfo: vi.fn(),
@@ -45,6 +46,7 @@ vi.mock("@/actions/messaging-actions", () => ({
 
 vi.mock("@/actions/voice-call-actions", () => ({
   requestTraceyRecall,
+  markCallbackHandledByMe,
 }));
 
 vi.mock("sonner", () => ({
@@ -61,6 +63,7 @@ describe("InboxView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     requestTraceyRecall.mockResolvedValue({ success: true });
+    markCallbackHandledByMe.mockResolvedValue({ success: true });
   });
 
   afterEach(() => {
@@ -553,6 +556,55 @@ describe("InboxView", () => {
       }),
     );
     expect(toastSuccess).toHaveBeenCalledWith("Tracey is calling Alice Example now");
+  });
+
+  it("lets the tradie take over a callback thread manually", async () => {
+    const user = userEvent.setup();
+    render(
+      <InboxView
+        workspaceId="ws_1"
+        initialInteractions={[
+          {
+            id: "activity_1",
+            type: "note",
+            channel: "system",
+            direction: "system",
+            title: "No answer to Tracey callback",
+            description: "Nobody picked up. You can ask Tracey to try once more or handle it yourself.",
+            content: "Nobody picked up. You can ask Tracey to try once more or handle it yourself.",
+            preview: "Nobody picked up.",
+            time: "Just now",
+            createdAt: new Date("2026-04-03T10:00:00.000Z"),
+            contactId: "contact_a",
+            contactName: "Alice Example",
+            contactPhone: "0400000001",
+            contactEmail: "alice@example.com",
+            dealId: "deal_1",
+            workflow: {
+              kind: "callback",
+              eventType: "callback_call_finished",
+              callbackKind: "automatic",
+              recallEligible: true,
+              outcome: "no_answer",
+              triggerSource: "voice_agent",
+              blockReason: null,
+            },
+          },
+        ]}
+      />,
+    );
+
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Alice Example" })).toBeInTheDocument());
+
+    await user.click(screen.getByRole("button", { name: /I'll handle this/i }));
+
+    await waitFor(() =>
+      expect(markCallbackHandledByMe).toHaveBeenCalledWith({
+        contactId: "contact_a",
+        dealId: "deal_1",
+      }),
+    );
+    expect(toastSuccess).toHaveBeenCalledWith("We'll leave Alice Example with your team from here");
   });
 });
 

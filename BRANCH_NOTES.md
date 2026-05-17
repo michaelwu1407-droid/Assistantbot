@@ -17,7 +17,10 @@ These were tightened after the original closeout review to remove customer-facin
 - **SMS blocked auto-calls are visible too.** The Twilio SMS path now records blocked auto-call reasons consistently so ops can query them across channels instead of only on email and missed-call flows.
 - **Callback outcomes are now visible in the inbox thread.** Tradies now see `queued`, `called`, `no answer`, `busy`, and `failed to start` as simple system timeline events inside the prospect conversation instead of needing ops-level debugging.
 - **Automatic recall loops are now guarded.** We allow one recent automatic callback attempt per prospect, then leave the next step to the tradie with a clear `Recall with Tracey` action in the inbox if the call did not connect.
+- **Tradies can now explicitly take over a callback thread.** The inbox now offers `I'll handle this` alongside `Recall with Tracey`, and the timeline records that Tracey stood down so the team can follow up manually.
 - **Admin monitoring now sees callback lifecycle detail too.** The internal customer-usage page now shows callback counts and recent events by kind, outcome, source channel, block reason, and linked deal/contact.
+- **Lead-channel health warns earlier without crying wolf immediately.** Connected inbox channels now start in a `watching for first lead` state, then escalate to a routing warning if nothing lands after a week.
+- **Suspicious inbound bursts are now handled consistently.** Webform, email, SMS, and missed-call lead entry paths now share a lightweight abuse guard that blocks automatic outreach when repeat traffic looks like spam or duplicate flooding, and logs it for ops.
 
 ---
 

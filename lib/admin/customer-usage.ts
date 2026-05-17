@@ -9,6 +9,11 @@ import {
   parseCallbackPayload,
 } from "@/lib/callback-events";
 import {
+  LEAD_GUARD_PROVIDER,
+  buildInboundLeadGuardCopy,
+  parseInboundLeadGuardPayload,
+} from "@/lib/inbound-lead-guard";
+import {
   getConfiguredVoiceLlmModel,
   getConfiguredVoiceLlmProvider,
   getVoiceLlmRate,
@@ -16,6 +21,7 @@ import {
   VOICE_TTS_RATE_CARD,
 } from "@/lib/admin/voice-ai-rate-card";
 import { db } from "@/lib/db";
+import { getLeadChannelSnapshot } from "@/lib/lead-channel-health";
 import { type LaunchReadiness, getLaunchReadiness } from "@/lib/launch-readiness";
 import { stripe } from "@/lib/stripe";
 import {
@@ -297,11 +303,14 @@ export type CustomerUsageDashboardData = {
       totalEventsInRange: number;
       automaticRequested: number;
       manualRequested: number;
+      manualTakeovers: number;
       blocked: number;
       dispatched: number;
       answered: number;
       noAnswer: number;
       failed: number;
+      bySource: Array<{ source: string; count: number }>;
+      byBlockReason: Array<{ reason: string; count: number }>;
       recentEvents: Array<{
         id: string;
         createdAt: string;
@@ -312,6 +321,27 @@ export type CustomerUsageDashboardData = {
         status: string;
         contactPhone: string | null;
         dealId: string | null;
+      }>;
+    };
+    leadCapture: {
+      activeInboxCount: number;
+      inboxConnectedAt: string | null;
+      websiteLeadCount: number;
+      suspiciousHoldsInRange: number;
+      channels: Array<{
+        id: string;
+        name: string;
+        status: string;
+        lastLeadSeenAt: string | null;
+        description: string;
+      }>;
+      recentGuardEvents: Array<{
+        id: string;
+        createdAt: string;
+        title: string;
+        detail: string;
+        channel: string;
+        reason: string;
       }>;
     };
     costs: {
@@ -1557,7 +1587,7 @@ export async function getCustomerUsageDashboardData(
   const selectedRow = filteredRows.find((row) => row.workspaceId === filters.workspace) || filteredRows[0] || null;
 
   const selectedWorkspace = selectedRow
-    ? (() => {
+    ? await (async () => {
         const workspace = workspaces.find((entry) => entry.id === selectedRow.workspaceId);
         if (!workspace) return null;
 
@@ -1569,6 +1599,26 @@ export async function getCustomerUsageDashboardData(
         const workspaceIncidents = incidentsByWorkspace.get(workspace.id) || [];
         const workspaceFeedback = feedbackByWorkspace.get(workspace.id) || [];
         const provider = providerByWorkspace.get(workspace.id)!;
+        const [leadChannelSnapshot, leadGuardEvents] = await Promise.all([
+          getLeadChannelSnapshot({
+            workspaceId: workspace.id,
+            viewerUserId: workspace.ownerId,
+          }),
+          db.webhookEvent.findMany({
+            where: {
+              provider: LEAD_GUARD_PROVIDER,
+              payload: { path: ["workspaceId"], equals: workspace.id },
+              createdAt: { gte: rangeStart90d },
+            },
+            orderBy: { createdAt: "desc" },
+            take: 30,
+            select: {
+              id: true,
+              createdAt: true,
+              payload: true,
+            },
+          }),
+        ]);
         const callsInRange = workspaceCalls.filter((call) => call.startedAt >= rangeStart);
         const callbacksInRange = workspaceCallbackEvents.filter((event) => event.createdAt >= rangeStart);
         const inboundCallsInRange = callsInRange.filter((call) => inferCallDirection(call.callType) === "inbound");
@@ -1615,16 +1665,50 @@ export async function getCustomerUsageDashboardData(
                   title: copy.title,
                   detail: copy.description,
                   callbackKind: copy.payload.callbackKind || "automatic",
-                  outcome: copy.outcome,
+                  outcome: copy.outcome ?? null,
                   status: event.status,
                   contactPhone: copy.payload.contactPhone || null,
                   dealId: copy.payload.dealId || null,
+                  triggerSource: copy.payload.triggerSource || "unknown",
+                  blockReason: copy.payload.blockReason || null,
                   eventType: event.eventType,
                 }
               : null;
           })
           .filter((event): event is NonNullable<typeof event> => Boolean(event))
           .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
+        const guardSummaries = leadGuardEvents
+          .map((event) => {
+            const payload = parseInboundLeadGuardPayload(event.payload);
+            if (!payload) return null;
+            const copy = buildInboundLeadGuardCopy(payload);
+            return {
+              id: event.id,
+              createdAt: event.createdAt.toISOString(),
+              title: copy.title,
+              detail: copy.description,
+              channel: payload.channel,
+              reason: payload.reason,
+            };
+          })
+          .filter((event): event is NonNullable<typeof event> => Boolean(event));
+        const callbackSourceCounts = Object.entries(
+          callbackSummaries.reduce<Record<string, number>>((acc, event) => {
+            acc[event.triggerSource] = (acc[event.triggerSource] || 0) + 1;
+            return acc;
+          }, {}),
+        )
+          .map(([source, count]) => ({ source, count }))
+          .sort((left, right) => right.count - left.count);
+        const callbackBlockReasonCounts = Object.entries(
+          callbackSummaries.reduce<Record<string, number>>((acc, event) => {
+            if (!event.blockReason) return acc;
+            acc[event.blockReason] = (acc[event.blockReason] || 0) + 1;
+            return acc;
+          }, {}),
+        )
+          .map(([reason, count]) => ({ reason, count }))
+          .sort((left, right) => right.count - left.count);
 
         return {
           row: selectedRow,
@@ -1747,6 +1831,7 @@ export async function getCustomerUsageDashboardData(
             totalEventsInRange: callbacksInRange.length,
             automaticRequested: callbackSummaries.filter((event) => event.eventType === "callback_requested" && event.callbackKind === "automatic").length,
             manualRequested: callbackSummaries.filter((event) => event.eventType === "callback_requested" && event.callbackKind === "manual").length,
+            manualTakeovers: callbackSummaries.filter((event) => event.eventType === "callback_taken_over").length,
             blocked: callbackSummaries.filter((event) => event.eventType === "callback_blocked").length,
             dispatched: callbackSummaries.filter((event) => event.eventType === "callback_dispatched").length,
             answered: callbackSummaries.filter((event) => event.eventType === "callback_call_finished" && event.outcome === "answered").length,
@@ -1754,6 +1839,8 @@ export async function getCustomerUsageDashboardData(
             failed: callbackSummaries.filter((event) =>
               event.eventType === "callback_dispatch_failed"
               || (event.eventType === "callback_call_finished" && ["busy", "failed", "canceled", "completed", "unknown"].includes(event.outcome || "unknown"))).length,
+            bySource: callbackSourceCounts,
+            byBlockReason: callbackBlockReasonCounts,
             recentEvents: callbackSummaries.slice(0, 12).map((event) => ({
               id: event.id,
               createdAt: event.createdAt,
@@ -1765,6 +1852,20 @@ export async function getCustomerUsageDashboardData(
               contactPhone: event.contactPhone,
               dealId: event.dealId,
             })),
+          },
+          leadCapture: {
+            activeInboxCount: leadChannelSnapshot.activeInboxCount,
+            inboxConnectedAt: leadChannelSnapshot.firstActiveInboxAt?.toISOString() || null,
+            websiteLeadCount: leadChannelSnapshot.websiteLeadCount,
+            suspiciousHoldsInRange: guardSummaries.filter((event) => new Date(event.createdAt) >= rangeStart).length,
+            channels: leadChannelSnapshot.channels.map((channel) => ({
+              id: channel.id,
+              name: channel.name,
+              status: channel.status,
+              lastLeadSeenAt: channel.lastLeadSeenAt?.toISOString() || null,
+              description: channel.description,
+            })),
+            recentGuardEvents: guardSummaries.slice(0, 8),
           },
           costs: {
             subscriptionRevenue: provider.stripe.subscriptionRevenue,

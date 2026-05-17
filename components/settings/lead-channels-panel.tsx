@@ -21,6 +21,7 @@ const STATUS_LABEL: Record<LeadChannelStatus, string> = {
   needs_form_check: "Confirm your form emails you",
   needs_routing_check: "Check where the leads are going",
   phone_not_provisioned: "Workspace owner action needed",
+  watching_for_first_lead: "Watching for the first lead",
 };
 
 export function LeadChannelsPanel() {
@@ -49,6 +50,7 @@ export function LeadChannelsPanel() {
   if (!data) return null;
 
   const liveCount = data.channels.filter((c) => c.status === "live").length;
+  const monitoringCount = data.channels.filter((c) => c.status === "watching_for_first_lead").length;
   const totalCount = data.channels.length;
 
   const grouped = CATEGORY_ORDER.map((category) => ({
@@ -61,7 +63,7 @@ export function LeadChannelsPanel() {
       <CardHeader>
         <CardTitle>Where your leads come from</CardTitle>
         <CardDescription>
-          Tracey can capture leads from {totalCount} sources. <strong>{liveCount} live, {totalCount - liveCount} need one more step.</strong> Expand any channel below to see exactly what to do.
+          Tracey can capture leads from {totalCount} sources. <strong>{liveCount} live, {monitoringCount} watching for first lead, {totalCount - liveCount - monitoringCount} need attention.</strong> Expand any channel below to see exactly what to do.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -82,6 +84,7 @@ export function LeadChannelsPanel() {
 
 function ChannelRow({ channel }: { channel: LeadChannel }) {
   const isLive = channel.status === "live";
+  const isWatching = channel.status === "watching_for_first_lead";
   const hasSteps = (channel.setupSteps?.length ?? 0) > 0;
 
   return (
@@ -89,12 +92,16 @@ function ChannelRow({ channel }: { channel: LeadChannel }) {
       className={
         isLive
           ? "rounded-md border border-emerald-200 bg-emerald-50/50 p-3 dark:border-emerald-900/40 dark:bg-emerald-900/10"
-          : "rounded-md border border-amber-200 bg-amber-50/40 p-3 dark:border-amber-900/40 dark:bg-amber-900/10"
+          : isWatching
+            ? "rounded-md border border-sky-200 bg-sky-50/50 p-3 dark:border-sky-900/40 dark:bg-sky-900/10"
+            : "rounded-md border border-amber-200 bg-amber-50/40 p-3 dark:border-amber-900/40 dark:bg-amber-900/10"
       }
     >
       <summary className="flex cursor-pointer items-start gap-2 list-none">
         {isLive ? (
           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+        ) : isWatching ? (
+          <Loader2 className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
         ) : (
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
         )}
@@ -105,7 +112,9 @@ function ChannelRow({ channel }: { channel: LeadChannel }) {
               className={
                 isLive
                   ? "text-xs font-medium text-emerald-700 dark:text-emerald-400"
-                  : "text-xs font-medium text-amber-700 dark:text-amber-400"
+                  : isWatching
+                    ? "text-xs font-medium text-sky-700 dark:text-sky-400"
+                    : "text-xs font-medium text-amber-700 dark:text-amber-400"
               }
             >
               {STATUS_LABEL[channel.status]}

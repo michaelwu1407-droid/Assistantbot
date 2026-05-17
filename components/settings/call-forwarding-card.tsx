@@ -265,6 +265,7 @@ export function CallForwardingCard() {
                   Give this to customers. Every call is answered, qualified and booked by Tracey.
                 </p>
                 {!traceyPhone && status?.isOwner && (
+                  <>
                   <Button
                     size="sm"
                     type="button"
@@ -284,6 +285,7 @@ export function CallForwardingCard() {
                       {status.provisioningError}
                     </p>
                   )}
+                  </>
                 )}
                 {!traceyPhone && !status?.isOwner && (
                   <p className="text-xs text-muted-foreground">
