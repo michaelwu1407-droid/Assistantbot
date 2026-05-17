@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { cn } from "@/lib/utils"
 import { formatShortDate } from "@/lib/format"
+import { formatMonthYearInTimezone, DEFAULT_WORKSPACE_TIMEZONE } from "@/lib/timezone"
 
 interface ContactsClientProps {
   contacts: ContactView[]
@@ -84,7 +85,7 @@ function formatLastContact(date: Date | null): string {
     return formatShortDate(contactDate)
   }
 
-  return contactDate.toLocaleDateString("en-AU", { month: "short", year: "2-digit" })
+  return formatMonthYearInTimezone(contactDate, DEFAULT_WORKSPACE_TIMEZONE)
 }
 
 export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
@@ -382,7 +383,7 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
             </p>
           )}
 
-          <div className="overflow-hidden rounded-[18px] border border-border bg-card">
+          <div className="overflow-hidden rounded-md border border-border bg-card">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -563,7 +564,7 @@ export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
                 void handleDelete()
               }}
               disabled={sending}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive"
             >
               {sending ? "Deleting..." : "Delete contacts"}
             </AlertDialogAction>

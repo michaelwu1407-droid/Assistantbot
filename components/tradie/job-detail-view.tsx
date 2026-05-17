@@ -279,7 +279,7 @@ export function JobDetailView({ job }: JobDetailViewProps) {
                                 <p className="text-sm text-muted-foreground">
                                     To send handover notes or attachments today, use the full CRM job view so messaging, attachments, and customer history stay together.
                                 </p>
-                                <Button asChild className="mt-4 w-full gap-2 bg-slate-900 hover:bg-slate-800">
+                                <Button asChild className="mt-4 w-full gap-2 bg-muted-foreground hover:bg-slate-800">
                                     <Link href={`/crm/deals/${job.id}`}>
                                         <ExternalLink className="w-4 h-4" />
                                         Open Full Job in CRM

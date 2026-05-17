@@ -77,7 +77,7 @@ export function InvoiceGenerator({ invoiceId, invoiceNumber }: InvoiceGeneratorP
                 <FileText className="mr-2 h-4 w-4" />
                 View / Print
             </Button>
-            <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+            <DialogContent className="ott-dialog max-w-4xl h-[90vh] flex flex-col">
                 <DialogHeader>
                     <DialogTitle>Invoice {invoiceNumber}</DialogTitle>
                     <DialogDescription>
@@ -88,7 +88,7 @@ export function InvoiceGenerator({ invoiceId, invoiceNumber }: InvoiceGeneratorP
                 <div className="flex-1 bg-muted rounded-md border p-4 overflow-hidden relative">
                     {isLoading ? (
                         <div className="flex items-center justify-center h-full">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-900"></div>
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-border"></div>
                         </div>
                     ) : htmlContent ? (
                         <iframe

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Mail, Copy, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { getLeadCaptureEmailReadiness, getOrAllocateLeadCaptureEmail, getWorkspaceSettings, updateWorkspaceSettings } from "@/actions/settings-actions";
+import { formatDateTimeInTimezone } from "@/lib/timezone";
 
 type LeadCaptureEmailReadiness = Awaited<ReturnType<typeof getLeadCaptureEmailReadiness>>;
 
@@ -19,11 +20,7 @@ const AUTO_CALL_DELAY_PRESETS: { seconds: number; label: string }[] = [
 
 function formatDate(value: string | null | undefined) {
   if (!value) return null;
-  return new Date(value).toLocaleString("en-AU", {
-    timeZone: "Australia/Sydney",
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  return formatDateTimeInTimezone(value, "Australia/Sydney");
 }
 
 function getReadinessMessage(readiness: LeadCaptureEmailReadiness | null) {
@@ -187,12 +184,12 @@ export function EmailLeadCaptureSettings() {
         <div
           className={
             readinessMessage.tone === "success"
-              ? "rounded-[18px] border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"
+              ? "rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800"
               : readinessMessage.tone === "warning"
-                ? "rounded-[18px] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
+                ? "rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
                 : readinessMessage.tone === "info"
-                  ? "rounded-[18px] border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900"
-                  : "rounded-[18px] border border-border bg-muted/30 p-4 text-sm text-foreground"
+                  ? "rounded-md border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900"
+                  : "rounded-md border border-border bg-muted/30 p-4 text-sm text-foreground"
           }
         >
           <div className="font-medium">{readinessMessage.title}</div>

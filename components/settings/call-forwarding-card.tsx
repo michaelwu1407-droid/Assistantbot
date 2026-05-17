@@ -220,7 +220,7 @@ export function CallForwardingCard() {
 
   return (
     <>
-      <Card className="rounded-[18px] border-border shadow-sm dark:border-slate-800">
+      <Card className="rounded-md border-border shadow-sm dark:border-slate-800">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <PhoneForwarded className="h-5 w-5" />
@@ -232,7 +232,7 @@ export function CallForwardingCard() {
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-[18px] border border-border bg-card/70 p-4 dark:border-white/10 dark:bg-card/5">
+            <div className="rounded-md border border-border bg-card/70 p-4 dark:border-white/10 dark:bg-card/5">
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
                   <p className="app-micro-label">Personal mobile</p>
@@ -255,7 +255,7 @@ export function CallForwardingCard() {
               </div>
             </div>
 
-            <div className="rounded-[18px] border border-border bg-card/70 p-4 dark:border-white/10 dark:bg-card/5">
+            <div className="rounded-md border border-border bg-card/70 p-4 dark:border-white/10 dark:bg-card/5">
               <div className="space-y-2">
                 <p className="app-micro-label">Your new business number</p>
                 <p className="text-sm font-medium text-foreground dark:text-white">
@@ -265,6 +265,7 @@ export function CallForwardingCard() {
                   Give this to customers. Every call is answered, qualified and booked by Tracey.
                 </p>
                 {!traceyPhone && status?.isOwner && (
+                  <>
                   <Button
                     size="sm"
                     type="button"
@@ -284,6 +285,7 @@ export function CallForwardingCard() {
                       {status.provisioningError}
                     </p>
                   )}
+                  </>
                 )}
                 {!traceyPhone && !status?.isOwner && (
                   <p className="text-xs text-muted-foreground">
@@ -294,7 +296,7 @@ export function CallForwardingCard() {
             </div>
           </div>
 
-          <div className="rounded-[18px] border border-border p-4 dark:border-slate-700">
+          <div className="rounded-md border border-border p-4 dark:border-slate-700">
             <div className="space-y-1">
               <Label className="app-section-title">How should Tracey handle calls?</Label>
               <p className="app-body-secondary">
@@ -305,7 +307,7 @@ export function CallForwardingCard() {
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               <Button
                 variant={active === "backup" ? "default" : "outline"}
-                className="h-auto min-h-[148px] w-full rounded-[18px] px-5 py-5 text-left whitespace-normal"
+                className="h-auto min-h-[148px] w-full rounded-md px-5 py-5 text-left whitespace-normal"
                 disabled={loading || saving || !hasTraceyNumber}
                 onClick={() => saveHandling("backup")}
               >
@@ -322,7 +324,7 @@ export function CallForwardingCard() {
 
               <Button
                 variant={active === "full" ? "default" : "outline"}
-                className="h-auto min-h-[148px] w-full rounded-[18px] px-5 py-5 text-left whitespace-normal"
+                className="h-auto min-h-[148px] w-full rounded-md px-5 py-5 text-left whitespace-normal"
                 disabled={loading || saving || !hasTraceyNumber}
                 onClick={() => saveHandling("full")}
               >
@@ -339,7 +341,7 @@ export function CallForwardingCard() {
 
               <Button
                 variant={active === "off" ? "secondary" : "outline"}
-                className="h-auto min-h-[148px] w-full rounded-[18px] px-5 py-5 text-left whitespace-normal"
+                className="h-auto min-h-[148px] w-full rounded-md px-5 py-5 text-left whitespace-normal"
                 disabled={loading || saving || !hasTraceyNumber}
                 onClick={() => saveHandling("off")}
               >
@@ -363,7 +365,7 @@ export function CallForwardingCard() {
           </div>
 
           {active === "backup" && hasTraceyNumber ? (
-            <div className="rounded-[18px] border border-border p-4 dark:border-slate-700">
+            <div className="rounded-md border border-border p-4 dark:border-slate-700">
               <div className="space-y-1">
                 <Label className="app-section-title">Backup AI pickup timing</Label>
                 <p className="app-body-secondary">
@@ -395,7 +397,7 @@ export function CallForwardingCard() {
           ) : null}
 
           {codes ? (
-            <div className="rounded-[18px] border border-border p-4 dark:border-slate-700">
+            <div className="rounded-md border border-border p-4 dark:border-slate-700">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -423,26 +425,26 @@ export function CallForwardingCard() {
                 ) : null}
               </div>
 
-              <div className="mt-4 rounded-[18px] border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/20">
+              <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/20">
                 <p className="text-sm font-semibold text-foreground dark:text-white">
                   {activeModeGuidance.nextStepTitle}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground dark:text-slate-300">
                   Your phone&apos;s dialer will open with the right code ready to run.
                 </p>
-                <Button asChild className="mt-3 h-auto min-h-[56px] w-full justify-center rounded-[18px] px-3 py-3 text-center whitespace-normal">
+                <Button asChild className="mt-3 h-auto min-h-[56px] w-full justify-center rounded-md px-3 py-3 text-center whitespace-normal">
                   <a href={activeDialerHref}>{activeActionLabel}</a>
                 </Button>
               </div>
 
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <Button asChild variant={active === "backup" ? "secondary" : "outline"} className="h-auto min-h-[56px] justify-center rounded-[18px] px-3 py-3 text-center whitespace-normal">
+                <Button asChild variant={active === "backup" ? "secondary" : "outline"} className="h-auto min-h-[56px] justify-center rounded-md px-3 py-3 text-center whitespace-normal">
                   <a href={codes.backupHref}>Backup AI after ~{delaySec}s</a>
                 </Button>
-                <Button asChild variant={active === "full" ? "secondary" : "outline"} className="h-auto min-h-[56px] justify-center rounded-[18px] px-3 py-3 text-center whitespace-normal">
+                <Button asChild variant={active === "full" ? "secondary" : "outline"} className="h-auto min-h-[56px] justify-center rounded-md px-3 py-3 text-center whitespace-normal">
                   <a href={codes.fullHref}>Forward every call</a>
                 </Button>
-                <Button asChild variant={active === "off" ? "secondary" : "outline"} className="h-auto min-h-[56px] justify-center rounded-[18px] px-3 py-3 text-center whitespace-normal">
+                <Button asChild variant={active === "off" ? "secondary" : "outline"} className="h-auto min-h-[56px] justify-center rounded-md px-3 py-3 text-center whitespace-normal">
                   <a href={codes.offHref}>Turn forwarding off</a>
                 </Button>
               </div>

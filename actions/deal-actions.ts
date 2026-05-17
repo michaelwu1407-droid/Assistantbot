@@ -1,4 +1,5 @@
 "use server";
+import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
@@ -442,7 +443,7 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
     data: {
       type: "NOTE",
       title: "Deal created",
-      content: `Created deal "${title}" worth $${value.toLocaleString()}`,
+      content: `Created deal "${title}" worth ${formatCurrency(value)}`,
       dealId: deal.id,
       contactId,
     },
@@ -484,7 +485,7 @@ export async function createDeal(input: z.infer<typeof CreateDealSchema>) {
           data: {
             type: "NOTE",
             title: "Smart Routing Alert",
-            content: `Consider grouping this booking with "${nearby.title}", which is scheduled for ${nearby.scheduledAt?.toLocaleDateString()} and is only ${nearby.distance.toFixed(1)}km away.`,
+            content: `Consider grouping this booking with "${nearby.title}", which is scheduled for ${nearby.scheduledAt ? formatDate(nearby.scheduledAt) : "the scheduled date"} and is only ${nearby.distance.toFixed(1)}km away.`,
             dealId: deal.id,
             contactId,
           }
@@ -1393,7 +1394,7 @@ export async function updateDeal(
             data: {
               type: "NOTE",
               title: "Smart Routing Alert",
-              content: `Since you rescheduled or moved this job, consider grouping it with "${nearby.title}", which is scheduled for ${nearby.scheduledAt?.toLocaleDateString()} and is only ${nearby.distance.toFixed(1)}km away.`,
+              content: `Since you rescheduled or moved this job, consider grouping it with "${nearby.title}", which is scheduled for ${nearby.scheduledAt ? formatDate(nearby.scheduledAt) : "the scheduled date"} and is only ${nearby.distance.toFixed(1)}km away.`,
               dealId: dealId,
               contactId: updatedDeal.contactId ?? undefined,
             }

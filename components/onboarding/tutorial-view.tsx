@@ -165,7 +165,7 @@ function getMockData(industry: string | null) {
                 ]
             },
             { title: "Won", color: "bg-emerald-500", deals: [] },
-            { title: "Lost", color: "bg-slate-400", deals: [] },
+            { title: "Lost", color: "bg-muted-foreground/20", deals: [] },
         ],
         stats: { total: "$185,000", healthy: 1, stale: 1, rotting: 1 },
         steps: [
@@ -215,7 +215,7 @@ function MockDealCard({ deal, highlighted }: {
     return (
         <div className={`relative rounded-lg border bg-card p-2.5 mb-2 transition-all ${borderClass} ${highlighted ? "ring-2 ring-blue-500 ring-offset-1" : ""}`}>
             {deal.status === "rotting" && (
-                <div className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded-full flex items-center z-10">
+                <div className="absolute -top-1.5 -right-1.5 bg-destructive text-white text-[8px] px-1.5 py-0.5 rounded-full flex items-center z-10">
                     <AlertCircle className="w-2 h-2 mr-0.5" />Rotting
                 </div>
             )}
@@ -264,7 +264,7 @@ function MockPipelinePreview({ data, highlightType }: {
                     <h2 className="text-sm font-bold text-foreground">Pipeline</h2>
                     <p className="text-[10px] text-muted-foreground">Manage your deals and activity</p>
                 </div>
-                <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-medium border transition-all ${highlightAdd ? "bg-blue-50 border-blue-500 text-blue-700 ring-2 ring-blue-300" : "bg-slate-900 border-slate-900 text-white"}`}>
+                <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-medium border transition-all ${highlightAdd ? "bg-blue-50 border-blue-500 text-blue-700 ring-2 ring-blue-300" : "bg-muted-foreground border-border text-white"}`}>
                     <Plus className="w-3 h-3" />
                     New Deal
                 </div>
@@ -293,11 +293,11 @@ function MockPipelinePreview({ data, highlightType }: {
                     </div>
                 )}
                 {data.stats.rotting > 0 && (
-                    <div className={`text-center rounded px-1 ${highlightStale ? "bg-red-50 ring-1 ring-red-400" : ""}`}>
-                        <div className="flex items-center justify-center gap-1 text-[9px] text-red-800 mb-0.5">
+                    <div className={`text-center rounded px-1 ${highlightStale ? "bg-destructive/10 ring-1 ring-destructive" : ""}`}>
+                        <div className="flex items-center justify-center gap-1 text-[9px] text-destructive mb-0.5">
                             <AlertCircle className="w-2.5 h-2.5 text-destructive" />Rotting
                         </div>
-                        <p className="text-xs font-bold text-red-900">{data.stats.rotting}</p>
+                        <p className="text-xs font-bold text-destructive">{data.stats.rotting}</p>
                     </div>
                 )}
             </div>
@@ -321,7 +321,7 @@ function MockPipelinePreview({ data, highlightType }: {
                                     />
                                 ))
                             ) : (
-                                <div className="h-12 border border-dashed border-border rounded flex items-center justify-center text-slate-300 text-[8px]">
+                                <div className="h-12 border border-dashed border-border rounded flex items-center justify-center text-muted-foreground/70 text-[8px]">
                                     Empty
                                 </div>
                             )}
@@ -358,7 +358,7 @@ function MockChatPane({ messages }: {
                             className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                         >
                             <div className={`max-w-[90%] rounded-xl px-3 py-2 ${msg.role === "user"
-                                ? "bg-slate-900 text-white"
+                                ? "bg-muted-foreground text-white"
                                 : "bg-muted/30 border border-border text-foreground"
                                 }`}>
                                 <p className="text-[10px] leading-relaxed whitespace-pre-line">{msg.text}</p>
@@ -416,7 +416,7 @@ export function TutorialView() {
                         {data.steps.map((_, i) => (
                             <div
                                 key={i}
-                                className={`h-2 rounded-full transition-all duration-300 ${i === step ? "w-6 bg-slate-900" : i < step ? "w-2 bg-slate-400" : "w-2 bg-muted"}`}
+                                className={`h-2 rounded-full transition-all duration-300 ${i === step ? "w-6 bg-muted-foreground" : i < step ? "w-2 bg-muted-foreground/20" : "w-2 bg-muted"}`}
                             />
                         ))}
                     </div>
@@ -437,7 +437,7 @@ export function TutorialView() {
                     <div className="relative h-full">
                         <MockPipelinePreview data={data} highlightType={currentStep.highlight} />
                         {/* "Advanced Mode" label */}
-                        <div className="absolute top-2 right-2 bg-slate-900/80 text-white text-[9px] px-2 py-0.5 rounded-full backdrop-blur-sm">
+                        <div className="absolute top-2 right-2 bg-muted-foreground/80 text-white text-[9px] px-2 py-0.5 rounded-full backdrop-blur-sm">
                             Advanced Mode
                         </div>
                     </div>
@@ -463,7 +463,7 @@ export function TutorialView() {
                             </Button>
                         ) : (
                             <Link href="/crm/dashboard" className="w-full">
-                                <Button size="lg" className="w-full bg-slate-900 hover:bg-slate-800">
+                                <Button size="lg" className="w-full bg-muted-foreground hover:bg-slate-800">
                                     Go to Dashboard <Check className="ml-2 h-4 w-4" />
                                 </Button>
                             </Link>

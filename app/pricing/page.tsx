@@ -107,7 +107,7 @@ function FaqSection() {
       {FAQ_ITEMS.map((item, idx) => {
         const isOpen = openIndices.includes(idx)
         return (
-          <div key={idx} className="border border-border rounded-[18px] overflow-hidden bg-card">
+          <div key={idx} className="border border-border rounded-md overflow-hidden bg-card">
             <button
               onClick={() => toggle(idx)}
               className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-muted/30 transition-colors"
@@ -215,11 +215,11 @@ export default function PricingPage() {
           <div className="max-w-5xl mx-auto">
             {/* Toggle */}
             <motion.div {...fadeUp(0.12)} className="flex justify-center mb-12">
-              <div className="flex items-center gap-2 p-1.5 bg-muted rounded-[18px]">
+              <div className="flex items-center gap-2 p-1.5 bg-muted rounded-md">
                 <button
                   type="button"
                   onClick={() => setBillingPeriod("monthly")}
-                  className={`py-2.5 px-6 rounded-[18px] text-sm font-semibold transition-all shadow-sm ${
+                  className={`py-2.5 px-6 rounded-md text-sm font-semibold transition-all shadow-sm ${
                     billingPeriod === "monthly"
                       ? "bg-card text-midnight"
                       : "text-muted-foreground hover:text-midnight shadow-none bg-transparent"
@@ -231,7 +231,7 @@ export default function PricingPage() {
                   <button
                     type="button"
                     onClick={() => setBillingPeriod("yearly")}
-                    className={`py-2.5 px-6 rounded-[18px] text-sm font-semibold transition-all shadow-sm ${
+                    className={`py-2.5 px-6 rounded-md text-sm font-semibold transition-all shadow-sm ${
                       billingPeriod === "yearly"
                         ? "bg-card text-midnight"
                         : "text-muted-foreground hover:text-midnight shadow-none bg-transparent"
@@ -249,7 +249,7 @@ export default function PricingPage() {
             {/* Comparison Grid */}
             <motion.div {...fadeUp(0.16)} className="grid gap-6 items-end md:grid-cols-2">
               {/* Left Column: Job Management Software */}
-              <div className="order-2 rounded-[18px] border border-border bg-muted/30 p-6 opacity-80 flex flex-col items-center text-center md:order-1 md:p-8">
+              <div className="order-2 rounded-md border border-border bg-muted/30 p-6 opacity-80 flex flex-col items-center text-center md:order-1 md:p-8">
                 <h3 className="text-xl font-bold text-muted-foreground mb-1">Job Management Software</h3>
                 <div className="text-xs text-muted-foreground mb-3">ServiceM8 / Tradify / Jobber</div>
                 <div className="text-4xl font-extrabold text-muted-foreground mb-1">$39–69</div>
@@ -297,7 +297,7 @@ export default function PricingPage() {
               </div>
 
               {/* Right Column: Earlymark Pro */}
-              <div className="order-1 rounded-[18px] border-2 border-primary bg-card shadow-2xl shadow-primary/10 p-6 relative flex flex-col items-center text-center md:order-2 md:-mt-6 md:p-8">
+              <div className="order-1 rounded-md border-2 border-primary bg-card shadow-2xl shadow-primary/10 p-6 relative flex flex-col items-center text-center md:order-2 md:-mt-6 md:p-8">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
                   <span className="bg-primary text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                     Recommended
@@ -379,7 +379,7 @@ export default function PricingPage() {
                 <motion.div
                   key={i}
                   {...fadeUp(0.1 + i * 0.1)}
-                  className="bg-muted/20 rounded-[18px] p-8 border border-border shadow-sm text-center flex flex-col items-center justify-center"
+                  className="bg-muted/20 rounded-md p-8 border border-border shadow-sm text-center flex flex-col items-center justify-center"
                 >
                   <div className="text-4xl font-extrabold text-primary mb-3">{stat.value}</div>
                   <div className="text-sm font-semibold text-muted-foreground">{stat.label}</div>
@@ -404,9 +404,9 @@ export default function PricingPage() {
                   <motion.div
                     key={f.title}
                     {...fadeUp(0.1 + i * 0.05)}
-                    className="bg-card border border-border/50 p-5 rounded-[18px] flex flex-col items-start gap-4 hover:shadow-md transition-shadow"
+                    className="bg-card border border-border/50 p-5 rounded-md flex flex-col items-start gap-4 hover:shadow-md transition-shadow"
                   >
-                    <div className="w-10 h-10 rounded-[18px] bg-emerald-100 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-md bg-emerald-100 flex items-center justify-center">
                       <Icon className="w-5 h-5 text-primary" />
                     </div>
                     <div>
@@ -476,7 +476,7 @@ export default function PricingPage() {
                   </CardContent>
                 </Card>
               ) : (
-                <Card className="rounded-[18px] border border-border shadow-sm bg-card">
+                <Card className="rounded-md border border-border shadow-sm bg-card">
                   <CardHeader className="px-8 pt-8 pb-0">
                     <CardTitle className="text-midnight">Get in touch</CardTitle>
                     <CardDescription>Choose the team that best fits your question.</CardDescription>
@@ -557,7 +557,7 @@ export default function PricingPage() {
                           name="message"
                           placeholder="Tell us how we can help..."
                           rows={4}
-                          className="rounded-[18px] border-border bg-muted/20 resize-none"
+                          className="rounded-md border-border bg-muted/20 resize-none"
                           required
                         />
                       </div>

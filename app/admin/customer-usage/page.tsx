@@ -21,19 +21,19 @@ import {
   type VerificationEvidenceStatus,
 } from "@/lib/feature-verification";
 import { requireInternalAdminAccess } from "@/lib/internal-admin";
+import { formatCurrency, formatNumber } from "@/lib/format";
+import { formatDateTimeInTimezone, formatMonthDayYearInTimezone } from "@/lib/timezone";
+
+const ADMIN_TZ = "Australia/Sydney";
 
 export const dynamic = "force-dynamic";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
-function formatNumber(value: number | null | undefined) {
-  if (value == null) return "--";
-  return value.toLocaleString("en-AU");
-}
 
 function formatMoney(value: number | null | undefined, currency?: string | null) {
   if (value == null) return "--";
-  if (!currency) return "$" + value.toLocaleString("en-AU", { maximumFractionDigits: 2 });
+  if (!currency) return formatCurrency(value);
   return new Intl.NumberFormat("en-AU", {
     style: "currency",
     currency,
@@ -44,21 +44,12 @@ function formatMoney(value: number | null | undefined, currency?: string | null)
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "--";
-  return new Date(value).toLocaleString("en-AU", {
-    timeZone: "Australia/Sydney",
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  return formatDateTimeInTimezone(value, ADMIN_TZ);
 }
 
 function formatShortDate(value: string | null | undefined) {
   if (!value) return "--";
-  return new Date(value).toLocaleDateString("en-AU", {
-    timeZone: "Australia/Sydney",
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  return formatMonthDayYearInTimezone(value, ADMIN_TZ);
 }
 
 function truthBadge(tone: "exact" | "rollup" | "estimate") {
@@ -160,7 +151,7 @@ function SectionCard({
   aside?: ReactNode;
 }) {
   return (
-    <Card className="rounded-[18px]">
+    <Card className="rounded-md">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -724,7 +715,7 @@ function OpsRollupTable({ data }: { data: CustomerUsageDashboardData }) {
 
 function SelectedWorkspacePanel({ selected }: { selected: NonNullable<CustomerUsageDashboardData["selectedWorkspace"]> }) {
   return (
-    <Card className="rounded-[18px]">
+    <Card className="rounded-md">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -883,7 +874,7 @@ export default async function CustomerUsagePage({
             <Link
               key={range}
               href={buildQuery(filters, { range, workspace: filters.workspace || "" })}
-              className={`inline-flex h-10 items-center rounded-full px-4 text-sm font-medium ${filters.range === range ? "bg-slate-900 text-white" : "border border-border text-foreground"}`}
+              className={`inline-flex h-10 items-center rounded-full px-4 text-sm font-medium ${filters.range === range ? "bg-muted-foreground text-white" : "border border-border text-foreground"}`}
             >
               {range}
             </Link>
@@ -900,7 +891,7 @@ export default async function CustomerUsagePage({
           <Link
             key={tab}
             href={buildQuery(filters, { tab })}
-            className={`inline-flex h-10 items-center rounded-full px-4 text-sm font-medium ${filters.tab === tab ? "bg-slate-900 text-white" : "border border-border text-foreground"}`}
+            className={`inline-flex h-10 items-center rounded-full px-4 text-sm font-medium ${filters.tab === tab ? "bg-muted-foreground text-white" : "border border-border text-foreground"}`}
           >
             {label}
           </Link>
@@ -973,7 +964,7 @@ export default async function CustomerUsagePage({
                 <option value="createdAt">Sort: newest</option>
                 <option value="name">Sort: name</option>
               </select>
-              <button className="h-11 rounded-full bg-slate-900 px-5 text-sm font-medium text-white" type="submit">Apply</button>
+              <button className="h-11 rounded-full bg-muted-foreground px-5 text-sm font-medium text-white" type="submit">Apply</button>
             </form>
           </SectionCard>
 
@@ -985,7 +976,7 @@ export default async function CustomerUsagePage({
             {selected ? (
               <SelectedWorkspacePanel selected={selected} />
             ) : (
-              <Card className="rounded-[18px]">
+              <Card className="rounded-md">
                 <CardContent className="pt-6 text-sm text-muted-foreground">No workspace selected.</CardContent>
               </Card>
             )}

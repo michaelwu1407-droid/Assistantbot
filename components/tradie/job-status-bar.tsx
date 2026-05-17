@@ -65,7 +65,7 @@ export function JobStatusBar({ dealId, currentStatus, contactName, safetyCheckCo
 
     return (
         <>
-            <div className="sticky bottom-0 z-40 bg-slate-950 p-4 border-t border-slate-800 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] animate-in slide-in-from-bottom duration-500 w-full mt-auto">
+            <div className="sticky bottom-0 z-40 bg-muted-foreground p-4 border-t border-border shadow-[0_-10px_40px_rgba(0,0,0,0.5)] animate-in slide-in-from-bottom duration-500 w-full mt-auto">
                 <div className="max-w-md mx-auto w-full">
                     {status === "SCHEDULED" && (
                         <Button

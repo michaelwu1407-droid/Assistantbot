@@ -98,7 +98,7 @@ export function SearchDialog({ children }: { children?: React.ReactNode }) {
             ) : (
                 <button
                     onClick={() => setOpen(true)}
-                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-md border border-border bg-muted/20 px-4 py-2 text-sm font-medium text-muted-foreground hover:border-border hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-950 disabled:pointer-events-none disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950/50 dark:text-muted-foreground dark:hover:text-slate-50"
+                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-md border border-border bg-muted/20 px-4 py-2 text-sm font-medium text-muted-foreground hover:border-border hover:text-foreground focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950/50 dark:text-muted-foreground dark:hover:text-slate-50"
                 >
                     <Search className="h-4 w-4" />
                     <span className="hidden lg:inline-flex">Search...</span>

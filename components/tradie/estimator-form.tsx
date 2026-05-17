@@ -96,7 +96,7 @@ export function EstimatorForm({ deals = [], workspaceId }: EstimatorFormProps) {
                     </p>
                 </CardContent>
                 <CardFooter className="flex flex-col gap-3">
-                    <Button asChild className="w-full bg-slate-900 hover:bg-slate-800">
+                    <Button asChild className="w-full bg-muted-foreground hover:bg-slate-800">
                         <Link href={`/crm/deals/${selectedDealId}`}>
                             <ExternalLink className="w-4 h-4 mr-2" />
                             Open Billing Panel
@@ -177,7 +177,7 @@ export function EstimatorForm({ deals = [], workspaceId }: EstimatorFormProps) {
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="text-muted-foreground hover:text-red-500 hover:bg-red-50"
+                                    className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
                                     onClick={() => handleRemoveItem(index)}
                                     disabled={items.length === 1}
                                 >

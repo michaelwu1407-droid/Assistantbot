@@ -1,4 +1,5 @@
 "use server";
+import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -792,7 +793,7 @@ export async function markInvoicePaid(invoiceId: string) {
     data: {
       type: "NOTE",
       title: "Invoice paid",
-      content: `Invoice ${invoice.number} marked as paid ($${invoice.total.toLocaleString()})`,
+      content: `Invoice ${invoice.number} marked as paid (${formatCurrency(invoice.total)})`,
       dealId: invoice.dealId,
       contactId: invoice.deal.contactId,
       userId: actor.id,
@@ -1157,7 +1158,7 @@ table{width:100%;border-collapse:collapse;margin:20px 0}th{text-align:left;paddi
 <body>
 <div class="header"><div><h1 style="margin:0">QUOTE / TAX INVOICE</h1><p style="color:#64748b">${escapeHtml(invoice.number)}</p></div>
 <div style="text-align:right"><span class="badge ${escapeHtml(invoice.status.toLowerCase())}">${escapeHtml(invoice.status)}</span>
-<p style="color:#64748b;margin:8px 0 0">${new Date(invoice.createdAt).toLocaleDateString("en-AU")}</p></div></div>
+<p style="color:#64748b;margin:8px 0 0">${formatDate(invoice.createdAt)}</p></div></div>
 <div style="margin-bottom:30px"><h3 style="margin:0 0 4px">Bill To:</h3>
 <p style="margin:0">${escapeHtml(invoice.deal.contact.name)}</p>
 ${invoice.deal.contact.email ? `<p style="margin:0;color:#64748b">${escapeHtml(invoice.deal.contact.email)}</p>` : ""}

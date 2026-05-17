@@ -1,4 +1,5 @@
 "use server";
+import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 
 import { db } from "@/lib/db";
 
@@ -337,7 +338,7 @@ export async function processCalendarWebhook(
       data: {
         type: "MEETING",
         title: `Meeting: ${event.title}`,
-        content: `Scheduled: ${new Date(event.start).toLocaleString()}${event.location ? ` at ${event.location}` : ""}`,
+        content: `Scheduled: ${formatDateTime(event.start)}${event.location ? ` at ${event.location}` : ""}`,
         contactId: contact.id,
         dealId: deal?.id,
       },

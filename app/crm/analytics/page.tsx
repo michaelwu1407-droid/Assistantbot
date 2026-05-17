@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { useShellStore } from "@/lib/store"
-import { formatCurrency, formatShortDate, formatDate as formatLongDate } from "@/lib/format"
+import { formatCurrency, formatShortDate, formatDate as formatLongDate, formatDateTime } from "@/lib/format"
 import {
   getReportsData,
   getMonthlyRevenueBreakdown,
@@ -81,10 +81,10 @@ export default function AnalyticsPage() {
         <div className="flex-1 min-h-0 overflow-y-auto">
           <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
             <div className="animate-pulse space-y-4">
-              <div className="h-8 w-1/3 rounded-[18px] bg-secondary" />
+              <div className="h-8 w-1/3 rounded-md bg-secondary" />
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-28 rounded-[18px] bg-secondary" />
+                  <div key={i} className="h-28 rounded-md bg-secondary" />
                 ))}
               </div>
             </div>
@@ -241,7 +241,7 @@ export default function AnalyticsPage() {
   <body>
     <main class="report">
       <h1>Analytics Report</h1>
-      <p class="meta">${escapeHtml(RANGE_LABELS[timeRange])} - Generated ${escapeHtml(new Date().toLocaleString("en-AU"))}</p>
+      <p class="meta">${escapeHtml(RANGE_LABELS[timeRange])} - Generated ${escapeHtml(formatDateTime(new Date()))}</p>
       <div class="metrics">
         <div class="metric"><span>Revenue</span><strong>${formatCurrency(data.revenue.total)}</strong></div>
         <div class="metric"><span>Customers</span><strong>${data.customers.inRange}</strong></div>
@@ -308,7 +308,7 @@ export default function AnalyticsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card
-          className="cursor-pointer rounded-[18px] hover:shadow-md transition-shadow"
+          className="cursor-pointer rounded-md hover:shadow-md transition-shadow"
           onClick={() => {
             setRevenueExpanded(!revenueExpanded)
             if (revenueExpanded) {
@@ -332,7 +332,7 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        <Card className="cursor-pointer rounded-[18px] hover:shadow-md transition-shadow" onClick={() => setCustomersExpanded(!customersExpanded)}>
+        <Card className="cursor-pointer rounded-md hover:shadow-md transition-shadow" onClick={() => setCustomersExpanded(!customersExpanded)}>
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-3">
               <p className="app-micro-label">Customers</p>
@@ -360,7 +360,7 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-[18px]">
+        <Card className="rounded-md">
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-3">
               <p className="app-micro-label">Jobs won with Tracey</p>
@@ -372,7 +372,7 @@ export default function AnalyticsPage() {
           </div>
 
           {revenueExpanded && (
-            <Card className="rounded-[18px]">
+            <Card className="rounded-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base font-semibold text-neutral-900">
               <TrendingUp className="h-4 w-4" />
@@ -472,20 +472,20 @@ export default function AnalyticsPage() {
                 {!monthLoading && monthBreakdown && (
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      <div className="rounded-[18px] bg-secondary/30 p-3">
+                      <div className="rounded-md bg-secondary/30 p-3">
                         <p className="text-xs text-muted-foreground">Revenue</p>
                         <p className="text-lg font-bold text-neutral-900">{formatCurrency(monthBreakdown.totalRevenue)}</p>
                       </div>
-                      <div className="rounded-[18px] bg-secondary/30 p-3">
+                      <div className="rounded-md bg-secondary/30 p-3">
                         <p className="text-xs text-muted-foreground">Jobs completed</p>
                         <p className="text-lg font-bold text-neutral-900">{monthBreakdown.dealCount}</p>
                       </div>
-                      <div className="rounded-[18px] bg-secondary/30 p-3">
+                      <div className="rounded-md bg-secondary/30 p-3">
                         <p className="text-xs text-muted-foreground">Avg deal value</p>
                         <p className="text-lg font-bold text-neutral-900">{formatCurrency(monthBreakdown.avgDealValue)}</p>
                       </div>
                       {monthBreakdown.largestDeal && (
-                        <div className="rounded-[18px] bg-secondary/30 p-3">
+                        <div className="rounded-md bg-secondary/30 p-3">
                           <p className="text-xs text-muted-foreground">Largest deal</p>
                           <p className="text-sm font-bold text-neutral-900">{formatCurrency(monthBreakdown.largestDeal.revenue)}</p>
                           <p className="text-[11px] text-muted-foreground truncate">{monthBreakdown.largestDeal.title}</p>
@@ -498,7 +498,7 @@ export default function AnalyticsPage() {
                         <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">By source</p>
                         <div className="flex gap-2 flex-wrap">
                           {monthBreakdown.bySource.map((source) => (
-                            <div key={source.source} className="rounded-[18px] bg-secondary/40 px-3 py-2 text-xs">
+                            <div key={source.source} className="rounded-md bg-secondary/40 px-3 py-2 text-xs">
                               <span className="font-medium text-neutral-900">{source.source}</span>
                               <span className="text-muted-foreground ml-2">{source.count} job{source.count !== 1 ? "s" : ""}</span>
                               <span className="text-emerald-700 ml-2 font-semibold">{formatCurrency(source.revenue)}</span>
@@ -513,7 +513,7 @@ export default function AnalyticsPage() {
                       <div className="max-h-64 overflow-auto space-y-2 pr-1">
                         {monthBreakdown.deals.length === 0 && <p className="text-sm text-muted-foreground py-4">No completed jobs this month.</p>}
                         {monthBreakdown.deals.map((deal) => (
-                          <div key={deal.id} className="flex items-center justify-between rounded-[18px] bg-secondary/30 p-3">
+                          <div key={deal.id} className="flex items-center justify-between rounded-md bg-secondary/30 p-3">
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-medium text-neutral-900 truncate">{deal.title}</p>
                               <p className="text-xs text-muted-foreground">{deal.contactName} - {deal.source}</p>
@@ -535,7 +535,7 @@ export default function AnalyticsPage() {
           )}
 
           {customersExpanded && (
-            <Card className="rounded-[18px]">
+            <Card className="rounded-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base font-semibold text-neutral-900">
               <Star className="h-4 w-4 text-amber-500" />
@@ -545,15 +545,15 @@ export default function AnalyticsPage() {
           <CardContent>
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="rounded-[18px] bg-secondary/30 p-4">
+                <div className="rounded-md bg-secondary/30 p-4">
                   <p className="text-xs font-medium text-neutral-500">Avg rating</p>
                   <p className="text-3xl font-bold text-neutral-900 mt-1">{data.customers.satisfaction}</p>
                 </div>
-                <div className="rounded-[18px] bg-secondary/30 p-4">
+                <div className="rounded-md bg-secondary/30 p-4">
                   <p className="text-xs font-medium text-neutral-500">Total ratings</p>
                   <p className="text-3xl font-bold text-neutral-900 mt-1">{data.customers.ratingCount}</p>
                 </div>
-                <div className="rounded-[18px] bg-secondary/30 p-4">
+                <div className="rounded-md bg-secondary/30 p-4">
                   <p className="text-xs font-medium text-neutral-500">New customers</p>
                   <p className="text-3xl font-bold text-neutral-900 mt-1">{data.customers.inRange}</p>
                 </div>
@@ -561,7 +561,7 @@ export default function AnalyticsPage() {
 
               <div className="space-y-3">
                 <p className="text-sm font-medium text-neutral-900">Ratings distribution</p>
-                <div className="rounded-[18px] bg-secondary/30 p-3">
+                <div className="rounded-md bg-secondary/30 p-3">
                   {(() => {
                     const distribution = data.customers.ratingDistribution
                     const maxCount = Math.max(...distribution.map((item) => item.count), 1)
@@ -613,7 +613,7 @@ export default function AnalyticsPage() {
                 {data.customers.latestFeedback.length > 0 ? (
                   <div className="space-y-3 max-h-72 overflow-auto pr-1">
                     {data.customers.latestFeedback.map((feedback) => (
-                      <div key={feedback.id} className="rounded-[18px] bg-secondary/30 p-3">
+                      <div key={feedback.id} className="rounded-md bg-secondary/30 p-3">
                         <div className="flex items-center justify-between gap-3">
                           <p className="text-xs font-medium text-neutral-900">{feedback.contactName}</p>
                           <p className="text-xs text-muted-foreground">{formatLongDate(feedback.createdAt)}</p>
@@ -633,7 +633,7 @@ export default function AnalyticsPage() {
                 <p className="text-sm font-medium text-neutral-900">Satisfaction trend</p>
                 <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
                   {data.customers.monthlySatisfaction.map((month, index) => (
-                    <div key={`${month.month}-${index}`} className="rounded-[18px] bg-secondary/30 p-3">
+                    <div key={`${month.month}-${index}`} className="rounded-md bg-secondary/30 p-3">
                       <p className="text-xs text-muted-foreground">{month.month}</p>
                       <p className="text-sm font-medium text-neutral-900 mt-1">{month.count > 0 ? month.avg : "-"}</p>
                       <p className="text-[11px] text-muted-foreground mt-1">{month.count} rating{month.count === 1 ? "" : "s"}</p>
@@ -646,7 +646,7 @@ export default function AnalyticsPage() {
             </Card>
           )}
 
-          <Card className="rounded-[18px]">
+          <Card className="rounded-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base font-semibold text-neutral-900">
             <CheckCircle className="h-4 w-4" />
@@ -675,7 +675,7 @@ export default function AnalyticsPage() {
           </Card>
 
           {data.team.performance.length > 0 && (
-            <Card className="rounded-[18px]">
+            <Card className="rounded-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base font-semibold text-neutral-900">
               <Users className="h-4 w-4" />
@@ -685,7 +685,7 @@ export default function AnalyticsPage() {
           <CardContent>
             <div className="space-y-3">
               {data.team.performance.map((member, index) => (
-                <div key={index} className="flex items-center justify-between rounded-[18px] bg-secondary/50 p-3">
+                <div key={index} className="flex items-center justify-between rounded-md bg-secondary/50 p-3">
                   <div>
                     <p className="font-medium text-neutral-900">{member.name}</p>
                     <p className="text-sm text-muted-foreground">{member.jobs} jobs</p>

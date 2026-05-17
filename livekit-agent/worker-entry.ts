@@ -162,6 +162,12 @@ export function buildRequestFunc(surfaces: VoiceSurface[]) {
       return;
     }
 
+    console.warn("[voice-worker] Rejecting job because worker does not handle this surface.", {
+      roomName: job.room?.name || "",
+      inferredSurface,
+      configuredSurfaces: surfaces,
+      workerRole: process.env.VOICE_WORKER_ROLE || "",
+    });
     await job.reject();
   };
 }

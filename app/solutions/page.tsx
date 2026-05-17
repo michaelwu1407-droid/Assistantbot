@@ -139,7 +139,7 @@ export default function SolutionsPage() {
         </section>
 
         {/* Bottom CTA */}
-        <section className="rounded-[18px] bg-[linear-gradient(135deg,#0f172a_0%,#065f46_100%)] p-10 text-white text-center flex flex-col items-center gap-6">
+        <section className="rounded-md bg-[linear-gradient(135deg,#0f172a_0%,#065f46_100%)] p-10 text-white text-center flex flex-col items-center gap-6">
           <h2 className="text-3xl font-extrabold tracking-[-0.03em] md:text-4xl">
             Give yourself an early mark today
           </h2>

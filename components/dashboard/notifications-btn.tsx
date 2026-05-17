@@ -135,7 +135,7 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
                         "border-0 bg-transparent p-0 shadow-none outline-none",
                         /* globals: * { outline-ring/50 } and *:focus-visible { box-shadow: green } */
                         "!outline-none hover:bg-card/10 hover:text-white",
-                        "focus-visible:!outline-none focus-visible:!shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                        "focus-visible:!outline-none focus-visible:!shadow-none"
                     )}
                     onClick={() => {
                         setIsOpen(!isOpen)
@@ -144,7 +144,7 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
                 >
                     <Bell className="h-4 w-4" />
                     {unreadCount > 0 && (
-                        <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500" aria-hidden />
+                        <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-destructive" aria-hidden />
                     )}
                 </button>
             ) : (
@@ -165,7 +165,7 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
                 >
                     <Bell className="h-4 w-4" />
                     {unreadCount > 0 && (
-                        <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500" aria-hidden />
+                        <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-destructive" aria-hidden />
                     )}
                 </Button>
             )}
@@ -199,7 +199,7 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
                                 <div className="p-4 text-center text-xs text-muted-foreground">Loading...</div>
                             ) : notifications.length === 0 ? (
                                 <div className="p-8 text-center text-muted-foreground text-sm">
-                                    <Bell className="h-8 w-8 mx-auto mb-2 text-slate-200" />
+                                    <Bell className="h-8 w-8 mx-auto mb-2 text-muted-foreground/70" />
                                     No new notifications
                                 </div>
                             ) : (
@@ -230,10 +230,10 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
                                                 ) : (
                                                     <div className={cn(
                                                         "h-2 w-2 rounded-full",
-                                                        n.type === 'ERROR' ? "bg-red-500" :
+                                                        n.type === 'ERROR' ? "bg-destructive" :
                                                             n.type === 'WARNING' ? "bg-amber-500" :
                                                             n.type === 'SUCCESS' ? "bg-emerald-500" : "bg-primary",
-                                                        n.read && "bg-slate-300"
+                                                        n.read && "bg-muted-foreground/20"
                                                     )} />
                                                 )}
                                             </div>
@@ -266,7 +266,7 @@ export function NotificationsBtn({ userId, tone = "default" }: NotificationsBtnP
                                                         e.stopPropagation();
                                                         void handleMarkRead(n.id);
                                                     }}
-                                                    className="self-start text-slate-300 hover:text-primary transition-colors"
+                                                    className="self-start text-muted-foreground/70 hover:text-primary transition-colors"
                                                     title="Mark as read"
                                                 >
                                                     <Check className="h-4 w-4" />

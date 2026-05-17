@@ -398,7 +398,7 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
         {/* Back to website home page */}
         <Link
           href="/"
-          className="absolute top-5 left-5 flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/70 text-muted-foreground/80 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-border hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+          className="absolute top-5 left-5 flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-background/70 text-muted-foreground/80 shadow-sm backdrop-blur-sm transition-all duration-200 hover:border-border hover:bg-background hover:text-foreground focus-visible:outline-none"
           aria-label="Back to website"
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -667,7 +667,7 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
           <div className={cn(
             "mt-6 p-4 rounded-xl text-center text-sm font-semibold border",
             state.message.includes("error") || state.message.includes("Error") || state.message.includes("already exists") || state.message.includes("Invalid")
-              ? "bg-red-50 text-red-600 border-red-100"
+              ? "bg-destructive/10 text-destructive border-destructive/30"
               : "bg-mint-50 text-primary border-primary/20"
           )}>
             {state.message}

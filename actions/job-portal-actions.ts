@@ -3,7 +3,7 @@
 import { db } from "@/lib/db"
 import { verifyPublicJobPortalToken } from "@/lib/public-job-portal"
 import { buildPublicFeedbackUrl } from "@/lib/public-feedback"
-import { DEFAULT_WORKSPACE_TIMEZONE } from "@/lib/timezone"
+import { DEFAULT_WORKSPACE_TIMEZONE, formatDateTimeInTimezone } from "@/lib/timezone"
 
 export type JobPortalStatus = {
   jobStatus: string | null
@@ -83,14 +83,7 @@ export async function getJobPortalStatus(token: string): Promise<JobPortalStatus
     : null
 
   const scheduledAt = deal.scheduledAt
-    ? new Date(deal.scheduledAt).toLocaleString("en-AU", {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        hour: "numeric",
-        minute: "2-digit",
-        timeZone: deal.workspace.workspaceTimezone || DEFAULT_WORKSPACE_TIMEZONE,
-      })
+    ? formatDateTimeInTimezone(deal.scheduledAt, deal.workspace.workspaceTimezone || DEFAULT_WORKSPACE_TIMEZONE)
     : null
 
   return {

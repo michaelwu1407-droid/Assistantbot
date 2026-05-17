@@ -231,14 +231,14 @@ export default function TeamPage() {
                             Invite Member
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="rounded-[18px]">
+                    <DialogContent className="ott-dialog rounded-md">
                         <DialogHeader>
                             <DialogTitle>Invite a Team Member</DialogTitle>
                             <DialogDescription>
                                 Send an invitation email or generate a shareable link. They&apos;ll sign up and join your workspace with the role you choose below.
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="space-y-4 rounded-[18px] border border-border/60 bg-card/80 py-2 shadow-lg backdrop-blur">
+                        <div className="space-y-4 rounded-md border border-border/60 bg-card/80 py-2 shadow-lg backdrop-blur">
                             <div className="space-y-2">
                                 <Label className="text-sm font-medium text-neutral-900">They&apos;ll join as</Label>
                                 <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as "TEAM_MEMBER" | "MANAGER")}>
@@ -270,7 +270,7 @@ export default function TeamPage() {
                             </div>
 
                             {inviteError && (
-                                <div className="rounded-[18px] border border-red-200 bg-red-50 p-3">
+                                <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3">
                                     <p className="text-sm text-destructive">{inviteError}</p>
                                 </div>
                             )}
@@ -360,7 +360,7 @@ export default function TeamPage() {
             </div>
 
             <div className={pendingInviteCount > 0 ? "grid gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.95fr)]" : "mx-auto w-full max-w-4xl"}>
-                <Card className="rounded-[18px]">
+                <Card className="rounded-md">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2 text-base font-semibold text-neutral-900">
                             <Users className="w-5 h-5 text-muted-foreground" />
@@ -370,7 +370,7 @@ export default function TeamPage() {
                     <CardContent>
                         <div className="space-y-3">
                             {displayMembers.map((member) => (
-                                <div key={member.id} className="grid gap-4 rounded-[18px] border border-border/50 bg-[#F8FAFC] p-4 md:grid-cols-[minmax(0,1.6fr)_minmax(160px,0.8fr)_auto] md:items-center">
+                                <div key={member.id} className="grid gap-4 rounded-md border border-border/50 bg-[#F8FAFC] p-4 md:grid-cols-[minmax(0,1.6fr)_minmax(160px,0.8fr)_auto] md:items-center">
                                     <div className="flex min-w-0 items-center gap-4">
                                         <Avatar className="h-12 w-12 border border-border bg-muted/30">
                                             <AvatarFallback className="text-base text-muted-foreground">{(member.name || member.email)[0]?.toUpperCase()}</AvatarFallback>
@@ -393,7 +393,7 @@ export default function TeamPage() {
                                                 value={member.role}
                                                 onValueChange={(val) => handleRoleUpdate(member.id, val as "MANAGER" | "TEAM_MEMBER")}
                                             >
-                                                <SelectTrigger className="h-9 w-full rounded-[18px] bg-card text-sm">
+                                                <SelectTrigger className="h-9 w-full rounded-md bg-card text-sm">
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
@@ -411,13 +411,13 @@ export default function TeamPage() {
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
-                                                        className="h-9 w-9 rounded-full text-red-400 hover:bg-red-50 hover:text-destructive"
+                                                        className="h-9 w-9 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
                                                         title="Remove from team"
                                                     >
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
                                                 </AlertDialogTrigger>
-                                                <AlertDialogContent className="rounded-[18px]">
+                                                <AlertDialogContent className="ott-dialog rounded-md">
                                                     <AlertDialogHeader>
                                                         <AlertDialogTitle>Remove {member.name || member.email}?</AlertDialogTitle>
                                                         <AlertDialogDescription>
@@ -428,7 +428,7 @@ export default function TeamPage() {
                                                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                                                         <AlertDialogAction
                                                             onClick={() => handleRemoveMember(member.id)}
-                                                            className="bg-red-600 hover:bg-red-700"
+                                                            className="bg-destructive hover:bg-destructive"
                                                         >
                                                             Remove
                                                         </AlertDialogAction>
@@ -444,7 +444,7 @@ export default function TeamPage() {
                 </Card>
 
                 {isManager && pendingInviteCount > 0 && (
-                    <Card className="rounded-[18px]">
+                    <Card className="rounded-md">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-base font-semibold text-neutral-900">
                                 <Link2 className="w-5 h-5 text-muted-foreground" />
@@ -454,7 +454,7 @@ export default function TeamPage() {
                         <CardContent>
                             <div className="space-y-3">
                                 {invites.map((invite) => (
-                                    <div key={invite.id} className="space-y-3 rounded-[18px] border border-amber-200/50 bg-amber-50/50 p-4">
+                                    <div key={invite.id} className="space-y-3 rounded-md border border-amber-200/50 bg-amber-50/50 p-4">
                                         <div className="flex items-start gap-3">
                                             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100">
                                                 <Link2 className="h-5 w-5 text-amber-600" />
@@ -498,7 +498,7 @@ export default function TeamPage() {
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="h-9 w-9 rounded-full text-red-400 hover:bg-red-50 hover:text-destructive"
+                                                    className="h-9 w-9 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
                                                     onClick={() => handleRevoke(invite.id)}
                                                 >
                                                     <Trash2 className="h-4 w-4" />

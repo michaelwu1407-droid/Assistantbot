@@ -259,27 +259,27 @@ export default async function ContactDetailPage({ params }: PageProps) {
           )}
 
           {contact.customerFeedback && contact.customerFeedback.length > 0 && (
-            <div className="p-4 border border-red-200 dark:border-red-900/50 rounded-lg bg-red-50 dark:bg-red-950/20 shadow-sm shrink-0">
-              <h3 className="font-semibold text-red-900 dark:text-red-200 mb-3 flex items-center gap-2">
+            <div className="p-4 border border-destructive/30 dark:border-destructive/30 rounded-lg bg-destructive/10 shadow-sm shrink-0">
+              <h3 className="font-semibold text-destructive dark:text-destructive mb-3 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-destructive" />
                 Customer feedback
               </h3>
               <div className="space-y-3">
                 {contact.customerFeedback.map((fb) => (
-                  <details key={fb.id} className="group border border-red-200 dark:border-red-900/50 rounded-md overflow-hidden">
-                    <summary className="flex cursor-pointer items-center justify-between p-3 bg-red-100/30 dark:bg-red-900/10 text-sm font-medium text-red-800 dark:text-red-300 hover:bg-red-100/50 dark:hover:bg-red-900/20 list-none">
+                  <details key={fb.id} className="group border border-destructive/30 dark:border-destructive/30 rounded-md overflow-hidden">
+                    <summary className="flex cursor-pointer items-center justify-between p-3 bg-destructive/15 text-sm font-medium text-destructive dark:text-destructive hover:bg-destructive/15 list-none">
                       <span className="flex items-center gap-2">
                         {format(new Date(fb.createdAt), "MMM d")} - Score: {fb.score}/10
                         {fb.resolved && <Badge variant="outline" className="text-[10px] border-emerald-500 text-emerald-600 h-5 px-1 py-0">Resolved</Badge>}
                       </span>
                       <ChevronLeft className="w-4 h-4 rotate-[-90deg] group-open:rotate-90 transition-transform" />
                     </summary>
-                    <div className="p-3 text-xs text-red-700 dark:text-red-400 border-t border-red-200 dark:border-red-900/50 bg-card/50 dark:bg-black/20">
-                      <div className="bg-red-50/50 dark:bg-red-900/20 p-2 rounded border border-red-100 dark:border-red-900/30 whitespace-pre-wrap font-mono">
-                        <p className="font-semibold text-red-900 dark:text-red-300 mb-1 font-sans">Customer comment:</p>
+                    <div className="p-3 text-xs text-destructive dark:text-destructive border-t border-destructive/30 dark:border-destructive/30 bg-card/50 dark:bg-black/20">
+                      <div className="bg-destructive/10 p-2 rounded border border-destructive/30 dark:border-destructive/30 whitespace-pre-wrap font-mono">
+                        <p className="font-semibold text-destructive dark:text-destructive mb-1 font-sans">Customer comment:</p>
                         {fb.comment || "No written comment provided."}
                         {fb.resolution && (
-                          <div className="mt-3 pt-2 border-t border-red-200 dark:border-red-900/50">
+                          <div className="mt-3 pt-2 border-t border-destructive/30 dark:border-destructive/30">
                             <p className="font-semibold text-emerald-700 dark:text-emerald-400 mb-1 font-sans">Resolution notes:</p>
                             <p className="font-sans text-foreground dark:text-slate-300">{fb.resolution}</p>
                           </div>

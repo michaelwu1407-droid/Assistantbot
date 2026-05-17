@@ -106,7 +106,7 @@ export function WebformEmbedSection({ workspaceId }: WebformEmbedSectionProps) {
 
         {/* Code block */}
         <div className="relative">
-          <pre className="bg-slate-900 text-slate-100 rounded-lg p-4 text-xs overflow-x-auto leading-relaxed">
+          <pre className="bg-muted-foreground text-muted-foreground/70 rounded-lg p-4 text-xs overflow-x-auto leading-relaxed">
             <code>{activeSnippet}</code>
           </pre>
           <Button

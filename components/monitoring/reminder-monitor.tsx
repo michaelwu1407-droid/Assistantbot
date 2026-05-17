@@ -13,6 +13,7 @@ import {
   BarChart3
 } from "lucide-react";
 import { toast } from "sonner";
+import { formatDateTimeInTimezone } from "@/lib/timezone";
 
 interface ReminderStats {
   recentReminders: number;
@@ -127,12 +128,7 @@ export function ReminderMonitor() {
   }, []);
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString("en-AU", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return formatDateTimeInTimezone(dateString, "Australia/Sydney");
   };
 
   return (
@@ -284,12 +280,7 @@ export function ReminderMonitor() {
                     <div className="flex-1">
                       <p className="font-medium text-sm">{job.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {job.contact.name} • {new Date(job.scheduledAt).toLocaleString("en-AU", {
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {job.contact.name} • {formatDateTimeInTimezone(job.scheduledAt, "Australia/Sydney")}
                       </p>
                       <Badge variant="outline" className="mt-1">
                         {job.workspace.enableJobReminders ? "Reminders ON" : "Reminders OFF"}

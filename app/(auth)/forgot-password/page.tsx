@@ -65,7 +65,7 @@ export default function ForgotPasswordPage() {
             </Button>
           </form>
           {message && (
-            <p className={`mt-4 text-center text-sm ${message.includes("error") ? "text-red-500" : "text-green-600"}`}>
+            <p className={`mt-4 text-center text-sm ${message.includes("error") ? "text-destructive" : "text-green-600"}`}>
               {message}
             </p>
           )}

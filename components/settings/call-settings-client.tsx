@@ -328,22 +328,22 @@ export function CallSettingsClient() {
         </CardHeader>
         <CardContent className="space-y-4">
           {!phoneStatus.hasPhoneNumber || !phoneStatus.hasSubaccount ? (
-            <div className="rounded-[18px] border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300">
+            <div className="rounded-md border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300">
               Automated text messages start sending after your Tracey number is provisioned in Account.
             </div>
           ) : null}
 
           {rulesError ? (
-            <div className="rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/40 dark:text-amber-200">
+            <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/40 dark:text-amber-200">
               {rulesError}
             </div>
           ) : rules.length === 0 ? (
-            <div className="rounded-[18px] border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300">
+            <div className="rounded-md border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300">
               No automated text messages have been set up yet.
             </div>
           ) : (
             rules.map((rule) => (
-              <div key={rule.id} className="space-y-3 rounded-[18px] border border-border p-4 dark:border-slate-700">
+              <div key={rule.id} className="space-y-3 rounded-md border border-border p-4 dark:border-slate-700">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1">
                     <p className="text-sm font-semibold text-foreground dark:text-slate-100">{getRuleDisplayName(rule)}</p>

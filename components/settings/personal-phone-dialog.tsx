@@ -143,7 +143,7 @@ export function PersonalPhoneDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[min(calc(100vw-1.5rem),34rem)] p-0">
+      <DialogContent className="ott-dialog w-[min(calc(100vw-1.5rem),34rem)] p-0">
         <div className="border-b border-border/80 px-6 py-5 dark:border-white/10">
           <DialogHeader className="space-y-2">
             <DialogTitle className="flex items-center gap-2">
@@ -158,20 +158,20 @@ export function PersonalPhoneDialog({
 
         <div className="space-y-4 px-6 py-5">
           {error ? (
-            <Alert variant="destructive" className="rounded-[18px]">
+            <Alert variant="destructive" className="rounded-md">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           ) : null}
 
           {success ? (
-            <Alert className="rounded-[18px] border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-100">
+            <Alert className="rounded-md border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-100">
               <CheckCircle2 className="h-4 w-4" />
               <AlertDescription>{success}</AlertDescription>
             </Alert>
           ) : null}
 
-          <div className="rounded-[18px] border border-border bg-card/70 p-4 dark:border-white/10 dark:bg-card/5">
+          <div className="rounded-md border border-border bg-card/70 p-4 dark:border-white/10 dark:bg-card/5">
             <Label htmlFor="personal-phone-input">Personal mobile</Label>
             <Input
               id="personal-phone-input"
@@ -188,7 +188,7 @@ export function PersonalPhoneDialog({
           </div>
 
           {step === "verify" ? (
-            <div className="rounded-[18px] border border-border bg-card/70 p-4 dark:border-white/10 dark:bg-card/5">
+            <div className="rounded-md border border-border bg-card/70 p-4 dark:border-white/10 dark:bg-card/5">
               <Label htmlFor="personal-phone-code">Verification code</Label>
               <Input
                 id="personal-phone-code"

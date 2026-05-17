@@ -53,7 +53,7 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
     return (
         <>
             <motion.div
-                className="absolute bottom-0 left-0 right-0 z-30 flex flex-col rounded-t-[32px] border-t border-slate-800 bg-slate-950 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]"
+                className="absolute bottom-0 left-0 right-0 z-30 flex flex-col rounded-t-[32px] border-t border-border bg-muted-foreground shadow-[0_-10px_40px_rgba(0,0,0,0.5)]"
                 style={{ touchAction: "none" }}
                 initial={{ height: "15%" }}
                 animate={{ height: isOpen ? "92%" : "15%" }}
@@ -70,7 +70,7 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
                 }}
                 onClick={() => !isOpen && setIsOpen(true)}
             >
-                <div className="mx-auto mb-4 mt-3 h-1.5 w-12 shrink-0 rounded-full bg-slate-700" />
+                <div className="mx-auto mb-4 mt-3 h-1.5 w-12 shrink-0 rounded-full bg-muted-foreground" />
 
                 <div className="flex flex-1 flex-col overflow-hidden px-6">
                     <div className="mb-6 flex shrink-0 cursor-pointer items-center justify-between" onClick={() => setIsOpen(!isOpen)}>
@@ -78,7 +78,7 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
                             <h3 className="mb-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">Current Job</h3>
                             <h2 className="text-xl font-black leading-tight text-white">{job.title}</h2>
                             <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-                                <span className={cn("h-2 w-2 rounded-full", job.health?.status === "ROTTING" ? "bg-red-500" : "bg-[#ccff00]")} />
+                                <span className={cn("h-2 w-2 rounded-full", job.health?.status === "ROTTING" ? "bg-destructive" : "bg-[#ccff00]")} />
                                 {secondaryHeaderLabel}
                             </p>
                         </div>
@@ -98,7 +98,7 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
                                 <div className="mb-6 grid shrink-0 grid-cols-4 gap-3">
                                     <Button
                                         variant="outline"
-                                        className="h-20 flex flex-col gap-2 border-slate-800 bg-slate-900 text-muted-foreground transition-all hover:border-[#ccff00]/50 hover:bg-slate-800 hover:text-[#ccff00]"
+                                        className="h-20 flex flex-col gap-2 border-border bg-muted-foreground text-muted-foreground transition-all hover:border-[#ccff00]/50 hover:bg-slate-800 hover:text-[#ccff00]"
                                         onClick={(e) => {
                                             e.stopPropagation()
                                             window.open(`https://maps.google.com/?q=${job.address}`, "_blank")
@@ -110,7 +110,7 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
                                     {job.contactPhone ? (
                                         <Button
                                             variant="outline"
-                                            className="h-20 flex flex-col gap-2 border-slate-800 bg-slate-900 text-muted-foreground transition-all hover:border-blue-500/50 hover:bg-slate-800 hover:text-blue-400"
+                                            className="h-20 flex flex-col gap-2 border-border bg-muted-foreground text-muted-foreground transition-all hover:border-blue-500/50 hover:bg-slate-800 hover:text-blue-400"
                                             onClick={(e) => {
                                                 e.stopPropagation()
                                                 window.open(`tel:${job.contactPhone}`)
@@ -120,7 +120,7 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
                                             <span className="text-[10px] font-bold uppercase tracking-wider">Call</span>
                                         </Button>
                                     ) : (
-                                        <Button asChild variant="outline" className="h-20 flex flex-col gap-2 border-slate-800 bg-slate-900 text-muted-foreground transition-all hover:border-blue-500/50 hover:bg-slate-800 hover:text-blue-400">
+                                        <Button asChild variant="outline" className="h-20 flex flex-col gap-2 border-border bg-muted-foreground text-muted-foreground transition-all hover:border-blue-500/50 hover:bg-slate-800 hover:text-blue-400">
                                             <Link href={`/crm/deals/${job.id}`} onClick={(e) => e.stopPropagation()}>
                                                 <Phone className="h-6 w-6" />
                                                 <span className="text-[10px] font-bold uppercase tracking-wider">Add Phone</span>
@@ -130,7 +130,7 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
                                     {job.contactPhone ? (
                                         <Button
                                             variant="outline"
-                                            className="h-20 flex flex-col gap-2 border-slate-800 bg-slate-900 text-muted-foreground transition-all hover:border-purple-500/50 hover:bg-slate-800 hover:text-purple-400"
+                                            className="h-20 flex flex-col gap-2 border-border bg-muted-foreground text-muted-foreground transition-all hover:border-purple-500/50 hover:bg-slate-800 hover:text-purple-400"
                                             onClick={(e) => {
                                                 e.stopPropagation()
                                                 window.open(`sms:${job.contactPhone}`)
@@ -140,7 +140,7 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
                                             <span className="text-[10px] font-bold uppercase tracking-wider">Text</span>
                                         </Button>
                                     ) : (
-                                        <Button asChild variant="outline" className="h-20 flex flex-col gap-2 border-slate-800 bg-slate-900 text-muted-foreground transition-all hover:border-purple-500/50 hover:bg-slate-800 hover:text-purple-400">
+                                        <Button asChild variant="outline" className="h-20 flex flex-col gap-2 border-border bg-muted-foreground text-muted-foreground transition-all hover:border-purple-500/50 hover:bg-slate-800 hover:text-purple-400">
                                             <Link href={`/crm/deals/${job.id}`} onClick={(e) => e.stopPropagation()}>
                                                 <MessageSquare className="h-6 w-6" />
                                                 <span className="text-[10px] font-bold uppercase tracking-wider">Open CRM</span>
@@ -149,7 +149,7 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
                                     )}
                                     <Button
                                         variant="outline"
-                                        className="h-20 flex flex-col gap-2 border-slate-800 bg-slate-900 text-muted-foreground transition-all hover:border-orange-500/50 hover:bg-slate-800 hover:text-orange-400"
+                                        className="h-20 flex flex-col gap-2 border-border bg-muted-foreground text-muted-foreground transition-all hover:border-orange-500/50 hover:bg-slate-800 hover:text-orange-400"
                                         onClick={(e) => {
                                             e.stopPropagation()
                                             setIsOpen(true)
@@ -161,7 +161,7 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
                                     </Button>
                                 </div>
 
-                                <div className="mb-4 flex shrink-0 border-b border-slate-800">
+                                <div className="mb-4 flex shrink-0 border-b border-border">
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation()
@@ -203,20 +203,20 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
                                 <div className="no-scrollbar flex-1 overflow-y-auto pb-32">
                                     {activeTab === "DETAILS" && (
                                         <div className="space-y-6">
-                                            <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+                                            <div className="rounded-xl border border-border bg-muted-foreground/50 p-4">
                                                 <h4 className="mb-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">Job Description</h4>
-                                                <p className="text-sm leading-relaxed text-slate-300">
+                                                <p className="text-sm leading-relaxed text-muted-foreground/70">
                                                     {job.description || "No description provided."}
                                                 </p>
                                             </div>
 
-                                            <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+                                            <div className="rounded-xl border border-border bg-muted-foreground/50 p-4">
                                                 <h4 className="mb-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">Site Contact</h4>
                                                 <div className="flex items-center justify-between">
                                                     <span className="font-medium text-white">{job.clientName}</span>
                                                     <span className="text-sm text-muted-foreground">{job.contactPhone || ""}</span>
                                                 </div>
-                                                <div className="mt-2 border-t border-slate-800 pt-2 text-sm text-muted-foreground">
+                                                <div className="mt-2 border-t border-border pt-2 text-sm text-muted-foreground">
                                                     {job.address}
                                                 </div>
                                             </div>
@@ -225,16 +225,16 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
 
                                     {activeTab === "PHOTOS" && (
                                         <div className="space-y-4">
-                                            <div className="space-y-3 rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+                                            <div className="space-y-3 rounded-xl border border-border bg-muted-foreground/50 p-4">
                                                 <div>
                                                     <h4 className="mb-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">Site Photos</h4>
-                                                    <p className="text-sm leading-relaxed text-slate-300">
+                                                    <p className="text-sm leading-relaxed text-muted-foreground/70">
                                                         Capture photos from the full job mode so they save against the right job and stay available for billing, handover, and office review.
                                                     </p>
                                                 </div>
                                                 <Link
                                                     href={`/tradie/jobs/${job.id}`}
-                                                    className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-100 transition-colors hover:bg-slate-800 hover:text-white"
+                                                    className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-border bg-muted-foreground px-4 py-3 text-sm font-semibold text-muted-foreground/70 transition-colors hover:bg-slate-800 hover:text-white"
                                                 >
                                                     Open Full Job Mode
                                                     <ExternalLink className="h-4 w-4" />
@@ -245,7 +245,7 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
 
                                     {activeTab === "BILLING" && (
                                         <div className="space-y-6">
-                                            <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+                                            <div className="rounded-xl border border-border bg-muted-foreground/50 p-4">
                                                 <div className="mb-4 flex items-center justify-between">
                                                     <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Current Total</h4>
                                                     <span className="text-xl font-bold text-[#ccff00]">{formatCurrency(job.value)}</span>
@@ -254,14 +254,14 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
                                                     <div className="flex gap-2">
                                                         <Input
                                                             placeholder="Item (e.g. 100mm PVC)"
-                                                            className="border-slate-800 bg-slate-950 text-white focus:border-[#ccff00]/50"
+                                                            className="border-border bg-muted-foreground text-white focus:border-[#ccff00]/50"
                                                             value={variationDesc}
                                                             onChange={(e) => setVariationDesc(e.target.value)}
                                                         />
                                                         <Input
                                                             placeholder="$"
                                                             type="number"
-                                                            className="w-24 border-slate-800 bg-slate-950 text-white focus:border-[#ccff00]/50"
+                                                            className="w-24 border-border bg-muted-foreground text-white focus:border-[#ccff00]/50"
                                                             value={variationPrice}
                                                             onChange={(e) => setVariationPrice(e.target.value)}
                                                         />
@@ -273,28 +273,28 @@ export function JobBottomSheet({ job, isOpen, setIsOpen, onAddVariation, safetyC
                                                             setVariationPrice(String(material.price))
                                                         }}
                                                         trigger={
-                                                            <Button variant="outline" size="sm" className="mb-2 w-full gap-2 border-slate-800 bg-slate-900 text-muted-foreground hover:bg-slate-800 hover:text-[#ccff00]">
+                                                            <Button variant="outline" size="sm" className="mb-2 w-full gap-2 border-border bg-muted-foreground text-muted-foreground hover:bg-slate-800 hover:text-[#ccff00]">
                                                                 <Search className="h-4 w-4" /> Search Material Database
                                                             </Button>
                                                         }
                                                     />
 
-                                                    <Button className="w-full border border-slate-700 bg-slate-800 text-white hover:bg-slate-700" onClick={handleAddVariation}>
+                                                    <Button className="w-full border border-border bg-muted-foreground text-white hover:bg-slate-700" onClick={handleAddVariation}>
                                                         <Plus className="mr-2 h-4 w-4" /> Add Variation
                                                     </Button>
                                                 </div>
                                             </div>
 
-                                            <div className="space-y-3 rounded-xl border border-slate-800 bg-slate-900/50 p-4">
+                                            <div className="space-y-3 rounded-xl border border-border bg-muted-foreground/50 p-4">
                                                 <div>
                                                     <h4 className="mb-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">Completion Capture</h4>
-                                                    <p className="text-sm leading-relaxed text-slate-300">
+                                                    <p className="text-sm leading-relaxed text-muted-foreground/70">
                                                         Video explanations and customer signatures are captured from the full completion flow so they save against the job properly.
                                                     </p>
                                                 </div>
                                                 <Link
                                                     href={`/crm/deals/${job.id}`}
-                                                    className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-100 transition-colors hover:bg-slate-800 hover:text-white"
+                                                    className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-border bg-muted-foreground px-4 py-3 text-sm font-semibold text-muted-foreground/70 transition-colors hover:bg-slate-800 hover:text-white"
                                                 >
                                                     Open Full CRM Job
                                                     <ExternalLink className="h-4 w-4" />

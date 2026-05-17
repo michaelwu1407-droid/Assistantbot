@@ -60,7 +60,7 @@ export default async function OpenHouseKioskPage({ searchParams }: PageProps) {
 
     return (
         <div className="min-h-screen bg-muted flex flex-col justify-center p-4 md:p-8 bg-[url('https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&auto=format&fit=crop&w=2073&q=80')] bg-cover bg-center relative">
-            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm z-0"></div>
+            <div className="absolute inset-0 bg-muted-foreground/40 backdrop-blur-sm z-0"></div>
 
             <div className="relative z-10 w-full max-w-5xl mx-auto grid lg:grid-cols-2 gap-8 items-center">
                 <div className="hidden lg:block text-white space-y-6">
@@ -84,7 +84,7 @@ export default async function OpenHouseKioskPage({ searchParams }: PageProps) {
                     <div className="pt-4 flex items-center gap-4">
                         <div className="flex -space-x-3">
                             {[1, 2, 3].map(i => (
-                                <div key={i} className="w-10 h-10 rounded-full border-2 border-slate-900 bg-muted"></div>
+                                <div key={i} className="w-10 h-10 rounded-full border-2 border-border bg-muted"></div>
                             ))}
                         </div>
                         <p className="text-sm font-medium">Join 24 others interested today</p>

@@ -175,7 +175,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="sm:max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+                <DialogContent className="ott-dialog sm:max-w-md max-h-[90vh] overflow-hidden flex flex-col">
                     {!completed ? (
                         <>
                             <DialogHeader>
@@ -255,7 +255,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                                     <div key={i} className="flex items-center justify-between bg-card border border-border rounded-lg px-3 py-2">
                                                         <span className="text-xs text-foreground truncate flex-1 mr-2">{mat.description}</span>
                                                         <span className="text-xs font-bold text-foreground mr-2">${mat.price.toFixed(2)}</span>
-                                                        <button type="button" onClick={() => handleRemoveMaterial(i)} className="p-1 rounded hover:bg-red-50 text-muted-foreground hover:text-red-500">
+                                                        <button type="button" onClick={() => handleRemoveMaterial(i)} className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive">
                                                             <Trash2 className="h-3.5 w-3.5" />
                                                         </button>
                                                     </div>

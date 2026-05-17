@@ -319,7 +319,7 @@ async function addDraftWarnings(
     const after = withTime.filter((d) => new Date(d.scheduledAt).getTime() > draftTime).sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
     const tz = "Australia/Sydney";
     const fmt = (d: { title?: string; contactName?: string; scheduledAt: Date }) =>
-      `${(d.title || d.contactName || "Job").trim()} at ${new Date(d.scheduledAt).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: tz })}`;
+      `${(d.title || d.contactName || "Job").trim()} at ${formatTimeInTimezone(d.scheduledAt, tz)}`;
     if (before.length > 0 || after.length > 0) {
       const parts = [before[0] && fmt(before[0]) + " beforehand", after[0] && fmt(after[0]) + " after"].filter(Boolean);
       draft.warnings.push("You have " + parts.join(" and ") + ". Check if that's too tight.");

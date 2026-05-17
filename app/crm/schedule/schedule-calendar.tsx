@@ -489,7 +489,7 @@ export function ScheduleCalendar({ deals, teamMembers, workspaceTimezone, initia
               <select
                 value={filterMemberId || ""}
                 onChange={(e) => setFilterMemberId(e.target.value || null)}
-                className="app-body-primary h-8 bg-transparent border-none focus:ring-0 cursor-pointer pr-6"
+                className="app-body-primary h-8 bg-transparent border-none cursor-pointer pr-6"
               >
                 <option value="">All Members</option>
                 {teamMembers.map(m => (

@@ -32,8 +32,8 @@ const servicePricingTableMinWidthClass = "min-w-[1020px]"
 const servicePricingGridClass =
   "grid items-start gap-3 [grid-template-columns:minmax(240px,1.15fr)_110px_110px_minmax(420px,1.7fr)_120px]"
 
-const compactInputClass = "h-12 min-w-0 rounded-[16px] px-3 text-sm"
-const compactTextareaClass = "h-[56px] min-h-[56px] resize-none rounded-[16px] px-3 py-2 text-sm"
+const compactInputClass = "h-12 min-w-0 rounded-md px-3 text-sm"
+const compactTextareaClass = "h-[56px] min-h-[56px] resize-none rounded-md px-3 py-2 text-sm"
 
 function toServiceDraft(rule: KnowledgeRule): ServiceDraft {
   const metadata = (rule.metadata || {}) as Record<string, unknown>
@@ -206,7 +206,7 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
           <p className="text-xs text-muted-foreground">
             Add your common services and fee range. Use comments to explain how Tracey should answer price questions.
           </p>
-          <div className="rounded-[18px] border border-border dark:border-slate-700 overflow-hidden">
+          <div className="rounded-md border border-border dark:border-slate-700 overflow-hidden">
             <div className="overflow-x-auto">
               <div className={servicePricingTableMinWidthClass}>
                 <div className={`bg-muted/30 px-3 py-2 dark:bg-slate-900 ${servicePricingGridClass}`}>
@@ -348,8 +348,8 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
           </div>
           <div className="space-y-2">
             {refusalRules.map((rule) => (
-              <div key={rule.id} className="flex items-center justify-between rounded-md border border-red-200 bg-red-50 px-3 py-2">
-                <span className="text-sm text-red-700">{rule.ruleContent}</span>
+              <div key={rule.id} className="flex items-center justify-between rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2">
+                <span className="text-sm text-destructive">{rule.ruleContent}</span>
                 <Button variant="ghost" size="icon" onClick={() => removeRefusalRule(rule.id)} className="h-7 w-7 text-destructive">
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>

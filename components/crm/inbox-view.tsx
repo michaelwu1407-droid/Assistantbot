@@ -1022,7 +1022,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
                   </Button>
                 </div>
                 {messageMode === "direct" && !selectedContact.phone && (
-                  <p className="app-body-secondary mt-1 text-xs text-red-400">No phone number on file - add one to send direct messages.</p>
+                  <p className="app-body-secondary mt-1 text-xs text-destructive">No phone number on file - add one to send direct messages.</p>
                 )}
                 {messageMode === "direct" && !!selectedContact.phone && (
                   <p className={cn("app-body-secondary mt-1 text-right text-xs", messageText.length > 160 ? "text-destructive font-medium" : "text-muted-foreground")}>
@@ -1042,7 +1042,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
         </div>
       </div>
       <Dialog open={customDateDialogOpen} onOpenChange={setCustomDateDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="ott-dialog sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Custom time period</DialogTitle>
             <DialogDescription>

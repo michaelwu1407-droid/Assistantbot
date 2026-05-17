@@ -1,4 +1,5 @@
 "use server";
+import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
@@ -154,10 +155,10 @@ export async function findMatches(dealId: string): Promise<MatchResult> {
     if (budget > 0 && price > 0) {
       if (budget >= price) {
         score += 50;
-        reasons.push(`Budget OK ($${budget.toLocaleString()})`);
+        reasons.push(`Budget OK (${formatCurrency(budget)})`);
       } else if (budget >= price * 0.9) {
         score += 30;
-        reasons.push(`Budget close ($${budget.toLocaleString()})`);
+        reasons.push(`Budget close (${formatCurrency(budget)})`);
       }
     }
 

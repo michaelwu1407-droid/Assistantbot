@@ -153,7 +153,7 @@ export function StaleDealFollowUpModal({
   }
 
   const getStalenessColor = () => {
-    if (isRotting) return "bg-red-100 text-red-800 border-red-200"
+    if (isRotting) return "bg-destructive/15 text-destructive border-destructive/30"
     if (isStale) return "bg-amber-100 text-amber-800 border-amber-200"
     return "bg-blue-100 text-blue-800 border-blue-200"
   }
@@ -166,7 +166,7 @@ export function StaleDealFollowUpModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100vh-2rem)] max-w-2xl overflow-y-auto">
+      <DialogContent className="ott-dialog max-h-[calc(100vh-2rem)] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-amber-600" />
@@ -284,7 +284,7 @@ export function StaleDealFollowUpModal({
                 type="datetime-local"
                 value={scheduleDate}
                 onChange={(e) => setScheduleDate(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none"
               />
               <div className="space-y-2">
                 <Label htmlFor="call-notes">Call notes (optional)</Label>

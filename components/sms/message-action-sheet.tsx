@@ -125,7 +125,7 @@ export function MessageActionSheet({
               </p>
             )}
             {preview.canSend === false && (
-              <p className="text-xs text-red-700 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+              <p className="text-xs text-destructive bg-destructive/10 border border-destructive/30 rounded-lg px-3 py-2">
                 {preview.unavailableReason || "This message cannot be sent yet."}
               </p>
             )}

@@ -22,7 +22,7 @@ const STATUS_STYLE: Record<string, string> = {
     DRAFT: "text-muted-foreground border-border bg-muted/30",
     ISSUED: "text-blue-700 border-blue-200 bg-blue-50",
     PAID: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    VOID: "text-destructive border-red-200 bg-red-50 line-through",
+    VOID: "text-destructive border-destructive/30 bg-destructive/10 line-through",
 }
 
 interface LineItem { desc: string; price: number }
@@ -82,7 +82,7 @@ function LineItemEditor({
                 </Button>
                 <div className="flex-1" />
                 <Button variant="ghost" size="sm" className="text-xs h-7" onClick={onCancel} disabled={saving}>Cancel</Button>
-                <Button size="sm" className="text-xs h-7 bg-slate-900 hover:bg-slate-800" disabled={saving || !items.some(i => i.desc.trim())} onClick={() => onSave(items)}>
+                <Button size="sm" className="text-xs h-7 bg-muted-foreground hover:bg-slate-800" disabled={saving || !items.some(i => i.desc.trim())} onClick={() => onSave(items)}>
                     {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3 mr-1" />}
                     Save
                 </Button>
@@ -221,7 +221,7 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                             <span className="absolute left-2 top-2.5 text-muted-foreground text-sm">$</span>
                             <Input
                                 type="number"
-                                className={`pl-5 ${priceError ? "border-red-400" : ""}`}
+                                className={`pl-5 ${priceError ? "border-destructive/30" : ""}`}
                                 placeholder="0"
                                 min={0.01}
                                 step="0.01"
@@ -231,7 +231,7 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                         </div>
                     </div>
                     {priceError && <p className="text-xs text-destructive">{priceError}</p>}
-                    <Button onClick={handleCreateInvoice} disabled={creating || !variationDesc.trim()} className="w-full bg-slate-900 hover:bg-slate-800">
+                    <Button onClick={handleCreateInvoice} disabled={creating || !variationDesc.trim()} className="w-full bg-muted-foreground hover:bg-slate-800">
                         {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
                         Create Draft Invoice
                     </Button>
@@ -321,7 +321,7 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                                                 <span className="inline-flex items-center gap-1 text-[10px]" title={sync.synced ? `Synced to ${sync.provider}` : "Not synced to accounting"}>
                                                     {sync.synced
                                                         ? <Cloud className="w-3 h-3 text-emerald-500" />
-                                                        : <CloudOff className="w-3 h-3 text-slate-300" />}
+                                                        : <CloudOff className="w-3 h-3 text-muted-foreground/70" />}
                                                     <span className={sync.synced ? "text-emerald-600" : "text-muted-foreground"}>{sync.synced ? sync.provider : "Not synced"}</span>
                                                 </span>
                                             )}
@@ -409,7 +409,7 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
 
                                         {/* Void — available on DRAFT, ISSUED */}
                                         {(inv.status === "DRAFT" || inv.status === "ISSUED") && (
-                                            <Button size="sm" variant="outline" className="bg-card border-red-200 text-destructive hover:bg-red-50 text-xs h-8" disabled={busy} onClick={() => handleVoid(inv.id)}>
+                                            <Button size="sm" variant="outline" className="bg-card border-destructive/30 text-destructive hover:bg-destructive/10 text-xs h-8" disabled={busy} onClick={() => handleVoid(inv.id)}>
                                                 {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Ban className="w-3 h-3 mr-1" />}
                                                 Void
                                             </Button>

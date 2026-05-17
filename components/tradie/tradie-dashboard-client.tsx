@@ -73,7 +73,7 @@ export function TradieDashboardClient({ initialJob, todayJobs = [], userName = "
 
   if (!initialJob) {
     return (
-      <div className="h-full w-full bg-slate-950 text-slate-50 flex items-center justify-center">
+      <div className="h-full w-full bg-muted-foreground text-muted-foreground flex items-center justify-center">
         <div className="text-center p-6">
           <h2 className="text-xl font-bold mb-2">All Caught Up!</h2>
           <p className="text-muted-foreground mb-4">No scheduled jobs for today.</p>
@@ -89,7 +89,7 @@ export function TradieDashboardClient({ initialJob, todayJobs = [], userName = "
   }
 
   return (
-    <div className="relative h-full w-full bg-slate-950 text-slate-50 overflow-hidden font-sans">
+    <div className="relative h-full w-full bg-muted-foreground text-muted-foreground overflow-hidden font-sans">
       {/* Header Overlay - Using Local Header Component logic but positioned for Tradie view */}
       <div className="absolute top-0 right-4 z-20 p-4 bg-gradient-to-b from-slate-900/80 to-transparent pointer-events-none md:right-6">
         <div className="pointer-events-auto flex justify-end">
@@ -102,7 +102,7 @@ export function TradieDashboardClient({ initialJob, todayJobs = [], userName = "
 
       {/* Today's Jobs Indicator */}
       <div className="absolute top-16 left-4 z-20 pointer-events-auto">
-        <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground bg-slate-900/80 px-3 py-1 rounded-full border border-slate-800">
+        <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground bg-muted-foreground/80 px-3 py-1 rounded-full border border-border">
           Today: {todayJobs.length} job{todayJobs.length !== 1 ? 's' : ''}
         </span>
       </div>
@@ -117,7 +117,7 @@ export function TradieDashboardClient({ initialJob, todayJobs = [], userName = "
 
       {/* Today's Job Count Indicator */}
       <div className="absolute top-32 left-1/2 -translate-x-1/2 z-20 pointer-events-none flex flex-col items-center gap-2">
-        <div className="bg-slate-900/80 backdrop-blur px-3 py-1 rounded-full border border-slate-700 text-xs font-medium text-slate-300 shadow-sm flex items-center gap-2">
+        <div className="bg-muted-foreground/80 backdrop-blur px-3 py-1 rounded-full border border-border text-xs font-medium text-muted-foreground/70 shadow-sm flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
           {todayJobs.length} Jobs Today
         </div>
@@ -137,7 +137,7 @@ export function TradieDashboardClient({ initialJob, todayJobs = [], userName = "
       )}
 
       {/* Map Layer */}
-      <div className="absolute inset-0 bg-slate-900">
+      <div className="absolute inset-0 bg-muted-foreground">
         <JobMap deals={todayJobs.length > 0 ? todayJobs : (initialJob ? [initialJob] : [])} />
       </div>
 

@@ -376,7 +376,7 @@
 
   /* THE OTTORIZE CARD: Solid white, layered soft shadows, rounded corners */
   .ott-card {
-    @apply bg-card border border-border/60 rounded-[18px] transition-all duration-300;
+    @apply bg-card border border-border/60 rounded-md transition-all duration-300;
     box-shadow: var(--shadow-xs);
   }
 
@@ -414,7 +414,7 @@
 
   /* ELEVATED CARD: Stronger shadow for featured content */
   .ott-card-elevated {
-    @apply bg-card border border-border/60 rounded-[18px] transition-all duration-300;
+    @apply bg-card border border-border/60 rounded-md transition-all duration-300;
     box-shadow: var(--shadow-ott-elevated);
   }
 

@@ -168,7 +168,7 @@ export function AttachmentLibrarySection({ documents: initialDocuments }: { docu
                                         View
                                     </a>
                                 </Button>
-                                <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600" onClick={() => handleDelete(doc.id)}>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDelete(doc.id)}>
                                     <Trash2 className="w-4 h-4" />
                                 </Button>
                             </div>

@@ -153,7 +153,7 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
   }
 
   const getStalenessColor = () => {
-    if (isRotting) return "bg-red-100 text-red-800 border-red-200"
+    if (isRotting) return "bg-destructive/15 text-destructive border-destructive/30"
     if (isStale) return "bg-amber-100 text-amber-800 border-amber-200"
     return "bg-blue-100 text-blue-800 border-blue-200"
   }
@@ -166,7 +166,7 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="ott-dialog max-w-2xl">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-amber-600" />

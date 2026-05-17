@@ -20,11 +20,11 @@ function DealCard({ deal }: { deal: any }) {
   return (
     <div className={cn(
       "p-3 rounded-lg border shadow-sm text-sm mb-3 cursor-pointer hover:shadow-md transition-shadow",
-      isRotting ? "bg-red-50 border-red-200" : "bg-card border-border"
+      isRotting ? "bg-destructive/10 border-destructive/30" : "bg-card border-border"
     )}>
       <div className="flex justify-between items-start mb-2">
         <span className="font-semibold text-foreground">{deal.title}</span>
-        {isRotting && <span className="text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">ROTTING</span>}
+        {isRotting && <span className="text-[10px] font-bold text-destructive bg-destructive/15 px-1.5 py-0.5 rounded">ROTTING</span>}
       </div>
       <div className="flex justify-between text-muted-foreground text-xs">
         <span>{deal.contactName}</span>
@@ -65,7 +65,7 @@ export default function AgentDashboard({ freshLeads, initialPipeline }: AgentDas
   return (
     <div className="h-full w-full bg-muted/30 text-foreground flex overflow-hidden">
       {/* 1. Sidebar Rail */}
-      <div className="w-16 bg-slate-900 flex flex-col items-center py-6 gap-6 text-muted-foreground border-r border-slate-800">
+      <div className="w-16 bg-muted-foreground flex flex-col items-center py-6 gap-6 text-muted-foreground border-r border-border">
         <div className="h-8 w-8 bg-blue-500 rounded-lg flex items-center justify-center text-white font-bold mb-4">Pj</div>
         <button className="p-2 hover:bg-slate-800 rounded-lg transition-colors text-white"><Home className="h-5 w-5" /></button>
         <button className="p-2 hover:bg-slate-800 rounded-lg transition-colors"><User className="h-5 w-5" /></button>

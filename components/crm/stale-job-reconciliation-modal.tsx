@@ -108,7 +108,7 @@ export function StaleJobReconciliationModal({
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-[425px]">
+      <DialogContent className="ott-dialog max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-amber-500" />

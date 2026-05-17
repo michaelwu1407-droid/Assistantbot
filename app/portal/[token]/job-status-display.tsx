@@ -43,8 +43,8 @@ export function JobStatusDisplay({
 
   if (data.isCancelled) {
     return (
-      <div className="rounded-xl border border-red-100 bg-red-50 p-6 text-center">
-        <p className="text-sm font-medium text-red-700">This appointment has been cancelled.</p>
+      <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-6 text-center">
+        <p className="text-sm font-medium text-destructive">This appointment has been cancelled.</p>
         {data.businessPhone && (
           <p className="mt-2 text-sm text-destructive">
             Questions?{" "}

@@ -1,6 +1,7 @@
 "use server";
 
 import type { DealStage, Prisma } from "@prisma/client";
+import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getAuthUser } from "@/lib/auth";
@@ -93,7 +94,7 @@ function formatTimeAgo(date: Date): string {
   const diffDays = Math.floor(diffHours / 24);
   
   if (diffDays > 30) {
-    return date.toLocaleDateString("en-AU", { month: "short", day: "numeric" });
+    return formatDate(date);
   } else if (diffDays > 0) {
     return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
   } else if (diffHours > 0) {
@@ -859,7 +860,7 @@ export async function runCreateDeal(
   revalidatePath("/crm/deals");
   return {
     success: true,
-    message: `Created deal "${params.title}"${params.value != null && params.value > 0 ? ` worth $${params.value.toLocaleString()}` : ""}.`,
+    message: `Created deal "${params.title}"${params.value != null && params.value > 0 ? ` worth ${formatCurrency(params.value)}` : ""}.`,
     dealId: result.dealId,
   };
 }
@@ -1006,7 +1007,7 @@ export async function runUpdateDealFields(
 
   const changes: string[] = [];
   if (payload.title) changes.push(`title → "${payload.title}"`);
-  if (typeof payload.value === "number") changes.push(`value → $${payload.value.toLocaleString()}`);
+  if (typeof payload.value === "number") changes.push(`value → ${formatCurrency(payload.value)}`);
   if (payload.address !== undefined) changes.push(payload.address ? `address → "${payload.address}"` : "address cleared");
   if (payload.scheduledAt !== undefined) changes.push(`schedule updated`);
   if (payload.stage) {
@@ -1066,7 +1067,7 @@ export async function recordManualRevenue(
   const start = new Date(params.startDate);
   const midMonth = new Date(start);
   midMonth.setDate(15);
-  const title = `Manual revenue entry – ${start.toLocaleDateString("en-AU", { month: "long", year: "numeric" })}`;
+  const title = `Manual revenue entry – ${formatDate(start)}`;
   await db.deal.create({
     data: {
       title,
@@ -1081,7 +1082,7 @@ export async function recordManualRevenue(
   revalidatePath("/crm/analytics");
   return {
     success: true,
-    message: `Recorded $${amount.toLocaleString()} revenue for that period. Future reports will include it.`,
+    message: `Recorded ${formatCurrency(amount)} revenue for that period. Future reports will include it.`,
   };
 }
 
@@ -1170,7 +1171,7 @@ export async function runCreateJobNatural(
   const scheduleSuffix = scheduleDisplay ? ` Scheduled: ${scheduleDisplay}.` : "";
   return {
     success: true,
-    message: `Job created: ${params.workDescription} for ${clientName}, $${(params.price ?? 0).toLocaleString()}.${scheduleSuffix}`,
+    message: `Job created: ${params.workDescription} for ${clientName}, ${formatCurrency((params.price ?? 0))}.${scheduleSuffix}`,
     dealId: dealResult.dealId,
   };
 }
@@ -1587,7 +1588,7 @@ export async function runCreateTask(
     if (dealId) linkParts.push(`linked to job`);
     if (contactId) linkParts.push(`linked to contact`);
     const linkNote = linkParts.length ? ` (${linkParts.join(", ")})` : "";
-    return `Task created: "${params.title}" due ${dueAt.toLocaleDateString("en-AU", { weekday: "short", month: "short", day: "numeric" })} at ${dueAt.toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" })}${linkNote}.`;
+    return `Task created: "${params.title}" due ${formatDateTime(dueAt)}${linkNote}.`;
   } catch (err) {
     return `Error creating task: ${err instanceof Error ? err.message : String(err)}`;
   }
@@ -1675,14 +1676,14 @@ export async function runGetDealContext(
   const lines = [
     `Job: ${fullDeal.title}`,
     `Stage: ${CHAT_STAGE_LABELS[chatStage] ?? fullDeal.stage}`,
-    `Value: $${Number(fullDeal.value ?? 0).toLocaleString()}`,
+    `Value: ${formatCurrency(Number(fullDeal.value ?? 0))}`,
     fullDeal.address ? `Address: ${fullDeal.address}` : null,
     fullDeal.scheduledAt ? `Scheduled: ${formatDateTimeInTimezone(fullDeal.scheduledAt, timezone)} (${timezone})` : null,
     fullDeal.assignedTo ? `Assigned to: ${fullDeal.assignedTo.name}` : "Assigned to: (unassigned)",
     fullDeal.contact
       ? `Contact: ${fullDeal.contact.name}${fullDeal.contact.phone ? ` (${fullDeal.contact.phone})` : ""}${fullDeal.contact.email ? `, ${fullDeal.contact.email}` : ""}`
       : null,
-    latestInvoice ? `Latest invoice: ${latestInvoice.number} (${latestInvoice.status}) $${Number(latestInvoice.total ?? 0).toLocaleString()}` : null,
+    latestInvoice ? `Latest invoice: ${latestInvoice.number} (${latestInvoice.status}) ${formatCurrency(Number(latestInvoice.total ?? 0))}` : null,
     nextStepGuidance ? `Next steps: ${nextStepGuidance}` : null,
   ].filter(Boolean);
 
@@ -1869,7 +1870,7 @@ export async function runCreateDraftInvoice(
   revalidatePath("/crm", "layout");
   return {
     success: true,
-    message: `Draft invoice ${invoiceNumber} created for "${fullDeal.title}" — total $${total.toLocaleString("en-AU")}. Open the Billing tab to review.`,
+    message: `Draft invoice ${invoiceNumber} created for "${fullDeal.title}" — total ${formatCurrency(total)}. Open the Billing tab to review.`,
     quickActions: [
       { label: "Mark issued", prompt: `Issue invoice ${invoiceNumber} for "${fullDeal.title}"` },
       { label: "Update amount", prompt: `Update invoice amount for "${fullDeal.title}"` },
@@ -2766,7 +2767,7 @@ export async function runGetConversationHistory(
     const items: HistoryItem[] = [];
 
     for (const a of activities) {
-      const dateStr = a.createdAt.toLocaleDateString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+      const dateStr = formatDateTime(a.createdAt);
       items.push({
         date: a.createdAt,
         text: `[${dateStr}] ${a.type}: ${a.title}${a.content ? ` — ${a.content.substring(0, 200)}` : ""}`,
@@ -2774,7 +2775,7 @@ export async function runGetConversationHistory(
     }
 
     for (const m of chatMessages) {
-      const dateStr = m.createdAt.toLocaleDateString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+      const dateStr = formatDateTime(m.createdAt);
       const direction =
         (m.metadata as Record<string, unknown> | null)?.direction === "outbound" ? "You" : contact.name;
       items.push({
@@ -2884,10 +2885,7 @@ export async function runCreateScheduledNotification(
       link: params.link || "/crm/schedule",
     });
 
-    const dateStr = dueAt.toLocaleDateString("en-AU", {
-      weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit"
-    });
-    return `Scheduled notification: "${params.title}" for ${dateStr}. A task has also been added to your calendar.`;
+    return `Scheduled notification: "${params.title}" for ${formatDateTime(dueAt)}. A task has also been added to your calendar.`;
   } catch (err) {
     return `Error creating notification: ${err instanceof Error ? err.message : String(err)}`;
   }

@@ -1,4 +1,6 @@
 "use server"
+import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
+import { formatMonthYearInTimezone, formatMonthDayInTimezone, DEFAULT_WORKSPACE_TIMEZONE } from "@/lib/timezone";
 
 import { db } from "@/lib/db"
 import {
@@ -135,7 +137,7 @@ function buildMonthlyBuckets(rangeStart: Date, rangeEnd: Date) {
 
   while (!isAfter(cursor, rangeEnd)) {
     buckets.push({
-      month: cursor.toLocaleDateString("en-AU", { month: "short" }),
+      month: formatMonthDayInTimezone(cursor, DEFAULT_WORKSPACE_TIMEZONE).replace(/\s*\d+$/, ""),
       start: cursor,
       end: endOfMonth(cursor),
     })
@@ -452,7 +454,7 @@ export async function getMonthlyRevenueBreakdown(
     : null
 
   return {
-    month: start.toLocaleDateString("en-AU", { month: "short", year: "numeric" }),
+    month: formatMonthYearInTimezone(start, DEFAULT_WORKSPACE_TIMEZONE),
     start: start.toISOString(),
     end: end.toISOString(),
     totalRevenue,

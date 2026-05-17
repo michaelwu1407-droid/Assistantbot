@@ -115,7 +115,7 @@ export function GlobalSearch({
                         variant === "bar" && tone !== "onDark" &&
                             "toolbar-pill h-10 min-h-10 border-border/40 bg-muted/40 text-sm font-semibold text-muted-foreground sm:pr-12 md:w-full md:min-w-0",
                         variant === "default" &&
-                            "h-9 rounded-[0.5rem] bg-background text-sm text-muted-foreground sm:pr-12 md:w-40 lg:w-64",
+                            "h-9 rounded-md bg-background text-sm text-muted-foreground sm:pr-12 md:w-40 lg:w-64",
                         className
                     )}
                     onClick={() => setOpen(true)}
@@ -135,7 +135,7 @@ export function GlobalSearch({
                 </Button>
             )}
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent className="overflow-hidden p-0 shadow-lg">
+                <DialogContent className="ott-dialog overflow-hidden p-0 shadow-lg">
                     <DialogTitle className="sr-only">Search</DialogTitle>
                     <Command shouldFilter={false} className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
                         <CommandInput

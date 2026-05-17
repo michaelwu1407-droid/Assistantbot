@@ -36,11 +36,11 @@ export type DealStatus = DealHealth['status'];
 export function getCardColorClass(status: DealStatus): string {
   switch (status) {
     case 'FRESH':
-      return 'bg-white border-slate-100';
+      return 'bg-white border-border/50';
     case 'STALE':
       return 'bg-orange-50 border-orange-100';
     case 'ROTTING':
-      return 'bg-red-50 border-red-100';
+      return 'bg-destructive/10 border-destructive';
     default:
       return 'bg-white';
   }

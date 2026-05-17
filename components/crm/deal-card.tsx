@@ -70,7 +70,7 @@ interface DealCardProps {
 
 /** Overdue bottom strip — 65% colour opacity (design reference: /crm/design/deal-cards). */
 function overdueBannerOverlayClasses(_severity: "critical" | "warning" | "mild" | "none"): string {
-  return "bg-red-500/65 text-white shadow-inner dark:bg-red-600/65"
+  return "bg-destructive/65 text-white shadow-inner dark:bg-destructive"
 }
 
 /** Bottom strip for health / draft / pending — 65% opacity to match overdue / design page. */
@@ -81,11 +81,11 @@ function statusBannerOverlayClasses(label: string): string {
     case "Draft":
       return "bg-indigo-400/65 text-indigo-950 shadow-inner dark:bg-indigo-500/65 dark:text-indigo-950"
     case "Urgent":
-      return "bg-red-400/65 text-red-950 shadow-inner dark:bg-red-500/65 dark:text-red-50"
+      return "bg-destructive/70 text-destructive shadow-inner dark:bg-destructive/65 dark:text-destructive"
     case "Follow up":
       return "bg-amber-400/65 text-amber-950 shadow-inner dark:bg-amber-500/65 dark:text-amber-950"
     case "Rejected":
-      return "bg-red-400/65 text-red-950 shadow-inner dark:bg-red-500/65 dark:text-red-50"
+      return "bg-destructive/70 text-destructive shadow-inner dark:bg-destructive/65 dark:text-destructive"
     case "Needs review":
       return "bg-orange-400/65 text-orange-950 shadow-inner dark:bg-orange-500/65 dark:text-orange-950"
     default:
@@ -164,7 +164,7 @@ export function DealCard({
   }
 
   // Add an explicitly handled class toggle for simple interaction scaling
-  let cardClasses = "group relative w-full rounded-[18px] bg-card ghost-border sunlight-shadow transition-all duration-200 cursor-pointer select-none"
+  let cardClasses = "group relative w-full rounded-md bg-card ghost-border sunlight-shadow transition-all duration-200 cursor-pointer select-none"
   let statusLabel = ""
 
   /** When overdue, that is the only top-right status (no Urgent/Follow up/Draft/etc.). */
@@ -182,12 +182,12 @@ export function DealCard({
     }
 
     if (deal.isDraft) {
-      cardClasses = "group relative w-full rounded-[18px] bg-indigo-50/60 border-2 border-dashed border-indigo-400 dark:bg-indigo-950/20 dark:border-indigo-500/60"
+      cardClasses = "group relative w-full rounded-md bg-indigo-50/60 border-2 border-dashed border-indigo-400 dark:bg-indigo-950/20 dark:border-indigo-500/60"
       statusLabel = "Draft"
     }
 
     if (deal.stage === "pending_approval") {
-      cardClasses = "group relative w-full rounded-[18px] bg-amber-50/80 border-2 border-dashed border-amber-400 dark:bg-amber-950/30 dark:border-amber-500/60"
+      cardClasses = "group relative w-full rounded-md bg-amber-50/80 border-2 border-dashed border-amber-400 dark:bg-amber-950/30 dark:border-amber-500/60"
       statusLabel = "Pending approval"
     }
 

@@ -1,9 +1,10 @@
 "use server";
+import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { buildPublicFeedbackUrl } from "@/lib/public-feedback";
-import { DEFAULT_WORKSPACE_TIMEZONE, resolveWorkspaceTimezone } from "@/lib/timezone";
+import { DEFAULT_WORKSPACE_TIMEZONE, resolveWorkspaceTimezone, formatDateTimeInTimezone } from "@/lib/timezone";
 import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
 import { withCostCeiling } from "@/lib/cost-ceiling";
 
@@ -45,15 +46,7 @@ function formatSmsSchedule(value: Date | string | null | undefined, workspaceTim
   const scheduled = new Date(value);
   if (Number.isNaN(scheduled.getTime())) return "today";
   const timeZone = resolveWorkspaceTimezone(workspaceTimezone);
-  return scheduled.toLocaleString("en-AU", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-    timeZone,
-  });
+  return formatDateTimeInTimezone(scheduled, timeZone);
 }
 
 // ─── Twilio Client ──────────────────────────────────────────────────

@@ -1,9 +1,10 @@
 "use server";
+import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
-import { DEFAULT_WORKSPACE_TIMEZONE } from "@/lib/timezone";
+import { DEFAULT_WORKSPACE_TIMEZONE, formatDateTimeInTimezone } from "@/lib/timezone";
 import { runIdempotent } from "@/lib/idempotency";
 import { buildPublicJobPortalUrl } from "@/lib/public-job-portal";
 import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
@@ -231,14 +232,7 @@ export async function processBookingReminders(): Promise<{
 
       // Build message from template
       const scheduledTime = job.scheduledAt
-        ? new Date(job.scheduledAt).toLocaleString("en-AU", {
-            weekday: "short",
-            day: "numeric",
-            month: "short",
-            hour: "numeric",
-            minute: "2-digit",
-            timeZone: workspace?.workspaceTimezone || DEFAULT_WORKSPACE_TIMEZONE,
-          })
+        ? formatDateTimeInTimezone(job.scheduledAt, workspace?.workspaceTimezone || DEFAULT_WORKSPACE_TIMEZONE)
         : "your scheduled time";
 
       const message = rule.messageTemplate

@@ -28,7 +28,7 @@ export function BillingSuccessState({
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
-      <div className="w-full max-w-lg rounded-[28px] border border-border bg-card shadow-xl shadow-slate-900/5 p-8 text-center">
+      <div className="w-full max-w-lg rounded-md border border-border bg-card shadow-xl shadow-slate-900/5 p-8 text-center">
         <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-primary/12">
           <CheckCircle2 className="h-8 w-8 text-primary" />
         </div>
@@ -36,7 +36,7 @@ export function BillingSuccessState({
         <p className="mt-3 text-sm leading-6 text-muted-foreground">{description}</p>
 
         {detail ? (
-          <div className="mt-5 rounded-[20px] border border-primary/15 bg-primary/5 px-4 py-3 text-sm text-foreground">
+          <div className="mt-5 rounded-md border border-primary/15 bg-primary/5 px-4 py-3 text-sm text-foreground">
             <div className="flex items-center justify-center gap-2">
               <Phone className="h-4 w-4 text-primary" />
               <span>{detail}</span>

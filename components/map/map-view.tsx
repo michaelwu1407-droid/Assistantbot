@@ -247,7 +247,7 @@ export default function MapView({ jobs, todayIds }: MapViewProps) {
                 disabled={jobsToday.length === 0}
                 className={cn(
                   "flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
-                  isRouteMode ? "bg-slate-900 text-white hover:bg-slate-800" : 
+                  isRouteMode ? "bg-muted-foreground text-white hover:bg-slate-800" : 
                     (jobsToday.length === 0 ? "border border-border bg-muted/30 text-muted-foreground" : "border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100")
                 )}
               >

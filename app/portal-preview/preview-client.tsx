@@ -38,7 +38,7 @@ export function PortalPreviewClient() {
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(0,210,139,0.18),_transparent_30%),linear-gradient(180deg,_#f7fbfa_0%,_#eef4f7_48%,_#e8eef2_100%)] px-4 py-8 text-foreground">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 lg:flex-row lg:items-start">
-        <section className="w-full rounded-[32px] border border-white/70 bg-card/72 p-6 shadow-[0_28px_80px_rgba(15,23,42,0.08)] backdrop-blur lg:max-w-sm">
+        <section className="w-full rounded-md border border-white/70 bg-card/72 p-6 shadow-[0_28px_80px_rgba(15,23,42,0.08)] backdrop-blur lg:max-w-sm">
           <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-emerald-700/80">
             Portal Preview
           </p>
@@ -84,21 +84,21 @@ export function PortalPreviewClient() {
         </section>
 
         <section className="flex w-full justify-center">
-          <div className="w-full max-w-[420px] rounded-[40px] border border-slate-900/10 bg-[#dfe9ef] p-3 shadow-[0_30px_120px_rgba(15,23,42,0.18)]">
-            <div className="overflow-hidden rounded-[32px] border border-slate-900/10 bg-muted/30">
+          <div className="w-full max-w-[420px] rounded-md border border-border/10 bg-[#dfe9ef] p-3 shadow-[0_30px_120px_rgba(15,23,42,0.18)]">
+            <div className="overflow-hidden rounded-md border border-border/10 bg-muted/30">
               <div className="bg-[linear-gradient(180deg,_#0f172a_0%,_#17263e_100%)] px-6 pb-8 pt-5 text-white">
                 <div className="flex items-center justify-between text-[11px] font-semibold tracking-[0.22em] text-white/70 uppercase">
                   <span>Northside Plumbing</span>
                   <span>Live job</span>
                 </div>
                 <h2 className="mt-6 text-3xl font-semibold tracking-tight">Your appointment</h2>
-                <p className="mt-2 max-w-xs text-sm leading-6 text-slate-200">
+                <p className="mt-2 max-w-xs text-sm leading-6 text-muted-foreground/70">
                   Stay updated without needing to call the office. This page refreshes automatically while the job is in progress.
                 </p>
               </div>
 
               <div className="-mt-4 space-y-4 px-4 pb-5">
-                <div className="rounded-[28px] border border-white bg-card p-5 shadow-[0_14px_40px_rgba(15,23,42,0.08)]">
+                <div className="rounded-md border border-white bg-card p-5 shadow-[0_14px_40px_rgba(15,23,42,0.08)]">
                   <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Job</p>
                   <p className="mt-2 text-xl font-semibold text-foreground">Hot Water System Repair</p>
                   <p className="mt-1 text-sm text-muted-foreground">Thursday 3 April, 2:00 PM</p>
@@ -113,14 +113,14 @@ export function PortalPreviewClient() {
                 </div>
 
                 {status === "CANCELLED" ? (
-                  <div className="rounded-[28px] border border-red-200 bg-red-50 p-5 shadow-[0_10px_30px_rgba(239,68,68,0.08)]">
-                    <p className="text-sm font-semibold text-red-700">This appointment has been cancelled.</p>
+                  <div className="rounded-md border border-destructive/30 bg-destructive/10 p-5 shadow-[0_10px_30px_rgba(239,68,68,0.08)]">
+                    <p className="text-sm font-semibold text-destructive">This appointment has been cancelled.</p>
                     <p className="mt-2 text-sm leading-6 text-destructive">
                       Questions? Call Northside Plumbing on 07 5555 0188 and the team can help with a new booking time.
                     </p>
                   </div>
                 ) : (
-                  <div className="rounded-[28px] border border-white bg-card p-5 shadow-[0_14px_40px_rgba(15,23,42,0.08)]">
+                  <div className="rounded-md border border-white bg-card p-5 shadow-[0_14px_40px_rgba(15,23,42,0.08)]">
                     <div className="flex items-center justify-between">
                       <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-muted-foreground">Status</p>
                       {status === "TRAVELING" && (
@@ -172,7 +172,7 @@ export function PortalPreviewClient() {
                 )}
 
                 {status === "COMPLETED" ? (
-                  <div className="rounded-[28px] border border-emerald-200 bg-emerald-50 p-5 text-center shadow-[0_10px_30px_rgba(0,210,139,0.10)]">
+                  <div className="rounded-md border border-emerald-200 bg-emerald-50 p-5 text-center shadow-[0_10px_30px_rgba(0,210,139,0.10)]">
                     <p className="text-sm font-semibold text-emerald-800">Job complete. How did we do?</p>
                     <button
                       type="button"
@@ -182,7 +182,7 @@ export function PortalPreviewClient() {
                     </button>
                   </div>
                 ) : (
-                  <div className="rounded-[28px] border border-border bg-card p-5 text-center shadow-[0_14px_40px_rgba(15,23,42,0.08)]">
+                  <div className="rounded-md border border-border bg-card p-5 text-center shadow-[0_14px_40px_rgba(15,23,42,0.08)]">
                     <p className="text-sm text-muted-foreground">
                       Questions?{" "}
                       <a href="tel:0755550188" className="font-semibold text-foreground underline">
