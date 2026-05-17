@@ -281,7 +281,7 @@ describe("demo-call outbound routing", () => {
     expect(result.warnings).toEqual([]);
   });
 
-  it("keeps the LiveKit demo call when the outbound leg is still ringing", async () => {
+  it("falls back to the Twilio bridge when the LiveKit outbound leg never connects", async () => {
     listSipOutboundTrunk.mockResolvedValue([
       {
         sipTrunkId: "ST_real",
@@ -304,13 +304,18 @@ describe("demo-call outbound routing", () => {
       businessName: "Alexandria Automotive Services",
     });
 
-    expect(deleteRoom).not.toHaveBeenCalled();
-    expect(createTwilioCall).not.toHaveBeenCalled();
-    expect(result.transport).toBe("livekit_control");
+    expect(deleteRoom).toHaveBeenCalledWith(expect.stringMatching(/^demo-/));
+    expect(createTwilioCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "+61434955958",
+        from: "+61485010634",
+      }),
+    );
+    expect(result.transport).toBe("twilio_sip_bridge");
     expect(result.connectionVerified).toBe(false);
-    expect(result.sipCallStatus).toBe("dialing");
+    expect(result.sipCallStatus).toBeNull();
     expect(result.warnings).toEqual(
-      expect.arrayContaining([expect.stringMatching(/still dialing/i)]),
+      expect.arrayContaining([expect.stringMatching(/LiveKit control API failed/i)]),
     );
   });
 
@@ -348,7 +353,7 @@ describe("demo-call outbound routing", () => {
     );
   });
 
-  it("keeps a pending public demo call on the LiveKit path instead of forcing bridge fallback", async () => {
+  it("throws on a pending LiveKit outbound leg when bridge fallback is disabled", async () => {
     listSipOutboundTrunk.mockResolvedValue([
       {
         sipTrunkId: "ST_real",
@@ -365,7 +370,7 @@ describe("demo-call outbound routing", () => {
       },
     });
 
-    const result = await initiateDemoCall(
+    await expect(initiateDemoCall(
       {
         phone: "0434 955 958",
         firstName: "Michael",
@@ -374,12 +379,9 @@ describe("demo-call outbound routing", () => {
       {
         allowTwilioSipBridgeFallback: false,
       },
-    );
+    )).rejects.toThrow(/LiveKit outbound demo call did not connect \(last SIP status: dialing\)/i);
 
-    expect(result.transport).toBe("livekit_control");
-    expect(result.connectionVerified).toBe(false);
-    expect(result.sipCallStatus).toBe("dialing");
-    expect(deleteRoom).not.toHaveBeenCalled();
+    expect(deleteRoom).toHaveBeenCalledWith(expect.stringMatching(/^demo-/));
     expect(createTwilioCall).not.toHaveBeenCalled();
   });
 

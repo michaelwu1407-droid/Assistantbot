@@ -105,6 +105,11 @@ export async function requestDemoCall(data: DemoCallData): Promise<DemoCallResul
             email: data.email,
             businessName: data.businessName,
         }, {
+            // Public demos should behave like a normal phone call first.
+            // The direct LiveKit outbound SIP path can stay in a pending state
+            // without proving the handset actually rang; the Twilio bridge gives
+            // us a real PSTN call leg and then hands that call into LiveKit.
+            preferTwilioSipBridge: true,
             waitForConnection: true,
         });
 

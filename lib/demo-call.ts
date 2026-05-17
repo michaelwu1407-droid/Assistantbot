@@ -4,7 +4,6 @@ import { getEarlymarkInboundSipUri } from "@/lib/livekit-sip-config";
 import { phoneMatches } from "@/lib/phone-utils";
 import {
   isSipCallConnectedStatus,
-  isSipCallPendingStatus,
   isSipCallTerminalFailureStatus,
   readSipCallStatus,
 } from "@/lib/sip-call-status";
@@ -458,17 +457,12 @@ export async function initiateDemoCall(
         });
 
     if (options.waitForConnection !== false) {
-      if (!connectionCheck.connectionVerified && isSipCallPendingStatus(connectionCheck.sipCallStatus)) {
-        warnings.push(
-          `Outbound demo leg is still ${connectionCheck.sipCallStatus || "pending"}; waiting for the callee to answer.`,
-        );
-      }
-      if (!connectionCheck.connectionVerified && !isSipCallPendingStatus(connectionCheck.sipCallStatus)) {
+      if (!connectionCheck.connectionVerified) {
         await roomClient.deleteRoom(roomName).catch(() => undefined);
         const statusMessage =
-          connectionCheck.sipCallStatus && !isSipCallPendingStatus(connectionCheck.sipCallStatus)
+          connectionCheck.sipCallStatus
             ? `last SIP status: ${connectionCheck.sipCallStatus}`
-            : "the outbound leg never reached a connected state";
+            : "the outbound leg never became visible to LiveKit";
         throw new Error(`LiveKit outbound demo call did not connect (${statusMessage}).`);
       }
     }
