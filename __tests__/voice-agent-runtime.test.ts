@@ -227,7 +227,7 @@ describe("getVoiceAgentRuntimeDrift", () => {
         activeCalls: 0,
         capacityState: "available",
         summary: {
-          capacity: { maxConcurrentCalls: 1 },
+          capacity: { maxConcurrentCalls: 2 },
           llmProvider: {
             earlymarkPrimary: "groq",
             customerPrimary: "groq",

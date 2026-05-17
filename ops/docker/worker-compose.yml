@@ -12,6 +12,7 @@ services:
       DEPLOY_GIT_SHA: ${EARLYMARK_DEPLOY_GIT_SHA:-unknown}
       VOICE_WORKER_ROLE: tracey-sales-agent
       VOICE_WORKER_SURFACES: demo,inbound_demo
+      VOICE_MAX_ACTIVE_CALLS_SALES: "2"
       LIVEKIT_HTTP_HOST: 127.0.0.1
       LIVEKIT_HTTP_PORT: "8081"
       VOICE_WORKER_HEALTH_PATH: /tmp/voice-worker-health.json

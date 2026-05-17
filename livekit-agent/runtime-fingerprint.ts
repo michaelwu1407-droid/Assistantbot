@@ -180,7 +180,7 @@ function getMaxConcurrentCalls(env: NodeJS.ProcessEnv = process.env, workerRole 
     return String(Math.max(1, Math.trunc(roleSpecific)));
   }
 
-  return workerRole === "tracey-customer-agent" ? "8" : "1";
+  return workerRole === "tracey-customer-agent" ? "8" : "2";
 }
 
 function resolveLatencyTargetCallTypes(env: NodeJS.ProcessEnv = process.env) {
