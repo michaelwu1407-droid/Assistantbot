@@ -93,6 +93,11 @@ export async function requestDemoCall(data: DemoCallData): Promise<DemoCallResul
     });
 
     try {
+        // waitForConnection MUST stay true. Without it, createSipParticipant
+        // returns immediately and we treat fire-and-forget as success, so a
+        // silently-failed outbound leg (rejected, no trunk match, worker not
+        // subscribed) never throws and dispatchDemoCallFailureAlert never
+        // fires — admins get no failure email.
         const result = await initiateDemoCall({
             phone: data.phone,
             firstName: data.firstName,
@@ -100,7 +105,7 @@ export async function requestDemoCall(data: DemoCallData): Promise<DemoCallResul
             email: data.email,
             businessName: data.businessName,
         }, {
-            waitForConnection: false,
+            waitForConnection: true,
         });
 
         console.log("[Demo Call] Initiated:", {
