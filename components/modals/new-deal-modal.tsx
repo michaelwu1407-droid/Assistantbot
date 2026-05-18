@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -215,6 +215,9 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
             <DialogContent className="ott-dialog flex max-h-[calc(100dvh-1rem)] w-[min(calc(100vw-1.5rem),54rem)] flex-col overflow-hidden p-0">
                 <DialogHeader className="shrink-0 border-b border-emerald-100/80 bg-[linear-gradient(180deg,rgba(16,185,129,0.08),rgba(255,255,255,0.5))] px-6 pb-5 pt-6 dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(16,185,129,0.12),rgba(255,255,255,0.03))]">
                     <DialogTitle className="mt-1">Create new job</DialogTitle>
+                    <DialogDescription>
+                        Enter the job details, pick or create the customer contact, and assign a team member if you know who's doing the work.
+                    </DialogDescription>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col bg-[linear-gradient(180deg,rgba(248,250,249,0.96),rgba(241,245,243,0.98))] dark:bg-[linear-gradient(180deg,rgba(12,22,18,0.35),rgba(10,18,15,0.75))]">

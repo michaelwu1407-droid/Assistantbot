@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { DealEditForm } from "@/app/crm/deals/[id]/edit/deal-edit-form"
 import { getDealRecurrence, type RecurrenceRule } from "@/actions/deal-actions"
 import { getTeamMembers } from "@/actions/invite-actions"
@@ -93,8 +93,11 @@ export function DealEditModal({ dealId, open, onOpenChange, onDealUpdated, curre
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="ott-dialog max-w-lg flex flex-col p-0 gap-0" aria-describedby={undefined}>
+      <DialogContent className="ott-dialog max-w-lg flex flex-col p-0 gap-0">
         <DialogTitle className="sr-only">Edit job</DialogTitle>
+        <DialogDescription className="sr-only">
+          Update this job's title, value, stage, and team-member assignment.
+        </DialogDescription>
         <div className="overflow-y-auto p-6">
           {loading && <p className="app-body-secondary py-8 text-center">Loading…</p>}
           {error && <p className="app-body-secondary py-8 text-center text-destructive">{error}</p>}
