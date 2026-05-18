@@ -2929,7 +2929,7 @@ export default defineAgent({
       if (callType === "inbound_demo") {
         const fastReplyId = voiceLatency.resolveInboundDemoFastReplyId(transcript);
         if (fastReplyId) {
-          const fastReplyFrame = await getCachedOpenerAudioFrame(fixedLineAudioCache, fastReplyId, 50);
+          const fastReplyFrame = null;
 
           appendTranscriptTurn(transcriptTurns, {
             role: "user",
@@ -3156,7 +3156,9 @@ export default defineAgent({
     });
 
     const greetingClipId = resolveGreetingClipId(callType, caller);
-    const greetingFrame = greetingClipId
+    const greetingFrame = callType === "inbound_demo"
+      ? null
+      : greetingClipId
       ? await getCachedOpenerAudioFrame(fixedLineAudioCache, greetingClipId, 50)
       : null;
 
