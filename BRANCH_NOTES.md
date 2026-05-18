@@ -134,7 +134,9 @@ Full suite green: **254 test files, 1150 tests**. Includes new coverage for:
 
 ## ⚠️ What's outstanding
 
-These were identified during the audit but not closed on this branch. Listed in roughly the order I'd tackle them.
+These are the remaining follow-up items from the fresh audit. The quick correctness fixes from that audit are already landed above; this section is the live to-do log.
+
+**Decision recorded:** call forwarding stays allowed. Do not treat the existing call-forwarding UI as a blocker for this branch unless product direction changes.
 
 ### 1. Verify Gemini parses real Google LSA and Meta email bodies (correctness risk)
 
@@ -163,6 +165,10 @@ Every block reason is logged at info level and stored on `WebhookEvent.payload.b
 ### 7. Phone-number recovery flow for the legitimate failure case
 
 The `claimBusinessPhoneNumber` action exists and is owner-gated, but the recovery UX (when provisioning genuinely failed) is just a button on the call-forwarding settings card. A clearer "we're sorry, here's what happened, click to retry, or contact support" panel would be kinder.
+
+### 8. Pre-deploy smoke test and ops confirmation
+
+Before merging/deploying, run the checklist below on staging and confirm `WebhookEvent.payload.blockReason` is populated for blocked dispatches across webform, email, SMS, and missed-call paths.
 
 ---
 
