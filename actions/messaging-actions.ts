@@ -2,6 +2,7 @@
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { buildPublicFeedbackUrl } from "@/lib/public-feedback";
 import { DEFAULT_WORKSPACE_TIMEZONE, resolveWorkspaceTimezone, formatDateTimeInTimezone } from "@/lib/timezone";
@@ -171,7 +172,15 @@ async function safeRecordWebhookEvent(data: {
   payload: Record<string, unknown>;
 }): Promise<void> {
   try {
-    await db.webhookEvent.create({ data });
+    await db.webhookEvent.create({
+      data: {
+        provider: data.provider,
+        eventType: data.eventType,
+        status: data.status,
+        error: data.error,
+        payload: data.payload as Prisma.InputJsonValue,
+      },
+    });
   } catch (err) {
     console.error(
       `[safeRecordWebhookEvent] failed to persist ${data.provider}/${data.eventType}/${data.status}:`,
