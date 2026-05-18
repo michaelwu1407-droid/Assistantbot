@@ -8,6 +8,7 @@ import {
   readSipCallStatus,
 } from "@/lib/sip-call-status";
 import { twilioMasterClient } from "@/lib/twilio";
+import { getVoiceFleetHealth, isVoiceSurfaceRoutable, type VoiceSurfaceHealth } from "@/lib/voice-fleet";
 
 type OutboundTrunkInfo = {
   sipTrunkId: string;
@@ -123,6 +124,34 @@ function escapeXml(value: string) {
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error || "Unknown error");
+}
+
+function readTtsHealthSummary(surface: VoiceSurfaceHealth | undefined) {
+  const summary = surface?.workers
+    .map((worker) => {
+      const ttsHealth = worker.summary?.ttsHealth;
+      return ttsHealth && typeof ttsHealth === "object" && "summary" in ttsHealth
+        ? String((ttsHealth as { summary?: unknown }).summary || "")
+        : "";
+    })
+    .find(Boolean);
+  return summary || null;
+}
+
+async function assertDemoVoiceWorkerRoutable() {
+  if (process.env.NODE_ENV === "test") return;
+
+  const fleet = await getVoiceFleetHealth();
+  const inbound = fleet.surfaces.inbound_demo;
+  const demo = fleet.surfaces.demo;
+  if (isVoiceSurfaceRoutable(fleet, "inbound_demo") || isVoiceSurfaceRoutable(fleet, "demo")) {
+    return;
+  }
+
+  const ttsSummary = readTtsHealthSummary(inbound) || readTtsHealthSummary(demo);
+  throw new Error(
+    `Tracey voice worker is not ready. ${ttsSummary || inbound?.summary || demo?.summary || fleet.summary}`,
+  );
 }
 
 function sleep(ms: number) {
@@ -474,6 +503,7 @@ export async function initiateDemoCall(
       `Phone number ${input.phone} is not a valid international number. Include country code (e.g. +61 for Australia).`,
     );
   }
+  await assertDemoVoiceWorkerRoutable();
 
   const firstName = input.firstName?.trim() || "there";
   const lastName = input.lastName?.trim() || "";
