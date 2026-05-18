@@ -19,13 +19,10 @@ export type OpenerCategory = 'ack' | 'lookup' | 'handoff' | 'message_capture' | 
 export type SpeculativeHeadIntent = 'capability' | 'demo' | 'pain_point' | 'next_step';
 
 export type OpenerId =
-  | 'yep'
-  | 'no_worries'
   | 'got_you'
   | 'one_sec'
   | 'let_me_check'
-  | 'i_can_help'
-  | 'yeah_absolutely'
+  | 'i_can_pass_that_on'
   | 'okay_got_you'
   | 'that_sounds_frustrating'
   | 'sorry_thats_annoying'
@@ -158,13 +155,10 @@ const PHASE_TWO_BACKLOG = [
 ];
 
 export const OPENER_BANK: OpenerBankEntry[] = [
-  { id: 'yep', text: 'Yep.', category: 'ack', empathetic: false },
-  { id: 'no_worries', text: 'No worries.', category: 'ack', empathetic: false },
   { id: 'got_you', text: 'Got you.', category: 'message_capture', empathetic: false },
   { id: 'one_sec', text: 'One sec.', category: 'lookup', empathetic: false },
   { id: 'let_me_check', text: 'Let me check.', category: 'lookup', empathetic: false },
-  { id: 'i_can_help', text: 'I can help.', category: 'ack', empathetic: false },
-  { id: 'yeah_absolutely', text: 'Yeah, absolutely.', category: 'handoff', empathetic: false },
+  { id: 'i_can_pass_that_on', text: 'I can pass that on.', category: 'handoff', empathetic: false },
   { id: 'okay_got_you', text: 'Okay, got you.', category: 'message_capture', empathetic: false },
   { id: 'that_sounds_frustrating', text: 'That sounds frustrating.', category: 'empathy', empathetic: true },
   { id: 'sorry_thats_annoying', text: "Sorry, that's annoying.", category: 'empathy', empathetic: true },
@@ -496,11 +490,11 @@ export function predictVoiceTurn(transcript: string, source: 'interim' | 'final'
     transcript,
     normalizedTranscript,
     intent: 'general',
-    confidence: 0.58,
-    openerCategory: 'ack',
+    confidence: 0.5,
+    openerCategory: null,
     riskLevel: 'low',
     route: 'main_llm',
-    allowOpener: true,
+    allowOpener: false,
     useEmpathy: false,
     reasons,
     source,

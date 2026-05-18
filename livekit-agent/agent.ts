@@ -2400,7 +2400,7 @@ export default defineAgent({
     const persistentDefaultTts = getOrCreatePersistentDefaultTts();
     const defaultTts = persistentDefaultTts.tts;
     if (!persistentDefaultTts.reused && !persistentDefaultTts.prewarmed) {
-      void warmCartesiaTts(defaultTts, "Yep.", "[voice-latency:session]");
+      void warmCartesiaTts(defaultTts, "One sec.", "[voice-latency:session]");
     }
     const ttsOpts = {
       model: resolveConfiguredTtsModel(),

@@ -99,6 +99,27 @@ describe("voice latency defaults", () => {
     ).toBe("let_me_check");
   });
 
+  it("keeps the instant opener bank free of broad agreement filler", () => {
+    expect(voiceLatency.OPENER_BANK.map((entry) => entry.text)).toEqual([
+      "Got you.",
+      "One sec.",
+      "Let me check.",
+      "I can pass that on.",
+      "Okay, got you.",
+      "That sounds frustrating.",
+      "Sorry, that's annoying.",
+      "I get that.",
+    ]);
+  });
+
+  it("does not allow cached openers for vague general turns", () => {
+    const prediction = voiceLatency.predictVoiceTurn("Tell me more about that.", "final");
+
+    expect(prediction.intent).toBe("general");
+    expect(prediction.allowOpener).toBe(false);
+    expect(prediction.openerCategory).toBeNull();
+  });
+
   it("does not use broad general turns for speculative sales heads", () => {
     const generalPrediction = {
       ...voiceLatency.predictVoiceTurn("That sounds interesting.", "interim"),

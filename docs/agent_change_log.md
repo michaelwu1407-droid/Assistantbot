@@ -1,3 +1,21 @@
+## 2026-05-18 (Codex) - Tighten voice openers and make demo sales flow explicit
+
+- Files changed:
+  - `livekit-agent/voice-latency.ts`
+  - `livekit-agent/voice-prompts.ts`
+  - `__tests__/voice-latency-config.test.ts`
+  - `__tests__/voice-prompts.test.ts`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Removed broad agreement/helpfulness fillers from the cached opener bank: `Yep.`, `No worries.`, `I can help.`, and `Yeah, absolutely.`
+  - Changed the session TTS warmup phrase from `Yep.` to `One sec.` so even non-user-facing warmup traffic uses the safer vocabulary.
+  - Vague `general` turns no longer qualify for cached instant openers at all; Tracey waits for the substantive answer.
+  - Kept only narrower instant openers for lookup, message capture, handoff, and empathy cases, still requiring guard approval by default.
+  - Hardened the outbound and inbound Earlymark demo prompts into a sales path: answer, discover pain, demonstrate relevant value, and close toward sign-up or manager follow-up.
+  - Added the shared anti-filler rule to normal customer-call prompts too, without adding Earlymark sales behavior to normal calls.
+- Why:
+  - A guard should not be asked to rescue weak phrases. The safer default is a smaller opener vocabulary plus explicit prompt instructions to avoid lazy filler and prefer silence over a wrong acknowledgement.
+
 ## 2026-05-18 (Codex) - Require guard approval for cached instant voice openers
 
 - Files changed:

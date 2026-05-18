@@ -24,8 +24,12 @@ describe("voice prompts", () => {
     expect(prompt).toContain("Use the known form details as baseline context.");
     expect(prompt).toContain("never miss a job again");
     expect(prompt).toContain("no more admin");
-    expect(prompt).toContain("Do not aggressively re-capture details already present in the form.");
-    expect(prompt).not.toContain("Capture lead details before the call ends");
+    expect(prompt).toContain("Run a simple sales path: answer, discover the business pain");
+    expect(prompt).toContain("Push a contextual close on every interested call");
+    expect(prompt).toContain("Ask one focused discovery question early");
+    expect(prompt).toContain("Before the call ends, make the next step explicit");
+    expect(prompt).toContain("Use log_lead before the call ends when the caller shows interest");
+    expect(prompt).toContain("Do not mechanically re-ask details already present in the form");
   });
 
   it("makes inbound demo capture unknown caller details and offer a spoken demo", () => {
@@ -33,6 +37,8 @@ describe("voice prompts", () => {
 
     expect(prompt).toContain("Offer a spoken product demo on the call when the caller wants one.");
     expect(prompt).toContain("Capture unknown details early");
+    expect(prompt).toContain("Run a simple sales path: answer, discover the business pain");
+    expect(prompt).toContain("Ask one focused discovery question early");
     expect(prompt).toContain("point them to earlymark.ai");
   });
 
@@ -64,7 +70,10 @@ describe("voice prompts", () => {
 
     expect(prompt).toContain("Current customer-contact mode: Info only.");
     expect(prompt).toContain("This same mode applies across Tracey for users calls, texts, emails, and outbound follow-up.");
+    expect(prompt).toContain("Do not use lazy filler");
+    expect(prompt).toContain("prefer silence over a wrong acknowledgement");
     expect(prompt).not.toContain("Earlymark AI");
+    expect(prompt).not.toContain("Run a simple sales path");
   });
 
   it("keeps the normal customer-call prompt language-locked to the caller", () => {
