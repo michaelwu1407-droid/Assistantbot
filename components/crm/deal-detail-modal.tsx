@@ -398,7 +398,7 @@ function DealDetailContent({
               type="button"
               size="icon"
               variant="ghost"
-              className="h-8 w-8 text-white hover:bg-card/20"
+              className="h-10 w-10 text-white hover:bg-card/20"
               aria-label="Dismiss overdue warning"
               onClick={() => setOverdueDismissed(true)}
             >

@@ -185,7 +185,7 @@ export function StaleDealFollowUpModal({
                 <p className="text-sm text-muted-foreground">{deal.contactName}</p>
                 <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
                   <span>Value: {formatCurrency(deal.value)}</span>
-                  <span>-</span>
+                  <span aria-hidden="true">·</span>
                   <span>Stage: {getUserFacingDealStageLabel(deal.stage)}</span>
                 </div>
               </div>
