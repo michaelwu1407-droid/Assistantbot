@@ -52,12 +52,14 @@ export async function POST(req: Request) {
 
     // Twilio retries deliver the same MessageSid for the same inbound message.
     // Wrap the rest of the work so a retry does not double-fire the AI agent
-    // or send a second outbound WhatsApp message.
+    // or send a second outbound WhatsApp message. bucketAt is intentionally
+    // fixed (epoch) so the key is stable across hours — a retry an hour later
+    // still hits the same idempotency row.
     const dedupKey = messageSid || `${cleanNumber}:${body.slice(0, 64)}:${Math.floor(Date.now() / 60_000)}`;
     const idempotency = await runIdempotent({
       actionType: "whatsapp.inbound",
       parts: [dedupKey],
-      bucketAt: new Date(),
+      bucketAt: new Date(0),
       resultFactory: () => processWhatsappMessage({ user, body, cleanNumber, inboundPayload }),
       waitForCompletionMs: 4000,
     });
