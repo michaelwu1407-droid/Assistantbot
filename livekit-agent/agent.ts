@@ -1064,6 +1064,12 @@ function resolveCartesiaBaseUrl(): string {
   return (process.env.CARTESIA_BASE_URL || "https://api.cartesia.ai").trim();
 }
 
+function resolveMinimumTtsAudioSamples(): number {
+  const explicit = Number(process.env.VOICE_TTS_MIN_AUDIO_SAMPLES || "");
+  if (Number.isFinite(explicit) && explicit > 0) return Math.trunc(explicit);
+  return 2400;
+}
+
 type TtsRuntimeHealth = {
   status: "unknown" | "healthy" | "unhealthy";
   provider: "cartesia";
@@ -1097,7 +1103,7 @@ function getErrorMessage(error: unknown) {
 
 function markTtsHealthy(frameCount: number, sampleCount: number) {
   ttsRuntimeHealth.status = "healthy";
-  ttsRuntimeHealth.summary = `Cartesia TTS produced audio (${frameCount} frame(s), ${sampleCount} sample(s)).`;
+  ttsRuntimeHealth.summary = `Cartesia TTS produced speech audio (${frameCount} frame(s), ${sampleCount} sample(s)).`;
   ttsRuntimeHealth.lastCheckedAt = new Date().toISOString();
   ttsRuntimeHealth.lastError = null;
   ttsRuntimeHealth.lastFrameCount = frameCount;
@@ -1120,6 +1126,18 @@ function getTtsRuntimeHealth() {
   return { ...ttsRuntimeHealth };
 }
 
+function assertTtsAudioIsSpeech(frameCount: number, sampleCount: number, context: string) {
+  const minimumSamples = resolveMinimumTtsAudioSamples();
+  if (frameCount === 0) {
+    throw new TtsAudioUnavailableError(`${context} without producing any audio frames.`);
+  }
+  if (sampleCount < minimumSamples) {
+    throw new TtsAudioUnavailableError(
+      `${context} with only ${sampleCount} audio sample(s), below the ${minimumSamples}-sample minimum.`,
+    );
+  }
+}
+
 function assertNonEmptyTtsAudioStream(
   audio: ReadableStream<AudioFrame> | null,
   context: string,
@@ -1138,9 +1156,7 @@ function assertNonEmptyTtsAudioStream(
           controller.enqueue(frame);
         }
 
-        if (frameCount === 0) {
-          throw new TtsAudioUnavailableError("Cartesia TTS completed without producing any audio frames.");
-        }
+        assertTtsAudioIsSpeech(frameCount, sampleCount, "Cartesia TTS completed");
 
         markTtsHealthy(frameCount, sampleCount);
         controller.close();
@@ -1212,9 +1228,7 @@ async function warmCartesiaTts(tts: cartesia.TTS, text: string, logPrefix: strin
       sampleCount += Number(chunk.frame.samplesPerChannel || 0);
     }
 
-    if (frameCount === 0) {
-      throw new TtsAudioUnavailableError("Cartesia TTS warmup completed without producing any audio frames.");
-    }
+    assertTtsAudioIsSpeech(frameCount, sampleCount, "Cartesia TTS warmup completed");
 
     markTtsHealthy(frameCount, sampleCount);
   } catch (error) {
