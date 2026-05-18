@@ -69,7 +69,7 @@ export function GlobalSearch({
 
             setLoading(true)
             try {
-                const searchResults = await globalSearchClient(workspaceId, query)
+                const searchResults = await globalSearchClient(query)
                 setResults(searchResults)
             } catch (error) {
                 console.error("Global search error:", error)

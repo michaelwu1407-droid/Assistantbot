@@ -74,7 +74,7 @@ export function SearchDialog({ children }: { children?: React.ReactNode }) {
         const search = async () => {
             setIsLoading(true)
             try {
-                const items = await globalSearchClient(workspaceId!, debouncedQuery)
+                const items = await globalSearchClient(debouncedQuery)
                 setResults(items)
             } catch (error) {
                 console.error("Search failed:", error)
