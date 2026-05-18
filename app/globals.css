@@ -524,3 +524,19 @@
 .scrollbar-hide::-webkit-scrollbar-track {
   background: transparent !important;
 }
+
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --mobile-nav-h: 64px;
+}
+
+.pt-safe { padding-top: var(--safe-top); }
+.pb-safe { padding-bottom: var(--safe-bottom); }
+.pl-safe { padding-left: var(--safe-left); }
+.pr-safe { padding-right: var(--safe-right); }
+.pb-mobile-nav { padding-bottom: calc(var(--mobile-nav-h) + var(--safe-bottom)); }
+.h-mobile-nav { height: calc(var(--mobile-nav-h) + var(--safe-bottom)); }
+.bottom-mobile-nav { bottom: calc(var(--mobile-nav-h) + var(--safe-bottom)); }
