@@ -1959,6 +1959,18 @@ export async function runMarkInvoicePaidAction(
   if (!result.success) {
     return { success: false, message: `Failed to mark invoice ${invoice.number} as paid.`, quickActions: [] };
   }
+  await recordWorkspaceAuditEventForCurrentActor({
+    workspaceId,
+    action: "invoice.marked_paid",
+    entityType: "invoice",
+    entityId: invoice.id,
+    metadata: {
+      invoiceNumber: invoice.number,
+      dealId: invoice.dealId,
+      previousStatus: invoice.status,
+      source: "chat-actions.runMarkInvoicePaidAction",
+    },
+  });
   revalidatePath("/crm", "layout");
   const dealTitle = invoice.deal.title;
   return {
