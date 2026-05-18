@@ -17,5 +17,17 @@ them and Claude will pick the next pass off the same list.
 - **Why:** The hardening on `/api/webhooks/email` requires the env var to be set. Without it the route returns 503 on every inbound email and lead-provider forwarders (hipages, airtasker, oneflare) will start failing silently.
 - **What:** Pick a strong random secret (e.g. `openssl rand -hex 32`), set it as `EMAIL_WEBHOOK_SECRET` in Vercel project settings for all environments, then update each lead-provider's webhook URL config to send the value in the `x-email-webhook-secret` header.
 
+## Open — for Claude to pick up later (not blocked on you)
+
+### Fan jest-axe out across every Dialog/Sheet/Drawer
+- **Why:** The pattern is established in `__tests__/a11y-stale-job-modal.test.tsx` but only the stale-job dialog is covered. Every other dialog still mocks the Dialog primitives in its test file, so axe can't evaluate the real ARIA contract.
+- **What:** For each dialog (new-deal, deal-detail, deal-edit, stale-deal-follow-up, kanban-automation, personal-phone, job-completion, loss-reason, etc.), add an axe test that renders with the REAL Dialog primitives and stubs only the action-layer dependencies.
+
+### Verify kanban deal-card touch targets on mobile
+- **Why:** Audit flagged various `size="icon" className="h-8 w-8"` buttons in `components/crm/deal-card.tsx`. I didn't audit each one individually — needs a sweep with the rule: every interactive icon inside a card must be ≥40×40px on phone.
+
+### Audit the rest of the app
+- **Why:** The UI audit only covered `components/` and top-level `app/**/*.tsx` modal/dialog/sheet components. Other surfaces (forms outside dialogs, kanban itself, settings pages, public marketing pages) haven't been audited the same way.
+
 ## Done
 <!-- Move items here once complete so the trail is preserved. -->
