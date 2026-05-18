@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const hoisted = vi.hoisted(() => ({
   db: {
+    contact: {
+      findUnique: vi.fn(),
+    },
     deal: {
       findUnique: vi.fn(),
     },
@@ -73,5 +76,69 @@ describe("messaging-actions", () => {
         subject: "We'd love your feedback on your recent job",
       }),
     );
+  });
+
+  describe("sendViaTwilio audit trail", () => {
+    beforeEach(() => {
+      vi.stubEnv("TWILIO_AUTH_TOKEN", "auth_token_x");
+      hoisted.db.workspace.findUnique.mockResolvedValue({
+        twilioSubaccountId: "AC_workspace",
+        twilioPhoneNumber: "+61400000000",
+      });
+      hoisted.db.contact.findUnique.mockResolvedValue({
+        id: "contact_1",
+        name: "Alex",
+        phone: "+61434955958",
+        workspaceId: "ws_1",
+      });
+    });
+
+    it("surfaces audit-trail write failures via console.error instead of swallowing them", async () => {
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+        new Response(JSON.stringify({ sid: "SM_123" }), { status: 200 }),
+      );
+      hoisted.db.webhookEvent.create.mockRejectedValueOnce(new Error("DB down"));
+
+      const { sendSMS } = await import("@/actions/messaging-actions");
+      const result = await sendSMS("contact_1", "hi");
+
+      expect(result.success).toBe(true);
+      expect(hoisted.db.webhookEvent.create).toHaveBeenCalledTimes(1);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining("safeRecordWebhookEvent"),
+        expect.anything(),
+      );
+
+      fetchSpy.mockRestore();
+      consoleSpy.mockRestore();
+    });
+
+    it("awaits the audit write rather than firing-and-forgetting it", async () => {
+      const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+        new Response(JSON.stringify({ sid: "SM_456" }), { status: 200 }),
+      );
+      let resolveWrite: () => void = () => {};
+      const writePromise = new Promise<{ id: string }>((resolve) => {
+        resolveWrite = () => resolve({ id: "webhook_1" });
+      });
+      hoisted.db.webhookEvent.create.mockReturnValueOnce(writePromise);
+
+      const { sendSMS } = await import("@/actions/messaging-actions");
+      let resolved = false;
+      const callPromise = sendSMS("contact_1", "hi").then(() => {
+        resolved = true;
+      });
+
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(resolved).toBe(false);
+
+      resolveWrite();
+      await callPromise;
+      expect(resolved).toBe(true);
+
+      fetchSpy.mockRestore();
+    });
   });
 });
