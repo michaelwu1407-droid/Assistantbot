@@ -3,7 +3,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ChatInterface } from "@/components/chatbot/chat-interface";
-import { getChatHistory, getDailyDigest } from "@/actions/chat-actions";
+import { getChatHistory, getDailyDigest, getWaitingOnYouItems } from "@/actions/chat-actions";
 
 vi.mock("@ai-sdk/react", async () => {
   const React = await import("react");
@@ -48,6 +48,7 @@ vi.mock("@/actions/chat-actions", () => ({
   confirmJobDraft: vi.fn(),
   runUndoLastAction: vi.fn().mockResolvedValue("Undone"),
   getDailyDigest: vi.fn().mockResolvedValue(null),
+  getWaitingOnYouItems: vi.fn().mockResolvedValue([]),
 }));
 
 beforeAll(() => {
@@ -57,6 +58,7 @@ beforeAll(() => {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(getChatHistory).mockResolvedValue([]);
+  vi.mocked(getWaitingOnYouItems).mockResolvedValue([]);
   try {
     sessionStorage.clear();
   } catch {
@@ -129,7 +131,7 @@ describe("ChatInterface", () => {
       {
         id: "msg_1",
         role: "assistant",
-        content: "☀️ Morning Briefing: 2 jobs need attention",
+        content: "Morning Briefing: 2 jobs need attention",
       },
     ]));
     vi.mocked(getDailyDigest).mockResolvedValue({
@@ -162,6 +164,32 @@ describe("ChatInterface", () => {
     const summaryCard = screen.getByText("Summary").closest("div");
     expect(summaryCard).toHaveTextContent(/Pipeline value:\s*\$1,200(?:\.00)?\s*-\s*Top actions:\s*Call stale jobs,\s*Review invoices/i);
     expect(screen.getByText(/draft follow-ups for stale jobs - ask me/i)).toBeInTheDocument();
-    expect(screen.queryByText(/â|Â|—|–|·/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Ã¢|Ã‚|â€”|â€“|Â·/)).not.toBeInTheDocument();
+  });
+
+  it("renders a compact waiting-on-you queue with explicit action and relevant-doc buttons", async () => {
+    vi.mocked(getWaitingOnYouItems).mockResolvedValue([
+      {
+        id: "billing-deal_jess",
+        kind: "billing",
+        group: "Billing",
+        title: "Create invoice for Jess Whitlock quote",
+        description: "Jess Whitlock is ready for billing, but this job has no invoice record yet.",
+        primaryLabel: "Create invoice",
+        primaryPrompt: "Create a draft invoice for deal ID deal_jess.",
+        secondaryLabel: "Open billing",
+        secondaryHref: "/crm/deals/deal_jess?tab=billing",
+        value: 14500,
+        priority: 30,
+      },
+    ]);
+
+    await renderChatInterface();
+
+    expect(await screen.findByText("Waiting on you")).toBeInTheDocument();
+    expect(screen.getByText("Billing")).toBeInTheDocument();
+    expect(screen.getByText("Create invoice for Jess Whitlock quote")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create invoice: Create invoice for Jess Whitlock quote" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open billing: Create invoice for Jess Whitlock quote" })).toBeInTheDocument();
   });
 });

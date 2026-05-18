@@ -34,10 +34,12 @@ function stageToVariant(stage: string): "new" | "quote" | "scheduled" | "awaitin
 
 interface PageProps {
   params: Promise<{ id: string }>
+  searchParams?: Promise<{ tab?: string; history?: string }>
 }
 
-export default async function DealDetailPage({ params }: PageProps) {
+export default async function DealDetailPage({ params, searchParams }: PageProps) {
   const { id } = await params
+  const resolvedSearchParams = searchParams ? await searchParams : undefined
   let actor: Awaited<ReturnType<typeof requireDealInCurrentWorkspace>>["actor"]
   try {
     ;({ actor } = await requireDealInCurrentWorkspace(id))
@@ -84,6 +86,10 @@ export default async function DealDetailPage({ params }: PageProps) {
   const stageLabel = PRISMA_STAGE_LABELS[deal.stage] ?? deal.stage
   const sectionCardClass = "rounded-lg border border-border bg-card shadow-sm"
   const topSectionMinHeightClass = "min-h-[16rem] md:min-h-[18rem]"
+  const defaultHistoryTab = resolvedSearchParams?.history === "jobs" || resolvedSearchParams?.history === "notes"
+    ? resolvedSearchParams.history
+    : "communications"
+  const defaultBottomTab = resolvedSearchParams?.tab === "photos" ? "photos" : "billing"
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto p-4 pb-24 md:p-6 md:pb-24">
@@ -365,7 +371,7 @@ export default async function DealDetailPage({ params }: PageProps) {
             <div className="border-b border-border/50 bg-card px-3 py-2 text-xs text-muted-foreground">
               Recent activity stays here. Open the customer timeline for the full SMS, email, and call correspondence.
             </div>
-            <Tabs defaultValue="communications" className="flex min-h-0 flex-1 flex-col">
+            <Tabs defaultValue={defaultHistoryTab} className="flex min-h-0 flex-1 flex-col">
               <div className="border-b border-border/50 px-3 py-2">
                 <TabsList className="h-9 bg-muted/70">
                   <TabsTrigger value="communications" className="text-xs">Communications</TabsTrigger>
@@ -407,7 +413,7 @@ export default async function DealDetailPage({ params }: PageProps) {
 
       {/* Billing + Photos as tabs */}
       <div className="shrink-0">
-        <Tabs defaultValue="billing" className="w-full">
+        <Tabs defaultValue={defaultBottomTab} className="w-full">
           <TabsList className="h-9">
             <TabsTrigger value="billing" className="gap-2 text-xs">
               <DollarSign className="w-3.5 h-3.5" />

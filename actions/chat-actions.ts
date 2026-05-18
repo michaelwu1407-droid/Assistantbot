@@ -1241,6 +1241,296 @@ export async function saveAssistantMessage(workspaceId: string, content: string)
   }
 }
 
+export interface WaitingOnYouAction {
+  id: string;
+  kind: "approval" | "review" | "billing" | "task" | "follow_up";
+  group: string;
+  title: string;
+  description: string;
+  primaryLabel: string;
+  primaryPrompt: string;
+  secondaryLabel?: string;
+  secondaryHref?: string;
+  value?: number;
+  priority: number;
+}
+
+function upsertWaitingItem(
+  map: Map<string, WaitingOnYouAction>,
+  dedupeKey: string,
+  item: WaitingOnYouAction
+) {
+  const existing = map.get(dedupeKey);
+  if (!existing || item.priority < existing.priority) {
+    map.set(dedupeKey, item);
+  }
+}
+
+export async function getWaitingOnYouItems(workspaceId: string): Promise<WaitingOnYouAction[]> {
+  if (!workspaceId) return [];
+
+  const now = new Date();
+  const [approvalDeals, heldReviewDeals, overdueTasks, billingDeals, deals] = await Promise.all([
+    db.deal.findMany({
+      where: {
+        workspaceId,
+        OR: [
+          { stage: "PENDING_COMPLETION" },
+          {
+            isDraft: true,
+            stage: { notIn: ["DELETED", "LOST", "ARCHIVED"] },
+          },
+        ],
+      },
+      include: {
+        contact: true,
+      },
+      orderBy: [
+        { stageChangedAt: "asc" },
+        { updatedAt: "asc" },
+      ],
+      take: 6,
+    }),
+    db.deal.findMany({
+      where: {
+        workspaceId,
+        aiTriageRecommendation: "HOLD_REVIEW",
+        stage: { notIn: ["DELETED", "LOST", "ARCHIVED"] },
+      },
+      include: {
+        contact: true,
+      },
+      orderBy: { updatedAt: "asc" },
+      take: 5,
+    }),
+    db.task.findMany({
+      where: {
+        completed: false,
+        dueAt: { lt: now },
+        deal: { workspaceId },
+      },
+      include: {
+        deal: true,
+        contact: true,
+      },
+      orderBy: { dueAt: "asc" },
+      take: 5,
+    }),
+    db.deal.findMany({
+      where: {
+        workspaceId,
+        stage: { in: ["INVOICED", "WON"] },
+      },
+      include: {
+        contact: true,
+        invoices: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
+      },
+      orderBy: [
+        { updatedAt: "asc" },
+        { stageChangedAt: "asc" },
+      ],
+      take: 10,
+    }),
+    getDeals(workspaceId, undefined, { unbounded: true }),
+  ]);
+
+  const queue = new Map<string, WaitingOnYouAction>();
+
+  for (const deal of approvalDeals) {
+    const contactName = deal.contact?.name ?? "Unknown customer";
+    const isDraftApproval = deal.isDraft && deal.stage !== "PENDING_COMPLETION";
+
+    upsertWaitingItem(
+      queue,
+      `deal:${deal.id}`,
+      {
+        id: `approval-${deal.id}`,
+        kind: "approval",
+        group: "Approvals",
+        title: isDraftApproval ? `Review draft for ${deal.title}` : `Approve completion for ${deal.title}`,
+        description: isDraftApproval
+          ? `${contactName} is waiting for you to review Tracey's draft before it moves forward.`
+          : `${contactName} has a completed job waiting for your sign-off.`,
+        primaryLabel: isDraftApproval ? "Review draft" : "Review now",
+        primaryPrompt: isDraftApproval
+          ? `Review the draft for deal ID ${deal.id} and tell me what should be changed before approval.`
+          : `Review the completion details for deal ID ${deal.id} and tell me whether it should be approved.`,
+        secondaryLabel: "Open job",
+        secondaryHref: `/crm/deals/${deal.id}`,
+        value: Number(deal.value ?? 0),
+        priority: isDraftApproval ? 12 : 10,
+      }
+    );
+  }
+
+  for (const deal of heldReviewDeals) {
+    const flags = Array.isArray(deal.agentFlags) ? (deal.agentFlags as string[]) : [];
+    upsertWaitingItem(
+      queue,
+      `deal:${deal.id}`,
+      {
+        id: `review-${deal.id}`,
+        kind: "review",
+        group: "Needs review",
+        title: `Review ${deal.title}`,
+        description: `${deal.contact?.name ?? "Unknown customer"}${flags[0] ? ` - ${flags[0]}` : " - Needs manual review before Tracey continues."}`,
+        primaryLabel: "Review lead",
+        primaryPrompt: `Review deal ID ${deal.id} and tell me what should happen next.`,
+        secondaryLabel: "Open job",
+        secondaryHref: `/crm/deals/${deal.id}`,
+        value: Number(deal.value ?? 0),
+        priority: 20,
+      }
+    );
+  }
+
+  for (const deal of billingDeals) {
+    const latestInvoice = deal.invoices[0];
+    const contactName = deal.contact?.name ?? "Unknown customer";
+    const dealValue = Number(deal.invoicedAmount ?? deal.value ?? 0);
+
+    if (!latestInvoice) {
+      upsertWaitingItem(
+        queue,
+        `deal:${deal.id}`,
+        {
+          id: `billing-create-${deal.id}`,
+          kind: "billing",
+          group: "Billing",
+          title: `Create invoice for ${deal.title}`,
+          description: `${contactName} is ready for billing, but this job has no invoice record yet.`,
+          primaryLabel: "Create invoice",
+          primaryPrompt: `Create a draft invoice for deal ID ${deal.id}.`,
+          secondaryLabel: "Open billing",
+          secondaryHref: `/crm/deals/${deal.id}?tab=billing`,
+          value: dealValue,
+          priority: 30,
+        }
+      );
+      continue;
+    }
+
+    if (latestInvoice.status === "PAID" || latestInvoice.status === "VOID") {
+      continue;
+    }
+
+    if (latestInvoice.status === "DRAFT") {
+      upsertWaitingItem(
+        queue,
+        `deal:${deal.id}`,
+        {
+          id: `billing-draft-${deal.id}`,
+          kind: "billing",
+          group: "Billing",
+          title: `Review quote for ${deal.title}`,
+          description: `Draft ${latestInvoice.number} for ${formatCurrency(Number(latestInvoice.total ?? 0))} is ready to review and send.`,
+          primaryLabel: "Draft message",
+          primaryPrompt: `Draft the message to send quote ${latestInvoice.number} for deal ID ${deal.id}.`,
+          secondaryLabel: "Open billing",
+          secondaryHref: `/crm/deals/${deal.id}?tab=billing`,
+          value: Number(latestInvoice.total ?? dealValue),
+          priority: 32,
+        }
+      );
+      continue;
+    }
+
+    if (latestInvoice.status === "ISSUED") {
+      upsertWaitingItem(
+        queue,
+        `deal:${deal.id}`,
+        {
+          id: `billing-issued-${deal.id}`,
+          kind: "billing",
+          group: "Billing",
+          title: `Chase payment for ${deal.title}`,
+          description: `Invoice ${latestInvoice.number} for ${formatCurrency(Number(latestInvoice.total ?? 0))} is issued and still unpaid.`,
+          primaryLabel: "Draft reminder",
+          primaryPrompt: `Draft a polite payment reminder for invoice ${latestInvoice.number} on deal ID ${deal.id}.`,
+          secondaryLabel: "Open billing",
+          secondaryHref: `/crm/deals/${deal.id}?tab=billing`,
+          value: Number(latestInvoice.total ?? dealValue),
+          priority: 34,
+        }
+      );
+    }
+  }
+
+  for (const task of overdueTasks) {
+    const taskKey = task.dealId ? `deal:${task.dealId}` : task.contactId ? `contact:${task.contactId}` : `task:${task.id}`;
+    upsertWaitingItem(
+      queue,
+      taskKey,
+      {
+        id: `task-${task.id}`,
+        kind: "task",
+        group: "Tasks",
+        title: task.title,
+        description: task.deal
+          ? `Overdue since ${formatDate(task.dueAt)} - related to ${task.deal.title}.`
+          : task.contact
+            ? `Overdue since ${formatDate(task.dueAt)} - follow up with ${task.contact.name}.`
+            : `Overdue since ${formatDate(task.dueAt)}.`,
+        primaryLabel: "Plan it",
+        primaryPrompt: task.dealId
+          ? `Help me handle the overdue task "${task.title}" for deal ID ${task.dealId}.`
+          : `Help me handle the overdue task "${task.title}".`,
+        secondaryLabel: task.dealId ? "Open job" : task.contactId ? "Open contact" : undefined,
+        secondaryHref: task.dealId ? `/crm/deals/${task.dealId}` : task.contactId ? `/crm/contacts/${task.contactId}` : undefined,
+        priority: 40,
+      }
+    );
+  }
+
+  for (const deal of deals) {
+    if (
+      deal.stage === "deleted" ||
+      deal.stage === "lost" ||
+      deal.stage === "completed" ||
+      deal.stage === "ready_to_invoice" ||
+      deal.stage === "pending_approval" ||
+      deal.isDraft ||
+      deal.aiTriageRecommendation === "HOLD_REVIEW"
+    ) {
+      continue;
+    }
+
+    if (deal.health.status !== "ROTTING" && deal.health.status !== "STALE") {
+      continue;
+    }
+
+    const contactName = deal.contactName || "this customer";
+    const ageLabel = `${deal.health.daysSinceActivity} day${deal.health.daysSinceActivity === 1 ? "" : "s"}`;
+    upsertWaitingItem(
+      queue,
+      `deal:${deal.id}`,
+      {
+        id: `followup-${deal.id}`,
+        kind: "follow_up",
+        group: "Follow up",
+        title: `${deal.health.status === "ROTTING" ? "Urgent follow-up" : "Follow up"} for ${contactName}`,
+        description: `${deal.title} has had no activity for ${ageLabel} and is worth ${formatCurrency(Number(deal.value ?? 0))}.`,
+        primaryLabel: "Draft next step",
+        primaryPrompt: `Draft the next follow-up for deal ID ${deal.id}.`,
+        secondaryLabel: "Open job",
+        secondaryHref: `/crm/deals/${deal.id}`,
+        value: Number(deal.value ?? 0),
+        priority: deal.health.status === "ROTTING" ? 50 : 60,
+      }
+    );
+  }
+
+  return [...queue.values()]
+    .sort((a, b) => {
+      if (a.priority !== b.priority) return a.priority - b.priority;
+      return (b.value ?? 0) - (a.value ?? 0);
+    })
+    .slice(0, 6);
+}
+
 export async function getDailyDigest(
   workspaceId: string,
   kind: "morning" | "evening"

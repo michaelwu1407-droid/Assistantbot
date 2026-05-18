@@ -5,20 +5,22 @@ import { useChat } from '@ai-sdk/react';
 import { handleChatFallback } from "@/actions/chat-fallback";
 import { DefaultChatTransport } from 'ai';
 import type { UIMessage } from "ai";
-import { Send, Loader2, Sparkles, Clock, Calendar, FileText, Phone, Check, X, Mic, Undo2 } from 'lucide-react';
+import { Send, Loader2, Sparkles, Clock, Calendar, FileText, Phone, Check, X, Mic, Undo2, ArrowUpRight } from 'lucide-react';
 import { TraceyAvatar } from '@/components/ui/tracey-avatar';
 import { cn } from '@/lib/utils';
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { getChatHistory, saveAssistantMessage, confirmJobDraft, runUndoLastAction, getDailyDigest } from '@/actions/chat-actions';
+import { getChatHistory, saveAssistantMessage, confirmJobDraft, runUndoLastAction, getDailyDigest, getWaitingOnYouItems } from '@/actions/chat-actions';
 import { getTeamMembers } from '@/actions/invite-actions';
 import { toast } from 'sonner';
 import { useSpeechRecognition } from '@/hooks/use-speech-recognition';
 import { formatCurrency, formatTime as formatTimeLib } from '@/lib/format';
 import { usePathname, useRouter } from 'next/navigation';
 import { CRM_SELECTION_EVENT, CrmSelectionItem } from '@/lib/crm-selection';
+import type { DailyDigest } from "@/lib/digest";
+import type { WaitingOnYouAction } from "@/actions/chat-actions";
 
 interface ChatInterfaceProps {
   workspaceId?: string;
@@ -82,6 +84,25 @@ interface JobDraftData {
   customerType?: string;
   assignedToId?: string | null;
   notes?: string; // New notes field for language preferences
+}
+
+type WaitingOnYouItem = {
+  id: string;
+  group: string;
+  title: string;
+  description: string;
+  valueLabel?: string;
+  primaryLabel: string;
+  primaryPrompt: string;
+  secondaryLabel?: string;
+  secondaryHref?: string;
+  priority: number;
+};
+
+function shortenWaitingDescription(description: string): string {
+  const normalized = description.replace(/\s+/g, " ").trim();
+  if (normalized.length <= 88) return normalized;
+  return `${normalized.slice(0, 85).trimEnd()}...`;
 }
 
 function JobDraftCard({
@@ -304,9 +325,11 @@ function ChatWithHistory({
 }) {
   const [input, setInput] = useState('');
   const [selectedDeals, setSelectedDeals] = useState<CrmSelectionItem[]>([]);
-  const [digestModal, setDigestModal] = useState<{ kind: "morning" | "evening"; agentMode: string | null; digest: import("@/lib/digest").DailyDigest } | null>(null);
+  const [digestModal, setDigestModal] = useState<{ kind: "morning" | "evening"; agentMode: string | null; digest: DailyDigest } | null>(null);
   const [digestLoading, setDigestLoading] = useState<"morning" | "evening" | null>(null);
+  const [waitingItems, setWaitingItems] = useState<WaitingOnYouAction[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const waitingPanelRef = useRef<HTMLElement>(null);
   /** When user confirms a job draft, we replace that message's draft with this confirmation text. */
   const [confirmedDrafts, setConfirmedDrafts] = useState<Record<string, string>>({});
   /** When user cancels a job draft, we hide the card and show "Cancelled". */
@@ -317,6 +340,7 @@ function ChatWithHistory({
   const previousMessageCountRef = useRef(0);
   /** Track send time to measure client-perceived TTFT */
   const sendTimestampRef = useRef<number>(0);
+  const [waitingPanelHeight, setWaitingPanelHeight] = useState(0);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -374,6 +398,47 @@ function ChatWithHistory({
       window.removeEventListener(CRM_SELECTION_EVENT, handleSelectionChange as EventListener);
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!workspaceId) return;
+
+    getWaitingOnYouItems(workspaceId)
+      .then((result) => {
+        if (!cancelled) {
+          setWaitingItems(result);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setWaitingItems([]);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [workspaceId, pathname]);
+
+  useEffect(() => {
+    const panel = waitingPanelRef.current;
+    if (!panel) {
+      setWaitingPanelHeight(0);
+      return;
+    }
+
+    const measure = () => {
+      setWaitingPanelHeight(panel.getBoundingClientRect().height);
+    };
+
+    measure();
+    if (typeof ResizeObserver === "undefined") {
+      return;
+    }
+    const observer = new ResizeObserver(measure);
+    observer.observe(panel);
+    return () => observer.disconnect();
+  }, [waitingItems, selectedDeals]);
 
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
@@ -493,11 +558,71 @@ function ChatWithHistory({
 
   const formatTime = (date: Date) => formatTimeLib(date);
   const isOnlyWelcomeMessage = messages.length <= 1;
+  const waitingOnYouGroups = React.useMemo(() => {
+    const queue: WaitingOnYouItem[] = [];
+
+    if (selectedDeals.length > 0) {
+      const selectedTitle =
+        selectedDeals.length === 1
+          ? selectedDeals[0]?.title || "Selected job"
+          : `${selectedDeals.length} selected jobs`;
+      queue.push({
+        id: `selected-${selectedDeals.map((deal) => deal.id).join("-")}`,
+        group: "Selected on board",
+        title: selectedTitle,
+        description:
+          selectedDeals.length === 1
+            ? "Use Tracey to decide the next step or open the selected job."
+            : "Use Tracey to help with the jobs you selected on the board.",
+        primaryLabel: "What next?",
+        primaryPrompt:
+          selectedDeals.length === 1
+            ? `What should happen next for deal ID ${selectedDeals[0].id}?`
+            : `I selected ${selectedDeals.length} jobs on the board. What should I do next?`,
+        secondaryLabel: selectedDeals.length === 1 ? "Open job" : undefined,
+        secondaryHref: selectedDeals.length === 1 ? `/crm/deals/${selectedDeals[0].id}` : undefined,
+        priority: 0,
+      });
+    }
+
+    for (const item of waitingItems) {
+      queue.push({
+        id: item.id,
+        group: item.group,
+        title: item.title,
+        description: shortenWaitingDescription(item.description),
+        valueLabel: typeof item.value === "number" && item.value > 0 ? formatCurrency(item.value) : undefined,
+        primaryLabel: item.primaryLabel,
+        primaryPrompt: item.primaryPrompt,
+        secondaryLabel: item.secondaryLabel,
+        secondaryHref: item.secondaryHref,
+        priority: item.priority,
+      });
+    }
+
+    queue.sort((a, b) => a.priority - b.priority);
+
+    const grouped = new Map<string, WaitingOnYouItem[]>();
+    for (const item of queue.slice(0, 6)) {
+      const existing = grouped.get(item.group) ?? [];
+      existing.push(item);
+      grouped.set(item.group, existing);
+    }
+
+    return Array.from(grouped.entries()).map(([group, items]) => ({ group, items }));
+  }, [selectedDeals, waitingItems]);
+  const waitingOnYouCount = waitingOnYouGroups.reduce((count, group) => count + group.items.length, 0);
+  const messageAreaPaddingBottom = waitingOnYouCount > 0
+    ? Math.max(128, waitingPanelHeight + 88)
+    : 128;
 
   return (
     <div className="flex flex-col h-full bg-transparent">
       {/* Messages area — no separate Tracey header row; title is in the parent shell */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-6 space-y-6 custom-scrollbar pb-32">
+      <div
+        className="flex-1 overflow-y-auto px-4 md:px-6 py-6 space-y-6 custom-scrollbar"
+        style={{ paddingBottom: messageAreaPaddingBottom }}
+      >
         {messages.length === 0 && !isLoading && (
           <div className="flex flex-col gap-5 max-w-7xl mx-auto mt-4 lg:max-w-8xl">
             <div className="flex items-start gap-3">
@@ -831,66 +956,130 @@ function ChatWithHistory({
       </div>
 
       {/* Input Area */}
-      <div className="shrink-0 pt-4 pb-6 px-4 border-t border-border/10 bg-gradient-to-t from-background via-background to-transparent md:px-6 absolute bottom-0 left-0 right-0 z-20">
-        <form onSubmit={handleSubmit} className="flex w-full max-w-7xl mx-auto gap-3 lg:max-w-8xl">
-          <div className="relative flex flex-1 min-w-0 items-end gap-2 bg-card dark:bg-zinc-900 rounded-3xl border border-border/60 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] p-2 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/30 transition-all duration-300">
-            <Textarea
-              id="chat-input"
-              aria-label="Message"
-              value={input}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
-              onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault()
-                  handleSubmit(e as unknown as React.FormEvent)
-                }
-              }}
-              placeholder="Type your message..."
-              className="min-h-[44px] max-h-[120px] w-full resize-none border-0 bg-transparent text-xs md:text-sm py-3 px-3 placeholder:text-muted-foreground/50 placeholder:text-[10px] md:placeholder:text-xs scrollbar-hide"
-              rows={1}
-              ref={(ref) => {
-                if (ref) {
-                  ref.style.height = "auto";
-                  ref.style.height = `${ref.scrollHeight}px`;
-                }
-              }}
-              onInput={(e) => {
-                const target = e.target as HTMLTextAreaElement;
-                target.style.height = "auto";
-                target.style.height = `${target.scrollHeight}px`;
-              }}
-            />
-            <Button
-              type="submit"
-              aria-label="Send message"
-              disabled={isLoading || !input.trim()}
-              size="icon"
-              className={cn(
-                "h-8 w-8 shrink-0 rounded-xl transition-all duration-200 mb-1",
-                input.trim()
-                  ? "bg-[#00D28B] hover:bg-[#00D28B]/90 text-white shadow-md shadow-[#00D28B]/20"
-                  : "bg-muted dark:bg-zinc-800 text-muted-foreground dark:text-zinc-500 hover:bg-muted dark:hover:bg-zinc-700"
-              )}
+      <div className="absolute bottom-0 left-0 right-0 z-20 shrink-0 border-t border-border/10 bg-gradient-to-t from-background via-background to-transparent px-4 pt-4 pb-6 md:px-6">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 lg:max-w-8xl">
+          {waitingOnYouCount > 0 && (
+            <section
+              ref={waitingPanelRef}
+              aria-label="Waiting on you"
+              className="rounded-2xl border border-border/60 bg-card/80 px-3 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.03)] backdrop-blur"
             >
-              <Send className="h-3.5 w-3.5 ml-0.5" />
-            </Button>
-            <Button
-              type="button"
-              id="voice-btn"
-              aria-label={isListening ? "Stop voice input" : "Start voice input"}
-              size="icon"
-              onClick={toggleListening}
-              className={cn(
-                "h-8 w-8 shrink-0 rounded-xl transition-all duration-200 mb-1 border",
-                isListening
-                  ? "bg-destructive hover:bg-destructive text-white shadow-md shadow-destructive border-destructive animate-pulse"
-                  : "bg-card dark:bg-zinc-900 border-border dark:border-zinc-800 text-muted-foreground dark:text-zinc-400 hover:bg-muted/30 dark:hover:bg-zinc-800 hover:text-foreground dark:hover:text-zinc-300"
-              )}
-            >
-              <Mic className="h-4 w-4" />
-            </Button>
-          </div>
-        </form>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Waiting on you
+                </p>
+                <span className="text-[10px] text-muted-foreground">
+                  {waitingOnYouCount} item{waitingOnYouCount === 1 ? "" : "s"}
+                </span>
+              </div>
+              <div className="max-h-[12rem] space-y-2 overflow-y-auto pr-1">
+                {waitingOnYouGroups.map((group) => (
+                  <div key={group.group} className="space-y-1.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-foreground/70">
+                      {group.group}
+                    </p>
+                    {group.items.map((item) => (
+                      <div key={item.id} className="rounded-xl border border-border/60 bg-background/80 px-2.5 py-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-[11px] font-semibold text-foreground">{item.title}</p>
+                            <p className="line-clamp-1 text-[10px] text-foreground/75">{item.description}</p>
+                          </div>
+                          {item.valueLabel ? (
+                            <span className="shrink-0 text-[10px] font-semibold text-foreground/70">
+                              {item.valueLabel}
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          <button
+                            type="button"
+                            aria-label={`${item.primaryLabel}: ${item.title}`}
+                            onClick={() => handleQuickAction(item.primaryPrompt)}
+                            className="inline-flex h-7 items-center rounded-full bg-emerald-600 px-2.5 text-[10px] font-semibold text-white transition-colors hover:bg-emerald-700"
+                          >
+                            {item.primaryLabel}
+                          </button>
+                          {item.secondaryHref ? (
+                            <button
+                              type="button"
+                              aria-label={`${item.secondaryLabel}: ${item.title}`}
+                              onClick={() => router.push(item.secondaryHref!)}
+                              className="inline-flex h-7 items-center gap-1 rounded-full bg-muted px-2.5 text-[10px] font-semibold text-foreground transition-colors hover:bg-muted/80"
+                            >
+                              {item.secondaryLabel}
+                              <ArrowUpRight className="h-3 w-3" />
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <form onSubmit={handleSubmit} className="flex w-full gap-3">
+            <div className="relative flex flex-1 min-w-0 items-end gap-2 bg-card dark:bg-zinc-900 rounded-3xl border border-border/60 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] p-2 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/30 transition-all duration-300">
+              <Textarea
+                id="chat-input"
+                aria-label="Message"
+                value={input}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value)}
+                onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault()
+                    handleSubmit(e as unknown as React.FormEvent)
+                  }
+                }}
+                placeholder="Type your message..."
+                className="min-h-[44px] max-h-[120px] w-full resize-none border-0 bg-transparent text-xs md:text-sm py-3 px-3 placeholder:text-muted-foreground/50 placeholder:text-[10px] md:placeholder:text-xs scrollbar-hide"
+                rows={1}
+                ref={(ref) => {
+                  if (ref) {
+                    ref.style.height = "auto";
+                    ref.style.height = `${ref.scrollHeight}px`;
+                  }
+                }}
+                onInput={(e) => {
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = "auto";
+                  target.style.height = `${target.scrollHeight}px`;
+                }}
+              />
+              <Button
+                type="submit"
+                aria-label="Send message"
+                disabled={isLoading || !input.trim()}
+                size="icon"
+                className={cn(
+                  "h-8 w-8 shrink-0 rounded-xl transition-all duration-200 mb-1",
+                  input.trim()
+                    ? "bg-[#00D28B] hover:bg-[#00D28B]/90 text-white shadow-md shadow-[#00D28B]/20"
+                    : "bg-muted dark:bg-zinc-800 text-muted-foreground dark:text-zinc-500 hover:bg-muted dark:hover:bg-zinc-700"
+                )}
+              >
+                <Send className="h-3.5 w-3.5 ml-0.5" />
+              </Button>
+              <Button
+                type="button"
+                id="voice-btn"
+                aria-label={isListening ? "Stop voice input" : "Start voice input"}
+                size="icon"
+                onClick={toggleListening}
+                className={cn(
+                  "h-8 w-8 shrink-0 rounded-xl transition-all duration-200 mb-1 border",
+                  isListening
+                    ? "bg-destructive hover:bg-destructive text-white shadow-md shadow-destructive border-destructive animate-pulse"
+                    : "bg-card dark:bg-zinc-900 border-border dark:border-zinc-800 text-muted-foreground dark:text-zinc-400 hover:bg-muted/30 dark:hover:bg-zinc-800 hover:text-foreground dark:hover:text-zinc-300"
+                )}
+              >
+                <Mic className="h-4 w-4" />
+              </Button>
+            </div>
+          </form>
+        </div>
       </div>
       {digestModal && (
         <Dialog open={true} onOpenChange={(open) => { if (!open) setDigestModal(null); }}>
@@ -1094,3 +1283,6 @@ export function ChatInterface({ workspaceId }: ChatInterfaceProps) {
     />
   );
 }
+
+
+

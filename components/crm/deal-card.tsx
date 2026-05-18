@@ -4,7 +4,7 @@ import React, { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { MapPin, Briefcase, User, Trash2, AlertTriangle } from "lucide-react"
+import { MapPin, Briefcase, User, Trash2, AlertTriangle, CalendarDays } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { approveCompletion, approveDraft, DealView, rejectCompletion, rejectDraft } from "@/actions/deal-actions"
 import { getOverdueStyling } from "@/lib/deal-utils"
@@ -33,6 +33,7 @@ import { HoverScrollName } from "@/components/ui/hover-scroll-name"
 import {
   formatDateTimeInTimezone,
   formatMonthDayInTimezone,
+  formatShortWeekdayInTimezone,
   formatTimeInTimezone,
   resolveWorkspaceTimezone,
 } from "@/lib/timezone"
@@ -68,12 +69,12 @@ interface DealCardProps {
   currentUserRole?: string
 }
 
-/** Overdue bottom strip — 65% colour opacity (design reference: /crm/design/deal-cards). */
+/** Overdue bottom strip - 65% colour opacity (design reference: /crm/design/deal-cards). */
 function overdueBannerOverlayClasses(_severity: "critical" | "warning" | "mild" | "none"): string {
   return "bg-destructive/65 text-white shadow-inner dark:bg-destructive"
 }
 
-/** Bottom strip for health / draft / pending — 65% opacity to match overdue / design page. */
+/** Bottom strip for health / draft / pending - 65% opacity to match overdue / design page. */
 function statusBannerOverlayClasses(label: string): string {
   switch (label) {
     case "Pending approval":
@@ -93,17 +94,17 @@ function statusBannerOverlayClasses(label: string): string {
   }
 }
 
-/** Top-right: scheduled job date + time in workspace TZ (matches deal detail + schedule chips). */
-function cornerDateLabel(deal: DealView): { text: string; title: string } {
+/** Booking label used inside the card body so it doesn't compete with the contact row. */
+function bookingDateLabel(deal: DealView): { text: string; title: string } {
   if (deal.scheduledAt) {
     const workspaceTimezone = resolveWorkspaceTimezone(deal.workspaceTimezone)
     const formattedDateTime = formatDateTimeInTimezone(deal.scheduledAt, workspaceTimezone)
     return {
-      text: formattedDateTime,
-      title: formatDateTimeInTimezone(deal.scheduledAt, workspaceTimezone),
+      text: `${formatShortWeekdayInTimezone(deal.scheduledAt, workspaceTimezone)} ${formatMonthDayInTimezone(deal.scheduledAt, workspaceTimezone)} - ${formatTimeInTimezone(deal.scheduledAt, workspaceTimezone)}`,
+      title: formattedDateTime,
     }
   }
-  return { text: "-", title: "No scheduled date" }
+  return { text: "No booking set", title: "No scheduled date" }
 }
 
 export function DealCard({
@@ -204,7 +205,7 @@ export function DealCard({
     cardClasses += ` ${overdueStyling.borderClass}`
   }
 
-  /** Status / overdue: bottom overlay (3C) — coloured layer runs under price + status text (no white gap). */
+  /** Status / overdue: bottom overlay (3C) - coloured layer runs under price + status text (no white gap). */
   const showStatusBanner = !!overdueStyling.badgeText || (!!statusLabel && statusLabel.length > 0)
   const overlayLabel = overdueStyling.badgeText
     ? overdueStyling.badgeText
@@ -216,11 +217,8 @@ export function DealCard({
   const dealMetadata = (deal.metadata ?? undefined) as Record<string, unknown> | undefined
   const isUnread = dealMetadata?.unread === true
 
-  const corner = cornerDateLabel(deal)
-
-  const assigneeInitial = deal.assignedToName?.trim()
-    ? deal.assignedToName.trim().charAt(0).toUpperCase()
-    : null
+  const booking = bookingDateLabel(deal)
+  const assigneeLabel = deal.assignedToName?.trim() || "Unassigned"
 
   if (overlay) {
     cardClasses += " cursor-grabbing shadow-2xl scale-105 rotate-2 z-50 ring-2 ring-[#00D28B]/20"
@@ -241,9 +239,9 @@ export function DealCard({
     deal.stage === "pending_approval"
       ? isManager
         ? "Approve or reject on this card, or open job for details"
-        : "Open job — managers approve or reject completion in the job details"
+        : "Open job - managers approve or reject completion in the job details"
       : overdueStyling.badgeText
-        ? "Open job — overdue can be reconciled from job details"
+        ? "Open job - overdue can be reconciled from job details"
         : undefined
 
   const handleApproveKanban = async (e: React.MouseEvent) => {
@@ -320,25 +318,57 @@ export function DealCard({
     overdueStyling.badgeText
       ? overdueStyling.badgeTitle || "Open job for details"
       : statusLabel === "Urgent" || statusLabel === "Follow up"
-        ? "Based on time since last activity on this deal — not the same as a past scheduled job date"
+        ? "Based on time since last activity on this deal - not the same as a past scheduled job date"
         : statusLabel
 
-  /** Left side only — under the 3C overlay (tint + label may cover this). */
+  /** Left side only - under the 3C overlay (tint + label may cover this). */
+  const assigneeControl =
+    onAssign && teamMembers.length > 0 && !overlay ? (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            data-no-card-click
+            className="min-w-0 truncate text-left text-[10px] font-semibold text-foreground transition-colors hover:text-primary"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {assigneeLabel}
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
+          {(() => {
+            const requiresAssignment = ["scheduled", "ready_to_invoice", "completed"].includes(
+              columnId || ""
+            )
+            return requiresAssignment ? (
+              <DropdownMenuItem disabled className="cursor-not-allowed text-muted-foreground">
+                Cannot unassign (move to earlier stage first)
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onClick={() => onAssign(null)}>Unassign</DropdownMenuItem>
+            )
+          })()}
+          {teamMembers.map((m) => (
+            <DropdownMenuItem key={m.id} onClick={() => onAssign(m.id)}>
+              {m.name || m.email}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    ) : (
+      <span className="min-w-0 truncate text-[10px] font-semibold text-foreground">
+        {assigneeLabel}
+      </span>
+    )
+
   const footerPriceLeftOnly = (
-    <div className="flex min-w-0 items-center gap-2">
-      <span className="shrink-0 text-xs font-bold text-primary leading-none">
+    <div className="flex min-w-0 items-center gap-2.5">
+      <span className="shrink-0 text-xs font-bold text-foreground leading-none">
         {deal.invoicedAmount !== undefined ? formatCurrency(deal.invoicedAmount) : formatCurrency(deal.value)}
       </span>
-      {assigneeInitial ? (
-        <div
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 border-muted bg-primary/10 text-[10px] font-bold text-primary"
-          title={deal.assignedToName ?? "Assigned"}
-        >
-          {assigneeInitial}
-        </div>
-      ) : (
-        <span className="min-w-[1.25rem] text-[10px] font-medium text-muted-foreground leading-none">-</span>
-      )}
+      <div className="min-w-0 flex-1">
+        {assigneeControl}
+      </div>
     </div>
   )
 
@@ -414,7 +444,7 @@ export function DealCard({
         role="button"
         tabIndex={0}
       >
-        {/* Main fields — no flex-1 (avoids empty white band between body and footer). */}
+        {/* Main fields - no flex-1 (avoids empty white band between body and footer). */}
         <div className="flex shrink-0 flex-col px-3 pt-2">
           <div className="flex flex-col gap-2 pt-0">
             <div className="flex w-full min-w-0 shrink-0 items-center gap-1.5">
@@ -428,33 +458,22 @@ export function DealCard({
                   onPointerDown={(e) => e.stopPropagation()}
                 />
               )}
-              <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <User className="h-3.5 w-3.5 shrink-0 text-foreground" />
               <HoverScrollName text={deal.contactName || "No name"} />
-              <div
-                className="flex shrink-0 flex-col items-end gap-0.5 pl-1 text-right"
-                data-no-card-click={selectionMode ? true : undefined}
-              >
-                <span
-                  className="text-[10px] font-medium tabular-nums text-muted-foreground"
-                  title={corner.text ? corner.title : "No date"}
-                >
-                  {corner.text || "-"}
-                </span>
-              </div>
             </div>
             <div className="flex min-h-0 items-center gap-2">
-              <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-foreground" />
               <span
-                className="min-w-0 truncate text-[10.5px] leading-tight text-muted-foreground"
+                className="min-w-0 truncate text-[10.5px] leading-tight text-foreground"
                 title={deal.address || "No address"}
               >
                 {deal.address || "-"}
               </span>
             </div>
             <div className="flex min-h-0 items-center gap-2">
-              <Briefcase className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <Briefcase className="h-3.5 w-3.5 shrink-0 text-foreground" />
               <span
-                className="min-w-0 truncate text-[11px] font-medium leading-tight text-muted-foreground"
+                className="min-w-0 truncate text-[11px] font-medium leading-tight text-foreground"
                 title={deal.title}
               >
                 {deal.title}
@@ -467,43 +486,13 @@ export function DealCard({
               )}
             </div>
             <div className="flex min-h-0 items-center gap-2" data-no-card-click>
-              <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              {onAssign && teamMembers.length > 0 && !overlay ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      className="min-w-0 truncate text-left text-[10px] text-muted-foreground hover:underline"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {deal.assignedToName ?? "-"}
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
-                    {(() => {
-                      const requiresAssignment = ["scheduled", "ready_to_invoice", "completed"].includes(
-                        columnId || ""
-                      )
-                      return requiresAssignment ? (
-                        <DropdownMenuItem disabled className="cursor-not-allowed text-muted-foreground">
-                          Cannot unassign (move to earlier stage first)
-                        </DropdownMenuItem>
-                      ) : (
-                        <DropdownMenuItem onClick={() => onAssign(null)}>Unassign</DropdownMenuItem>
-                      )
-                    })()}
-                    {teamMembers.map((m) => (
-                      <DropdownMenuItem key={m.id} onClick={() => onAssign(m.id)}>
-                        {m.name || m.email}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <span className="min-w-0 truncate text-[10px] text-muted-foreground">
-                  {deal.assignedToName ?? "-"}
-                </span>
-              )}
+              <CalendarDays className="h-3.5 w-3.5 shrink-0 text-foreground" />
+              <span
+                className="min-w-0 truncate text-[10px] font-medium text-foreground"
+                title={booking.title}
+              >
+                {booking.text}
+              </span>
             </div>
           </div>
         </div>
@@ -670,3 +659,4 @@ export function DealCard({
     </div>
   )
 }
+
