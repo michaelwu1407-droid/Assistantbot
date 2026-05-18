@@ -114,6 +114,7 @@ Updated: 2026-05-13 AEST
 - Low-risk latency acceleration is enabled through:
   - cached opener bank
   - opt-in speculative response heads on `demo` and `inbound_demo`
+- Cached opener-bank speech requires guard approval by default (`VOICE_REQUIRE_GUARD_FOR_OPENERS=true`). If the guard is unavailable, timed out, or uncertain, the agent should wait for the substantive response rather than speak a generic filler.
 - Speculative response heads are disabled by default. Do not re-enable them without live review of exact phrases and turn logs; broad `general` intent turns must not trigger sales filler like `Yep, Earlymark can help with that.`
 - When opt-in speculative heads or cached fixed greetings keep perceived first-turn and total turn-start latency within budget, launch readiness should not degrade solely because raw downstream Cartesia `ttsTtfb` remains slightly above the backend threshold.
 

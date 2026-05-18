@@ -81,6 +81,7 @@ export type VoiceLatencyConfig = {
   enabled: boolean;
   openerBankEnabled: boolean;
   guardEnabled: boolean;
+  requireGuardForOpeners: boolean;
   speculativeHeadsEnabled: boolean;
   targetCallTypes: VoiceCallSurface[];
   speculativeHeadSurfaces: VoiceCallSurface[];
@@ -285,11 +286,14 @@ export function resolveVoiceLatencyConfig(args: {
           temperature: clampNumber(process.env.VOICE_GUARD_TEMPERATURE, 0, 0, 0.3),
         }
       : null;
+  const requireGuardForOpeners =
+    openerBankEnabled && parseBoolean(process.env.VOICE_REQUIRE_GUARD_FOR_OPENERS, true);
 
   return {
     enabled,
     openerBankEnabled,
     guardEnabled: Boolean(guardRuntime),
+    requireGuardForOpeners,
     speculativeHeadsEnabled,
     targetCallTypes,
     speculativeHeadSurfaces,
@@ -602,6 +606,7 @@ export async function runVoiceGuardDecision(args: {
 export function resolveOpenerEntry(args: {
   prediction: VoiceTurnPrediction;
   guardDecision?: GuardDecision | null;
+  requireGuardDecision?: boolean;
   userTurnIndex: number;
   lastEmpatheticTurnIndex: number;
   empathyTurnGap: number;
@@ -609,6 +614,7 @@ export function resolveOpenerEntry(args: {
   if (!args.prediction.allowOpener) return null;
 
   const guardDecision = args.guardDecision ?? null;
+  if (args.requireGuardDecision && !guardDecision) return null;
   if (guardDecision && !guardDecision.allowOpener) return null;
 
   const preferredId = guardDecision?.openerId || null;

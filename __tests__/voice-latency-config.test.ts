@@ -37,6 +37,7 @@ describe("voice latency defaults", () => {
 
     expect(source.VOICE_LATENCY_TARGET_CALL_TYPES).toBe("demo,inbound_demo,normal");
     expect(source.VOICE_SPECULATIVE_HEADS_ENABLED).toBe("false");
+    expect(source.VOICE_REQUIRE_GUARD_FOR_OPENERS).toBe("true");
   });
 
   it("keeps speculative sales heads off by default", () => {
@@ -54,6 +55,48 @@ describe("voice latency defaults", () => {
     });
 
     expect(config.speculativeHeadsEnabled).toBe(false);
+    expect(config.requireGuardForOpeners).toBe(true);
+  });
+
+  it("does not speak cached openers without a guard approval by default", () => {
+    const prediction = {
+      ...voiceLatency.predictVoiceTurn("What services do you offer?", "final"),
+      intent: "lookup" as const,
+      confidence: 0.9,
+      openerCategory: "lookup" as const,
+      allowOpener: true,
+    };
+
+    expect(
+      voiceLatency.resolveOpenerEntry({
+        prediction,
+        guardDecision: null,
+        requireGuardDecision: true,
+        userTurnIndex: 1,
+        lastEmpatheticTurnIndex: -10,
+        empathyTurnGap: 3,
+      }),
+    ).toBeNull();
+
+    expect(
+      voiceLatency.resolveOpenerEntry({
+        prediction,
+        guardDecision: {
+          allowOpener: true,
+          openerId: "let_me_check",
+          route: "lookup_first",
+          riskLevel: "low",
+          confidence: 0.94,
+          reason: "safe lookup opener",
+          timedOut: false,
+          fromModel: true,
+        },
+        requireGuardDecision: true,
+        userTurnIndex: 1,
+        lastEmpatheticTurnIndex: -10,
+        empathyTurnGap: 3,
+      })?.id,
+    ).toBe("let_me_check");
   });
 
   it("does not use broad general turns for speculative sales heads", () => {

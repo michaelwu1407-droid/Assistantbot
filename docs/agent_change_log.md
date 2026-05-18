@@ -1,3 +1,22 @@
+## 2026-05-18 (Codex) - Require guard approval for cached instant voice openers
+
+- Files changed:
+  - `livekit-agent/voice-latency.ts`
+  - `livekit-agent/runtime-fingerprint.ts`
+  - `livekit-agent/agent.ts`
+  - `lib/voice-agent-runtime.ts`
+  - `livekit-agent/.env.example`
+  - `__tests__/voice-latency-config.test.ts`
+  - `__tests__/voice-agent-runtime.test.ts`
+  - `docs/voice_operating_brief.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added `VOICE_REQUIRE_GUARD_FOR_OPENERS=true` as the default behavior for cached instant voice openers.
+  - Cached opener-bank speech now needs explicit guard approval before it can play; if the guard is unavailable, timed out, or uncertain, Tracey waits for the real LLM response instead of saying a filler line.
+  - Added regression coverage proving cached openers do not play without guard approval and still can play when the guard explicitly approves a safe opener.
+- Why:
+  - Optimizing instant response quality is not about finding a better generic phrase. The safe rule is: instant speech should be tiny, non-committal, high-confidence, and guard-approved, otherwise silence for a moment is better than a wrong filler.
+
 ## 2026-05-18 (Codex) - Disable broad speculative demo sales heads by default
 
 - Files changed:

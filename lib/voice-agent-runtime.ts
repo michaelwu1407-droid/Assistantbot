@@ -128,6 +128,8 @@ function buildSummaryScopedEnv(
     VOICE_LATENCY_ENABLED: readNestedString(summary, ["latencyEnabled"]) || env.VOICE_LATENCY_ENABLED,
     VOICE_OPENER_BANK_ENABLED: readNestedString(summary, ["openerBankEnabled"]) || env.VOICE_OPENER_BANK_ENABLED,
     VOICE_GUARD_ENABLED: readNestedString(summary, ["guardEnabled"]) || env.VOICE_GUARD_ENABLED,
+    VOICE_REQUIRE_GUARD_FOR_OPENERS:
+      readNestedString(summary, ["requireGuardForOpeners"]) || env.VOICE_REQUIRE_GUARD_FOR_OPENERS,
     VOICE_LATENCY_TARGET_CALL_TYPES: readNestedString(summary, ["targetCallTypes"]) || env.VOICE_LATENCY_TARGET_CALL_TYPES,
     VOICE_SPECULATIVE_HEADS_ENABLED:
       readNestedString(summary, ["speculativeHeadsEnabled"]) || env.VOICE_SPECULATIVE_HEADS_ENABLED,
