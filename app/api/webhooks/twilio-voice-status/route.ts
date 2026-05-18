@@ -16,6 +16,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { runIdempotent } from "@/lib/idempotency";
 import {
   getTwilioRequestPublicUrl,
   readTwilioFormParams,
@@ -76,53 +77,70 @@ export async function POST(req: NextRequest) {
     const workspace = await findWorkspaceByTwilioNumber(calledNumber);
     if (!workspace) return twimlHangup();
 
-    // Idempotency: if we've already logged this CallSid as a missed call,
-    // don't create a duplicate Deal or queue a second callback.
-    if (callSid) {
-      const existing = await db.webhookEvent.findFirst({
-        where: {
-          provider: "twilio",
-          eventType: "missed_call",
-          payload: { path: ["callSid"], equals: callSid },
-        },
-        select: { id: true },
-      });
-      if (existing) return twimlHangup();
-    }
+    // Atomic dedupe + create. runIdempotent's actionExecution row carries
+    // a unique constraint on the idempotencyKey, so the first concurrent
+    // webhook invocation for a callSid wins, and any retry/duplicate
+    // delivery from Twilio receives the cached deal+contact ids without
+    // creating a second Deal.
+    if (!callSid) return twimlHangup();
 
-    // Find or create the caller contact in this workspace.
-    let contact = await findContactByPhone(workspace.id, callerNumber);
-    if (!contact) {
-      contact = await db.contact.create({
-        data: {
-          workspaceId: workspace.id,
-          name: `Caller ${callerNumber}`,
-          phone: callerNumber,
-        },
-      });
-    }
+    const claim = await runIdempotent<{ contactId: string; dealId: string }>({
+      actionType: "TWILIO_MISSED_CALL",
+      bucketAt: new Date(0),
+      parts: [callSid],
+      resultFactory: async () => {
+        let contact = await findContactByPhone(workspace.id, callerNumber);
+        if (!contact) {
+          contact = await db.contact.create({
+            data: {
+              workspaceId: workspace.id,
+              name: `Caller ${callerNumber}`,
+              phone: callerNumber,
+            },
+          });
+        }
 
-    const deal = await db.deal.create({
-      data: {
-        workspaceId: workspace.id,
-        contactId: contact.id,
-        title: `Missed call from ${contact.name || callerNumber}`,
-        stage: "NEW",
-        value: 0,
-        source: "missed_call",
-        metadata: { leadSource: "missed_call", twilioCallSid: callSid, dialStatus },
-      } as Parameters<typeof db.deal.create>[0]["data"],
+        const deal = await db.deal.create({
+          data: {
+            workspaceId: workspace.id,
+            contactId: contact.id,
+            title: `Missed call from ${contact.name || callerNumber}`,
+            stage: "NEW",
+            value: 0,
+            source: "missed_call",
+            metadata: { leadSource: "missed_call", twilioCallSid: callSid, dialStatus },
+          } as Parameters<typeof db.deal.create>[0]["data"],
+        });
+
+        await db.activity.create({
+          data: {
+            type: "CALL",
+            title: "Missed inbound call",
+            content: `Caller ${callerNumber} dialled ${calledNumber}; the assistant did not pick up (${dialStatus}).`,
+            contactId: contact.id,
+            dealId: deal.id,
+          },
+        }).catch(() => {});
+
+        return { contactId: contact.id, dealId: deal.id };
+      },
     });
 
-    await db.activity.create({
-      data: {
-        type: "CALL",
-        title: "Missed inbound call",
-        content: `Caller ${callerNumber} dialled ${calledNumber}; the assistant did not pick up (${dialStatus}).`,
-        contactId: contact.id,
-        dealId: deal.id,
-      },
-    }).catch(() => {});
+    if (!claim.created) {
+      // Duplicate delivery — first call already created the deal and
+      // queued any callback work. Acknowledge with a hangup so Twilio
+      // stops retrying.
+      return twimlHangup();
+    }
+
+    if (!claim.result) {
+      // Claim raced and the original work crashed; we didn't create a
+      // deal here so don't proceed with callback dispatch.
+      return twimlHangup();
+    }
+
+    const contact = { id: claim.result.contactId, name: `Caller ${callerNumber}` };
+    const deal = { id: claim.result.dealId };
 
     // Queue an automatic callback if the workspace policy allows it (auto-
     // call on, voice enabled, agent mode EXECUTION, workspace has a number)
