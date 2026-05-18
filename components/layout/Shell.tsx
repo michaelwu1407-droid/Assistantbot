@@ -260,7 +260,6 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
       await fetch("/api/workspace/complete-tutorial", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ workspaceId }),
       })
     }
   };
