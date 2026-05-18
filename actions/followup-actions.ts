@@ -285,7 +285,9 @@ export async function processFollowUpReminders(): Promise<{
   const errors: string[] = [];
 
   try {
-    // Find all deals with follow-ups due today or overdue
+    // Find all deals with follow-ups due today or overdue. Capped so a
+    // long backlog cannot fan-out into thousands of notifications in one
+    // cron invocation — leftovers are picked up on the next tick.
     const dueDeals = await db.deal.findMany({
       where: {
         followUpAt: { lte: endOfToday },
@@ -301,6 +303,8 @@ export async function processFollowUpReminders(): Promise<{
         workspaceId: true,
         contact: { select: { name: true, phone: true, email: true } },
       },
+      orderBy: { followUpAt: "asc" },
+      take: 200,
     });
 
     // Group by workspace

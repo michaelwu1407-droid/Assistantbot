@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -25,7 +25,8 @@ export async function GET(req: NextRequest) {
   let skipped = 0;
   const errors: string[] = [];
 
-  // Find all deals that have a recurrence rule, are past their scheduledAt, and not in terminal stages
+  // Find candidate deals to clone for their next recurrence. Capped so a
+  // long backlog cannot fan-out into thousands of clones per cron tick.
   const candidates = await db.deal.findMany({
     where: {
       scheduledAt: { lt: now },
@@ -46,6 +47,8 @@ export async function GET(req: NextRequest) {
       metadata: true,
       scheduledAt: true,
     },
+    orderBy: { scheduledAt: "asc" },
+    take: 200,
   });
 
   for (const deal of candidates) {
