@@ -75,8 +75,10 @@ const hoisted = vi.hoisted(() => ({
   requiresCustomerContactApproval: vi.fn(),
   getAttentionSignalsForDeal: vi.fn(),
   loggerError: vi.fn(),
+  loggerInfo: vi.fn(),
   resendSend: vi.fn(),
   createSupportTicket: vi.fn(),
+  initiateOutboundCall: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({ db: hoisted.db }));
@@ -167,10 +169,14 @@ vi.mock("@/lib/deal-attention", () => ({
 vi.mock("@/lib/logging", () => ({
   logger: {
     error: hoisted.loggerError,
+    info: hoisted.loggerInfo,
   },
 }));
 vi.mock("@/lib/support-tickets", () => ({
   createSupportTicket: hoisted.createSupportTicket,
+}));
+vi.mock("@/lib/outbound-call", () => ({
+  initiateOutboundCall: hoisted.initiateOutboundCall,
 }));
 vi.mock("resend", () => ({
   Resend: class {
@@ -197,6 +203,7 @@ import {
   runListDeals,
   runListIncompleteOrBlockedJobs,
   runListInvoiceReadyJobs,
+  runMakeCall,
   runMoveDeal,
   runProposeReschedule,
   runRestoreDeal,
@@ -1354,6 +1361,62 @@ describe("chat-actions", () => {
     expect(hoisted.db.deal.update).toHaveBeenCalledWith({
       where: { id: "deal_1" },
       data: { stage: "NEW" },
+    });
+  });
+
+  describe("runMakeCall", () => {
+    beforeEach(() => {
+      hoisted.searchContacts.mockResolvedValue([
+        { id: "contact_1", name: "Michael", phone: "+61434955958" },
+      ]);
+      hoisted.db.workspace.findUnique.mockResolvedValue({
+        twilioPhoneNumber: "+61300000000",
+      });
+      hoisted.initiateOutboundCall.mockResolvedValue({
+        roomName: "outbound-ws_1-abc",
+        normalizedPhone: "+61434955958",
+        resolvedTrunkId: "trunk_1",
+        callerNumber: "+61300000000",
+        transport: "livekit_control",
+      });
+      hoisted.logActivity.mockResolvedValue(undefined);
+    });
+
+    it("actually dispatches the outbound call via initiateOutboundCall", async () => {
+      const result = await runMakeCall("ws_1", {
+        contactName: "Michael",
+        purpose: "Confirm sink repair tomorrow at 2pm",
+      });
+
+      expect(hoisted.initiateOutboundCall).toHaveBeenCalledWith({
+        workspaceId: "ws_1",
+        contactPhone: "+61434955958",
+        contactName: "Michael",
+        reason: "Confirm sink repair tomorrow at 2pm",
+      });
+      expect(hoisted.logActivity).toHaveBeenCalledWith(
+        expect.objectContaining({ type: "CALL", contactId: "contact_1" })
+      );
+      expect(result).toContain("Calling Michael");
+    });
+
+    it("does NOT log a CALL activity when the dispatcher throws", async () => {
+      hoisted.initiateOutboundCall.mockRejectedValue(new Error("SIP trunk unavailable"));
+
+      const result = await runMakeCall("ws_1", { contactName: "Michael" });
+
+      expect(hoisted.logActivity).not.toHaveBeenCalled();
+      expect(result).toContain("couldn't place the call");
+      expect(result).toContain("SIP trunk unavailable");
+    });
+
+    it("refuses to call when the workspace has no Twilio number", async () => {
+      hoisted.db.workspace.findUnique.mockResolvedValue({ twilioPhoneNumber: null });
+
+      const result = await runMakeCall("ws_1", { contactName: "Michael" });
+
+      expect(hoisted.initiateOutboundCall).not.toHaveBeenCalled();
+      expect(result).toContain("No phone number configured");
     });
   });
 });

@@ -44,6 +44,7 @@ import { getAttentionSignalsForDeal } from "@/lib/deal-attention";
 import { logger } from "@/lib/logging";
 import { formatDateTimeInTimezone, resolveWorkspaceTimezone } from "@/lib/timezone";
 import { createSupportTicket } from "@/lib/support-tickets";
+import { initiateOutboundCall } from "@/lib/outbound-call";
 
 /**
  * Find similar contact names using fuzzy matching
@@ -2711,7 +2712,20 @@ export async function runMakeCall(
       return `No phone number configured for this workspace. Set up a Twilio number in workspace settings first.`;
     }
 
-    // Log the outbound call as an activity — LiveKit voice agent handles the call via SIP
+    let dispatch;
+    try {
+      dispatch = await initiateOutboundCall({
+        workspaceId,
+        contactPhone: contact.phone,
+        contactName: contact.name,
+        reason: params.purpose ?? "Call placed by AI assistant",
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error("runMakeCall dispatch failed", { workspaceId, contactId: contact.id, error: message });
+      return `I couldn't place the call to ${contact.name}: ${message}`;
+    }
+
     await logActivity({
       type: "CALL",
       title: `Outbound call to ${contact.name}`,
@@ -2719,7 +2733,14 @@ export async function runMakeCall(
       contactId: contact.id,
     });
 
-    return `📞 Calling ${contact.name} (${contact.phone}) via LiveKit voice agent...`;
+    logger.info("runMakeCall dispatched", {
+      workspaceId,
+      contactId: contact.id,
+      roomName: dispatch.roomName,
+      transport: dispatch.transport,
+    });
+
+    return `📞 Calling ${contact.name} (${contact.phone}) now.`;
   } catch (err) {
     return `Error making call: ${err instanceof Error ? err.message : String(err)}`;
   }
