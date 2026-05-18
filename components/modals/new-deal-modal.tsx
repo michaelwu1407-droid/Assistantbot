@@ -228,18 +228,25 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                             <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Job details</p>
                             <p className="text-sm text-muted-foreground">Describe the work, its value, timing, and pipeline stage.</p>
                         </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="title" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                        <div className="grid grid-cols-4 items-start gap-4">
+                            <Label htmlFor="title" className="pt-3 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
                                 Job description <span className="text-destructive">*</span>
                             </Label>
-                            <Input
-                                id="title"
-                                placeholder="e.g. Kitchen Renovation"
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                className={`col-span-3 h-11 rounded-xl border-border bg-card/90 ${attemptedSubmit && !title.trim() ? "ott-field-error" : ""}`}
-                                required
-                            />
+                            <div className="col-span-3 space-y-1">
+                                <Input
+                                    id="title"
+                                    placeholder="e.g. Kitchen Renovation"
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    aria-invalid={attemptedSubmit && !title.trim() ? true : undefined}
+                                    aria-describedby={attemptedSubmit && !title.trim() ? "title-error" : undefined}
+                                    className={`h-11 rounded-xl border-border bg-card/90 ${attemptedSubmit && !title.trim() ? "ott-field-error" : ""}`}
+                                    required
+                                />
+                                {attemptedSubmit && !title.trim() ? (
+                                    <p id="title-error" className="ott-field-error-msg">Add a short description of the job.</p>
+                                ) : null}
+                            </div>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="value" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">

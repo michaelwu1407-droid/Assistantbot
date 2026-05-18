@@ -56,7 +56,7 @@ export function PersonalPhoneDialog({
 
   const validatePhone = () => {
     if (!newPhoneNumber.trim()) {
-      setError("Enter the personal mobile number you want Tracey setup texts sent to.")
+      setError("Enter your personal mobile number — we'll text confirmation codes to it when you set up call forwarding.")
       return false
     }
 
@@ -151,7 +151,7 @@ export function PersonalPhoneDialog({
               {currentPhone ? "Update personal mobile" : "Add personal mobile"}
             </DialogTitle>
             <DialogDescription className="text-[14px] leading-6">
-              This is where Earlymark sends verification codes and Tracey call-forwarding setup texts.
+              We text confirmation codes here when you set up call forwarding from your business line.
             </DialogDescription>
           </DialogHeader>
         </div>
