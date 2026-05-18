@@ -1,6 +1,11 @@
 name: Voice Synthetic Probe
 
 on:
+  schedule:
+    # Every 30 min, staggered against the other health monitors. Each
+    # probe places a real outbound test call, so cost scales with this
+    # cadence — bump down if Twilio spend is a concern.
+    - cron: "5,35 * * * *"
   workflow_dispatch:
 
 jobs:
