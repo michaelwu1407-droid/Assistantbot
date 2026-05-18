@@ -1,3 +1,14 @@
+## 2026-05-18 (Codex) - Log realtime voice architecture trial as future work
+
+- Files changed:
+  - `docs/voice_agent_improvement_backlog.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Expanded the realtime speech-to-speech backlog item into a concrete future trial: build a separate realtime Tracey demo agent beside the current pipeline and measure it before any migration.
+  - Captured expected upside, cost/risk, guardrails, and test metrics including latency, cost per minute, interruption quality, wrong-answer rate, failed-call rate, lead capture/logging rate, and close/follow-up ask rate.
+- Why:
+  - Realtime voice may improve demo naturalness and latency, but the current pipeline remains safer for normal customer calls until a side-by-side trial proves otherwise.
+
 ## 2026-05-18 (Codex) - Tighten voice openers and make demo sales flow explicit
 
 - Files changed:

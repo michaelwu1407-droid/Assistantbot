@@ -77,13 +77,16 @@ It captures worthwhile voice-agent improvements after the recent reliability rec
 - Value: lower regression risk, easier iteration.
 - My view: important engineering work, but not the next latency lever.
 
-### Tier 4 - interesting, but not ready yet
+### Tier 4 - architecture experiments, build only behind a measured trial
 
 1. Realtime speech-to-speech model path
-- Example: OpenAI Realtime API or Gemini Live on a limited surface.
-- Value: potentially large latency gains.
-- Risk: weaker tool control / policy control / operational complexity.
-- My view: experiment later on low-risk demo surfaces only.
+- Example: OpenAI Realtime API or Gemini Live on a separate `demo` / `inbound_demo` surface.
+- What it is: a voice model listens to caller audio and replies with audio directly, instead of the current Deepgram STT -> LLM -> Cartesia TTS pipeline.
+- Expected upside: fewer model handoffs, lower perceived response latency, more natural interruption handling, and better demo "wow" factor.
+- Expected cost/risk: likely similar to 2-3x current AI minute cost depending talk time; weaker step-by-step logs; harder debugging; tool/CRM/lead logging may be less predictable than the current text-centered pipeline.
+- Guardrail: do not migrate normal customer calls until a side-by-side trial beats the current stack on reliability, cost, tool accuracy, and call quality.
+- Trial design: keep the current pipeline as baseline, build a separate realtime Tracey demo agent, run 20-50 test calls, then compare first-response latency, cost per minute, interruption quality, wrong-answer rate, failed-call rate, discovery-question rate, lead capture/logging rate, and close/follow-up ask rate.
+- My view: worth building as a future experiment for demo/inbound demo only; not a blind rewrite.
 
 2. Prompt caching on future provider changes
 - Value: good if we move more traffic onto providers that materially reward caching.
