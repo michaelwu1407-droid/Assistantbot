@@ -252,29 +252,46 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
 
               {selectedAction === "move-stage" && (
                 <div className="space-y-2">
-                  <Label htmlFor="target-stage">Target Stage</Label>
-                  <Select value={targetStage} onValueChange={setTargetStage}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select target stage" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {stageOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
+                  <Label className="app-field-label">Target stage</Label>
+                  <div role="radiogroup" aria-label="Target stage" className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {stageOptions.map((option) => {
+                      const selected = targetStage === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
+                          onClick={() => setTargetStage(option.value)}
+                          className={
+                            "rounded-md border px-3 py-2 text-left text-sm transition-colors focus-visible:outline-none " +
+                            (selected
+                              ? "border-primary bg-primary/5 font-medium"
+                              : "border-border bg-card hover:border-primary/40 hover:bg-muted/40")
+                          }
+                        >
                           {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
           )}
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <DialogFooter className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end">
+            {!selectedAction && !isExecuting ? (
+              <p id="execute-hint" className="app-body-secondary mr-auto">Pick an action above to enable.</p>
+            ) : null}
+            <Button variant="ghost" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button onClick={handleExecute} disabled={!selectedAction || isExecuting}>
+            <Button
+              onClick={handleExecute}
+              disabled={!selectedAction || isExecuting}
+              aria-describedby={!selectedAction && !isExecuting ? "execute-hint" : undefined}
+            >
               {isExecuting ? (
                 <>
                   <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white" />

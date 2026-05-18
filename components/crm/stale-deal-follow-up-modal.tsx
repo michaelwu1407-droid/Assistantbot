@@ -224,21 +224,38 @@ export function StaleDealFollowUpModal({
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="channel">Channel</Label>
-              <Select value={selectedChannel} onValueChange={setSelectedChannel}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select channel" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="sms" disabled={!hasPhone}>
-                    SMS {!hasPhone && "(no phone)"}
-                  </SelectItem>
-                  <SelectItem value="email" disabled={!hasEmail}>
-                    Email {!hasEmail && "(no email)"}
-                  </SelectItem>
-                  <SelectItem value="phone">Phone Call (schedule reminder)</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label className="app-field-label">Channel</Label>
+              <div role="radiogroup" aria-label="Follow-up channel" className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                {[
+                  { value: "sms", label: "SMS", disabled: !hasPhone, hint: hasPhone ? "Text the customer now" : "No phone on file" },
+                  { value: "email", label: "Email", disabled: !hasEmail, hint: hasEmail ? "Email the customer now" : "No email on file" },
+                  { value: "phone", label: "Phone call", disabled: false, hint: "Schedule a call reminder" },
+                ].map((opt) => {
+                  const selected = selectedChannel === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      aria-disabled={opt.disabled || undefined}
+                      disabled={opt.disabled}
+                      onClick={() => !opt.disabled && setSelectedChannel(opt.value)}
+                      className={
+                        "flex flex-col items-start gap-0.5 rounded-md border p-3 text-left transition-colors focus-visible:outline-none " +
+                        (opt.disabled
+                          ? "cursor-not-allowed border-border bg-muted/30 text-muted-foreground"
+                          : selected
+                          ? "border-primary bg-primary/5"
+                          : "border-border bg-card hover:border-primary/40 hover:bg-muted/40")
+                      }
+                    >
+                      <span className="app-panel-title">{opt.label}</span>
+                      <span className="app-body-secondary">{opt.hint}</span>
+                    </button>
+                  );
+                })}
+              </div>
               {!hasPhone && !hasEmail ? (
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-xs text-amber-600">
