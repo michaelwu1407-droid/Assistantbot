@@ -2446,22 +2446,17 @@ export async function runSendSms(
     });
 
     if (!workspace?.twilioPhoneNumber || !workspace.twilioSubaccountId) {
-      // Fallback: log as activity instead of sending
-      await logActivity({
-        type: "NOTE",
-        title: `SMS to ${contact.name}`,
-        content: `Message: "${params.message}" (Not sent — Twilio not configured for this workspace)`,
+      // Provisioning gap — every workspace should have a Twilio number
+      // by signup (Tracey number policy). Do NOT write a ChatMessage
+      // or Activity here: the conversation thread would render those
+      // as "delivered" even though nothing went out.
+      logger.error("runSendSms blocked: workspace has no provisioned Twilio sender", {
+        component: "chat-actions",
+        action: "runSendSms",
+        workspaceId,
         contactId: contact.id,
       });
-      await db.chatMessage.create({
-        data: {
-          role: "assistant",
-          content: params.message,
-          workspaceId,
-          metadata: { contactId: contact.id, channel: "sms", direction: "outbound" },
-        },
-      });
-      return `Logged SMS to ${contact.name} (${contact.phone}): "${params.message}". Note: Twilio is not yet configured so the message was recorded but not delivered.`;
+      return `SMS isn't set up for this workspace yet — I didn't send anything to ${contact.name}. Reach out to support so they can provision your number.`;
     }
 
     // Send via Twilio
@@ -2576,7 +2571,6 @@ export async function runSendEmail(
         const workspace = await db.workspace.findUnique({ where: { id: workspaceId }, select: { name: true } });
         const _senderName = workspace?.name ?? "Earlymark";
 
-        let delivered = false;
         const resendKey = process.env.RESEND_API_KEY;
         const fromDomain = process.env.RESEND_FROM_DOMAIN;
 
@@ -2604,25 +2598,37 @@ export async function runSendEmail(
         }
         // LOGIC END
 
-        if (resendKey && fromDomain) {
-          const { Resend } = await import("resend");
-          const resend = new Resend(resendKey);
-          const safeEmailTo = assertSafeRecipient("email", contactEmail);
-          const { error } = await withCostCeiling("resend", RESEND_EMAIL_COST_USD, () =>
-            resend.emails.send({
-              from: fromAddress,
-              to: [safeEmailTo],
-              subject: params.subject,
-              text: params.body,
-              replyTo: replyToAddress,
-              bcc: bccAddress,
-            }),
-          );
-          if (error) {
-            logger.error("Resend send email failed", { component: "chat-actions", action: "runSendEmailAction", workspaceId, contactId: contact.id }, error as Error);
-            return { returnMessage: `Failed to send email to ${contact.name}: ${error.message}` };
-          }
-          delivered = true;
+        if (!resendKey || !fromDomain) {
+          // Provisioning gap. Do NOT write a ChatMessage or Activity:
+          // the conversation thread would render the row as delivered
+          // even though nothing went out.
+          logger.error("runSendEmail blocked: Resend not configured", {
+            component: "chat-actions",
+            action: "runSendEmail",
+            workspaceId,
+            contactId: contact.id,
+          });
+          return {
+            returnMessage: `Email isn't set up for this workspace yet — I didn't send anything to ${contact.name}. Reach out to support so they can wire up email delivery.`,
+          };
+        }
+
+        const { Resend } = await import("resend");
+        const resend = new Resend(resendKey);
+        const safeEmailTo = assertSafeRecipient("email", contactEmail);
+        const { error } = await withCostCeiling("resend", RESEND_EMAIL_COST_USD, () =>
+          resend.emails.send({
+            from: fromAddress,
+            to: [safeEmailTo],
+            subject: params.subject,
+            text: params.body,
+            replyTo: replyToAddress,
+            bcc: bccAddress,
+          }),
+        );
+        if (error) {
+          logger.error("Resend send email failed", { component: "chat-actions", action: "runSendEmailAction", workspaceId, contactId: contact.id }, error as Error);
+          return { returnMessage: `Failed to send email to ${contact.name}: ${error.message}` };
         }
 
         await logActivity({
@@ -2640,12 +2646,7 @@ export async function runSendEmail(
           },
         });
 
-        if (delivered) {
-          return { returnMessage: `Email sent to ${contact.name} (${contactEmail}). Subject: "${params.subject}".` };
-        }
-        return {
-          returnMessage: `Email logged to ${contact.name} (${contactEmail}) but not delivered (Resend not configured). Subject: "${params.subject}".`,
-        };
+        return { returnMessage: `Email sent to ${contact.name} (${contactEmail}). Subject: "${params.subject}".` };
       },
     });
 
