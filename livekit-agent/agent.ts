@@ -1064,6 +1064,98 @@ function resolveCartesiaBaseUrl(): string {
   return (process.env.CARTESIA_BASE_URL || "https://api.cartesia.ai").trim();
 }
 
+type TtsRuntimeHealth = {
+  status: "unknown" | "healthy" | "unhealthy";
+  provider: "cartesia";
+  summary: string;
+  lastCheckedAt: string | null;
+  lastError: string | null;
+  lastFrameCount: number | null;
+  lastSampleCount: number | null;
+};
+
+const ttsRuntimeHealth: TtsRuntimeHealth = {
+  status: "unknown",
+  provider: "cartesia",
+  summary: "Cartesia TTS has not been checked yet.",
+  lastCheckedAt: null,
+  lastError: null,
+  lastFrameCount: null,
+  lastSampleCount: null,
+};
+
+class TtsAudioUnavailableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "TtsAudioUnavailableError";
+  }
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function markTtsHealthy(frameCount: number, sampleCount: number) {
+  ttsRuntimeHealth.status = "healthy";
+  ttsRuntimeHealth.summary = `Cartesia TTS produced audio (${frameCount} frame(s), ${sampleCount} sample(s)).`;
+  ttsRuntimeHealth.lastCheckedAt = new Date().toISOString();
+  ttsRuntimeHealth.lastError = null;
+  ttsRuntimeHealth.lastFrameCount = frameCount;
+  ttsRuntimeHealth.lastSampleCount = sampleCount;
+  setWorkerBootReady(true);
+}
+
+function markTtsUnhealthy(error: unknown, context: string) {
+  const message = getErrorMessage(error);
+  ttsRuntimeHealth.status = "unhealthy";
+  ttsRuntimeHealth.summary = `${context}: ${message}`;
+  ttsRuntimeHealth.lastCheckedAt = new Date().toISOString();
+  ttsRuntimeHealth.lastError = message;
+  ttsRuntimeHealth.lastFrameCount = 0;
+  ttsRuntimeHealth.lastSampleCount = 0;
+  setWorkerBootReady(false);
+}
+
+function getTtsRuntimeHealth() {
+  return { ...ttsRuntimeHealth };
+}
+
+function assertNonEmptyTtsAudioStream(
+  audio: ReadableStream<AudioFrame> | null,
+  context: string,
+): ReadableStream<AudioFrame> | null {
+  if (!audio) return null;
+
+  return new ReadableStream<AudioFrame>({
+    async start(controller) {
+      let frameCount = 0;
+      let sampleCount = 0;
+
+      try {
+        for await (const frame of audio) {
+          frameCount += 1;
+          sampleCount += Number(frame.samplesPerChannel || 0);
+          controller.enqueue(frame);
+        }
+
+        if (frameCount === 0) {
+          throw new TtsAudioUnavailableError("Cartesia TTS completed without producing any audio frames.");
+        }
+
+        markTtsHealthy(frameCount, sampleCount);
+        controller.close();
+      } catch (error) {
+        markTtsUnhealthy(error, context);
+        console.error(`[voice-tts] ${context}`, error);
+        controller.error(error);
+      }
+    },
+    cancel(reason) {
+      void audio.cancel(reason).catch(() => {});
+    },
+  });
+}
+
 function createCartesiaTts(language = resolveConfiguredTtsLanguage()) {
   return new cartesia.TTS({
     model: resolveConfiguredTtsModel(),
@@ -1112,8 +1204,21 @@ function getOrCreatePersistentDefaultTts(
 
 async function warmCartesiaTts(tts: cartesia.TTS, text: string, logPrefix: string) {
   try {
-    await tts.synthesize(text).collect();
+    let frameCount = 0;
+    let sampleCount = 0;
+    const stream = tts.synthesize(text);
+    for await (const chunk of stream) {
+      frameCount += 1;
+      sampleCount += Number(chunk.frame.samplesPerChannel || 0);
+    }
+
+    if (frameCount === 0) {
+      throw new TtsAudioUnavailableError("Cartesia TTS warmup completed without producing any audio frames.");
+    }
+
+    markTtsHealthy(frameCount, sampleCount);
   } catch (error) {
+    markTtsUnhealthy(error, "Cartesia TTS warmup failed");
     console.warn(`${logPrefix} Failed to warm Cartesia TTS:`, error);
   }
 }
@@ -1695,6 +1800,7 @@ async function buildVoiceAgentRuntimeSummary() {
     ttsModel: resolveConfiguredTtsModel(),
     ttsVoiceId: resolveConfiguredTtsVoiceId(),
     ttsLanguage: resolveConfiguredTtsLanguage(),
+    ttsHealth: getTtsRuntimeHealth(),
     latencyEnabled: process.env.VOICE_LATENCY_ENABLED ?? "true",
     openerBankEnabled: process.env.VOICE_OPENER_BANK_ENABLED ?? "true",
     guardEnabled: process.env.VOICE_GUARD_ENABLED ?? "true",
@@ -2467,7 +2573,8 @@ export default defineAgent({
           text: spokenText,
         });
 
-        return voice.Agent.default.ttsNode(this, stringToReadableStream(spokenText), modelSettings);
+        const audio = await voice.Agent.default.ttsNode(this, stringToReadableStream(spokenText), modelSettings);
+        return assertNonEmptyTtsAudioStream(audio, `Cartesia TTS produced no audio for ${callType} speech`);
       }
     }
 
