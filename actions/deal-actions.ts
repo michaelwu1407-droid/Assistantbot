@@ -1690,9 +1690,14 @@ export async function rescheduleDeal(
  * Delete a deal and its related data (cascade).
  */
 export async function deleteDeal(dealId: string) {
-  await requireDealInCurrentWorkspace(dealId);
+  const { deal } = await requireDealInCurrentWorkspace(dealId);
   await db.deal.delete({ where: { id: dealId } });
-  return { success: true };
+  revalidatePath("/crm/dashboard");
+  revalidatePath("/crm/deals");
+  revalidatePath("/crm/schedule");
+  revalidatePath("/crm/map");
+  revalidatePath(`/crm/deals/${dealId}`);
+  return { success: true, workspaceId: deal.workspaceId };
 }
 /**
  * Fuzzy search deals.

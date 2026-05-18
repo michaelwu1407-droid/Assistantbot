@@ -53,6 +53,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   DealView,
+  deleteDeal,
   persistKanbanColumnOrder,
   updateDealAssignedTo,
   updateDealStage,
@@ -369,6 +370,8 @@ export function KanbanBoard({
   const dragGroupStagesRef = useRef<Map<string, string>>(new Map())
   const boardRef = useRef<HTMLDivElement | null>(null)
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
+  const [pendingDeleteIds, setPendingDeleteIds] = useState<string[]>([])
+  const [pendingDeleteMode, setPendingDeleteMode] = useState<"move" | "permanent" | null>(null)
   const [liveMessage, setLiveMessage] = useState("")
   /** Snapshot of selected ids at bulk drag start (for stacked overlay; refs don’t re-render). */
   const [bulkDragIds, setBulkDragIds] = useState<string[]>([])
@@ -536,6 +539,22 @@ export function KanbanBoard({
   const activeDeal = useMemo(() =>
     deals.find(d => d.id === activeId),
     [deals, activeId])
+
+  const areAllDealsInDeletedColumn = (dealIds: string[]) =>
+    dealIds.length > 0 &&
+    dealIds.every((dealId) => {
+      const deal = deals.find((row) => row.id === dealId)
+      return deal ? kanbanColumnIdForDealStage(deal.stage) === "deleted" : false
+    })
+
+  const selectedDealsAreAllDeleted = areAllDealsInDeletedColumn(selectedDealIds)
+
+  const openDeleteConfirmation = (dealIds: string[]) => {
+    if (dealIds.length === 0) return
+    setPendingDeleteIds(dealIds)
+    setPendingDeleteMode(areAllDealsInDeletedColumn(dealIds) ? "permanent" : "move")
+    setBulkDeleteOpen(true)
+  }
 
   const applyDecisionToBoard = (deal: DealView, decision: DealCardDecision) => {
     const now = new Date()
@@ -891,8 +910,8 @@ export function KanbanBoard({
     }, 300)
   }
 
-  const handleBulkDeleteToDeleted = async () => {
-    const idsToDelete = [...selectedDealIds]
+  const handleMoveDealsToDeleted = async (dealIds: string[]) => {
+    const idsToDelete = [...dealIds]
     if (idsToDelete.length === 0) return
     try {
       for (const id of idsToDelete) {
@@ -911,11 +930,48 @@ export function KanbanBoard({
       setSelectedDealIds([])
       setSelectionMode(false)
       setBulkDeleteOpen(false)
+      setPendingDeleteIds([])
+      setPendingDeleteMode(null)
     } catch (err) {
       console.error(err)
       toast.error(err instanceof Error ? err.message : "Failed to delete")
       setDeals(initialDeals)
     }
+  }
+
+  const handlePermanentDelete = async (dealIds: string[]) => {
+    const idsToDelete = [...dealIds]
+    if (idsToDelete.length === 0) return
+    try {
+      for (const id of idsToDelete) {
+        const result = await deleteDeal(id)
+        if (!result.success) {
+          throw new Error(result.error ?? "Failed to permanently delete")
+        }
+      }
+      setDeals((prev) => prev.filter((deal) => !idsToDelete.includes(deal.id)))
+      const n = idsToDelete.length
+      toast.success(`Permanently deleted ${n} job${n === 1 ? "" : "s"}`)
+      setLiveMessage(`Permanently deleted ${n} jobs.`)
+      setSelectedDealIds([])
+      setSelectionMode(false)
+      setBulkDeleteOpen(false)
+      setPendingDeleteIds([])
+      setPendingDeleteMode(null)
+    } catch (err) {
+      console.error(err)
+      toast.error(err instanceof Error ? err.message : "Failed to permanently delete")
+      setDeals(initialDeals)
+    }
+  }
+
+  const handleConfirmedDeleteAction = async () => {
+    if (!pendingDeleteMode || pendingDeleteIds.length === 0) return
+    if (pendingDeleteMode === "permanent") {
+      await handlePermanentDelete(pendingDeleteIds)
+      return
+    }
+    await handleMoveDealsToDeleted(pendingDeleteIds)
   }
 
   const handleAssignAndMoveToScheduled = async () => {
@@ -998,9 +1054,9 @@ export function KanbanBoard({
                 size="icon"
                 className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
                 disabled={selectedDealIds.length === 0}
-                title="Move selected to Deleted"
-                aria-label="Move selected jobs to Deleted"
-                onClick={() => setBulkDeleteOpen(true)}
+                title={selectedDealsAreAllDeleted ? "Delete selected permanently" : "Move selected to Deleted"}
+                aria-label={selectedDealsAreAllDeleted ? "Delete selected jobs permanently" : "Move selected jobs to Deleted"}
+                onClick={() => openDeleteConfirmation(selectedDealIds)}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -1102,6 +1158,10 @@ export function KanbanBoard({
                                 setModalOpen(true)
                               }}
                               onDelete={async () => {
+                                if (col.id === "deleted") {
+                                  openDeleteConfirmation([deal.id])
+                                  return
+                                }
                                 try {
                                   const result = await updateDealStage(deal.id, "deleted")
                                   if (result.success) {
@@ -1158,24 +1218,47 @@ export function KanbanBoard({
         onDealUpdated={() => setDeals(initialDeals)}
       />
 
-      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+      <AlertDialog
+        open={bulkDeleteOpen}
+        onOpenChange={(open) => {
+          setBulkDeleteOpen(open)
+          if (!open) {
+            setPendingDeleteIds([])
+            setPendingDeleteMode(null)
+          }
+        }}
+      >
         <AlertDialogContent className="ott-dialog rounded-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Move {selectedDealIds.length} job{selectedDealIds.length === 1 ? "" : "s"} to Deleted?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {pendingDeleteMode === "permanent"
+                ? `Permanently delete ${pendingDeleteIds.length} job${pendingDeleteIds.length === 1 ? "" : "s"}?`
+                : `Move ${pendingDeleteIds.length} job${pendingDeleteIds.length === 1 ? "" : "s"} to Deleted?`}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Selected jobs will go to the Deleted column. They are removed permanently after 30 days.
+              {pendingDeleteMode === "permanent"
+                ? "This will remove the selected jobs from the board entirely and cannot be undone."
+                : "Selected jobs will go to the Deleted column. They are removed permanently after 30 days."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Back</AlertDialogCancel>
+            <AlertDialogCancel
+              onClick={() => {
+                setBulkDeleteOpen(false)
+                setPendingDeleteIds([])
+                setPendingDeleteMode(null)
+              }}
+            >
+              Back
+            </AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={(e) => {
                 e.preventDefault()
-                void handleBulkDeleteToDeleted()
+                void handleConfirmedDeleteAction()
               }}
             >
-              Move to Deleted
+              {pendingDeleteMode === "permanent" ? "Delete permanently" : "Move to Deleted"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
