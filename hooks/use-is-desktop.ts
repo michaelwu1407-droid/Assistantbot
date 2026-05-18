@@ -1,23 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 const DESKTOP_BREAKPOINT_PX = 640;
+const QUERY = `(min-width: ${DESKTOP_BREAKPOINT_PX}px)`;
+
+function subscribe(callback: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  const mq = window.matchMedia(QUERY);
+  mq.addEventListener("change", callback);
+  return () => mq.removeEventListener("change", callback);
+}
+
+function getSnapshot(): boolean {
+  return window.matchMedia(QUERY).matches;
+}
+
+function getServerSnapshot(): boolean {
+  // Desktop-first on the server so the dialog markup matches the most
+  // common viewport; the real value is settled on the client mount via
+  // useSyncExternalStore without an extra render commit.
+  return true;
+}
 
 export function useIsDesktop(): boolean {
-  const [isDesktop, setIsDesktop] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
-    return window.matchMedia(`(min-width: ${DESKTOP_BREAKPOINT_PX}px)`).matches;
-  });
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mq = window.matchMedia(`(min-width: ${DESKTOP_BREAKPOINT_PX}px)`);
-    const onChange = (event: MediaQueryListEvent) => setIsDesktop(event.matches);
-    setIsDesktop(mq.matches);
-    mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
-  }, []);
-
-  return isDesktop;
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
