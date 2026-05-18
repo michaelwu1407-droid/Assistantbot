@@ -1,3 +1,22 @@
+## 2026-05-18 (Codex) - Disable broad speculative demo sales heads by default
+
+- Files changed:
+  - `livekit-agent/voice-latency.ts`
+  - `livekit-agent/runtime-fingerprint.ts`
+  - `livekit-agent/agent.ts`
+  - `livekit-agent/.env.example`
+  - `__tests__/voice-latency-config.test.ts`
+  - `docs/voice_operating_brief.md`
+  - `docs/voice_agent_improvement_backlog.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Made long speculative response heads opt-in instead of default-on.
+  - Replaced the exact speculative phrase `Yep, Earlymark can help with that.` with the safer lookup bridge `Let me check that.`
+  - Removed `general` from all speculative-head intent matches and removed the broad fallback that could pick `Yep, Earlymark can help with that.` for vague interim turns.
+  - Added regression coverage proving speculative heads are off by default, broad general turns do not get a speculative sales head, and normal customer calls never receive those sales heads.
+- Why:
+  - The homepage Tracey demo was audibly speaking `Yep, Earlymark can help with that.` even when the caller had not said anything that warranted it. That phrase came from the demo/inbound-demo latency layer, not the normal customer-agent identity prompt.
+
 ## 2026-05-18 (Codex) - Record Cartesia subscription and classify TTS billing failures
 
 - Files changed:

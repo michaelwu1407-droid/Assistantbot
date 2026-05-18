@@ -176,29 +176,29 @@ export const DEFAULT_VOICE_SPECULATIVE_HEAD_SURFACES = 'demo,inbound_demo';
 export const SPECULATIVE_HEAD_BANK: SpeculativeHeadBankEntry[] = [
   {
     id: 'capability_explanation',
-    text: 'Yep, Earlymark can help with that.',
-    intents: ['lookup', 'general'],
+    text: 'Let me check that.',
+    intents: ['lookup'],
     surfaces: ['demo', 'inbound_demo'],
     category: 'capability',
   },
   {
     id: 'demo_invitation',
     text: 'Yeah, I can show you that now.',
-    intents: ['general', 'lookup'],
+    intents: ['lookup'],
     surfaces: ['demo', 'inbound_demo'],
     category: 'demo',
   },
   {
     id: 'pain_point_ack',
     text: 'That is exactly where we help.',
-    intents: ['complaint', 'general', 'message_capture'],
+    intents: ['complaint', 'message_capture'],
     surfaces: ['demo', 'inbound_demo'],
     category: 'pain_point',
   },
   {
     id: 'signup_bridge',
     text: 'Yep, the next step is straightforward.',
-    intents: ['handoff', 'general'],
+    intents: ['handoff'],
     surfaces: ['demo', 'inbound_demo'],
     category: 'next_step',
   },
@@ -257,7 +257,7 @@ export function resolveVoiceLatencyConfig(args: {
   );
   const speculativeHeadsEnabled =
     enabled &&
-    parseBoolean(process.env.VOICE_SPECULATIVE_HEADS_ENABLED, true) &&
+    parseBoolean(process.env.VOICE_SPECULATIVE_HEADS_ENABLED, false) &&
     speculativeHeadSurfaces.includes(args.callType);
 
   const guardProvider = normalizeGuardProvider(process.env.VOICE_GUARD_PROVIDER || args.llmProvider);
@@ -314,10 +314,7 @@ export function resolveSpeculativeHeadEntry(args: {
   return (
     SPECULATIVE_HEAD_BANK.find((entry) =>
       entry.surfaces.includes(args.callType) && entry.intents.includes(args.prediction.intent),
-    ) ||
-    (args.prediction.intent === 'general'
-      ? SPECULATIVE_HEAD_BANK.find((entry) => entry.id === 'capability_explanation') || null
-      : null)
+    ) || null
   );
 }
 

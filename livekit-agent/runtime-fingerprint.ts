@@ -219,7 +219,7 @@ export function buildVoiceAgentRuntimeFingerprintSource(env: NodeJS.ProcessEnv =
     VOICE_OPENER_BANK_ENABLED: parseBoolean(env.VOICE_OPENER_BANK_ENABLED, true) ? "true" : "false",
     VOICE_GUARD_ENABLED: parseBoolean(env.VOICE_GUARD_ENABLED, true) ? "true" : "false",
     VOICE_LATENCY_TARGET_CALL_TYPES: resolveLatencyTargetCallTypes(env),
-    VOICE_SPECULATIVE_HEADS_ENABLED: parseBoolean(env.VOICE_SPECULATIVE_HEADS_ENABLED, true) ? "true" : "false",
+    VOICE_SPECULATIVE_HEADS_ENABLED: parseBoolean(env.VOICE_SPECULATIVE_HEADS_ENABLED, false) ? "true" : "false",
     VOICE_SPECULATIVE_HEADS_SURFACES:
       normalizeSurfaceList(normalizeCsv(env.VOICE_SPECULATIVE_HEADS_SURFACES || DEFAULT_VOICE_SPECULATIVE_HEAD_SURFACES)).join(",") ||
       DEFAULT_VOICE_SPECULATIVE_HEAD_SURFACES,

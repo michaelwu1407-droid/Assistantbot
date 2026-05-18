@@ -51,7 +51,7 @@ It captures worthwhile voice-agent improvements after the recent reliability rec
 2. More aggressive speculative/filler speech
 - We already have opener bank, speculative heads, and cached fixed lines.
 - Value: could further improve perceived latency on tool-heavy turns.
-- My view: possible win, but this should extend the existing pattern rather than invent a new one.
+- My view: possible win, but only with live phrase review and narrow intent gates. As of 2026-05-18, long speculative heads are opt-in/default-off because broad demo turns were causing the agent to say `Yep, Earlymark can help with that.` when it did not fit.
 
 3. Region audit across STT / LLM / TTS / transport
 - Value: could remove avoidable RTT.

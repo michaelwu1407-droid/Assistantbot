@@ -1905,7 +1905,7 @@ async function buildVoiceAgentRuntimeSummary() {
     latencyEnabled: process.env.VOICE_LATENCY_ENABLED ?? "true",
     openerBankEnabled: process.env.VOICE_OPENER_BANK_ENABLED ?? "true",
     guardEnabled: process.env.VOICE_GUARD_ENABLED ?? "true",
-    speculativeHeadsEnabled: process.env.VOICE_SPECULATIVE_HEADS_ENABLED ?? "true",
+    speculativeHeadsEnabled: process.env.VOICE_SPECULATIVE_HEADS_ENABLED ?? "false",
     speculativeHeadSurfaces: process.env.VOICE_SPECULATIVE_HEADS_SURFACES || "demo,inbound_demo",
     targetCallTypes: process.env.VOICE_LATENCY_TARGET_CALL_TYPES || DEFAULT_VOICE_LATENCY_TARGET_CALL_TYPES,
     knownInboundNumbers: getKnownEarlymarkNumbers(),

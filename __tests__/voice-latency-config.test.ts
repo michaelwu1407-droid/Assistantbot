@@ -36,6 +36,54 @@ describe("voice latency defaults", () => {
     } as unknown as NodeJS.ProcessEnv);
 
     expect(source.VOICE_LATENCY_TARGET_CALL_TYPES).toBe("demo,inbound_demo,normal");
+    expect(source.VOICE_SPECULATIVE_HEADS_ENABLED).toBe("false");
+  });
+
+  it("keeps speculative sales heads off by default", () => {
+    delete process.env.VOICE_SPECULATIVE_HEADS_ENABLED;
+    delete process.env.VOICE_SPECULATIVE_HEADS_SURFACES;
+    process.env.VOICE_LATENCY_ENABLED = "true";
+    process.env.VOICE_GUARD_ENABLED = "false";
+
+    const config = voiceLatency.resolveVoiceLatencyConfig({
+      callType: "demo",
+      llmProvider: "groq",
+      llmModel: "llama-3.3-70b-versatile",
+      llmApiKey: "groq-key",
+      llmBaseURL: "https://api.groq.com/openai/v1",
+    });
+
+    expect(config.speculativeHeadsEnabled).toBe(false);
+  });
+
+  it("does not use broad general turns for speculative sales heads", () => {
+    const generalPrediction = {
+      ...voiceLatency.predictVoiceTurn("That sounds interesting.", "interim"),
+      intent: "general" as const,
+      riskLevel: "low" as const,
+    };
+
+    expect(
+      voiceLatency.resolveSpeculativeHeadEntry({
+        callType: "demo",
+        prediction: generalPrediction,
+      }),
+    ).toBeNull();
+  });
+
+  it("never uses speculative sales heads on normal customer calls", () => {
+    const lookupPrediction = {
+      ...voiceLatency.predictVoiceTurn("What services do you offer?", "interim"),
+      intent: "lookup" as const,
+      riskLevel: "low" as const,
+    };
+
+    expect(
+      voiceLatency.resolveSpeculativeHeadEntry({
+        callType: "normal",
+        prediction: lookupPrediction,
+      }),
+    ).toBeNull();
   });
 
   it("uses fast fixed replies for low-signal inbound-demo greetings and hearing checks", () => {

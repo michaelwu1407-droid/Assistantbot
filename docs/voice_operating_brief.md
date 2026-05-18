@@ -113,8 +113,9 @@ Updated: 2026-05-13 AEST
     - `totalTurnStartMs <= 2200`
 - Low-risk latency acceleration is enabled through:
   - cached opener bank
-  - speculative response heads on `demo` and `inbound_demo`
-- When speculative heads or cached fixed greetings keep perceived first-turn and total turn-start latency within budget, launch readiness should not degrade solely because raw downstream Cartesia `ttsTtfb` remains slightly above the backend threshold.
+  - opt-in speculative response heads on `demo` and `inbound_demo`
+- Speculative response heads are disabled by default. Do not re-enable them without live review of exact phrases and turn logs; broad `general` intent turns must not trigger sales filler like `Yep, Earlymark can help with that.`
+- When opt-in speculative heads or cached fixed greetings keep perceived first-turn and total turn-start latency within budget, launch readiness should not degrade solely because raw downstream Cartesia `ttsTtfb` remains slightly above the backend threshold.
 
 ## Monitoring expectations
 
