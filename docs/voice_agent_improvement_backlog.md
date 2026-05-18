@@ -122,6 +122,16 @@ where no failure email reached the admin. The immediate fix shipped on
 email actually fires. The items below are deferred for another AI agent or
 human review to prioritise.
 
+### Cost note added 2026-05-18
+- Cartesia subscription is now active at **A$7.27/month**. Treat this as the
+  baseline fixed TTS provider cost before per-usage overages/credits when
+  calculating future voice-agent economics.
+- The 2026-05-18 homepage demo outage was traced to Cartesia billing/credits:
+  local Cartesia returned HTTP `402 Insufficient credits`, and production worker
+  warmup returned only 94 samples instead of speech-length audio. Future TTS
+  failures should identify provider billing/credit/rate-limit/auth reasons in
+  worker health before assuming the LiveKit agent identity or prompt is broken.
+
 ### Free / pure-code changes (no runtime cost)
 - **Agent-joined verification** — extend the SIP-connected check so the action
   also asserts the LiveKit agent worker joined the room within Xs. Today

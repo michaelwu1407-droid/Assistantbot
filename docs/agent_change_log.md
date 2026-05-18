@@ -1,3 +1,15 @@
+## 2026-05-18 (Codex) - Record Cartesia subscription and classify TTS billing failures
+
+- Files changed:
+  - `livekit-agent/agent.ts`
+  - `docs/voice_agent_improvement_backlog.md`
+  - `docs/agent_change_log.md`
+- Summary:
+  - Recorded the active Cartesia subscription as A$7.27/month for future voice cost calculations.
+  - Added worker-side Cartesia diagnostics so failed/too-short TTS output is classified as billing/credits, rate limit, auth, network, empty audio, or unknown in `ttsHealth`.
+- Why:
+  - The homepage Tracey demo outage was caused by Cartesia not producing speech audio after a credits/billing failure. Future failures need to say that plainly instead of looking like a LiveKit or Tracey identity problem.
+
 ## 2026-05-15 (Codex) - Stop demo greeting before PSTN leg is answer-ready
 
 - Files changed:

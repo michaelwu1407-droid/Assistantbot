@@ -1076,6 +1076,8 @@ type TtsRuntimeHealth = {
   summary: string;
   lastCheckedAt: string | null;
   lastError: string | null;
+  lastFailureReason: "billing_or_credits" | "rate_limit" | "auth" | "network" | "empty_audio" | "unknown" | null;
+  lastProviderStatusCode: number | null;
   lastFrameCount: number | null;
   lastSampleCount: number | null;
 };
@@ -1086,6 +1088,8 @@ const ttsRuntimeHealth: TtsRuntimeHealth = {
   summary: "Cartesia TTS has not been checked yet.",
   lastCheckedAt: null,
   lastError: null,
+  lastFailureReason: null,
+  lastProviderStatusCode: null,
   lastFrameCount: null,
   lastSampleCount: null,
 };
@@ -1106,17 +1110,90 @@ function markTtsHealthy(frameCount: number, sampleCount: number) {
   ttsRuntimeHealth.summary = `Cartesia TTS produced speech audio (${frameCount} frame(s), ${sampleCount} sample(s)).`;
   ttsRuntimeHealth.lastCheckedAt = new Date().toISOString();
   ttsRuntimeHealth.lastError = null;
+  ttsRuntimeHealth.lastFailureReason = null;
+  ttsRuntimeHealth.lastProviderStatusCode = null;
   ttsRuntimeHealth.lastFrameCount = frameCount;
   ttsRuntimeHealth.lastSampleCount = sampleCount;
   setWorkerBootReady(true);
 }
 
-function markTtsUnhealthy(error: unknown, context: string) {
+function classifyCartesiaFailure(statusCode: number | null, body: string | null, error: unknown) {
+  const message = `${body || ""} ${getErrorMessage(error)}`.toLowerCase();
+  if (statusCode === 402 || /insufficient credits|credit|billing|subscription|overage/.test(message)) {
+    return "billing_or_credits" as const;
+  }
+  if (statusCode === 429 || /rate.?limit|too many requests|quota|limit/.test(message)) {
+    return "rate_limit" as const;
+  }
+  if (statusCode === 401 || statusCode === 403 || /api key|unauthorized|forbidden|auth/.test(message)) {
+    return "auth" as const;
+  }
+  if (/fetch failed|network|timeout|econn|etimedout|enotfound/.test(message)) {
+    return "network" as const;
+  }
+  if (/audio sample|audio frame|without producing any audio/.test(message)) {
+    return "empty_audio" as const;
+  }
+  return "unknown" as const;
+}
+
+async function diagnoseCartesiaTtsFailure(error: unknown) {
+  const apiKey = process.env.CARTESIA_API_KEY;
+  if (!apiKey) {
+    return {
+      reason: "auth" as const,
+      statusCode: null,
+      detail: "CARTESIA_API_KEY is missing.",
+    };
+  }
+
+  try {
+    const response = await fetch(`${resolveCartesiaBaseUrl().replace(/\/$/, "")}/tts/bytes`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Cartesia-Version": "2024-06-10",
+        "X-API-Key": apiKey,
+      },
+      body: JSON.stringify({
+        model_id: resolveConfiguredTtsModel(),
+        voice: { mode: "id", id: resolveConfiguredTtsVoiceId() },
+        output_format: {
+          container: "raw",
+          encoding: "pcm_s16le",
+          sample_rate: 24000,
+        },
+        language: resolveConfiguredTtsLanguage(),
+        transcript: "Hi.",
+      }),
+    });
+    const body = await response.text().catch(() => "");
+    const bodyPreview = body.replace(/\s+/g, " ").trim().slice(0, 220);
+    return {
+      reason: classifyCartesiaFailure(response.status, bodyPreview, error),
+      statusCode: response.status,
+      detail: response.ok
+        ? "Cartesia diagnostic request succeeded, but the worker TTS stream did not produce speech-length audio."
+        : `Cartesia diagnostic request failed with HTTP ${response.status}${bodyPreview ? `: ${bodyPreview}` : ""}`,
+    };
+  } catch (diagnosticError) {
+    return {
+      reason: classifyCartesiaFailure(null, null, diagnosticError),
+      statusCode: null,
+      detail: `Cartesia diagnostic request failed: ${getErrorMessage(diagnosticError)}`,
+    };
+  }
+}
+
+async function markTtsUnhealthy(error: unknown, context: string) {
   const message = getErrorMessage(error);
+  const diagnostic = await diagnoseCartesiaTtsFailure(error);
   ttsRuntimeHealth.status = "unhealthy";
-  ttsRuntimeHealth.summary = `${context}: ${message}`;
+  ttsRuntimeHealth.summary = `${context}: ${message}. ${diagnostic.detail}`;
   ttsRuntimeHealth.lastCheckedAt = new Date().toISOString();
   ttsRuntimeHealth.lastError = message;
+  ttsRuntimeHealth.lastFailureReason = diagnostic.reason;
+  ttsRuntimeHealth.lastProviderStatusCode = diagnostic.statusCode;
   ttsRuntimeHealth.lastFrameCount = 0;
   ttsRuntimeHealth.lastSampleCount = 0;
   setWorkerBootReady(false);
@@ -1171,7 +1248,7 @@ function assertNonEmptyTtsAudioStream(
         markTtsHealthy(frameCount, sampleCount);
         controller.close();
       } catch (error) {
-        markTtsUnhealthy(error, context);
+        await markTtsUnhealthy(error, context);
         console.error(`[voice-tts] ${context}`, error);
         controller.error(error);
       }
@@ -1242,7 +1319,7 @@ async function warmCartesiaTts(tts: cartesia.TTS, text: string, logPrefix: strin
 
     markTtsHealthy(frameCount, sampleCount);
   } catch (error) {
-    markTtsUnhealthy(error, "Cartesia TTS warmup failed");
+    await markTtsUnhealthy(error, "Cartesia TTS warmup failed");
     console.warn(`${logPrefix} Failed to warm Cartesia TTS:`, error);
   }
 }
