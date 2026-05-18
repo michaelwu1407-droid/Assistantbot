@@ -1126,6 +1126,16 @@ function getTtsRuntimeHealth() {
   return { ...ttsRuntimeHealth };
 }
 
+function isTtsReadyForCalls() {
+  return ttsRuntimeHealth.status === "healthy";
+}
+
+function refreshWorkerBootReadinessForTts() {
+  if (!isTtsReadyForCalls()) {
+    setWorkerBootReady(false);
+  }
+}
+
 function assertTtsAudioIsSpeech(frameCount: number, sampleCount: number, context: string) {
   const minimumSamples = resolveMinimumTtsAudioSamples();
   if (frameCount === 0) {
@@ -1853,6 +1863,7 @@ async function buildVoiceAgentRuntimeSummary() {
 
 async function writeWorkerHealthSnapshot() {
   const healthPath = getVoiceWorkerHealthPath();
+  refreshWorkerBootReadinessForTts();
   const summary = await buildVoiceAgentRuntimeSummary();
   const snapshot = {
     updatedAt: new Date().toISOString(),
@@ -1878,6 +1889,7 @@ async function writeWorkerHealthSnapshot() {
 async function postVoiceAgentStatus() {
   const appUrl = getAppBaseUrl();
   const secret = getVoiceAgentWebhookSecret();
+  refreshWorkerBootReadinessForTts();
   workerHealthState.lastHeartbeatAttemptAt = new Date().toISOString();
 
   if (!appUrl || !secret) {
