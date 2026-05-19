@@ -408,12 +408,12 @@ function DealDetailContent({
         </div>
       )}
       {deal.isDraft && (
-        <div className="bg-indigo-50 border-b border-indigo-100 p-3 shrink-0 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-indigo-700 text-sm">
-            <span className="flex h-2 w-2 rounded-full bg-indigo-500 animate-pulse" />
+        <div className="border-b p-3 shrink-0 flex items-center justify-between" style={{ background: "#ECE6FA", borderColor: "rgba(139,111,224,0.3)" }}>
+          <div className="flex items-center gap-2 text-sm font-medium" style={{ color: "#8B6FE0" }}>
+            <span className="flex h-2 w-2 rounded-full animate-pulse" style={{ background: "#8B6FE0" }} />
             <strong>Draft Job:</strong> The AI Agent organized this request. Please confirm to officially book it.
           </div>
-          <Button size="sm" onClick={handleConfirmDraft} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+          <Button size="sm" onClick={handleConfirmDraft} className="text-white hover:opacity-90" style={{ background: "#8B6FE0" }}>
             Confirm Booking
           </Button>
         </div>
@@ -425,7 +425,7 @@ function DealDetailContent({
             <strong>Pending approval:</strong> A team member moved this to Completed. Approve to confirm, or reject to send it back.
           </div>
           <div className="flex items-center gap-2">
-            <Button size="sm" onClick={handleApproveCompletion} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+            <Button size="sm" onClick={handleApproveCompletion} className="bg-[#00D28B] hover:opacity-90 text-white">
               <Check className="w-4 h-4 mr-1" /> Approve
             </Button>
             <Button size="sm" variant="outline" onClick={() => setShowRejectInput(true)} className="border-amber-400 text-amber-800 hover:bg-amber-100">
@@ -452,14 +452,14 @@ function DealDetailContent({
         </div>
       )}
       {/* Header — Job | Name + stage picker (LHS) + Edit (RHS) */}
-      <div className="shrink-0 border-b">
+      <div className="shrink-0 border-b" style={{ borderColor: "#E6E2D7" }}>
         <div className="flex items-start justify-between gap-4 p-4 md:p-6">
           <div className="min-w-0 flex-1">
             <h1 className="text-lg font-bold text-foreground break-words leading-snug">{deal.title}</h1>
             <p className="mt-0.5 text-sm font-medium text-muted-foreground">{contact?.name ?? "—"}</p>
             <p className="mt-1 text-xs text-muted-foreground">
               {deal.source ? deal.source.charAt(0).toUpperCase() + deal.source.slice(1) : "—"} •{" "}
-              <span className="font-semibold text-emerald-600">{formatCurrency(Number(deal.value || 0))}</span>
+              <span className="font-semibold" style={{ color: "#00D28B" }}>{formatCurrency(Number(deal.value || 0))}</span>
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -511,7 +511,7 @@ function DealDetailContent({
         {/* Left: Contact + Current job */}
         <div className="lg:col-span-2 flex flex-col gap-4">
           {/* Contact details — name is in header; edit opens contact */}
-          <div className="shrink-0 rounded-md border border-border bg-card p-4 shadow-sm">
+          <div className="shrink-0 rounded-md border border-[#E6E2D7] bg-card p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between gap-2">
               <h3 className="app-panel-title flex items-center gap-2">
                 <FileText className="h-4 w-4" />
@@ -577,7 +577,7 @@ function DealDetailContent({
           </div>
 
           {/* Current / upcoming job details */}
-          <div className="shrink-0 rounded-md border border-border bg-card p-4 shadow-sm">
+          <div className="shrink-0 rounded-md border border-[#E6E2D7] bg-card p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between gap-2">
               <h3 className="app-panel-title flex items-center gap-2">
                 <Briefcase className="h-4 w-4" />
@@ -598,10 +598,10 @@ function DealDetailContent({
                 {isEditingInvoice ? (
                   <div className="flex items-center gap-2">
                     <div className="relative w-full">
-                      <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-emerald-500" />
+                      <DollarSign className="absolute left-2.5 top-2.5 h-4 w-4 text-[#00D28B]" />
                       <Input
                         type="number"
-                        className="pl-8 h-9 bg-emerald-50/50 border-emerald-200"
+                        className="pl-8 h-9 bg-[#E0FAF2]/30 border-[rgba(0,210,139,0.3)]"
                         value={invoiceVal}
                         onChange={(e) => setInvoiceVal(e.target.value)}
                         onBlur={(e) => handleSaveInvoice(e.target.value)}
@@ -612,14 +612,14 @@ function DealDetailContent({
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between rounded-md border border-emerald-100 bg-emerald-50 p-2">
-                    <span className="font-semibold text-emerald-700 text-lg">
+                  <div className="flex items-center justify-between rounded-md border border-[rgba(0,210,139,0.2)] bg-[#E0FAF2] p-2">
+                    <span className="font-semibold text-[#00D28B] text-lg">
                       {deal.invoicedAmount !== undefined && deal.invoicedAmount !== null
                         ? formatCurrency(deal.invoicedAmount)
                         : "Not set"
                       }
                     </span>
-                    <Button size="sm" variant="ghost" className="h-7 px-2 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-100/50" onClick={() => setIsEditingInvoice(true)}>
+                    <Button size="sm" variant="ghost" className="h-7 px-2 text-[#00D28B] hover:text-[#00D28B] hover:bg-emerald-100/50" onClick={() => setIsEditingInvoice(true)}>
                       <Edit className="w-3.5 h-3.5 mr-1" /> Set
                     </Button>
                   </div>
@@ -642,7 +642,7 @@ function DealDetailContent({
             </div>
 
             {/* ─── Follow-up Reminder ─────────────────────────────── */}
-            <div className="mt-3 rounded-md border border-border/50 bg-muted/30 p-3">
+            <div className="mt-3 rounded-md border border-[#E6E2D7]/50 bg-[#F6F4EE] p-3">
               <div className="flex items-center justify-between mb-2">
                 <span className="app-micro-label flex items-center gap-1.5">
                   <Bell className="w-3.5 h-3.5 text-amber-500" />
@@ -691,7 +691,7 @@ function DealDetailContent({
                     </Button>
                     <Button
                       size="sm"
-                      className="h-7 text-xs gap-1 bg-emerald-600 hover:bg-emerald-700"
+                      className="h-7 text-xs gap-1 bg-[#00D28B] hover:opacity-90"
                       onClick={async () => {
                         setSavingFollowUp(true)
                         const result = await completeFollowUp(deal.id, "Marked complete")
@@ -715,7 +715,7 @@ function DealDetailContent({
               {/* Completed state */}
               {followUpCompletedAt && (
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  <CheckCircle2 className="w-4 h-4 text-[#00D28B]" />
                   <span className="text-xs text-muted-foreground">
                     Completed {format(new Date(followUpCompletedAt), "MMM d")}
                   </span>
@@ -825,8 +825,8 @@ function DealDetailContent({
         {/* Right: History + Notes */}
         <div className="lg:col-span-3 flex flex-col gap-4 min-h-0">
           {/* Customer / job history */}
-          <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-md border border-border bg-card shadow-sm">
-            <div className="p-3 border-b border-border bg-muted/30 flex items-center justify-between shrink-0">
+          <div className="flex flex-1 min-h-0 flex-col overflow-hidden rounded-md border border-[#E6E2D7] bg-card shadow-sm">
+            <div className="p-3 border-b border-[#E6E2D7] bg-[#F6F4EE] flex items-center justify-between shrink-0">
               <span className="app-panel-title flex items-center gap-2">
                 <MessageSquare className="w-4 h-4" />
                 Customer &amp; job history
@@ -845,10 +845,10 @@ function DealDetailContent({
                 </Button>
               )}
             </div>
-            <div className="border-b border-border/50 bg-card px-3 py-2 text-xs text-muted-foreground">
+            <div className="border-b border-[#E6E2D7]/50 bg-card px-3 py-2 text-xs text-muted-foreground">
               Recent activity stays here. Open the customer timeline for the full SMS, email, and call correspondence.
             </div>
-            <div className="flex bg-muted/30 p-1 border-b border-border/50 shrink-0" role="tablist" aria-label="Deal detail sections">
+            <div className="flex border-b shrink-0" style={{ borderColor: "#E6E2D7" }} role="tablist" aria-label="Deal detail sections">
               {(["activities", "jobs", "notes"] as const).map((t) => (
                 <button
                   key={t}
@@ -858,9 +858,12 @@ function DealDetailContent({
                   aria-controls={`deal-tab-${t}`}
                   id={`deal-tab-btn-${t}`}
                   className={cn(
-                    "flex-1 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all",
-                    activeDetailTab === t ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-muted-foreground"
+                    "flex-1 py-2.5 text-xs font-semibold uppercase tracking-wider transition-all border-b-2 -mb-px",
+                    activeDetailTab === t
+                      ? "border-[#00D28B] text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
                   )}
+                  style={activeDetailTab === t ? { color: "var(--color-ink)" } : undefined}
                 >
                   {t === "activities" ? "Communications" : t}
                 </button>
@@ -879,7 +882,7 @@ function DealDetailContent({
                           onOpenChange(false)
                           router.push(`/crm/deals/${d.id}`)
                         }}
-                        className="block w-full rounded-md border border-border/50 p-2 text-left text-sm hover:bg-muted/30"
+                        className="block w-full rounded-md border border-[#E6E2D7]/50 p-2 text-left text-sm hover:bg-[#F6F4EE]"
                       >
                         <span className="font-medium text-foreground">{d.title}</span>
                         {d.value != null && <span className="text-muted-foreground ml-2">{formatCurrency(Number(d.value))}</span>}
@@ -901,7 +904,7 @@ function DealDetailContent({
                 <div id="deal-tab-activities" role="tabpanel" aria-labelledby="deal-tab-btn-activities" className="h-full overflow-hidden flex flex-col min-h-0">
                   <ActivityFeed contactId={deal.contactId} compact className="flex-1" />
                   {/* Direct message mini-box */}
-                  <div className="p-3 border-t bg-muted/20 shrink-0">
+                  <div className="p-3 border-t shrink-0" style={{ borderColor: "#E6E2D7", background: "var(--color-paper)" }}>
                     <div className="mb-2 flex items-center justify-between gap-3">
                       <p className="text-xs text-muted-foreground">
                         Send a direct SMS from your workspace number. Open customer timeline for the full thread.
@@ -961,7 +964,7 @@ function DealDetailContent({
         <div className="shrink-0 p-4 border-t">
           <div className="flex gap-2 overflow-x-auto pb-2">
             {deal.jobPhotos.map((photo) => (
-              <div key={photo.id} className="relative h-24 w-24 shrink-0 overflow-hidden rounded-md border border-border bg-muted">
+              <div key={photo.id} className="relative h-24 w-24 shrink-0 overflow-hidden rounded-md border border-[#E6E2D7] bg-muted">
                 <Image
                   src={photo.url ?? photo.fileUrl ?? ""}
                   alt={photo.caption || "Job"}
