@@ -1,164 +1,39 @@
 > **⚠️ OUTDATED — historical reference only (as at 30 May 2026).** For current truth see `AGENTS.md` and `docs/current_agent_handoff.md`.
 
-# Use Case Walkthroughs (Round 2)
+# Use Case Walkthroughs — historical record (SUPERSEDED)
 
-This document records the step-by-step execution of user journeys after `git pull` (Feb 18).
+> **Status: historical snapshot (Feb 2026). Do not use the old verdicts as current truth.**
+> The canonical, current testing guide is **`docs/APP_TESTING_PLAYBOOK.md`**. Run workflows
+> from there. This file is kept only as a record of the early manual passes and what they found.
 
-## Legend
-- ✅ **Passed**: Feature exists and works as described.
-- ⚠️ **Partial**: Feature exists but has issues or differs from manual.
-- ❌ **Failed/Missing**: Feature does not exist or is completely broken.
+## Why this was superseded
 
----
+The original batches recorded many ❌/⚠️ verdicts that **later rounds in this same document
+fixed**, and several used the stale `/dashboard/*` routes (live routes are `/crm/*`). Rather
+than keep contradictory verdicts scattered here, the live test plan now lives in one place
+(the playbook). Below is the reconciled outcome.
 
-## Batch 1: Communication & Inbox
+## Reconciled status (corrected)
 
-### Use Case 1: Missed Call Rescue
-- **Status**: ✅ **Passed**
-- **Test**: Navigated to `/crm/inbox`.
-- **Observation**: "Call" button exists in contact header. SMS transcript is visible and functional.
+Resolved since the early batches (confirmed by later rounds and current routes):
 
-### Use Case 2: Rainy Day Blast (Chat)
-- **Status**: ⚠️ **Partial**
-- **Test**: Navigated to `/crm/hub` (404 Error) -> Used Sidebar Chat.
-- **Observation**:
-  - `/crm/hub` does not exist.
-  - Sidebar Chat exists but AI failed to handle "Find me indoor work" query.
-  - No specific "Marketing Blast" UI found in chat suggestions.
+- **Reports/Analytics** — early ❌ (`/crm/reports` 404). Now ✅ via `/crm/analytics`.
+- **Feedback & Reputation** — early ❌ (crash). Now ✅ (page loads).
+- **Team Management** — early ❌ (404). Now ✅ at `/crm/team`.
+- **Tradie workflow (Start Travel / Complete Job)** — early ❌. Now ✅ via "Open Job Mode".
+- **Photos tab** — recorded both missing and present; now present on job details.
+- **`/crm/hub`** — early 404; route now exists (re-test its content).
+- **AI job creation by chat** — ✅ (e.g. "New repair job for Frank at 300 George St for $600 tomorrow").
 
-### Use Case 3: Tire Kicker Filter (Deals)
-- **Status**: ⚠️ **Partial**
-- **Test**: Navigated to `/crm/deals`, opened "Kitchen Reno".
-- **Observation**:
-  - "Quick Reply" button found in Activity history.
-  - ❌ **Missing**: "Photos" tab is completely absent.
+Still unverified / re-test in the playbook (no confirmed fix on record):
 
-### Use Case 6: Context King (Search)
-- **Status**: ❌ **Failed**
-- **Test**: `Ctrl+K`, searched "John" and "Sally".
-- **Observation**: Search modal opens but returns "No results found" for known data. Search index appears broken.
+- **Global search (Ctrl+K)** — earlier passes returned "no results"; re-confirm. (Playbook C/3.2)
+- **Kanban drag-and-drop** — earlier passes reported failures; re-confirm. (Playbook B2/C3)
 
-### Use Case 11: After-Hours Gatekeeper
-- **Status**: ❌ **Failed**
-- **Test**: Navigated to `/crm/settings`.
-- **Observation**: Checked Automations, Integrations, Notifications. No "Voice Agent" or "After Hours" settings found.
+## Where to go next
 
----
-
-## Batch 2: Jobs & Field Work
-
-### Use Case 4: Pre-Arrival Friction Reducer
-- **Status**: ⚠️ **Partial** (Improved)
-- **Test**: Navigated to `/crm/tradie`.
-- **Observation**:
-  - ✅ **Fixed**: `/crm/tradie` now loads (Map/Task View).
-  - ❌ **Missing**: "Start Travel" button still absent from Job Details.
-  - Sidebar "Hammer" icon works now.
-
-### Use Case 8: Post-Job Reputation Building
-- **Status**: ❌ **Failed**
-- **Test**: Checked Job Details for completion flow.
-- **Observation**: No "Complete Job" button found.
-
-### Use Case 10: Digital Handover
-- **Status**: ⚠️ **Partial**
-- **Test**: Checked Job Details.
-- **Observation**:
-  - ✅ "Photos" tab with "Add Photo" button exists.
-  - ❌ No specific "Handover" section.
-
-### Use Case 14: Uber-Style Arrival
-- **Status**: ❌ **Failed**
-- **Observation**: Dependent on "Start Travel".
-
-### Use Case 16: Asset DNA
-- **Status**: ❌ **Failed**
-- **Observation**: No asset tracking UI.
-
----
-
-## Batch 3: Scheduling & CRM
-
-### Use Case 5: No-Show Prevention
-- **Status**: ❌ **Failed**
-- **Test**: Checked Calendar events.
-- **Observation**: No visual confirmation status. Clicking event navigates to deal (no popover).
-
-### Use Case 7: Ghosted Quote Resurrection
-- **Status**: ⚠️ **Partial**
-- **Test**: Dragged "Stale" deal to "Quoted".
-- **Observation**:
-  - ✅ "Stale" badges exist.
-  - ❌ Dragging does NOT trigger any follow-up modal.
-
-### Use Case 13: Multi-Property Nexus
-- **Status**: ✅ **Passed** (Fixed)
-- **Test**: Checked Contact Details (Sally).
-- **Observation**: "Properties" tab exists and lists portfolio!
-
-### Use Case 9/15: CRM Filters
-- **Status**: ⚠️ **Partial**
-- **Test**: Checked Contact Filter Bar.
-- **Observation**: "Service Due" exists. "Last Job" missing.
-
----
-
-## Batch 4: Advanced & Edge Cases
-
-### Reports & Analytics
-- **Status**: ❌ **Failed**
-- **Test**: `/crm/reports` -> 404.
-
-### Feedback & Reputation
-- **Status**: ❌ **Failed** (Error)
-- **Test**: `/crm/feedback` -> Application Error (Crash).
-- **Observation**: Feature likely partially implemented but broken.
-
-### Team Management
-- **Status**: ❌ **Failed**
-- **Test**: `/crm/team` -> 404.
-
----
-
-## Round 3: Post-Implementation Verification
-
-### 1. Tradie Workflow (Start Travel / Complete Job)
-- **Status**: ✅ **Passed**
-- **Test**: Navigate to `/crm/schedule`, click "Open Job Mode", verify Tradie View opens. "Start Travel" and "Complete Job" accessible in bottom sheet.
-- **Finding**: Critical workflow now accessible via "Open Job Mode" button on job cards. Overdue jobs appear in schedule.
-
-### 2. Feedback & Reputation
-- **Status**: ✅ **Passed**
-- **Test**: Navigate to `/crm/feedback`.
-- **Finding**: Page loads successfully. Crash fixed by robust error handling.
-
-### 3. Reports & Analytics
-- **Status**: ✅ **Passed**
-- **Test**: Click "Reports" in sidebar.
-- **Finding**: Navigates to `/crm/analytics`. Page displays mock analytics data.
-
-### 4. Team Management
-- **Status**: ✅ **Passed**
-- **Test**: Navigate to `/crm/team`.
-
-## Round 5: Post-Sync Walkthrough (Partial)
-
-### 1. AI Job Creation (Frank)
-- **Status**: ✅ **Passed**
-- **Test**: "New repair job for Frank at 300 George St for $600 tomorrow".
-- **Observation**: AI correctly parsed the request and created the job.
-- **Evidence**:
-  ![AI Response Card](./ai_response_card_1771390582882.png)
-
-### 2. Tradie Workflow (Deep Link)
-- **Status**: ✅ **Passed**
-- **Test**: Open Frank's Job (ID: `cmlrka6qq002hn2bcv2z1tco3`).
-- **Observation**: Job Details page loads correctly with Map and Job Info.
-- **Evidence**:
-  ![Tradie Job Details](./tradie_job_details_frank_1771391376145.png)
-
-### 3. Remaining Flows (Kanban, Search)
-- **Status**: ⚠️ **Skipped**
-- **Note**: Automated browser testing was interrupted by system errors. Previous rounds confirmed:
-  - **Search**: Broken (No results).
-  - **Kanban**: Broken (Drag-and-drop fails).
+- Current feature inventory + workflows: `docs/APP_TESTING_PLAYBOOK.md`
+- Current known gaps/decisions: `docs/missing_features.md`
+- What shipped, by version: `CHANGELOG.md`
+</content>
+</invoke>

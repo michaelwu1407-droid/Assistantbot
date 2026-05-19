@@ -357,3 +357,43 @@ From `docs/missing_features.md` + code review. Confirm each is real before repor
 1. Lead capture (A) → 2. Book & quote (B) → 3. Daily ops (C) → 4. Field + complete (D) →
 5. Invoice & get paid (E) → 6. Reputation/portal (F) → 7. Team & roles (G) → 8. Config (H) →
 9. Edge cases (3.1) → 10. Chatbot matrix (3.2). Log each ✅/⚠️/❌ and attach evidence.
+
+---
+
+## Part 4 — Decisions & setup needed from you
+
+Things this playbook can't decide or do for you. Each points to the canonical log so we
+don't duplicate detail across files — update the source doc, not this list, when status changes.
+
+### Setup / external connections (mostly one-time)
+
+- **Twilio number provisioning + AU regulatory approval** — required before any call/text or
+  auto-callback test passes. Canonical: `DEPLOYMENT_CHECKLIST.md` §3.
+- **Voice worker live** (LiveKit/OCI) + real handset sign-off — voice paths can't be fully
+  validated until done. Canonical: `DEPLOYMENT_CHECKLIST.md` §4/§6, `docs/missing_features.md`.
+- **Email lead-capture alias** — set up forwarding and confirm the inbox is actually receiving
+  before trusting workflow A3. Canonical: onboarding step + `docs/missing_features.md` (OAuth refresh).
+- **WhatsApp sender registration (Meta/Twilio)** — provider-gated; keep `WHATSAPP_NOTIFICATIONS_ENABLED`
+  off until cleared, or 3.1/E-14 will fail. Canonical: `CHANGELOG.md` v2.5.4, `docs/missing_features.md`.
+- **Xero connection** — needed for D2/E invoice sync tests. Canonical: `docs/missing_features.md`.
+- **Stripe billing** (price IDs, webhook) — needed for billing/onboarding paywall tests.
+  Canonical: `DEPLOYMENT_CHECKLIST.md` §2, `README.md` env vars.
+- **Google review URL** — set per workspace so the high-score CTA (F2) appears.
+
+### Product decisions (your call)
+
+- **Payment links in invoices** — pick a provider (Stripe/Square/PayPal) or accept "no pay-now
+  link." Affects E2/E3. Log decision in `docs/missing_features.md`.
+- **Overdue invoice auto-reminders** — decide cadence (e.g. 14 days) or keep manual. (E3)
+- **Xero auto-issue** — keep draft-only for manager review, or auto-issue on completion. (D2/E1)
+- **No-go rules editability** — confirm whether they're editable post-onboarding in settings;
+  if not, decide whether to expose. (H2, 3.3)
+- **`autoCallLeads` / `voiceEnabled` visibility** — decide whether the tradie should see/toggle
+  these or keep ops-only. (3.3)
+- **Call-forwarding number change** — decide whether to expose a UI to change it later. (3.3)
+- **Customer portal** — decide whether to auto-send the link and/or add two-way messaging. (F1, 3.3)
+- **Lead-response SLA** — decide whether to surface the "60s" promise as a visible timer/alert. (A3, 3.3)
+- **Property portal scrapers (REA/Domain)** — confirm real vs mock before relying on them. (3.3)
+
+> Where an item isn't already tracked in the source doc above, add it there so this stays a
+> pointer, not a second backlog.
