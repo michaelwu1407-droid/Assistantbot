@@ -155,7 +155,7 @@ export function JobCompletionModal({ open, onOpenChange, deal, onComplete }: Job
       <DialogContent className="ott-dialog max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-green-600" />
+            <CheckCircle className="h-5 w-5" style={{ color: "#00D28B" }} />
             <DialogTitle>Job Completion Review</DialogTitle>
           </div>
           <DialogDescription>
@@ -177,7 +177,7 @@ export function JobCompletionModal({ open, onOpenChange, deal, onComplete }: Job
                 </div>
                 <div>
                   <Label className="text-sm text-muted-foreground">Value</Label>
-                  <p className="font-medium text-green-600">{formatCurrency(deal.value)}</p>
+                  <p className="font-medium" style={{ color: "#00D28B" }}>{formatCurrency(deal.value)}</p>
                 </div>
                 <div className="col-span-2">
                   <Label className="text-sm text-muted-foreground">Address</Label>
@@ -319,7 +319,7 @@ export function JobCompletionModal({ open, onOpenChange, deal, onComplete }: Job
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <div className="rounded border border-border bg-muted/30 px-3 py-3 w-full">
+                  <div className="rounded-md border px-3 py-3 w-full" style={{ borderColor: "#E6E2D7", background: "#F6F4EE" }}>
                     <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                       <Camera className="h-4 w-4" />
                       Include job photos in customer follow-up
@@ -344,7 +344,7 @@ export function JobCompletionModal({ open, onOpenChange, deal, onComplete }: Job
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
+            <Button onClick={handleSubmit} disabled={isSubmitting} className="rounded-full" style={{ background: "#00D28B", color: "#0E1F1A" }}>
               {isSubmitting ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />

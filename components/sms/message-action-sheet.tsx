@@ -85,7 +85,7 @@ export function MessageActionSheet({
       <SheetContent side="bottom" className="rounded-t-2xl max-h-[70vh]">
         <SheetHeader className="text-left">
           <SheetTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5 text-emerald-600" />
+            <MessageSquare className="h-5 w-5" style={{ color: "#00D28B" }} />
             Send {triggerLabel} message
           </SheetTitle>
           <SheetDescription>
@@ -113,7 +113,7 @@ export function MessageActionSheet({
             </div>
 
             {/* Message preview bubble */}
-            <div className="bg-muted dark:bg-slate-800 rounded-2xl rounded-tl-sm p-4">
+            <div className="rounded-md rounded-tl-sm p-4 border" style={{ background: "#F6F4EE", borderColor: "#E6E2D7" }}>
               <p className="text-sm leading-relaxed whitespace-pre-wrap">
                 {preview.messageBody}
               </p>
@@ -147,7 +147,7 @@ export function MessageActionSheet({
           <Button
             onClick={handleSend}
             disabled={sending || !preview || preview.canSend === false}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+            className="rounded-full gap-2" style={{ background: "#00D28B", color: "#0E1F1A" }}
           >
             {sending ? (
               <Loader2 className="h-4 w-4 animate-spin" />

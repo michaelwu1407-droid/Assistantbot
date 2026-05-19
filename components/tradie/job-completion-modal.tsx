@@ -179,8 +179,8 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                     {!completed ? (
                         <>
                             <DialogHeader>
-                                <div className="mx-auto bg-green-100 p-3 rounded-full mb-4">
-                                    <CheckCircle2 className="h-6 w-6 text-green-600" />
+                                <div className="mx-auto p-3 rounded-full mb-4" style={{ background: "#E0FAF2" }}>
+                                    <CheckCircle2 className="h-6 w-6" style={{ color: "#00D28B" }} />
                                 </div>
                                 <DialogTitle className="text-center">Complete Job</DialogTitle>
                                 <DialogDescription className="text-center">
@@ -189,7 +189,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                             </DialogHeader>
 
                             {job && (
-                                <div className="px-4 py-2 mt-2 bg-muted/30 border border-border/50 rounded-xl mb-2">
+                                <div className="px-4 py-2 mt-2 rounded-md border mb-2" style={{ background: "#F6F4EE", borderColor: "#E6E2D7" }}>
                                     <div className="flex items-start gap-3">
                                         <div className="w-8 h-8 rounded-full bg-muted shrink-0 flex items-center justify-center border border-border">
                                             <User className="h-4 w-4 text-muted-foreground" />
@@ -200,7 +200,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                         </div>
                                         {job.value > 0 && (
                                             <div className="text-right">
-                                                <span className="font-bold text-emerald-600">${job.value}</span>
+                                                <span className="font-bold" style={{ color: "#00D28B" }}>${job.value}</span>
                                             </div>
                                         )}
                                     </div>
@@ -209,9 +209,9 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
 
                             <div className="space-y-4 py-2 flex-1 overflow-y-auto px-2">
                                 {/* ── Invoice Verifier Section ── */}
-                                <div className="rounded-md border border-border bg-muted/30 p-4 space-y-4">
+                                <div className="rounded-md border p-4 space-y-4" style={{ borderColor: "#E6E2D7", background: "#F6F4EE" }}>
                                     <h3 className="app-panel-title flex items-center gap-2">
-                                        <FileText className="h-4 w-4 text-primary" />
+                                        <FileText className="h-4 w-4" style={{ color: "#00D28B" }} />
                                         Invoice verifier
                                     </h3>
 
@@ -269,7 +269,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                         <MaterialPicker
                                             onSelect={handleAddMaterial}
                                             trigger={
-                                                <Button type="button" variant="outline" size="sm" className="w-full gap-1.5 border-dashed border-blue-300 text-blue-700 hover:bg-blue-50 h-10">
+                                                <Button type="button" variant="outline" size="sm" className="w-full gap-1.5 border-dashed h-10" style={{ borderColor: "#E6E2D7", color: "var(--color-ink2)" }}>
                                                     <Plus className="h-3.5 w-3.5" />
                                                     Add Material
                                                 </Button>
@@ -278,9 +278,9 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                     </div>
 
                                     {/* Invoice Total */}
-                                    <div className="flex items-center justify-between pt-2 border-t border-blue-200">
-                                        <span className="text-sm font-bold text-blue-900">Invoice Total</span>
-                                        <span className="text-lg font-extrabold text-emerald-600">${invoiceTotal.toFixed(2)}</span>
+                                    <div className="flex items-center justify-between pt-2 border-t" style={{ borderColor: "#E6E2D7" }}>
+                                        <span className="text-sm font-bold" style={{ color: "var(--color-ink)" }}>Invoice Total</span>
+                                        <span className="text-lg font-extrabold" style={{ color: "#00D28B" }}>${invoiceTotal.toFixed(2)}</span>
                                     </div>
                                 </div>
 
@@ -325,11 +325,11 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                         value={notes}
                                         onChange={(e) => setNotes(e.target.value)}
                                         placeholder="Add context e.g. 'Found a separate leak...'"
-                                        className="w-full min-h-[80px] border-2 border-border rounded-xl p-3 text-sm focus:outline-none focus:border-emerald-500 resize-none"
+                                        className="w-full min-h-[80px] rounded-md p-3 text-sm focus:outline-none resize-none border" style={{ borderColor: "#E6E2D7" }}
                                     />
                                 </div>
 
-                                <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
+                                <div className="rounded-md border p-4 space-y-3" style={{ borderColor: "#E6E2D7", background: "#F6F4EE" }}>
                                     <div>
                                         <label className="text-sm font-bold text-foreground flex items-center gap-2 mb-2">
                                             <FileText className="h-4 w-4 text-muted-foreground" />
@@ -356,7 +356,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                                     </label>
                                     {signature ? (
                                         <div className="space-y-2">
-                                            <div className="border-2 border-green-300 bg-green-50 rounded-lg p-2 flex items-center justify-center">
+                                            <div className="rounded-md border-2 p-2 flex items-center justify-center" style={{ borderColor: "rgba(0,210,139,0.4)", background: "#E0FAF2" }}>
                                                 <Image src={signature} alt="Customer signature" width={320} height={100} unoptimized className="max-h-[100px] w-auto" />
                                             </div>
                                             <Button type="button" variant="outline" size="sm" className="text-xs" onClick={() => setSignature(null)}>
@@ -370,11 +370,12 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
                             </div>
 
                             {/* Dual-Action Footer */}
-                            <DialogFooter className="flex-col gap-2 mt-4 pt-4 border-t border-border/50">
+                            <DialogFooter className="flex-col gap-2 mt-4 pt-4 border-t" style={{ borderColor: "#E6E2D7" }}>
                                 <Button
                                     onClick={handleConfirmAndGenerate}
                                     disabled={loading}
-                                    className="bg-green-600 hover:bg-green-700 text-white w-full h-12 text-base font-bold"
+                                    className="rounded-full w-full h-12 text-base font-bold"
+                                    style={{ background: "#00D28B", color: "#0E1F1A" }}
                                 >
                                     {loading ? "Generating..." : "Confirm & Generate Invoice"}
                                 </Button>

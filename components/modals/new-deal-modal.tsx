@@ -213,23 +213,23 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="ott-dialog flex max-h-[calc(100dvh-1rem)] w-[min(calc(100vw-1.5rem),54rem)] flex-col overflow-hidden p-0">
-                <DialogHeader className="shrink-0 border-b border-emerald-100/80 bg-[linear-gradient(180deg,rgba(16,185,129,0.08),rgba(255,255,255,0.5))] px-6 pb-5 pt-6 dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(16,185,129,0.12),rgba(255,255,255,0.03))]">
+                <DialogHeader className="shrink-0 border-b px-6 pb-5 pt-6" style={{ borderColor: "#E6E2D7" }}>
                     <DialogTitle className="mt-1">Create new job</DialogTitle>
                     <DialogDescription>
                         Enter the job details, pick or create the customer contact, and assign a team member if you know who&apos;s doing the work.
                     </DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col bg-[linear-gradient(180deg,rgba(248,250,249,0.96),rgba(241,245,243,0.98))] dark:bg-[linear-gradient(180deg,rgba(12,22,18,0.35),rgba(10,18,15,0.75))]">
+                <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col bg-paper">
                     <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-6">
                     {/* Job Details */}
-                    <div className="grid gap-4 rounded-md border border-white/80 bg-card/80 p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-card/5">
+                    <div className="grid gap-4 rounded-md border bg-card p-5" style={{ borderColor: "#E6E2D7" }}>
                         <div className="space-y-1">
-                            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Job details</p>
+                            <p className="text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">Job details</p>
                             <p className="text-sm text-muted-foreground">Describe the work, its value, timing, and pipeline stage.</p>
                         </div>
                         <div className="grid grid-cols-4 items-start gap-4">
-                            <Label htmlFor="title" className="pt-3 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                            <Label htmlFor="title" className="pt-3 text-left text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
                                 Job description <span className="text-destructive">*</span>
                             </Label>
                             <div className="col-span-3 space-y-1">
@@ -240,7 +240,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                                     onChange={(e) => setTitle(e.target.value)}
                                     aria-invalid={attemptedSubmit && !title.trim() ? true : undefined}
                                     aria-describedby={attemptedSubmit && !title.trim() ? "title-error" : undefined}
-                                    className={`h-11 rounded-xl border-border bg-card/90 ${attemptedSubmit && !title.trim() ? "ott-field-error" : ""}`}
+                                    className={`h-11 rounded-md border bg-paper ${attemptedSubmit && !title.trim() ? "ott-field-error" : ""}`}
                                     required
                                 />
                                 {attemptedSubmit && !title.trim() ? (
@@ -249,7 +249,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                             </div>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="value" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                            <Label htmlFor="value" className="text-left text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
                                 Value ($)
                             </Label>
                             <Input
@@ -258,11 +258,11 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                                 placeholder="0.00"
                                 value={value}
                                 onChange={(e) => setValue(e.target.value)}
-                                className="col-span-3 h-11 rounded-xl border-border bg-card/90"
+                                className="col-span-3 h-11 rounded-md border bg-paper"
                             />
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="address" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                            <Label htmlFor="address" className="text-left text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
                                 Address
                             </Label>
                             <div className="col-span-3">
@@ -287,7 +287,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                             </div>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="scheduledAt" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                            <Label htmlFor="scheduledAt" className="text-left text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
                                 Schedule
                             </Label>
                             <div className="col-span-3 relative">
@@ -297,12 +297,12 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                                     type="datetime-local"
                                     value={scheduledAt}
                                     onChange={(e) => setScheduledAt(e.target.value)}
-                                    className="h-11 rounded-xl border-border bg-card/90 pl-9"
+                                    className="h-11 rounded-md border bg-paper pl-9"
                                 />
                             </div>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="stage" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                            <Label htmlFor="stage" className="text-left text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
                                 Stage
                             </Label>
                             <Select value={stage} onValueChange={(value) => {
@@ -310,7 +310,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                                     setStage(value)
                                 }
                             }}>
-                                <SelectTrigger id="stage" className="col-span-3 h-11 rounded-xl border-border bg-card/90">
+                                <SelectTrigger id="stage" className="col-span-3 h-11 rounded-md border bg-paper">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -322,11 +322,11 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                         </div>
                         {activeTeamMembers.length > 0 && (
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="assignedTo" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                                <Label htmlFor="assignedTo" className="text-left text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
                                     Assigned to {stage === "scheduled" ? <span className="text-destructive">*</span> : ""}
                                 </Label>
                                 <Select value={assignedToId || "__unassigned__"} onValueChange={(v) => setAssignedToId(v === "__unassigned__" ? "" : v)}>
-                                    <SelectTrigger id="assignedTo" className="col-span-3 h-11 rounded-xl border-border bg-card/90">
+                                    <SelectTrigger id="assignedTo" className="col-span-3 h-11 rounded-md border bg-paper">
                                         <SelectValue placeholder="Unassigned" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -348,10 +348,10 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                     </div>
 
                     {/* Contact Selection / Creation */}
-                    <div className="space-y-4 rounded-md border border-white/80 bg-card/80 p-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-card/5">
+                    <div className="space-y-4 rounded-md border bg-card p-5" style={{ borderColor: "#E6E2D7" }}>
                         <div className="flex items-center justify-between">
                             <div className="space-y-1">
-                                <Label className="text-[11px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Client <span className="text-destructive">*</span></Label>
+                                <Label className="text-xs font-bold uppercase tracking-[0.22em] text-muted-foreground">Client <span className="text-destructive">*</span></Label>
                                 <p className="text-sm text-muted-foreground">Select an existing contact or create a new one inline.</p>
                             </div>
                             <Tabs value={mode} onValueChange={(v) => { setMode(v as "select" | "create"); setContactError("") }} className="w-[220px]">
@@ -364,11 +364,11 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
 
                         {mode === "select" ? (
                             <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="contact" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                                <Label htmlFor="contact" className="text-left text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
                                     Existing
                                 </Label>
                                 <Select value={contactId} onValueChange={setContactId}>
-                                    <SelectTrigger className={`col-span-3 h-11 rounded-xl border-border bg-card/90 ${attemptedSubmit && mode === "select" && !contactId ? "ott-field-error" : ""}`}>
+                                    <SelectTrigger className={`col-span-3 h-11 rounded-md border bg-paper ${attemptedSubmit && mode === "select" && !contactId ? "ott-field-error" : ""}`}>
                                         <SelectValue placeholder={isFetchingContacts ? "Loading..." : "Select a contact"} />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -384,15 +384,15 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                                 </Select>
                             </div>
                         ) : (
-                            <div className="space-y-3 rounded-2xl border border-emerald-100/80 bg-emerald-50/60 p-4 dark:border-white/10 dark:bg-card/5">
+                            <div className="space-y-3 rounded-md border p-4" style={{ borderColor: "#E6E2D7", background: "#F6F4EE" }}>
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="new-name" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">First name <span className="text-destructive">*</span></Label>
+                                    <Label htmlFor="new-name" className="text-left text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">First name <span className="text-destructive">*</span></Label>
                                     <div className="col-span-3 relative">
                                         <User className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                                         <Input
                                             id="new-name"
                                             placeholder="John Doe"
-                                            className={`h-11 rounded-xl border-border bg-card/90 pl-9 ${attemptedSubmit && !newContactName.trim() ? "ott-field-error" : ""}`}
+                                            className={`h-11 rounded-md border bg-paper pl-9 ${attemptedSubmit && !newContactName.trim() ? "ott-field-error" : ""}`}
                                             value={newContactName}
                                             onChange={e => setNewContactName(e.target.value)}
                                             required
@@ -400,7 +400,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="new-email" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                                    <Label htmlFor="new-email" className="text-left text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
                                         Email
                                     </Label>
                                     <div className="col-span-3 relative">
@@ -409,21 +409,21 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                                             id="new-email"
                                             type="email"
                                             placeholder="john@example.com"
-                                            className={`h-11 rounded-xl border-border bg-card/90 pl-9 ${shouldHighlightContactMethod ? "ott-field-error" : ""}`}
+                                            className={`h-11 rounded-md border bg-paper pl-9 ${shouldHighlightContactMethod ? "ott-field-error" : ""}`}
                                             value={newContactEmail}
                                             onChange={e => setNewContactEmail(e.target.value)}
                                         />
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="new-phone" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Phone</Label>
+                                    <Label htmlFor="new-phone" className="text-left text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">Phone</Label>
                                     <div className="col-span-3 relative">
                                         <Phone className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                                         <Input
                                             id="new-phone"
                                             type="tel"
                                             placeholder="0400 000 000"
-                                            className={`h-11 rounded-xl border-border bg-card/90 pl-9 ${shouldHighlightContactMethod ? "ott-field-error" : ""}`}
+                                            className={`h-11 rounded-md border bg-paper pl-9 ${shouldHighlightContactMethod ? "ott-field-error" : ""}`}
                                             value={newContactPhone}
                                             onChange={e => setNewContactPhone(e.target.value)}
                                         />
@@ -431,20 +431,20 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                                 </div>
                                 {newContactType === "BUSINESS" && (
                                     <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label htmlFor="new-company" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Business name <span className="text-destructive">*</span></Label>
+                                        <Label htmlFor="new-company" className="text-left text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">Business name <span className="text-destructive">*</span></Label>
                                         <div className="col-span-3">
                                             <Input
                                                 id="new-company"
                                                 placeholder="e.g. Acme Plumbing"
                                                 value={newContactCompany}
                                                 onChange={e => setNewContactCompany(e.target.value)}
-                                                className={`h-11 rounded-xl border-border bg-card/90 ${shouldHighlightBusinessName ? "ott-field-error" : ""}`}
+                                                className={`h-11 rounded-md border bg-paper ${shouldHighlightBusinessName ? "ott-field-error" : ""}`}
                                             />
                                         </div>
                                     </div>
                                 )}
                                 <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Client type <span className="text-destructive">*</span></Label>
+                                    <Label className="text-left text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">Client type <span className="text-destructive">*</span></Label>
                                     <Tabs
                                         value={newContactType}
                                         onValueChange={(v) => setNewContactType(v as "PERSON" | "BUSINESS")}
@@ -456,7 +456,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                                         </TabsList>
                                     </Tabs>
                                 </div>
-                                <p className="text-[11px] text-muted-foreground text-right"><span className="text-destructive">*</span> Name required. Email or phone required.</p>
+                                <p className="text-xs text-muted-foreground text-right"><span className="text-destructive">*</span> Name required. Email or phone required.</p>
                                 {contactError && (
                                     <div className="flex items-center gap-1.5 text-destructive text-xs mt-1">
                                         <AlertCircle className="h-3.5 w-3.5 shrink-0" />
@@ -468,11 +468,11 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                     </div>
                     </div>
 
-                    <DialogFooter className="shrink-0 border-t border-white/70 bg-card/75 px-6 py-4 backdrop-blur dark:border-white/10 dark:bg-slate-950/70">
+                    <DialogFooter className="shrink-0 border-t bg-card px-6 py-4" style={{ borderColor: "#E6E2D7" }}>
                         <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
                             Cancel
                         </Button>
-                        <Button type="submit" disabled={isCreateDisabled} className="shadow-sm">
+                        <Button type="submit" disabled={isCreateDisabled} className="rounded-full shadow-sm" style={{ background: "#00D28B", color: "#0E1F1A" }}>
                             {isLoading ? "Creating..." : "Create Job"}
                         </Button>
                     </DialogFooter>

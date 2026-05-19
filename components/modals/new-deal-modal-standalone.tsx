@@ -164,7 +164,7 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
 
     return (
         <Card className="w-full max-w-2xl overflow-visible bg-card shadow-xl border-border">
-            <CardHeader className="border-b bg-muted/20 rounded-t-xl">
+            <CardHeader className="border-b rounded-t-md" style={{ background: "#F6F4EE", borderColor: "#E6E2D7" }}>
                 <div className="flex items-center gap-2 mb-2">
                     <Button variant="ghost" size="icon" onClick={() => router.push('/crm/dashboard')} className="h-8 w-8 -ml-2">
                         <ChevronLeft className="h-4 w-4" />
@@ -286,8 +286,8 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                                 className="w-[220px]"
                             >
                                 <TabsList className="grid w-full grid-cols-2 h-8">
-                                    <TabsTrigger value="select" className="text-[10px] font-bold">EXISTING</TabsTrigger>
-                                    <TabsTrigger value="create" className="text-[10px] font-bold">CREATE NEW</TabsTrigger>
+                                    <TabsTrigger value="select" className="text-xs font-bold">EXISTING</TabsTrigger>
+                                    <TabsTrigger value="create" className="text-xs font-bold">CREATE NEW</TabsTrigger>
                                 </TabsList>
                             </Tabs>
                         </div>
@@ -307,9 +307,9 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                                 </Select>
                             </div>
                         ) : (
-                            <div className="space-y-3 bg-muted/30 p-4 rounded-xl border border-border/50 shadow-inner">
+                            <div className="space-y-3 p-4 rounded-md border" style={{ background: "#F6F4EE", borderColor: "#E6E2D7" }}>
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="new-name" className="text-[10px] font-bold text-muted-foreground ml-1">NAME *</Label>
+                                    <Label htmlFor="new-name" className="text-xs font-bold text-muted-foreground ml-1">NAME *</Label>
                                     <div className="relative">
                                         <User className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
                                         <Input id="new-name" placeholder="Full Name" className={`h-11 pl-10 bg-card ${attemptedSubmit && !newContactName.trim() ? "ott-field-error" : ""}`} value={newContactName} onChange={e => setNewContactName(e.target.value)} required />
@@ -317,14 +317,14 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="space-y-1.5">
-                                        <Label htmlFor="new-email" className="text-[10px] font-bold text-muted-foreground ml-1">EMAIL</Label>
+                                        <Label htmlFor="new-email" className="text-xs font-bold text-muted-foreground ml-1">EMAIL</Label>
                                         <div className="relative">
                                             <Mail className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
                                             <Input id="new-email" type="email" placeholder="email@address.com" className={`h-11 pl-10 bg-card ${shouldHighlightContactMethod ? "ott-field-error" : ""}`} value={newContactEmail} onChange={e => setNewContactEmail(e.target.value)} />
                                         </div>
                                     </div>
                                     <div className="space-y-1.5">
-                                        <Label htmlFor="new-phone" className="text-[10px] font-bold text-muted-foreground ml-1">PHONE</Label>
+                                        <Label htmlFor="new-phone" className="text-xs font-bold text-muted-foreground ml-1">PHONE</Label>
                                         <div className="relative">
                                             <Phone className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
                                             <Input id="new-phone" type="tel" placeholder="0400 000 000" className={`h-11 pl-10 bg-card ${shouldHighlightContactMethod ? "ott-field-error" : ""}`} value={newContactPhone} onChange={e => setNewContactPhone(e.target.value)} />
@@ -333,7 +333,7 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                                 </div>
                                 {newContactType === "BUSINESS" && (
                                     <div className="space-y-1.5">
-                                        <Label htmlFor="new-company" className="text-[10px] font-bold text-muted-foreground ml-1">BUSINESS NAME *</Label>
+                                        <Label htmlFor="new-company" className="text-xs font-bold text-muted-foreground ml-1">BUSINESS NAME *</Label>
                                         <Input
                                             id="new-company"
                                             placeholder="Business name"
@@ -344,24 +344,24 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                                     </div>
                                 )}
                                 <div className="space-y-1.5">
-                                    <Label className="text-[10px] font-bold text-muted-foreground ml-1">CLIENT TYPE *</Label>
+                                    <Label className="text-xs font-bold text-muted-foreground ml-1">CLIENT TYPE *</Label>
                                     <Tabs value={newContactType} onValueChange={(v) => setNewContactType(v as "PERSON" | "BUSINESS")} className="w-full">
                                         <TabsList className="grid w-full grid-cols-2 h-8">
-                                            <TabsTrigger value="PERSON" className="text-[10px] font-bold">PERSON</TabsTrigger>
-                                            <TabsTrigger value="BUSINESS" className="text-[10px] font-bold">BUSINESS</TabsTrigger>
+                                            <TabsTrigger value="PERSON" className="text-xs font-bold">PERSON</TabsTrigger>
+                                            <TabsTrigger value="BUSINESS" className="text-xs font-bold">BUSINESS</TabsTrigger>
                                         </TabsList>
                                     </Tabs>
                                 </div>
-                                <p className="text-[11px] text-muted-foreground text-right"><span className="text-destructive">*</span> Name required. Email or phone required.</p>
+                                <p className="text-xs text-muted-foreground text-right"><span className="text-destructive">*</span> Name required. Email or phone required.</p>
                                 {contactError && <div className="flex items-center gap-1.5 text-destructive text-xs mt-1 font-medium"><AlertCircle className="h-3 w-3" />{contactError}</div>}
                             </div>
                         )}
                     </div>
                 </CardContent>
 
-                <CardFooter className="border-t bg-muted/20 rounded-b-xl flex justify-between py-4">
+                <CardFooter className="border-t rounded-b-md flex justify-between py-4" style={{ background: "#F6F4EE", borderColor: "#E6E2D7" }}>
                     <Button type="button" variant="ghost" onClick={() => router.push('/crm/dashboard')} disabled={isLoading}>Cancel</Button>
-                    <Button type="submit" size="lg" disabled={isCreateDisabled} className="shadow-lg px-8">
+                    <Button type="submit" size="lg" disabled={isCreateDisabled} className="rounded-full px-8" style={{ background: "#00D28B", color: "#0E1F1A" }}>
                         {isLoading ? "Saving..." : "Save Job & Close"}
                     </Button>
                 </CardFooter>
