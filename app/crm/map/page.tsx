@@ -81,7 +81,7 @@ export default async function DashboardMapPage() {
 
     return (
         <div className="h-full flex flex-col">
-            <div className="shrink-0 flex items-center gap-4 p-3 border-b border-border bg-card/80">
+            <div className="shrink-0 flex items-center gap-4 p-3 border-b" style={{ background: "#F6F4EE", borderColor: "#E6E2D7" }}>
                 <div className="flex items-center gap-2">
                     <Calendar className="h-5 w-5 text-primary" />
                     <span className="font-semibold text-foreground">

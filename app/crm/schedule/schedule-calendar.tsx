@@ -384,13 +384,13 @@ function ScheduleCalendarDesktop({ deals, teamMembers, workspaceTimezone, initia
       <div className="flex-1 min-h-0 bg-muted/10 overflow-hidden">
         <div className="h-full overflow-auto">
           <div className="grid min-w-[1560px]" style={gridStyle}>
-            <div className="app-field-label sticky top-0 left-0 z-30 border-b border-r border-border bg-background/95 px-4 py-3 backdrop-blur">
+            <div className="app-field-label sticky top-0 left-0 z-30 border-b border-r border-border bg-paper/95 px-4 py-3 backdrop-blur">
               Team
             </div>
             {DAY_HOURS.map((hour) => (
               <div
                 key={`day-hour-${hour}`}
-                className="sticky top-0 z-20 border-b border-r border-border bg-background/95 px-2 py-3 text-center backdrop-blur"
+                className="sticky top-0 z-20 border-b border-r border-border bg-paper/95 px-2 py-3 text-center backdrop-blur"
               >
                 <p className="text-[11px] font-medium text-muted-foreground leading-tight">
                   {hour < 12 ? "AM" : "PM"}

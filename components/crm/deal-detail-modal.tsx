@@ -425,7 +425,7 @@ function DealDetailContent({
             <strong>Pending approval:</strong> A team member moved this to Completed. Approve to confirm, or reject to send it back.
           </div>
           <div className="flex items-center gap-2">
-            <Button size="sm" onClick={handleApproveCompletion} className="bg-[#00D28B] hover:opacity-90 text-white">
+            <Button size="sm" onClick={handleApproveCompletion} className="rounded-full bg-[#00D28B] hover:opacity-90" style={{ color: "#0E1F1A" }}>
               <Check className="w-4 h-4 mr-1" /> Approve
             </Button>
             <Button size="sm" variant="outline" onClick={() => setShowRejectInput(true)} className="border-amber-400 text-amber-800 hover:bg-amber-100">
