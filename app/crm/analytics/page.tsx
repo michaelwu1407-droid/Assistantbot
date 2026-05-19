@@ -112,6 +112,20 @@ export default function AnalyticsPage() {
     .reduce((sum, stage) => sum + stage.count, 0)
   const scheduledCount = data.deals.byStage.find((stage) => stage.stage === "Scheduled")?.count ?? 0
   const hasRating = data.customers.satisfaction > 0
+  const totalJobsInRange = data.jobs.completed + data.jobs.inProgress
+  const traceyPct = totalJobsInRange > 0 ? Math.round((data.jobs.wonWithTracey / totalJobsInRange) * 100) : 0
+
+  const STAGE_COLORS: Record<string, string> = {
+    "New request": "#4A7CE6",
+    "Quote sent": "#E89A2B",
+    "Scheduled": "#00D28B",
+    "Awaiting payment": "#8B6FE0",
+    "Completed": "#6B7773",
+    "Lost": "#DC4A4A",
+    "Deleted": "#A0ADB4",
+  }
+  const stagesForChart = data.deals.byStage.filter((s) => !["Lost", "Deleted"].includes(s.stage))
+  const maxStageCount = Math.max(...stagesForChart.map((s) => s.count), 1)
 
   const printReport = () => {
     const printWindow = window.open("", "_blank", "noopener,noreferrer")
@@ -365,10 +379,24 @@ export default function AnalyticsPage() {
         <Card className="rounded-md">
           <CardContent className="p-5">
             <div className="flex items-center justify-between mb-3">
-              <p className="app-micro-label">Jobs won with Tracey</p>
+              <p className="app-micro-label">Tracey impact</p>
               <LayoutList className="h-5 w-5 text-muted-foreground/40" />
             </div>
-            <p className="text-3xl font-bold text-neutral-900">{data.jobs.wonWithTracey}</p>
+            <div className="flex items-baseline gap-2">
+              <p className="text-3xl font-bold text-neutral-900">{data.jobs.wonWithTracey}</p>
+              <p className="text-sm text-muted-foreground">jobs</p>
+            </div>
+            {totalJobsInRange > 0 && (
+              <div className="mt-3">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs text-muted-foreground">of {totalJobsInRange} total</p>
+                  <p className="text-xs font-semibold" style={{ color: "#00D28B" }}>{traceyPct}%</p>
+                </div>
+                <div className="h-1.5 rounded-full bg-[#E6E2D7] overflow-hidden">
+                  <div className="h-full rounded-full transition-all" style={{ width: `${traceyPct}%`, background: "#00D28B" }} />
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
           </div>
@@ -677,6 +705,39 @@ export default function AnalyticsPage() {
           </div>
         </CardContent>
           </Card>
+
+          {stagesForChart.length > 0 && (
+            <Card className="rounded-md">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base font-semibold text-neutral-900">
+                  <LayoutList className="h-4 w-4" />
+                  Pipeline by status
+                </CardTitle>
+                <CardDescription className="text-sm text-muted-foreground">
+                  Job count per stage in the selected period.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2.5">
+                  {stagesForChart.map((s) => (
+                    <div key={s.stage} className="flex items-center gap-3">
+                      <p className="w-32 shrink-0 text-xs font-medium text-neutral-700">{s.stage}</p>
+                      <div className="flex-1 h-5 rounded-full bg-[#F6F4EE] overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{
+                            width: `${(s.count / maxStageCount) * 100}%`,
+                            background: STAGE_COLORS[s.stage] ?? "#6B7773",
+                          }}
+                        />
+                      </div>
+                      <p className="w-6 shrink-0 text-right text-xs font-semibold text-neutral-700">{s.count}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {data.team.performance.length > 0 && (
             <Card className="rounded-md">
