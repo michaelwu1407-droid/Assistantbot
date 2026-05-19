@@ -39,10 +39,7 @@ export function PortalPreviewClient() {
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(0,210,139,0.18),_transparent_30%),linear-gradient(180deg,_#f7fbfa_0%,_#eef4f7_48%,_#e8eef2_100%)] px-4 py-8 text-foreground">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 lg:flex-row lg:items-start">
         <section className="w-full rounded-md border border-white/70 bg-card/72 p-6 shadow-[0_28px_80px_rgba(15,23,42,0.08)] backdrop-blur lg:max-w-sm">
-          <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-emerald-700/80">
-            Portal Preview
-          </p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-foreground">
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
             Customer appointment page
           </h1>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">

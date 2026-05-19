@@ -403,7 +403,6 @@ export default function Home() {
             <section id="platform" className="bg-card px-6 py-12 md:py-24">
                 <div className="container mx-auto max-w-7xl">
                     <motion.div {...fadeUp()} className="mx-auto mb-12 max-w-3xl text-center">
-                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600 mb-3">The platform</p>
                         <h2 className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-midnight">One comprehensive platform.</h2>
                         <p className="mt-4 text-lg text-slate-body">
                             An AI assistant and a CRM that runs itself, so you don&apos;t have to.
@@ -450,7 +449,6 @@ export default function Home() {
                     </motion.div>
 
                     <motion.div {...fadeUp(0.10)} className="mt-12 flex flex-col items-center gap-5">
-                        <p className="text-sm font-bold uppercase tracking-[0.2em] text-emerald-700">Total control. Pick your mode:</p>
                         <AutonomyModeTabs />
                     </motion.div>
                 </div>
@@ -459,7 +457,6 @@ export default function Home() {
             <section id="product" className="py-12 md:py-24 px-6 bg-card">
                 <div className="container mx-auto max-w-7xl flex flex-col gap-16">
                     <motion.div {...fadeUp()} className="text-center max-w-2xl mx-auto">
-                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-600 mb-3">The CRM</p>
                         <h2 className="text-4xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em]">A CRM that fills itself in.</h2>
                         <p className="text-slate-body mt-3 text-lg leading-relaxed">
                             Tracey writes every call, SMS, email, WhatsApp, job, quote, and payment to your CRM as it happens.<br />
@@ -491,8 +488,7 @@ export default function Home() {
 
                     <motion.div {...fadeUp(0.10)} className="flex flex-col gap-6">
                         <div className="text-center">
-                            <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-700">Everything in the box</p>
-                            <h3 className="mt-2 text-2xl font-extrabold tracking-[-0.02em] text-midnight md:text-3xl">A full-featured CRM, built for the way trades actually work.</h3>
+                            <h3 className="text-2xl font-extrabold tracking-[-0.02em] text-midnight md:text-3xl">A full-featured CRM, built for the way trades actually work.</h3>
                         </div>
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             {FEATURE_CARDS.map(({ icon: Icon, title, desc }) => (
