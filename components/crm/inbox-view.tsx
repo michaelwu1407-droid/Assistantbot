@@ -325,38 +325,38 @@ function InboxViewDesktop({
     setCustomDateDialogOpen(false)
   }
 
-  function channelIconAndStyle(type: string): { icon: ReactNode; containerClass: string; label: string } {
+  function channelIconAndStyle(type: string): { icon: ReactNode; containerStyle: React.CSSProperties; label: string } {
     const t = type?.toLowerCase() ?? ""
     switch (t) {
       case "call":
         return {
           icon: <Phone className="h-4 w-4" />,
-          containerClass: "bg-blue-100 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400",
+          containerStyle: { background: "#E2EAF8", color: "#4A7CE6" },
           label: "Call",
         }
       case "email":
         return {
           icon: <Mail className="h-4 w-4" />,
-          containerClass: "bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400",
+          containerStyle: { background: "#FBEFD8", color: "#E89A2B" },
           label: "Email",
         }
       case "sms":
         return {
           icon: <MessageCircle className="h-4 w-4" />,
-          containerClass: "bg-teal-100 text-teal-600 dark:bg-teal-950/50 dark:text-teal-400",
+          containerStyle: { background: "#E0FAF2", color: "#00D28B" },
           label: "SMS",
         }
       case "system":
         return {
           icon: <Settings className="h-4 w-4" />,
-          containerClass: "bg-muted text-muted-foreground dark:bg-slate-800 dark:text-muted-foreground",
+          containerStyle: { background: "#F0EFED", color: "#6B7773" },
           label: "System",
         }
       case "note":
       default:
         return {
           icon: <MessageSquare className="h-4 w-4" />,
-          containerClass: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400",
+          containerStyle: { background: "#E0FAF2", color: "#00D28B" },
           label: "Message",
         }
     }
@@ -532,10 +532,10 @@ If the request is to contact the customer, use the appropriate customer-contact 
 
   return (
     <>
-      <div className="flex flex-col md:flex-row h-full glass-card rounded-2xl overflow-hidden">
+      <div className="flex flex-col md:flex-row h-full rounded-md border overflow-hidden" style={{ borderColor: "#E6E2D7", background: "var(--color-paper)" }}>
         {/* LEFT PANEL: Contact List */}
-        <div className={cn("w-full md:w-80 border-b md:border-b-0 md:border-r border-border/40 flex flex-col bg-muted/10 shrink-0", selectedActivity && selectedId ? "hidden md:flex" : "flex")}>
-          <div className="p-3 border-b border-border/40 space-y-2">
+        <div className={cn("w-full md:w-80 border-b md:border-b-0 md:border-r flex flex-col shrink-0", selectedActivity && selectedId ? "hidden md:flex" : "flex")} style={{ borderColor: "#E6E2D7", background: "var(--color-paper)" }}>
+          <div className="p-3 border-b space-y-2" style={{ borderColor: "#E6E2D7" }}>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <p className="app-field-label px-1">Contact type</p>
@@ -632,21 +632,22 @@ If the request is to contact the customer, use the appropriate customer-contact 
                     key={contact.id}
                     onClick={() => latest && setSelectedId(latest.id)}
                     className={cn(
-                      "w-full text-left p-3 border-b border-border/10 transition-all flex gap-3",
+                      "w-full text-left p-3 border-b transition-all flex gap-3",
                       isSelected
-                        ? "bg-primary/10 border-l-4 border-l-primary"
-                        : "border-l-4 border-l-transparent hover:bg-card/5"
+                        ? "border-l-[3px] border-l-[#00D28B]"
+                        : "border-l-[3px] border-l-transparent hover:bg-black/[0.02]"
                     )}
+                    style={{ borderBottomColor: "#E6E2D7", background: isSelected ? "rgba(0,210,139,0.05)" : undefined }}
                   >
-                    <div className="h-9 w-9 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 text-sm font-semibold">
+                    <div className="h-9 w-9 rounded-full flex items-center justify-center shrink-0 text-sm font-semibold" style={{ background: "#E0FAF2", color: "#00D28B" }}>
                       {contact.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-baseline gap-2">
                         <span className={cn(
                           "app-body-primary truncate font-medium",
-                          isSelected ? "text-primary" : "text-foreground"
-                        )}>
+                          isSelected ? "text-foreground font-semibold" : "text-foreground"
+                        )} style={isSelected ? { color: "var(--color-ink)" } : undefined}>
                           {contact.name}
                         </span>
                         <span className="app-body-secondary shrink-0 text-xs">
@@ -668,16 +669,16 @@ If the request is to contact the customer, use the appropriate customer-contact 
         </div>
 
         {/* RIGHT PANEL: Customer Detail */}
-        <div className={cn("flex-1 flex flex-col bg-background/20 backdrop-blur-sm min-w-0", !selectedActivity || !selectedId ? "hidden md:flex" : "flex")}>
+        <div className={cn("flex-1 flex flex-col bg-card min-w-0", !selectedActivity || !selectedId ? "hidden md:flex" : "flex")}>
           {selectedContact ? (
             <>
               {/* Header: Name + Action buttons */}
-              <div className="h-14 border-b border-border/40 flex items-center px-4 justify-between shrink-0 bg-card/5">
+              <div className="h-14 border-b flex items-center px-4 justify-between shrink-0 bg-card" style={{ borderColor: "#E6E2D7" }}>
                 <div className="flex items-center gap-3 min-w-0">
                   <button onClick={() => setSelectedId(null)} className="md:hidden h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
                     <ArrowLeft className="h-4 w-4" />
                   </button>
-                  <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 text-sm font-semibold">
+                  <div className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 text-sm font-semibold" style={{ background: "#E0FAF2", color: "#00D28B" }}>
                     {selectedContact.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="min-w-0">
@@ -769,8 +770,8 @@ If the request is to contact the customer, use the appropriate customer-contact 
               </div>
 
               {/* Conversations / System Activity toggle - inside RHS */}
-              <div className="px-4 pt-3 pb-2 border-b-2 border-border/40 mb-1">
-                <div className="flex bg-muted/30 rounded-lg p-0.5 max-w-xs">
+              <div className="px-4 pt-3 pb-2 border-b mb-1" style={{ borderColor: "#E6E2D7" }}>
+                <div className="flex rounded-lg p-0.5 max-w-xs" style={{ background: "#E6E2D7" }}>
                   <button
                     onClick={() => setDetailTab("conversations")}
                     className={cn("flex-1 px-3 py-1.5 app-body-secondary text-xs font-medium rounded-md transition-colors", detailTab === "conversations" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
@@ -810,7 +811,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
                     const showCallbackAction = Boolean(callbackWorkflow?.recallEligible && !hasLaterCallbackEvent)
                     const outbound = meta.direction === "outbound"
                     const expanded = expandedActivityIds[item.id] ?? shouldExpandByDefault(item)
-                    const { icon, containerClass, label } = channelIconAndStyle(meta.channel)
+                    const { icon, containerStyle, label } = channelIconAndStyle(meta.channel)
                     const timelineSummary =
                       meta.channel === "call"
                         ? meta.summary || meta.preview || "Call details available"
@@ -824,21 +825,27 @@ If the request is to contact the customer, use the appropriate customer-contact 
                         )}
                       >
                         <div
-                          className={cn("h-7 w-7 rounded-full flex items-center justify-center shrink-0 mt-0.5", containerClass)}
+                          className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+                          style={containerStyle}
                           title={label}
                         >
                           {icon}
                         </div>
                         <div className={cn("flex-1 min-w-0 max-w-[88%]", outbound && !meta.system && "flex flex-col items-end")}>
                           <div
-                            className={cn(
-                              "rounded-2xl border px-3 py-2.5 shadow-sm",
-                              meta.system
-                                ? "border-border/40 bg-muted/20"
+                            className="rounded-md border px-3 py-2.5 shadow-sm"
+                            style={{
+                              borderColor: meta.system
+                                ? "#E6E2D7"
                                 : outbound
-                                  ? "border-primary/20 bg-primary/10"
-                                  : "border-border/50 bg-background/80",
-                            )}
+                                  ? "rgba(0,210,139,0.25)"
+                                  : "#E6E2D7",
+                              background: meta.system
+                                ? "#F6F4EE"
+                                : outbound
+                                  ? "#E0FAF2"
+                                  : "#FFFFFF",
+                            }}
                           >
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="app-body-primary text-xs font-semibold">{item.title}</span>
@@ -956,12 +963,13 @@ If the request is to contact the customer, use the appropriate customer-contact 
               </div>
 
               {/* Bottom: Ask Tracey vs direct SMS (workspace Twilio) */}
-              <div className="border-t border-border/40 p-3 bg-card/5 shrink-0">
+              <div className="border-t p-3 shrink-0" style={{ borderColor: "#E6E2D7", background: "var(--color-paper)" }}>
                 <p id="inbox-composer-mode-label" className="mb-1.5 app-field-label text-[11px] uppercase tracking-wide text-muted-foreground">
                   Who sends the next message?
                 </p>
                 <div
-                  className="flex bg-muted/30 rounded-lg p-0.5 mb-2 max-w-md"
+                  className="flex rounded-lg p-0.5 mb-2 max-w-md"
+                  style={{ background: "#E6E2D7" }}
                   role="tablist"
                   aria-labelledby="inbox-composer-mode-label"
                 >
@@ -998,23 +1006,19 @@ If the request is to contact the customer, use the appropriate customer-contact 
                 </div>
 
                 <div
-                  className={cn(
-                    "mb-2 rounded-lg border px-3 py-2 transition-colors",
-                    messageMode === "direct"
-                      ? "border-teal-200 bg-teal-50/70"
-                      : "border-blue-200 bg-blue-50/70",
-                  )}
+                  className="mb-2 rounded-md border px-3 py-2 transition-colors"
+                  style={{ borderColor: "#E6E2D7", background: "#F6F4EE" }}
                   role="region"
                   aria-live="polite"
                 >
                   <div className="mb-1 flex items-center gap-2">
                     <span
-                      className={cn(
-                        "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide",
+                      className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
+                      style={
                         messageMode === "direct"
-                          ? "bg-teal-100 text-teal-700"
-                          : "bg-blue-100 text-blue-700",
-                      )}
+                          ? { background: "#E0FAF2", color: "#00D28B" }
+                          : { background: "#E2EAF8", color: "#4A7CE6" }
+                      }
                     >
                       {messageMode === "direct" ? "Sends immediately" : "AI handles next step"}
                     </span>
