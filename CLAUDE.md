@@ -129,6 +129,8 @@ The homepage uses a warm cream palette (not the app's cool-gray `--background`).
 
 **Do NOT:** use `bg-[#F8FAFC]`, `bg-muted/30`, or `text-midnight` on homepage sections — these are cool-gray and clash with the warm palette.
 
+**App pages (TODO — review pass pending):** App pages should also prefer warm cream surfaces over the current cool-gray `--background`. This is a separate pass — do not implement until explicitly approved. The current app `--background: #F7F8FA` is the baseline to replace.
+
 **TODO (revisit later):** serif display font for homepage headings (currently Plus Jakarta Sans for everything).
 
 ## Typography — font strategy

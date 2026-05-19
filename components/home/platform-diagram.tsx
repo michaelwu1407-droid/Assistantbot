@@ -62,6 +62,17 @@ export function PlatformDiagram() {
                             </li>
                         ))}
                     </ul>
+                    <div className="border-t border-white/10 pt-4 mt-1">
+                        <p className="text-xs text-white/50 mb-2.5">Tracey answers across every channel</p>
+                        <div className="flex flex-wrap gap-2">
+                            {CHANNELS.map(({ label, icon: Icon }) => (
+                                <span key={label} className="inline-flex items-center gap-1.5 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-xs text-white/75">
+                                    <Icon className="h-3 w-3 text-emerald-400" />
+                                    {label}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
                 </motion.div>
 
                 {/* Connector — large bidirectional arrows */}

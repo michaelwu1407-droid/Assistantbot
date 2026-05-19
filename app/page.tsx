@@ -16,7 +16,6 @@ import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { requestDemoCall } from "@/actions/demo-call-action";
 import { TrustStrip } from "@/components/home/trust-strip";
-import { ChannelsSection } from "@/components/home/channels-section";
 import { MobileStickyCTA } from "@/components/home/mobile-sticky-cta";
 
 const HeroDashboardReel = dynamic(
@@ -120,48 +119,36 @@ const TRACEY_WORKFLOW = [
 function HireMockup1() {
     const messages = [
         { from: "user",   text: "Schedule the Smith job for Friday" },
-        { from: "tracey", text: "Done — Friday 9am. Confirmation SMS sent to Sarah Smith. ✅" },
+        { from: "tracey", text: "Done! Scheduled for Friday 9am. Confirmation SMS sent to Sarah Smith. ✅" },
         { from: "user",   text: "What's my revenue this week?" },
         { from: "tracey", text: "$8,450 across 4 completed jobs. Up 12% vs last week 📈" },
     ];
     return (
-        <div className="h-full flex flex-col overflow-hidden rounded-md" style={{ background: "#0E2F28" }}>
-            <div className="flex items-center gap-2.5 px-4 py-3 border-b border-white/[0.07]">
-                <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: "#00D28B" }}>
-                    <MessageSquare className="w-3.5 h-3.5 text-white" />
+        <div className="h-full flex flex-col bg-card">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-neutral-200">
+                <div className="w-6 h-6 rounded-full bg-card border border-neutral-200 flex items-center justify-center shadow-sm">
+                    <Image src="/latest-logo.png" alt="" width={14} height={14} className="w-3.5 h-3.5 object-contain" unoptimized />
                 </div>
-                <div className="flex-1 min-w-0">
-                    <div className="text-xs font-semibold text-white leading-none">Tracey</div>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#00D28B]" />
-                        <span className="text-[10px] text-[#00D28B]">Online · WhatsApp</span>
-                    </div>
-                </div>
-                <span className="text-[10px] text-white/40 bg-white/[0.06] px-2 py-1 rounded-full">2:14 PM</span>
+                <span className="text-xs font-semibold text-neutral-900">Tracey Chat</span>
+                <span className="ml-auto text-[10px] text-emerald-500">● Online</span>
             </div>
-            <div className="flex-1 flex flex-col justify-end gap-2 px-4 py-4">
+            <div className="flex-1 flex flex-col justify-end gap-2.5 px-4 py-4 bg-[#F8FAFC]">
                 {messages.map((m, i) => (
-                    <div key={i} className={`flex ${m.from === "user" ? "justify-end" : "justify-start"}`}>
-                        <div
-                            className="text-xs leading-relaxed max-w-[80%] px-3 py-2"
-                            style={{
-                                background: m.from === "user" ? "#00D28B" : "rgba(255,255,255,0.07)",
-                                color: "#fff",
-                                borderRadius: m.from === "user" ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
-                            }}
-                        >
+                    <div key={i} className={`flex gap-2 items-end ${m.from === "user" ? "flex-row-reverse" : ""}`}>
+                        {m.from === "tracey" && (
+                            <div className="w-5 h-5 rounded-full bg-card border border-neutral-200 flex items-center justify-center shrink-0 shadow-sm">
+                                <Image src="/latest-logo.png" alt="" width={12} height={12} className="w-3 h-3 object-contain" unoptimized />
+                            </div>
+                        )}
+                        <div className={`rounded px-3 py-2 text-xs leading-relaxed max-w-[80%] ${
+                            m.from === "user"
+                                ? "bg-primary text-white rounded-tr-sm"
+                                : "bg-card border border-neutral-200 text-neutral-800 rounded-bl-sm shadow-sm"
+                        }`}>
                             {m.text}
                         </div>
                     </div>
                 ))}
-            </div>
-            <div className="px-4 pb-4">
-                <div className="flex items-center gap-2 rounded-full px-4 py-2.5 text-xs text-white/40" style={{ background: "rgba(255,255,255,0.06)" }}>
-                    <span className="flex-1">Message Tracey…</span>
-                    <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background: "#00D28B" }}>
-                        <ArrowRight className="w-3 h-3 text-white" />
-                    </div>
-                </div>
             </div>
         </div>
     );
@@ -327,7 +314,7 @@ const FAQ_ITEMS = [
 ];
 
 function FaqSection() {
-    const [openIndices, setOpenIndices] = useState<number[]>([0]);
+    const [openIndices, setOpenIndices] = useState<number[]>([]);
     const toggle = (idx: number) =>
         setOpenIndices((prev) => prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx]);
     return (
@@ -534,8 +521,6 @@ export default function Home() {
                     </motion.div>
                 </div>
             </section>
-
-            <ChannelsSection />
 
             <FaqSection />
 
