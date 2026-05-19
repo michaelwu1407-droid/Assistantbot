@@ -81,9 +81,6 @@ export default async function SolutionDetailPage({
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/30">
                 <TradeIcon className="h-5 w-5" />
               </span>
-              <p className="text-xs font-bold uppercase tracking-[0.28em] text-emerald-300">
-                {solution.eyebrow}
-              </p>
             </div>
             <h1 className="text-4xl font-extrabold tracking-[-0.03em] leading-tight text-white md:text-6xl text-balance">
               {solution.title}

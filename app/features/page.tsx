@@ -580,7 +580,6 @@ export default function FeaturesPage() {
         <section className="py-10 md:py-20 px-6 bg-card border-y border-border/70">
           <div className="mx-auto max-w-7xl">
             <motion.div {...fadeUp()} className="mx-auto mb-12 max-w-3xl text-center">
-              <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-emerald-600 mb-3">The platform</p>
               <h2 className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-midnight">One comprehensive platform.</h2>
               <p className="mt-4 text-lg text-muted-foreground">
                 An AI assistant and a CRM that runs itself, so you don&apos;t have to.
@@ -596,8 +595,7 @@ export default function FeaturesPage() {
         <section className="py-16 md:py-20 px-6 bg-[#F8FAFC] border-b border-border/70">
           <div className="mx-auto max-w-6xl">
             <motion.div {...fadeUp()} className="mb-10 max-w-3xl">
-              <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-emerald-600">Product map</p>
-              <h2 className="mt-3 text-3xl md:text-5xl font-extrabold tracking-[-0.03em] text-midnight">
+              <h2 className="text-3xl md:text-5xl font-extrabold tracking-[-0.03em] text-midnight">
                 More than a call bot. A working system for the whole job lifecycle.
               </h2>
               <p className="mt-4 text-base leading-7 text-muted-foreground">
