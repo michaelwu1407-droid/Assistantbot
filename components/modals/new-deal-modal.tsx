@@ -216,7 +216,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                 <DialogHeader className="shrink-0 border-b border-emerald-100/80 bg-[linear-gradient(180deg,rgba(16,185,129,0.08),rgba(255,255,255,0.5))] px-6 pb-5 pt-6 dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(16,185,129,0.12),rgba(255,255,255,0.03))]">
                     <DialogTitle className="mt-1">Create new job</DialogTitle>
                     <DialogDescription>
-                        Enter the job details, pick or create the customer contact, and assign a team member if you know who's doing the work.
+                        Enter the job details, pick or create the customer contact, and assign a team member if you know who&apos;s doing the work.
                     </DialogDescription>
                 </DialogHeader>
 

@@ -96,7 +96,7 @@ export function DealEditModal({ dealId, open, onOpenChange, onDealUpdated, curre
       <DialogContent className="ott-dialog max-w-lg flex flex-col p-0 gap-0">
         <DialogTitle className="sr-only">Edit job</DialogTitle>
         <DialogDescription className="sr-only">
-          Update this job's title, value, stage, and team-member assignment.
+          Update this job&apos;s title, value, stage, and team-member assignment.
         </DialogDescription>
         <div className="overflow-y-auto p-6">
           {loading && <p className="app-body-secondary py-8 text-center">Loading…</p>}
