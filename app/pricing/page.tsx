@@ -112,7 +112,7 @@ function FaqSection() {
               onClick={() => toggle(idx)}
               className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-muted/30 transition-colors"
             >
-              <span className="font-semibold text-midnight text-sm pr-4">{item.q}</span>
+              <span className="font-semibold text-sm pr-4" style={{ color: "var(--color-ink)" }}>{item.q}</span>
               <ChevronDown
                 className={`w-5 h-5 text-muted-foreground shrink-0 transition-transform duration-200 ${
                   isOpen ? "rotate-180" : ""
@@ -181,12 +181,12 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-paper text-foreground">
       <Navbar />
 
       <main>
         {/* ── 1. Hero / Pricing Header ── */}
-        <section className="pt-24 sm:pt-32 pb-10 md:pb-16 px-6 relative overflow-hidden isolate bg-[linear-gradient(180deg,#F5F7F8_0%,#F4F7F5_60%,#F7F6F3_100%)]">
+        <section className="pt-24 sm:pt-32 pb-10 md:pb-16 px-6 relative overflow-hidden isolate bg-[linear-gradient(180deg,#F6F4EE_0%,#F3EFE3_60%,#F6F4EE_100%)]">
           <div
             className="absolute inset-0 z-0 pointer-events-none"
             style={{
@@ -200,7 +200,8 @@ export default function PricingPage() {
             </motion.p>
             <motion.h1
               {...fadeUp(0.04)}
-              className="text-4xl md:text-6xl font-extrabold tracking-[-0.04em] leading-[1.07] text-midnight text-balance"
+              className="text-4xl md:text-6xl font-extrabold tracking-[-0.04em] leading-[1.07] text-balance"
+              style={{ color: "var(--color-ink)" }}
             >
               One plan. Everything included.
             </motion.h1>
@@ -221,8 +222,8 @@ export default function PricingPage() {
                   onClick={() => setBillingPeriod("monthly")}
                   className={`py-2.5 px-6 rounded-md text-sm font-semibold transition-all shadow-sm ${
                     billingPeriod === "monthly"
-                      ? "bg-card text-midnight"
-                      : "text-muted-foreground hover:text-midnight shadow-none bg-transparent"
+                      ? "bg-card"
+                      : "text-muted-foreground shadow-none bg-transparent"
                   }`}
                 >
                   Monthly
@@ -233,8 +234,8 @@ export default function PricingPage() {
                     onClick={() => setBillingPeriod("yearly")}
                     className={`py-2.5 px-6 rounded-md text-sm font-semibold transition-all shadow-sm ${
                       billingPeriod === "yearly"
-                        ? "bg-card text-midnight"
-                        : "text-muted-foreground hover:text-midnight shadow-none bg-transparent"
+                        ? "bg-card"
+                        : "text-muted-foreground shadow-none bg-transparent"
                     }`}
                   >
                     Yearly
@@ -303,8 +304,8 @@ export default function PricingPage() {
                     Recommended
                   </span>
                 </div>
-                <h3 className="text-xl font-bold text-midnight mb-2">Earlymark Pro</h3>
-                <div className="text-5xl font-extrabold text-midnight mb-1">
+                <h3 className="text-xl font-bold mb-2" style={{ color: "var(--color-ink)" }}>Earlymark Pro</h3>
+                <div className="text-5xl font-extrabold mb-1" style={{ color: "var(--color-ink)" }}>
                   {billingPeriod === "monthly" ? "A$30" : "A$24"}
                 </div>
                 <div className="text-sm font-semibold text-muted-foreground mb-1">
@@ -365,10 +366,10 @@ export default function PricingPage() {
         </section>
 
         {/* ── 3. ROI Justification ── */}
-        <section className="py-10 md:py-20 px-6 bg-card border-t border-border/60">
+        <section className="py-10 md:py-20 px-6 bg-cream border-t border-border/60">
           <div className="max-w-4xl mx-auto">
             <motion.div {...fadeUp()} className="text-center mb-14">
-              <h2 className="text-3xl font-extrabold text-midnight">Pays for itself by saving 1 missed job</h2>
+              <h2 className="text-3xl font-extrabold" style={{ color: "var(--color-ink)" }}>Pays for itself by saving 1 missed job</h2>
               <p className="mt-3 text-muted-foreground max-w-2xl mx-auto">
                 Stop losing money on missed calls, forgotten follow-ups, and wasted admin hours.
               </p>
@@ -379,7 +380,7 @@ export default function PricingPage() {
                 <motion.div
                   key={i}
                   {...fadeUp(0.1 + i * 0.1)}
-                  className="bg-muted/20 rounded-md p-8 border border-border shadow-sm text-center flex flex-col items-center justify-center"
+                  className="bg-paper rounded-md p-8 border border-border shadow-sm text-center flex flex-col items-center justify-center"
                 >
                   <div className="text-4xl font-extrabold text-primary mb-3">{stat.value}</div>
                   <div className="text-sm font-semibold text-muted-foreground">{stat.label}</div>
@@ -390,10 +391,10 @@ export default function PricingPage() {
         </section>
 
         {/* ── 4. Feature Grid ── */}
-        <section className="py-10 md:py-20 px-6 bg-[#F8FAFC] border-t border-border/60">
+        <section className="py-10 md:py-20 px-6 bg-paper border-t border-border/60">
           <div className="max-w-5xl mx-auto">
             <motion.div {...fadeUp()} className="text-center mb-14">
-              <h2 className="text-3xl font-extrabold text-midnight">Everything you need is included</h2>
+              <h2 className="text-3xl font-extrabold" style={{ color: "var(--color-ink)" }}>Everything you need is included</h2>
               <p className="mt-3 text-muted-foreground">No add-ons, no hidden modules. You get the full platform from day one.</p>
             </motion.div>
 
@@ -410,7 +411,7 @@ export default function PricingPage() {
                       <Icon className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-midnight text-sm mb-1">{f.title}</h4>
+                      <h4 className="font-bold text-sm mb-1" style={{ color: "var(--color-ink)" }}>{f.title}</h4>
                       <p className="text-xs text-muted-foreground leading-relaxed">{f.description}</p>
                     </div>
                   </motion.div>
@@ -421,10 +422,10 @@ export default function PricingPage() {
         </section>
 
         {/* ── 5. FAQ ── */}
-        <section className="py-10 md:py-20 px-6 bg-card border-t border-border/60">
+        <section className="py-10 md:py-20 px-6 bg-cream border-t border-border/60">
           <div className="max-w-3xl mx-auto">
             <motion.div {...fadeUp()} className="text-center mb-10">
-              <h2 className="text-3xl font-extrabold text-midnight">Pricing questions</h2>
+              <h2 className="text-3xl font-extrabold" style={{ color: "var(--color-ink)" }}>Pricing questions</h2>
             </motion.div>
 
             <motion.div {...fadeUp(0.1)}>
@@ -434,10 +435,10 @@ export default function PricingPage() {
         </section>
 
         {/* ── 6. Contact Form ── */}
-        <section id="contact-form" className="py-10 md:py-20 px-6 bg-[#F8FAFC] border-t border-border/60 scroll-mt-20">
+        <section id="contact-form" className="py-10 md:py-20 px-6 bg-paper border-t border-border/60 scroll-mt-20">
           <div className="container mx-auto max-w-xl">
             <motion.div {...fadeUp()} className="text-center mb-10">
-              <h2 className="text-3xl font-extrabold text-midnight">Still have questions?</h2>
+              <h2 className="text-3xl font-extrabold" style={{ color: "var(--color-ink)" }}>Still have questions?</h2>
               <p className="text-muted-foreground mt-2">Get in touch with the team.</p>
             </motion.div>
 
@@ -450,7 +451,7 @@ export default function PricingPage() {
                         <CheckCircle className="h-6 w-6 text-primary" />
                       </div>
                       <div>
-                        <h2 className="font-semibold text-midnight">
+                        <h2 className="font-semibold" style={{ color: "var(--color-ink)" }}>
                           {callPlaced ? "Tracey is calling you now" : "Message sent"}
                         </h2>
                         {callPlaced && (
@@ -478,7 +479,7 @@ export default function PricingPage() {
               ) : (
                 <Card className="rounded-md border border-border shadow-sm bg-card">
                   <CardHeader className="px-8 pt-8 pb-0">
-                    <CardTitle className="text-midnight">Get in touch</CardTitle>
+                    <CardTitle style={{ color: "var(--color-ink)" }}>Get in touch</CardTitle>
                     <CardDescription>Choose the team that best fits your question.</CardDescription>
                   </CardHeader>
                   <CardContent className="p-8">
@@ -583,7 +584,7 @@ export default function PricingPage() {
         </section>
 
         {/* ── 7. Final CTA ── */}
-        <section className="py-14 md:py-24 px-6 bg-[linear-gradient(135deg,#0f172a_0%,#065f46_100%)]">
+        <section className="py-14 md:py-24 px-6" style={{ background: "var(--color-forest)" }}>
           <div className="mx-auto max-w-3xl text-center flex flex-col items-center gap-6">
             <motion.h2
               {...fadeUp()}

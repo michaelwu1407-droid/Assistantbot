@@ -157,7 +157,7 @@ function HireMockup1() {
 // ─── Interview Form ───────────────────────────────────────────────────────────
 
 const INPUT_CLASS =
-    "w-full px-4 py-2.5 rounded-md border border-border text-sm text-midnight placeholder:text-muted-foreground bg-card transition";
+    "w-full px-4 py-2.5 rounded-md border border-border text-sm placeholder:text-muted-foreground bg-card transition";
 
 const DEMO_CALL_TIMEOUT_MS = 30_000;
 
@@ -216,7 +216,7 @@ function InterviewForm() {
                 <div className="w-16 h-16 rounded-full bg-primary/15 flex items-center justify-center">
                     <Phone className="w-8 h-8 text-primary" />
                 </div>
-                <h3 className="text-xl font-bold text-midnight">
+                <h3 className="text-xl font-bold" style={{ color: "var(--color-ink)" }}>
                     {message || "Tracey is calling you now!"}
                 </h3>
             </div>
@@ -274,10 +274,10 @@ function TestimonialsCarousel() {
                         </svg>
                     ))}
                 </div>
-                <p className="text-midnight/80 italic text-[15px] leading-relaxed mb-6">&quot;{t.quote}&quot;</p>
+                <p className="italic text-[15px] leading-relaxed mb-6" style={{ color: "var(--color-ink)", opacity: 0.8 }}>&quot;{t.quote}&quot;</p>
             </div>
             <div>
-                <p className="font-bold text-midnight text-sm">{t.author}</p>
+                <p className="font-bold text-sm" style={{ color: "var(--color-ink)" }}>{t.author}</p>
                 <p className="text-xs text-muted-foreground font-medium mt-0.5">{t.role}</p>
             </div>
         </div>
@@ -293,8 +293,8 @@ function TestimonialsCarousel() {
                     transition={{ duration: 26, ease: "linear", repeat: Infinity }}>
                     {slides.map((t, i) => <div key={`${t.author}-${i}`} className="w-[350px]"><Card t={t} /></div>)}
                 </motion.div>
-                <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-[linear-gradient(90deg,#f8fafc_0%,rgba(248,250,252,0)_100%)]" />
-                <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-[linear-gradient(270deg,#f8fafc_0%,rgba(248,250,252,0)_100%)]" />
+                <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-[linear-gradient(90deg,#F1ECDD_0%,rgba(241,236,221,0)_100%)]" />
+                <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-[linear-gradient(270deg,#F1ECDD_0%,rgba(241,236,221,0)_100%)]" />
             </div>
         </div>
     );
@@ -329,7 +329,7 @@ function FaqSection() {
                             <div key={idx} className="border border-border rounded overflow-hidden">
                                 <button onClick={() => toggle(idx)}
                                     className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-muted/30 transition-colors">
-                                    <span className="font-semibold text-midnight text-sm pr-4">{item.q}</span>
+                                    <span className="font-semibold text-sm pr-4" style={{ color: "var(--color-ink)" }}>{item.q}</span>
                                     <ChevronDown className={`w-5 h-5 text-muted-foreground shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
                                 </button>
                                 <div className={`transition-all duration-200 overflow-hidden ${isOpen ? "max-h-60" : "max-h-0"}`}>
@@ -357,7 +357,7 @@ export default function Home() {
                 <div className="absolute inset-y-[2%] left-0 w-[32%] z-0 pointer-events-none opacity-60" style={{ background: "linear-gradient(180deg, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.05) 48%, rgba(16,185,129,0.00) 100%)", clipPath: "polygon(0 0, 100% 6%, 76% 100%, 0 100%)" }} />
                 <div className="absolute inset-y-[2%] right-0 w-[32%] z-0 pointer-events-none opacity-60" style={{ background: "linear-gradient(180deg, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.05) 48%, rgba(16,185,129,0.00) 100%)", clipPath: "polygon(24% 0, 100% 0, 100% 100%, 0 100%)" }} />
                 <div className="container mx-auto max-w-6xl relative z-10 flex flex-col items-center gap-8">
-                    <motion.h1 {...fadeUp(0.06)} className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.08] text-midnight text-balance text-center">
+                    <motion.h1 {...fadeUp(0.06)} className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.08] text-balance text-center" style={{ color: "var(--color-ink)" }}>
                         Your AI assistant &amp; CRM.
                         <span className="block">Here to give you an <span className="text-primary">early mark</span></span>
                     </motion.h1>
@@ -397,7 +397,7 @@ export default function Home() {
                             </motion.h2>
                         </div>
                         <motion.div {...fadeUp(0.1)} className="bg-card/95 backdrop-blur-md rounded border border-white/40 p-7 shadow-xl">
-                            <h3 className="font-bold text-midnight text-lg mb-1">Interview Tracey for free</h3>
+                            <h3 className="font-bold text-lg mb-1" style={{ color: "var(--color-ink)" }}>Interview Tracey for free</h3>
                             <p className="text-slate-body text-sm mb-6 leading-relaxed">Tracey will call you and answer questions, explain her capabilities, or roleplay as your very own AI receptionist.</p>
                             <InterviewForm />
                         </motion.div>
