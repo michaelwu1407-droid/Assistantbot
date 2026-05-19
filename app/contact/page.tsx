@@ -180,7 +180,7 @@ export default function ContactPage() {
                       name="message"
                       placeholder="Tell us how we can help..."
                       rows={5}
-                      className="rounded-xl border-border bg-[#F8FAFC] resize-none"
+                      className="rounded-md border-border bg-muted/30 resize-none"
                       required
                     />
                   </div>

@@ -217,27 +217,30 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
 
                                     {/* Labor Hours */}
                                     <div className="space-y-2">
-                                        <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                                        <label htmlFor="labor-hours" className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                                             <Clock className="h-3.5 w-3.5 text-blue-500" /> Labour Hours
                                         </label>
                                         <div className="flex gap-2">
                                             <input
+                                                id="labor-hours"
                                                 type="number"
                                                 min={0}
                                                 step={0.25}
                                                 value={laborHours}
                                                 onChange={(e) => setLaborHours(Math.max(0, parseFloat(e.target.value) || 0))}
                                                 className="w-24 border-2 border-border rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-blue-500"
+                                                aria-label="Labour hours"
                                             />
                                             <span className="text-xs text-muted-foreground self-center">hrs @</span>
                                             <input
+                                                id="labor-rate"
                                                 type="number"
                                                 min={0}
                                                 step={5}
                                                 value={laborRate}
                                                 onChange={(e) => setLaborRate(Math.max(0, parseFloat(e.target.value) || 0))}
                                                 className="w-24 border-2 border-border rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-blue-500"
-                                                placeholder="$/hr"
+                                                aria-label="Hourly rate"
                                             />
                                             <span className="text-xs text-muted-foreground self-center">= <b className="text-foreground">${laborTotal.toFixed(2)}</b></span>
                                         </div>

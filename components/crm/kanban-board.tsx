@@ -225,10 +225,11 @@ function KanbanColumnHeader({ col, count }: { col: (typeof COLUMNS)[number]; cou
         {col.id !== "deleted" && (
           <button
             type="button"
-            className="text-muted-foreground/50 transition-colors hover:text-primary"
+            className="flex h-10 w-10 items-center justify-center text-muted-foreground/50 transition-colors hover:text-primary"
+            aria-label="Add job"
             onClick={() => openNewDealModalForColumn(col.id)}
           >
-            <Plus className="h-3.5 w-3.5" />
+            <Plus className="h-4 w-4" />
           </button>
         )}
       </div>
@@ -1052,7 +1053,7 @@ export function KanbanBoard({
                 type="button"
                 variant="outline"
                 size="icon"
-                className="h-8 w-8 shrink-0 text-destructive hover:text-destructive"
+                className="h-10 w-10 shrink-0 text-destructive hover:text-destructive"
                 disabled={selectedDealIds.length === 0}
                 title={selectedDealsAreAllDeleted ? "Delete selected permanently" : "Move selected to Deleted"}
                 aria-label={selectedDealsAreAllDeleted ? "Delete selected jobs permanently" : "Move selected jobs to Deleted"}
@@ -1064,7 +1065,7 @@ export function KanbanBoard({
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-8 text-xs"
+                className="h-10 text-xs"
                 onClick={() => {
                   setSelectedDealIds([])
                   setSelectionMode(false)
@@ -1182,7 +1183,7 @@ export function KanbanBoard({
                         ) : (
                           <button
                             type="button"
-                            className="flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-border/30 py-2 text-[11px] font-bold text-muted-foreground/50 transition-all hover:border-primary/50 hover:text-primary"
+                            className="flex min-h-[40px] w-full items-center justify-center gap-2 rounded-md border border-dashed border-border/30 py-2 text-[11px] font-bold text-muted-foreground/50 transition-all hover:border-primary/50 hover:text-primary"
                             onClick={() => openNewDealModalForColumn(col.id)}
                           >
                             <Plus className="h-3.5 w-3.5" />

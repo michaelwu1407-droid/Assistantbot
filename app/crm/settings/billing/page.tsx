@@ -37,8 +37,8 @@ export default async function BillingSettingsPage() {
     return (
         <div className="space-y-6">
             <div className="space-y-1.5">
-                <h3 className="text-xl font-bold tracking-tight text-foreground dark:text-white">Billing</h3>
-                <p className="text-muted-foreground text-sm">
+                <h3 className="app-section-title">Billing</h3>
+                <p className="app-body-secondary">
                     Check your plan and manage your billing.
                 </p>
             </div>
@@ -46,17 +46,17 @@ export default async function BillingSettingsPage() {
 
             <div className="max-w-md bg-card dark:bg-slate-900 rounded-xl border p-6 flex flex-col gap-4">
                 <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-muted-foreground">Plan</span>
-                    <span className="text-2xl font-bold text-foreground dark:text-white">
+                    <span className="app-field-label">Plan</span>
+                    <span className="app-kpi-value">
                         {getPlanLabelForPriceId(workspace.stripePriceId)}
                     </span>
-                    <span className="text-sm text-muted-foreground mt-1">
+                    <span className="app-body-secondary mt-1">
                         {billingInterval ? `${billingInterval} billing` : "No paid plan"}
                     </span>
                 </div>
 
                 <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-muted-foreground">Status</span>
+                    <span className="app-field-label">Status</span>
                     <div className="flex items-center gap-2 mt-1">
                         <span className="relative flex h-3 w-3">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>

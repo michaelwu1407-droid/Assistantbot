@@ -181,7 +181,7 @@ export function StaleDealFollowUpModal({
           <div className="rounded-lg bg-muted/30 p-4">
             <div className="flex items-start justify-between">
               <div>
-                <h4 className="font-medium text-foreground">{deal.title}</h4>
+                <p className="font-medium text-foreground">{deal.title}</p>
                 <p className="text-sm text-muted-foreground">{deal.contactName}</p>
                 <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
                   <span>Value: {formatCurrency(deal.value)}</span>
@@ -321,7 +321,7 @@ export function StaleDealFollowUpModal({
               <div className="space-y-2">
                 <Label htmlFor="template">Template</Label>
                 <Select value={selectedTemplate} onValueChange={handleTemplateSelect}>
-                  <SelectTrigger>
+                  <SelectTrigger id="template" aria-label="Message template">
                     <SelectValue placeholder="Choose a template or write your own" />
                   </SelectTrigger>
                   <SelectContent>

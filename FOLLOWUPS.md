@@ -19,15 +19,11 @@ them and Claude will pick the next pass off the same list.
 
 ## Open — for Claude to pick up later (not blocked on you)
 
-### Fan jest-axe out across every Dialog/Sheet/Drawer
-- **Why:** The pattern is established in `__tests__/a11y-stale-job-modal.test.tsx` but only the stale-job dialog is covered. Every other dialog still mocks the Dialog primitives in its test file, so axe can't evaluate the real ARIA contract.
-- **What:** For each dialog (new-deal, deal-detail, deal-edit, stale-deal-follow-up, kanban-automation, personal-phone, job-completion, loss-reason, etc.), add an axe test that renders with the REAL Dialog primitives and stubs only the action-layer dependencies.
-
-### Verify kanban deal-card touch targets on mobile
-- **Why:** Audit flagged various `size="icon" className="h-8 w-8"` buttons in `components/crm/deal-card.tsx`. I didn't audit each one individually — needs a sweep with the rule: every interactive icon inside a card must be ≥40×40px on phone.
-
-### Audit the rest of the app
-- **Why:** The UI audit only covered `components/` and top-level `app/**/*.tsx` modal/dialog/sheet components. Other surfaces (forms outside dialogs, kanban itself, settings pages, public marketing pages) haven't been audited the same way.
+### Audit the rest of the app (continued)
+- **Why:** Settings page audit found dark-mode `dark:bg-slate-*` / `dark:border-slate-*` overrides and amber/emerald alert banners across many settings pages. These fall under the CLAUDE.md exception clause ("intentional dark-surface components may keep explicit dark values"), so were not touched in the current pass.
+- **What:** Decide whether to migrate them to semantic tokens or formalise the dark-surface exception. Public marketing pages (`app/(public)/*.tsx`) and the kanban surface itself remain unaudited at the same depth.
 
 ## Done
-<!-- Move items here once complete so the trail is preserved. -->
+- **Fan jest-axe out across every Dialog/Sheet/Drawer** — 6 new axe tests covering new-deal, deal-edit, stale-deal-follow-up, kanban-automation, personal-phone, job-completion. Found and fixed 4 real a11y bugs (heading-order, unlabeled inputs, disconnected SelectTrigger). ResizeObserver polyfill added to setup.ts.
+- **Verify kanban deal-card touch targets on mobile** — audited deal-card and kanban-board. Fixed 6 sub-40px buttons (trash, approve/reject, column header +, bulk delete, cancel, empty-column Add Card).
+- **Audit settings pages** — fixed billing-page typography (raw combos → `app-section-title` / `app-body-secondary` / `app-field-label` / `app-kpi-value`) and integrations-page email overflow (`truncate min-w-0` + `shrink-0` on status dot).
