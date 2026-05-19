@@ -44,17 +44,56 @@
   /* Earlymark — surfaces */
   --color-page: #F7F8FA;
 
-  /* Earlymark — warm homepage palette (homepage sections only, not app) */
+  /*
+   * EARLYMARK WARM PALETTE — design system tokens
+   *
+   * Surface hierarchy (light mode):
+   *   bg-paper  (#F6F4EE) — default page/modal background for CRM app surfaces
+   *   bg-cream  (#F1ECDD) — alternate/accent panel background (one level warmer)
+   *   bg-card   (#FFFFFF) — elevated card surface (white on top of paper)
+   *   bg-sand   (#E9E2CC) — decorative dividers only, not large backgrounds
+   *
+   * Border token:
+   *   --color-hair (#E6E2D7) — use for ALL borders on warm surfaces
+   *   e.g. style={{ borderColor: "#E6E2D7" }} or border class overrides
+   *   Do NOT use border-border (cool gray) on warm surfaces.
+   *
+   * Header rule:
+   *   --color-forest (#16433A) — ALWAYS the top bar background, solid, no glass variant
+   *   --color-forest-dk — darker shade, not needed for top bar
+   *
+   * Text on warm surfaces:
+   *   --color-ink  (#0E1F1A) — primary headings (replaces text-foreground / text-neutral-900)
+   *   --color-ink2 (#3D4A45) — secondary body text on warm backgrounds
+   *
+   * Primary action color:
+   *   #00D28B (mint) — all primary buttons; use rounded-full pill + ink (#0E1F1A) text
+   *   Never use bg-primary class alone — pair with style={{ background: "#00D28B", color: "#0E1F1A" }}
+   *   Mint tint for icon badges / hover highlights: #E0FAF2 bg + #00D28B icon
+   *
+   * DO NOT use bg-paper / bg-cream / bg-forest on marketing/homepage sections
+   * interchangeably — they share tokens but serve different layout roles.
+   */
   --color-paper: #F6F4EE;
   --color-cream: #F1ECDD;
   --color-sand: #E9E2CC;
-  --color-hair: #E6E2D7;
-  --color-forest: #16433A;
+  --color-hair: #E6E2D7;    /* warm border — replaces border-border on warm surfaces */
+  --color-forest: #16433A;  /* top bar bg only */
   --color-forest-dk: #0E2F28;
-  --color-ink: #0E1F1A;
-  --color-ink2: #3D4A45;
+  --color-ink: #0E1F1A;     /* primary heading text on warm surfaces */
+  --color-ink2: #3D4A45;    /* secondary/body text on warm surfaces */
 
-  /* Earlymark — status colors */
+  /*
+   * STATUS COLORS — job/deal stage palette
+   * ALWAYS use ott-status-pill + ott-status-{stage} classes for pills (see utilities below).
+   * Use these raw tokens only for non-pill contexts (charts, icons, borders).
+   *   New request  → status-new      (#4A7CE6 on #E2EAF8)
+   *   Quote sent   → status-quote    (#E89A2B on #FBEFD8)
+   *   Scheduled    → status-scheduled (#00D28B on #E0FAF2)
+   *   Awaiting pmt → status-awaiting (#8B6FE0 on #ECE6FA)
+   *   Completed    → status-complete (#6B7773 on #F0EFED)
+   *   Urgent/overdue → status-urgent (#DC4A4A on #FBDDD9)
+   */
   --color-status-new: #4A7CE6;
   --color-status-new-bg: #E2EAF8;
   --color-status-quote: #E89A2B;
@@ -328,6 +367,22 @@
     color: var(--color-neutral-500);
   }
 
+  /*
+   * TYPOGRAPHY UTILITIES — always prefer these over raw Tailwind text combos
+   *
+   * Hierarchy:
+   *   app-page-title    — h1 page headings (24px bold)
+   *   app-section-title — h2 section/card headings (16px semibold)
+   *   app-panel-title   — card/panel sub-headings (14px semibold)
+   *   app-body-primary  — primary body copy (14px)
+   *   app-body-secondary— muted/secondary body (14px muted)
+   *   app-field-label   — form labels, metadata keys (11px uppercase tracking)
+   *   app-micro-label   — tiny section labels (12px uppercase tracking)
+   *   app-kpi-value     — large metric numbers (20px extrabold)
+   *
+   * Floor rule: never use text-[10px] or text-[11px] for customer-facing text.
+   * Minimum: text-xs (12px) for metadata, text-sm (14px) for body content.
+   */
   .app-page-title {
     @apply text-2xl font-bold tracking-tight text-neutral-900;
   }
@@ -368,10 +423,11 @@
     @apply h-10 rounded-full px-4 text-sm font-semibold;
   }
 
-  /* Corner radius harmonization
-   * Some pages/components use Tailwind's `rounded*` classes directly (e.g. `rounded`,
-   * `rounded-lg`, `rounded-xl`). Force them to align with the shared `--radius`
-   * token so the "standard base radius = 18px" is visually consistent everywhere.
+  /*
+   * CORNER RADIUS — all rounded-* classes resolve to 18px (--radius).
+   * CANONICAL CHOICE: always write rounded-md. Never use rounded-[18px] or rounded-xl.
+   * Exception: rounded-full (9999px) for pill buttons and avatar circles.
+   * The !important overrides below enforce this on all existing classes.
    */
   .rounded-sm,
   .rounded,

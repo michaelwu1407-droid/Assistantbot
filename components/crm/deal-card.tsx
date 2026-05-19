@@ -322,6 +322,21 @@ export function DealCard({
         : statusLabel
 
   /** Left side only - under the 3C overlay (tint + label may cover this). */
+  const assigneeInitial = deal.assignedToName?.trim()?.[0]?.toUpperCase() ?? null
+  const assigneeAvatar = (
+    <span
+      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold leading-none select-none"
+      title={assigneeLabel}
+      style={
+        assigneeInitial
+          ? { background: "#E0FAF2", color: "#00D28B" }
+          : { background: "#F0EFED", color: "#6B7773" }
+      }
+    >
+      {assigneeInitial ?? "—"}
+    </span>
+  )
+
   const assigneeControl =
     onAssign && teamMembers.length > 0 && !overlay ? (
       <DropdownMenu>
@@ -329,10 +344,10 @@ export function DealCard({
           <button
             type="button"
             data-no-card-click
-            className="min-w-0 truncate text-left text-xs font-semibold text-foreground transition-colors hover:text-primary"
+            className="flex items-center transition-opacity hover:opacity-70"
             onClick={(e) => e.stopPropagation()}
           >
-            {assigneeLabel}
+            {assigneeAvatar}
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
@@ -356,19 +371,15 @@ export function DealCard({
         </DropdownMenuContent>
       </DropdownMenu>
     ) : (
-      <span className="min-w-0 truncate text-xs font-semibold text-foreground">
-        {assigneeLabel}
-      </span>
+      assigneeAvatar
     )
 
   const footerPriceLeftOnly = (
-    <div className="flex min-w-0 items-center gap-2.5">
+    <div className="flex items-center gap-2.5">
       <span className="shrink-0 text-xs font-bold text-foreground leading-none">
         {deal.invoicedAmount !== undefined ? formatCurrency(deal.invoicedAmount) : formatCurrency(deal.value)}
       </span>
-      <div className="min-w-0 flex-1">
-        {assigneeControl}
-      </div>
+      {assigneeControl}
     </div>
   )
 
