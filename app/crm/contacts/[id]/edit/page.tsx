@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
 import { ContactForm } from "@/components/crm/contact-form";
+import { MobileHeader } from "@/components/mobile/_primitives/mobile-header";
 
 export const dynamic = "force-dynamic";
 
@@ -41,12 +42,15 @@ export default async function EditContactPage({ params }: PageProps) {
   }
 
   return (
-    <ContactForm
-      mode="edit"
-      contact={{
-        ...contact,
-        metadata: (contact.metadata as Record<string, unknown> | null) ?? undefined,
-      }}
-    />
+    <>
+      <MobileHeader pageTitle="Edit Contact" />
+      <ContactForm
+        mode="edit"
+        contact={{
+          ...contact,
+          metadata: (contact.metadata as Record<string, unknown> | null) ?? undefined,
+        }}
+      />
+    </>
   );
 }

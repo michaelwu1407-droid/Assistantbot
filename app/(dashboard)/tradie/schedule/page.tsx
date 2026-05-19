@@ -3,6 +3,7 @@ import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { getAuthUserId } from "@/lib/auth"
 import SchedulerView from "@/components/scheduler/scheduler-view"
 import { redirect } from "next/navigation"
+import { MobileHeader } from "@/components/mobile/_primitives/mobile-header"
 
 export const dynamic = "force-dynamic"
 
@@ -36,8 +37,11 @@ export default async function SchedulerPage() {
     }
 
     return (
+        <>
+        <MobileHeader pageTitle="Schedule" />
         <div className="h-[calc(100vh-4rem)]">
             <SchedulerView initialJobs={jobs} />
         </div>
+        </>
     )
 }

@@ -8,6 +8,7 @@ import { DealEditForm } from "./deal-edit-form"
 import { PRISMA_STAGE_TO_UI_STAGE, STAGE_OPTIONS } from "@/lib/deal-utils"
 import { getDealRecurrence } from "@/actions/deal-actions"
 import { resolveWorkspaceTimezone, toDateTimeLocalValue } from "@/lib/timezone"
+import { MobileHeader } from "@/components/mobile/_primitives/mobile-header"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -48,8 +49,10 @@ export default async function DealEditPage({ params }: PageProps) {
   const stage = PRISMA_STAGE_TO_UI_STAGE[deal.stage] ?? "new_request"
 
   return (
+    <>
+    <MobileHeader pageTitle="Edit Job" />
     <div className="flex flex-col max-w-2xl mx-auto p-4 md:p-6 gap-6 min-h-0 overflow-y-auto">
-      <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm text-muted-foreground">
+      <nav aria-label="Breadcrumb" className="hidden md:flex items-center gap-1 text-sm text-muted-foreground">
         <Link href="/crm/dashboard" className="inline-flex items-center gap-1 hover:text-foreground transition-colors">
           <Home className="h-4 w-4" />
           Dashboard
@@ -62,7 +65,7 @@ export default async function DealEditPage({ params }: PageProps) {
         <span className="font-medium text-foreground">Edit</span>
       </nav>
 
-      <div className="flex items-center gap-4">
+      <div className="hidden md:flex items-center gap-4">
         <Link
           href={`/crm/deals/${id}`}
           className="h-10 w-10 inline-flex items-center justify-center rounded-lg hover:bg-muted text-foreground transition-colors"
@@ -89,5 +92,6 @@ export default async function DealEditPage({ params }: PageProps) {
         initialRecurrence={recurrence}
       />
     </div>
+    </>
   )
 }

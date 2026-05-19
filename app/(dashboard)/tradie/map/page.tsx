@@ -1,8 +1,9 @@
 import { getTradieJobs } from "@/actions/tradie-actions"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { getAuthUserId } from "@/lib/auth"
-import MapView from "@/components/map/map-view-client"
+import { MapPageClient } from "@/components/map/map-page-client"
 import { redirect } from "next/navigation"
+import type { Job } from "@/components/map/map-view"
 
 export const dynamic = "force-dynamic"
 
@@ -37,8 +38,8 @@ export default async function TradieMapPage() {
     }
 
     return (
-        <div className="h-[calc(100vh-4rem)] w-full">
-            <MapView jobs={jobs} />
+        <div className="h-full w-full">
+            <MapPageClient jobs={jobs as Job[]} />
         </div>
     )
 }
