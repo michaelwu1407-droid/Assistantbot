@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
 import { ContactForm } from "@/components/crm/contact-form";
+import { MobileHeader } from "@/components/mobile/_primitives/mobile-header";
 
 export const dynamic = "force-dynamic";
 
@@ -16,5 +17,10 @@ export default async function NewContactPage() {
     redirect("/crm/dashboard");
   }
 
-  return <ContactForm mode="create" workspaceId={actor.workspaceId} />;
+  return (
+    <>
+      <MobileHeader pageTitle="New Contact" />
+      <ContactForm mode="create" workspaceId={actor.workspaceId} />
+    </>
+  );
 }

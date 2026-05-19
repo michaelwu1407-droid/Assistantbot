@@ -2,6 +2,7 @@ import { getDeals } from "@/actions/deal-actions";
 import { EstimatorForm } from "@/components/tradie/estimator-form";
 import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
 import { redirect } from "next/navigation";
+import { MobileHeader } from "@/components/mobile/_primitives/mobile-header";
 
 export const dynamic = "force-dynamic";
 
@@ -21,9 +22,11 @@ export default async function TradieEstimatorPage() {
     .map((deal) => ({ id: deal.id, title: deal.title }));
 
   return (
+    <>
+    <MobileHeader pageTitle="Estimator" />
     <div className="min-h-[calc(100vh-4rem)] bg-muted/30 px-4 py-6 md:px-6">
       <div className="mx-auto max-w-3xl space-y-4">
-        <div className="space-y-2">
+        <div className="hidden md:block space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Tradie Tools</p>
           <h1 className="text-3xl font-bold text-foreground">Estimator</h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
@@ -43,5 +46,6 @@ export default async function TradieEstimatorPage() {
         )}
       </div>
     </div>
+    </>
   );
 }

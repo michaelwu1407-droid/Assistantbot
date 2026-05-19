@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { redirect } from 'next/navigation';
-import { Shell } from '@/components/layout/Shell';
+import { ShellHost } from '@/components/layout/shell-host';
 import { OnboardingModal } from "@/components/dashboard/onboarding-modal";
 import { DeferredChatInterface } from "@/components/chatbot/deferred-chat-interface";
 import { ShellInitializer } from "@/components/layout/shell-initializer";
@@ -66,10 +66,10 @@ export default async function DashboardLayout({
         workspaceIndustryType={workspaceIndustryType}
       />
       <Suspense fallback={<div className="h-screen w-full bg-background flex items-center justify-center"><div className="animate-pulse text-muted-foreground">Loading...</div></div>}>
-        <Shell chatbot={<DeferredChatInterface workspaceId={workspaceId} />}>
+        <ShellHost chatbot={<DeferredChatInterface workspaceId={workspaceId} />}>
           <OnboardingModal />
           {children}
-        </Shell>
+        </ShellHost>
       </Suspense>
       <Toaster />
       <DashboardClientChrome />

@@ -9,9 +9,8 @@ import { TutorialOverlay } from "@/components/tutorial/tutorial-overlay"
 import { Sidebar } from "@/components/core/sidebar"
 import { MobileSidebar } from "@/components/layout/mobile-sidebar"
 // Switch import removed — using segmented control buttons instead
-import { Layers, MessageSquare, Menu } from "lucide-react"
+import { Layers, MessageSquare } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import type { ImperativePanelGroupHandle, ImperativePanelHandle } from "react-resizable-panels"
 import { DashboardMainChrome } from "@/components/dashboard/dashboard-main-chrome"
 
@@ -68,7 +67,6 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
   const assistantResizeFrameRef = useRef<number | null>(null)
   const pendingAssistantSizeRef = useRef<number | null>(null)
   const [assistantHandleDragging, setAssistantHandleDragging] = useState(false)
-  const [mobileChatOpen, setMobileChatOpen] = useState(false)
   const recentAssistantDragRef = useRef(false)
   const recentAssistantDragTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const assistantPillDragRef = useRef<{
@@ -496,22 +494,6 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
             </div>
           </div>
 
-          {/* Mobile: floating nav + chat buttons */}
-          <div className="md:hidden fixed bottom-5 right-5 z-[10000] flex flex-col gap-2 items-end">
-            {/* Chat FAB - opens a sheet on mobile */}
-            {chatbot && (
-              <button
-                type="button"
-                onClick={() => setMobileChatOpen(true)}
-                className="flex h-12 w-12 items-center justify-center rounded-full bg-primary shadow-lg hover:bg-primary/90 hover:shadow-xl transition-all focus:outline-none animate-bounce-gentle"
-                title="Open chat"
-                aria-label="Open chat"
-              >
-                <MessageSquare className="h-5 w-5 text-white" />
-              </button>
-            )}
-          </div>
-
           {/* Desktop: chat FAB when panel is collapsed */}
           {chatbot && !chatbotExpanded && (
             <button
@@ -529,32 +511,6 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
               <MessageSquare className="h-5 w-5 text-white" />
             </button>
           )}
-
-          {/* Mobile: hamburger menu - fixed bottom-left for navigation on non-dashboard pages */}
-          <button
-            type="button"
-            onClick={() => useShellStore.getState().setMobileMenuOpen(true)}
-            className="md:hidden fixed bottom-5 left-5 z-[10000] flex h-12 w-12 items-center justify-center rounded-full bg-primary shadow-lg hover:bg-primary/90 hover:shadow-xl transition-all focus:outline-none"
-            title="Open navigation"
-            aria-label="Open navigation menu"
-          >
-            <Menu className="h-5 w-5 text-white" />
-          </button>
-
-          {/* Mobile Chat Sheet */}
-          <Sheet open={mobileChatOpen} onOpenChange={setMobileChatOpen}>
-            <SheetContent side="bottom" className="h-[85dvh] p-0 flex flex-col">
-              <SheetHeader className="shrink-0 flex flex-row items-center px-4 py-3 border-b border-border/50">
-                <SheetTitle className="flex items-center gap-2 text-sm font-semibold">
-                  <MessageSquare className="h-4 w-4 text-primary" />
-                  AI Assistant
-                </SheetTitle>
-              </SheetHeader>
-              <div id="mobile-assistant-pane" className="flex-1 min-h-0 flex flex-col overflow-hidden">
-                {!isDesktop && mobileChatOpen ? chatbot : null}
-              </div>
-            </SheetContent>
-          </Sheet>
         </div>
       )}
     </div>

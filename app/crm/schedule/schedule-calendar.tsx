@@ -5,6 +5,8 @@ import { startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, ad
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { DealView } from "@/actions/deal-actions"
+import { useIsMobile } from "@/hooks/use-is-mobile"
+import { ScheduleMobile } from "@/components/mobile/schedule/schedule-mobile"
 import { cn } from "@/lib/utils"
 import { DealDetailModal } from "@/components/crm/deal-detail-modal"
 import { ChevronLeft, ChevronRight } from "lucide-react"
@@ -45,6 +47,10 @@ interface ScheduleCalendarProps {
 const DAY_HOURS = Array.from({ length: 15 }, (_, index) => index + 6)
 
 export function ScheduleCalendar({ deals, teamMembers, workspaceTimezone, initialDate }: ScheduleCalendarProps) {
+  const isMobile = useIsMobile()
+  if (isMobile) {
+    return <ScheduleMobile deals={deals} />
+  }
   const router = useRouter()
   const [current, setCurrent] = useState(() => initialDate ?? new Date())
   const [view, setView] = useState<ViewMode>("month")

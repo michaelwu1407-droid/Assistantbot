@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import type { ActivityView } from "@/actions/activity-actions"
 import { useShellStore } from "@/lib/store"
+import { useIsMobile } from "@/hooks/use-is-mobile"
+import { InboxMobile } from "@/components/mobile/inbox/inbox-mobile"
 import { TUTORIAL_STEPS } from "@/components/tutorial/tutorial-steps"
 import { cn } from "@/lib/utils"
 import {
@@ -177,6 +179,10 @@ export function InboxView({
   workspaceId,
   initialContactId = null,
 }: InboxViewProps) {
+  const isMobile = useIsMobile()
+  if (isMobile) {
+    return <InboxMobile interactions={initialInteractions} contactSegment={contactSegment} />
+  }
   const router = useRouter()
   const { viewMode, tutorialStepIndex } = useShellStore()
   const isTutorialInboxStep = viewMode === "TUTORIAL" && TUTORIAL_STEPS[tutorialStepIndex]?.id === "nav-inbox"

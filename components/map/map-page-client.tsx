@@ -6,6 +6,8 @@ import Link from "next/link"
 import { AlertCircle, MapPinned } from "lucide-react"
 import { GoogleMapView } from "@/components/map/google-map-view"
 import type { Job } from "@/components/map/map-view"
+import { useIsMobile } from "@/hooks/use-is-mobile"
+import { MapMobile } from "@/components/mobile/map/map-mobile"
 
 const LeafletMapView = dynamic(() => import("@/components/map/map-view"), {
   ssr: false,
@@ -17,9 +19,12 @@ const LeafletMapView = dynamic(() => import("@/components/map/map-view"), {
 })
 
 export function MapPageClient({ jobs }: { jobs: Job[] }) {
+  const isMobile = useIsMobile()
   const hasGoogleKey = !!(process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "").trim()
   const [useGoogleMaps, setUseGoogleMaps] = useState(hasGoogleKey)
   const [fellBackToLeaflet, setFellBackToLeaflet] = useState(false)
+
+  if (isMobile) return <MapMobile jobs={jobs} />
 
   if (jobs.length === 0) {
     return (

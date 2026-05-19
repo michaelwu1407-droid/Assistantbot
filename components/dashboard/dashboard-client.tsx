@@ -3,6 +3,8 @@
 import { useState, useEffect, useMemo, useCallback } from "react"
 import { KanbanBoard } from "@/components/crm/kanban-board"
 import { DashboardKpiCards } from "@/components/dashboard/dashboard-kpi-cards"
+import { PipelineMobile } from "@/components/mobile/pipeline/pipeline-mobile"
+import { useIsMobile } from "@/hooks/use-is-mobile"
 import { DealView } from "@/actions/deal-actions"
 import { WorkspaceView } from "@/actions/workspace-actions"
 import { ensureDailyNotifications } from "@/actions/notification-actions"
@@ -55,7 +57,11 @@ interface DashboardClientProps {
     userId: string
 }
 
-export function DashboardClient({ workspace, deals, teamMembers }: DashboardClientProps) {
+export function DashboardClient({ workspace, deals, teamMembers, userName }: DashboardClientProps) {
+    const isMobile = useIsMobile()
+    if (isMobile) {
+        return <PipelineMobile workspace={workspace} deals={deals} userName={userName} />
+    }
     const FILTER_ALL = "__all__"
     const FILTER_UNASSIGNED = "__unassigned__"
     const PRESETS_KEY = `kanban-filter-presets:${workspace.id}`

@@ -10,6 +10,7 @@ import { format } from "date-fns"
 import { PRISMA_STAGE_LABELS } from "@/lib/deal-utils"
 import { formatCurrency, formatShortDate } from "@/lib/format"
 import { getActivities } from "@/actions/activity-actions"
+import { MobileHeader } from "@/components/mobile/_primitives/mobile-header"
 
 export const dynamic = "force-dynamic"
 
@@ -71,8 +72,21 @@ export default async function ContactDetailPage({ params }: PageProps) {
     : rawActivities
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] p-4 md:p-6 gap-4 overflow-hidden">
-      <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm text-muted-foreground">
+    <>
+    <MobileHeader
+      pageTitle={contact.name}
+      rightSlot={
+        <Link
+          href={`/crm/contacts/${id}/edit`}
+          aria-label="Edit contact"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-700/60 text-white"
+        >
+          <Edit className="h-4 w-4" />
+        </Link>
+      }
+    />
+    <div className="flex flex-col md:h-[calc(100vh-4rem)] p-4 md:p-6 gap-4 md:overflow-hidden">
+      <nav aria-label="Breadcrumb" className="hidden md:flex items-center gap-1 text-sm text-muted-foreground">
         <Link href="/crm/dashboard" className="inline-flex items-center gap-1 hover:text-foreground transition-colors">
           <Home className="h-4 w-4" />
           Dashboard
@@ -83,7 +97,7 @@ export default async function ContactDetailPage({ params }: PageProps) {
         <span className="font-medium text-foreground">{contact.name}</span>
       </nav>
 
-      <div className="flex items-center justify-between shrink-0">
+      <div className="hidden md:flex items-center justify-between shrink-0">
         <div className="flex items-center gap-4">
           <Link
             href="/crm/dashboard"
@@ -130,7 +144,7 @@ export default async function ContactDetailPage({ params }: PageProps) {
         Recent notes and jobs stay on this page. Open the customer timeline for the full SMS, email, and call correspondence.
       </div>
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0 overflow-y-auto">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0 md:overflow-y-auto">
         {/* Left: Contact/Business details + Current job */}
         <div className="lg:col-span-1 flex flex-col gap-4">
           {contactType === "BUSINESS" ? (
@@ -410,5 +424,6 @@ export default async function ContactDetailPage({ params }: PageProps) {
         </div>
       </div>
     </div>
+    </>
   )
 }
