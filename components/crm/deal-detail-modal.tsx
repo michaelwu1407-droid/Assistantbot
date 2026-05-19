@@ -3,7 +3,7 @@
 import Image from "next/image"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { ActivityFeed } from "@/components/crm/activity-feed"
 import { DealNotes } from "@/components/crm/deal-notes"
@@ -112,8 +112,11 @@ export function DealDetailModal({ dealId, open, onOpenChange, currentUserRole = 
         onOpenChange(nextOpen)
       }}
     >
-      <DialogContent className="ott-dialog max-w-[1440px] h-[90vh] overflow-hidden flex flex-col p-0 gap-0" aria-describedby={undefined}>
+      <DialogContent className="ott-dialog max-w-[1440px] h-[90vh] overflow-hidden flex flex-col p-0 gap-0">
         <DialogTitle className="sr-only">Deal details</DialogTitle>
+        <DialogDescription className="sr-only">
+          View and edit the job details, activity timeline, notes, and follow-up actions for this deal.
+        </DialogDescription>
         {loading && (
           <div className="flex items-center justify-center flex-1 min-h-[200px]">
             <p className="text-muted-foreground">Loading...</p>
@@ -395,7 +398,7 @@ function DealDetailContent({
               type="button"
               size="icon"
               variant="ghost"
-              className="h-8 w-8 text-white hover:bg-card/20"
+              className="h-10 w-10 text-white hover:bg-card/20"
               aria-label="Dismiss overdue warning"
               onClick={() => setOverdueDismissed(true)}
             >

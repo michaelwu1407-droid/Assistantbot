@@ -209,10 +209,10 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
 
                             <div className="space-y-4 py-2 flex-1 overflow-y-auto px-2">
                                 {/* ── Invoice Verifier Section ── */}
-                                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-4">
-                                    <h3 className="text-sm font-bold text-blue-900 flex items-center gap-2">
-                                        <FileText className="h-4 w-4 text-blue-600" />
-                                        Invoice Verifier
+                                <div className="rounded-md border border-border bg-muted/30 p-4 space-y-4">
+                                    <h3 className="app-panel-title flex items-center gap-2">
+                                        <FileText className="h-4 w-4 text-primary" />
+                                        Invoice verifier
                                     </h3>
 
                                     {/* Labor Hours */}

@@ -10,6 +10,7 @@ const {
   recordCallbackEvent,
   assessInboundLeadGuard,
   recordInboundLeadGuardEvent,
+  runIdempotent,
 } = vi.hoisted(() => ({
   db: {
     contact: { create: vi.fn() },
@@ -24,7 +25,10 @@ const {
   recordCallbackEvent: vi.fn(),
   assessInboundLeadGuard: vi.fn(),
   recordInboundLeadGuardEvent: vi.fn(),
+  runIdempotent: vi.fn(),
 }));
+
+vi.mock("@/lib/idempotency", () => ({ runIdempotent }));
 
 vi.mock("@/lib/db", () => ({ db }));
 vi.mock("@/lib/workspace-routing", () => ({
@@ -77,6 +81,10 @@ describe("POST /api/webhooks/twilio-voice-status", () => {
     recordCallbackEvent.mockResolvedValue(undefined);
     assessInboundLeadGuard.mockResolvedValue({ blocked: false, payload: null });
     recordInboundLeadGuardEvent.mockResolvedValue(undefined);
+    runIdempotent.mockImplementation(async ({ resultFactory }: { resultFactory: () => Promise<unknown> }) => {
+      const result = await resultFactory();
+      return { idempotencyKey: "k", created: true, result };
+    });
   });
 
   it("creates a deal and queues a callback when the inbound dial gets no answer", async () => {
@@ -172,13 +180,24 @@ describe("POST /api/webhooks/twilio-voice-status", () => {
     expect(scheduleLeadCallback).not.toHaveBeenCalled();
   });
 
-  it("is idempotent — the same CallSid does not create duplicate deals", async () => {
+  it("is idempotent — the same CallSid does not create duplicate deals or schedule a second callback", async () => {
     findWorkspaceByTwilioNumber.mockResolvedValue({
       id: "ws_1",
       voiceEnabled: true,
-      settings: {},
+      autoCallLeads: true,
+      autoCallDelaySec: 90,
+      agentMode: "EXECUTION",
+      twilioPhoneNumber: "+61411111111",
+      settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
     });
-    db.webhookEvent.findFirst.mockResolvedValue({ id: "evt_1" });
+    // Simulate the duplicate-delivery case: runIdempotent returns
+    // created:false because the first invocation already claimed the
+    // CallSid. The route must NOT re-create the deal or re-schedule.
+    runIdempotent.mockResolvedValue({
+      idempotencyKey: "k",
+      created: false,
+      result: { contactId: "contact_1", dealId: "deal_1" },
+    });
 
     const response = await POST(
       buildRequest({
@@ -192,5 +211,33 @@ describe("POST /api/webhooks/twilio-voice-status", () => {
     expect(response.status).toBe(200);
     expect(db.deal.create).not.toHaveBeenCalled();
     expect(scheduleLeadCallback).not.toHaveBeenCalled();
+  });
+
+  it("routes the missed-call processing through runIdempotent keyed on CallSid", async () => {
+    findWorkspaceByTwilioNumber.mockResolvedValue({
+      id: "ws_1",
+      voiceEnabled: true,
+      autoCallLeads: true,
+      autoCallDelaySec: 90,
+      agentMode: "EXECUTION",
+      twilioPhoneNumber: "+61411111111",
+      settings: { callAllowedStart: "00:00", callAllowedEnd: "23:59" },
+    });
+    findContactByPhone.mockResolvedValue({ id: "contact_1", name: "Caller" });
+    db.deal.create.mockResolvedValue({ id: "deal_1" });
+
+    await POST(
+      buildRequest({
+        From: "+61400000000",
+        To: "+61411111111",
+        DialCallStatus: "no-answer",
+        CallSid: "CA-XYZ",
+      }),
+    );
+
+    expect(runIdempotent).toHaveBeenCalledTimes(1);
+    const args = runIdempotent.mock.calls[0][0];
+    expect(args.actionType).toBe("TWILIO_MISSED_CALL");
+    expect(args.parts).toEqual(["CA-XYZ"]);
   });
 });

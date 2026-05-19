@@ -1,21 +1,32 @@
 import { NextResponse } from "next/server"
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access"
 import { searchContacts } from "@/actions/contact-actions"
 
 export async function POST(request: Request) {
+  let actor
   try {
-    const body = await request.json()
-    const workspaceId = typeof body?.workspaceId === "string" ? body.workspaceId : ""
-    const query = typeof body?.query === "string" ? body.query : ""
+    actor = await requireCurrentWorkspaceAccess()
+  } catch {
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
+  }
 
-    if (!workspaceId) {
-      return NextResponse.json({ success: false, error: "workspaceId is required" }, { status: 400 })
-    }
+  let body: unknown
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ success: false, error: "Invalid JSON" }, { status: 400 })
+  }
 
-    if (!query.trim()) {
-      return NextResponse.json({ results: [] })
-    }
+  const query = (body && typeof body === "object" && typeof (body as Record<string, unknown>).query === "string")
+    ? ((body as Record<string, unknown>).query as string)
+    : ""
 
-    const results = await searchContacts(workspaceId, query)
+  if (!query.trim()) {
+    return NextResponse.json({ results: [] })
+  }
+
+  try {
+    const results = await searchContacts(actor.workspaceId, query)
     return NextResponse.json({ results })
   } catch (error) {
     console.error("POST /api/contacts/search failed:", error)

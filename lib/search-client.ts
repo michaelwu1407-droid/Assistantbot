@@ -1,13 +1,13 @@
 import type { SearchResultItem } from "@/lib/search-types"
 
-export async function globalSearchClient(workspaceId: string, query: string): Promise<SearchResultItem[]> {
+export async function globalSearchClient(query: string): Promise<SearchResultItem[]> {
   const trimmedQuery = query.trim()
-  if (!workspaceId || trimmedQuery.length < 2) return []
+  if (trimmedQuery.length < 2) return []
 
   const response = await fetch("/api/search/global", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ workspaceId, query: trimmedQuery }),
+    body: JSON.stringify({ query: trimmedQuery }),
   })
 
   if (!response.ok) {

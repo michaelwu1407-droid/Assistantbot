@@ -198,6 +198,8 @@ export async function processBookingReminders(): Promise<{
     const windowStart = new Date(now.getTime() + 23 * 60 * 60 * 1000);
     const windowEnd = new Date(now.getTime() + 25 * 60 * 60 * 1000);
 
+    // Cap per-workspace fan-out so one busy workspace cannot fill an
+    // entire cron invocation with hundreds of SMS sends.
     const upcomingJobs = await db.deal.findMany({
       where: {
         workspaceId: rule.workspaceId,
@@ -212,6 +214,8 @@ export async function processBookingReminders(): Promise<{
           select: { id: true, name: true, phone: true, email: true },
         },
       },
+      orderBy: { scheduledAt: "asc" },
+      take: 100,
     });
 
     const workspace = await db.workspace.findUnique({

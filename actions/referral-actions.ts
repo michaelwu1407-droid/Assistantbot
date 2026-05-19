@@ -285,22 +285,52 @@ async function applyHalfPriceMonthsToReferrer(referrerUserId: string, earnedMont
     name: `Earlymark referral 50% off (${totalMonths} month${totalMonths === 1 ? "" : "s"})`,
   });
 
-  await stripe.subscriptions.update(workspace.stripeSubscriptionId, {
-    discounts: [{ coupon: coupon.id }],
-    proration_behavior: "none",
-  });
+  try {
+    await stripe.subscriptions.update(workspace.stripeSubscriptionId, {
+      discounts: [{ coupon: coupon.id }],
+      proration_behavior: "none",
+    });
+  } catch (err) {
+    // The coupon exists in Stripe but never got attached to a
+    // subscription — compensate by deleting it so it can't be
+    // hand-applied later, then re-throw so the caller can retry.
+    await stripe.coupons.del(coupon.id).catch((delErr) => {
+      console.error(
+        "[applyHalfPriceMonthsToReferrer] failed to delete orphan coupon after subscription update failed:",
+        coupon.id,
+        delErr instanceof Error ? delErr.message : delErr,
+      );
+    });
+    throw err;
+  }
 
-  const settings = (workspace.settings as Record<string, unknown>) ?? {};
-  await db.workspace.update({
-    where: { id: workspace.id },
-    data: {
-      settings: {
-        ...settings,
-        referralHalfPriceMonthsRemaining: totalMonths,
-        referralLastAppliedAt: new Date().toISOString(),
+  try {
+    const settings = (workspace.settings as Record<string, unknown>) ?? {};
+    await db.workspace.update({
+      where: { id: workspace.id },
+      data: {
+        settings: {
+          ...settings,
+          referralHalfPriceMonthsRemaining: totalMonths,
+          referralLastAppliedAt: new Date().toISOString(),
+          referralLastCouponId: coupon.id,
+        },
       },
-    },
-  });
+    });
+  } catch (err) {
+    // The customer keeps their discount (do NOT compensate by
+    // detaching), but our DB row is now out of sync. Log loudly
+    // so ops can reconcile from the coupon id stored in Stripe.
+    console.error(
+      "[applyHalfPriceMonthsToReferrer] subscription updated but DB write failed — coupon",
+      coupon.id,
+      "is live on subscription",
+      workspace.stripeSubscriptionId,
+      "without a DB record. Manual reconciliation required.",
+      err instanceof Error ? err.message : err,
+    );
+    throw err;
+  }
 
   return { success: true, totalMonths };
 }

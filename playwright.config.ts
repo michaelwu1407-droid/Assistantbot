@@ -28,7 +28,38 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
+      testIgnore: /visual\//,
       use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      // Visual regression: lock viewport, slow animations off, narrow
+      // pixel-diff tolerance. Snapshot baselines live next to specs and
+      // ARE checked in — regenerate with `npm run test:visual:update`.
+      name: "visual",
+      testMatch: /visual\/.*\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1280, height: 800 },
+      },
+      expect: {
+        toHaveScreenshot: {
+          maxDiffPixelRatio: 0.01,
+          animations: "disabled",
+        },
+      },
+    },
+    {
+      name: "visual-mobile",
+      testMatch: /visual\/.*\.spec\.ts/,
+      use: {
+        ...devices["iPhone 13"],
+      },
+      expect: {
+        toHaveScreenshot: {
+          maxDiffPixelRatio: 0.01,
+          animations: "disabled",
+        },
+      },
     },
   ],
   webServer: {

@@ -19,7 +19,10 @@ const hoisted = vi.hoisted(() => ({
   isVoiceAgentSecretAuthorized: vi.fn(),
   syncVoiceCallToCRM: vi.fn(),
   recordCallbackEvent: vi.fn(),
+  runIdempotent: vi.fn(),
 }));
+
+vi.mock("@/lib/idempotency", () => ({ runIdempotent: hoisted.runIdempotent }));
 
 vi.mock("@/lib/db", () => ({
   db: hoisted.db,
@@ -61,6 +64,10 @@ describe("POST /api/internal/voice-calls", () => {
       skipped: false,
     });
     hoisted.recordCallbackEvent.mockResolvedValue(undefined);
+    hoisted.runIdempotent.mockImplementation(async ({ resultFactory }: { resultFactory: () => Promise<unknown> }) => {
+      const result = await resultFactory();
+      return { idempotencyKey: "k", created: true, result };
+    });
   });
 
   function makePayload(overrides: Record<string, unknown> = {}) {
@@ -139,6 +146,7 @@ describe("POST /api/internal/voice-calls", () => {
     );
     await expect(response.json()).resolves.toEqual({
       success: true,
+      duplicate: false,
       crmSync: {
         contactId: "contact_1",
         dealId: "deal_1",
@@ -147,6 +155,31 @@ describe("POST /api/internal/voice-calls", () => {
         skipped: false,
       },
     });
+  });
+
+  it("on duplicate webhook delivery, returns the cached crmSync result and runs no side effects", async () => {
+    hoisted.runIdempotent.mockResolvedValueOnce({
+      idempotencyKey: "k",
+      created: false,
+      result: {
+        crmSync: { contactId: "contact_1", dealId: "deal_1", contactCreated: false, dealCreated: false, skipped: false },
+      },
+    });
+
+    const response = await POST(
+      new NextRequest("https://earlymark.ai/api/internal/voice-calls", {
+        method: "POST",
+        headers: { "x-voice-agent-secret": "secret" },
+        body: JSON.stringify(makePayload({ callId: "call_dup" })),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(hoisted.syncVoiceCallToCRM).not.toHaveBeenCalled();
+    expect(hoisted.recordCallbackEvent).not.toHaveBeenCalled();
+    expect(hoisted.db.task.create).not.toHaveBeenCalled();
+    expect(hoisted.db.activity.create).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toMatchObject({ duplicate: true });
   });
 
   it("creates an urgent callback task for new escalated calls", async () => {

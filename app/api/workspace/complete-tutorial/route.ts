@@ -1,16 +1,17 @@
 import { NextResponse } from "next/server"
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access"
 import { completeTutorial } from "@/actions/workspace-actions"
 
-export async function POST(request: Request) {
+export async function POST() {
+  let actor
   try {
-    const body = await request.json()
-    const workspaceId = typeof body?.workspaceId === "string" ? body.workspaceId : ""
+    actor = await requireCurrentWorkspaceAccess()
+  } catch {
+    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
+  }
 
-    if (!workspaceId) {
-      return NextResponse.json({ success: false, error: "workspaceId is required" }, { status: 400 })
-    }
-
-    await completeTutorial(workspaceId)
+  try {
+    await completeTutorial(actor.workspaceId)
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("POST /api/workspace/complete-tutorial failed:", error)

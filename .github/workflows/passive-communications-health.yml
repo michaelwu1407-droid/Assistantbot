@@ -1,6 +1,10 @@
 name: Passive Communications Health
 
 on:
+  schedule:
+    # Every 30 min, staggered against the other health monitors so the
+    # fleet doesn't stampede the API on the same minute.
+    - cron: "17,47 * * * *"
   workflow_dispatch:
 
 jobs:

@@ -229,7 +229,7 @@ describe("StaleDealFollowUpModal", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /Phone Call \(schedule reminder\)/i }));
+    await user.click(screen.getByRole("radio", { name: /Phone call/i }));
 
     await user.type(screen.getByLabelText(/When to call/i), "2026-04-20T09:30");
     await user.type(screen.getByLabelText(/Call notes/i), "Check whether the quote is still in play.");

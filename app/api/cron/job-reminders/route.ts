@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     console.log(`🔐 [API] Checking authorization...`);
     
     if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-      console.error(`❌ [API] Unauthorized cron job attempt. Header: ${authHeader?.substring(0, 20)}...`);
+      console.error(`❌ [API] Unauthorized cron job attempt. Header present: ${Boolean(authHeader)}`);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

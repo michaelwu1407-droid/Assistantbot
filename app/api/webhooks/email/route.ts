@@ -1,10 +1,25 @@
 import { NextResponse } from "next/server"
+import { timingSafeEqual } from "crypto"
 import { db } from "@/lib/db"
 import { createGoogleGenerativeAI } from "@ai-sdk/google"
 import { generateObject } from "ai"
 import { z } from "zod"
 import { classifyMessage } from "@/lib/spam-classifier"
 import { findWorkspaceByInboundEmail } from "@/lib/workspace-routing"
+
+function verifyEmailWebhookSecret(req: Request): { ok: boolean; reason?: "missing-config" | "missing-header" | "mismatch" } {
+    const configured = (process.env.EMAIL_WEBHOOK_SECRET || "").trim()
+    if (!configured) return { ok: false, reason: "missing-config" }
+
+    const provided = (req.headers.get("x-email-webhook-secret") || "").trim()
+    if (!provided) return { ok: false, reason: "missing-header" }
+
+    const a = Buffer.from(configured)
+    const b = Buffer.from(provided)
+    if (a.length !== b.length) return { ok: false, reason: "mismatch" }
+    if (!timingSafeEqual(a, b)) return { ok: false, reason: "mismatch" }
+    return { ok: true }
+}
 
 // ─── Lead Provider Patterns (Tier 1) ────────────────────────────────
 const LEAD_PROVIDERS: Record<string, RegExp> = {
@@ -32,6 +47,15 @@ const LEAD_KEYWORDS = [
 ]
 
 export async function POST(req: Request) {
+    const verification = verifyEmailWebhookSecret(req)
+    if (!verification.ok) {
+        if (verification.reason === "missing-config") {
+            console.error("[POST /api/webhooks/email] EMAIL_WEBHOOK_SECRET is not set; rejecting all inbound email until configured")
+            return NextResponse.json({ error: "Email webhook is not configured" }, { status: 503 })
+        }
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     try {
         let rawTo = ""
         let rawFrom = ""

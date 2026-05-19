@@ -81,7 +81,7 @@ describe("GlobalSearch", () => {
     });
 
     await waitFor(() => {
-      expect(globalSearchClient).toHaveBeenCalledWith("ws_1", "pat");
+      expect(globalSearchClient).toHaveBeenCalledWith("pat");
     });
 
     fireEvent.click(screen.getByRole("button", { name: /Pat Customer/i }));

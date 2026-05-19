@@ -2,6 +2,7 @@
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { buildPublicFeedbackUrl } from "@/lib/public-feedback";
 import { DEFAULT_WORKSPACE_TIMEZONE, resolveWorkspaceTimezone, formatDateTimeInTimezone } from "@/lib/timezone";
@@ -130,42 +131,61 @@ async function sendViaTwilio(
 
     if (!res.ok) {
       const errMsg = data.message ?? "Twilio API error";
-      db.webhookEvent.create({
-        data: {
-          provider: "twilio",
-          eventType: `sms.${channel}`,
-          status: "error",
-          error: errMsg,
-          payload: { to: to.slice(0, 6) + "***", channel },
-        },
-      }).catch(() => {});
-      return { success: false, error: errMsg };
-    }
-
-    db.webhookEvent.create({
-      data: {
-        provider: "twilio",
-        eventType: `sms.${channel}`,
-        status: "success",
-        payload: { sid: data.sid, channel },
-      },
-    }).catch(() => {});
-    return { success: true, sid: data.sid };
-  } catch (err) {
-    const errMsg = err instanceof Error ? err.message : "Network error";
-    db.webhookEvent.create({
-      data: {
+      await safeRecordWebhookEvent({
         provider: "twilio",
         eventType: `sms.${channel}`,
         status: "error",
         error: errMsg,
-        payload: { channel },
-      },
-    }).catch(() => {});
+        payload: { to: to.slice(0, 6) + "***", channel },
+      });
+      return { success: false, error: errMsg };
+    }
+
+    await safeRecordWebhookEvent({
+      provider: "twilio",
+      eventType: `sms.${channel}`,
+      status: "success",
+      payload: { sid: data.sid, channel },
+    });
+    return { success: true, sid: data.sid };
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : "Network error";
+    await safeRecordWebhookEvent({
+      provider: "twilio",
+      eventType: `sms.${channel}`,
+      status: "error",
+      error: errMsg,
+      payload: { channel },
+    });
     return {
       success: false,
       error: errMsg,
     };
+  }
+}
+
+async function safeRecordWebhookEvent(data: {
+  provider: string;
+  eventType: string;
+  status: string;
+  error?: string;
+  payload: Record<string, unknown>;
+}): Promise<void> {
+  try {
+    await db.webhookEvent.create({
+      data: {
+        provider: data.provider,
+        eventType: data.eventType,
+        status: data.status,
+        error: data.error,
+        payload: data.payload as Prisma.InputJsonValue,
+      },
+    });
+  } catch (err) {
+    console.error(
+      `[safeRecordWebhookEvent] failed to persist ${data.provider}/${data.eventType}/${data.status}:`,
+      err instanceof Error ? err.message : err,
+    );
   }
 }
 

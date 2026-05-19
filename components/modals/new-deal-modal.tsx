@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -215,6 +215,9 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
             <DialogContent className="ott-dialog flex max-h-[calc(100dvh-1rem)] w-[min(calc(100vw-1.5rem),54rem)] flex-col overflow-hidden p-0">
                 <DialogHeader className="shrink-0 border-b border-emerald-100/80 bg-[linear-gradient(180deg,rgba(16,185,129,0.08),rgba(255,255,255,0.5))] px-6 pb-5 pt-6 dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(16,185,129,0.12),rgba(255,255,255,0.03))]">
                     <DialogTitle className="mt-1">Create new job</DialogTitle>
+                    <DialogDescription>
+                        Enter the job details, pick or create the customer contact, and assign a team member if you know who&apos;s doing the work.
+                    </DialogDescription>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col bg-[linear-gradient(180deg,rgba(248,250,249,0.96),rgba(241,245,243,0.98))] dark:bg-[linear-gradient(180deg,rgba(12,22,18,0.35),rgba(10,18,15,0.75))]">
@@ -225,18 +228,25 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                             <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Job details</p>
                             <p className="text-sm text-muted-foreground">Describe the work, its value, timing, and pipeline stage.</p>
                         </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="title" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                        <div className="grid grid-cols-4 items-start gap-4">
+                            <Label htmlFor="title" className="pt-3 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
                                 Job description <span className="text-destructive">*</span>
                             </Label>
-                            <Input
-                                id="title"
-                                placeholder="e.g. Kitchen Renovation"
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                className={`col-span-3 h-11 rounded-xl border-border bg-card/90 ${attemptedSubmit && !title.trim() ? "ott-field-error" : ""}`}
-                                required
-                            />
+                            <div className="col-span-3 space-y-1">
+                                <Input
+                                    id="title"
+                                    placeholder="e.g. Kitchen Renovation"
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    aria-invalid={attemptedSubmit && !title.trim() ? true : undefined}
+                                    aria-describedby={attemptedSubmit && !title.trim() ? "title-error" : undefined}
+                                    className={`h-11 rounded-xl border-border bg-card/90 ${attemptedSubmit && !title.trim() ? "ott-field-error" : ""}`}
+                                    required
+                                />
+                                {attemptedSubmit && !title.trim() ? (
+                                    <p id="title-error" className="ott-field-error-msg">Add a short description of the job.</p>
+                                ) : null}
+                            </div>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="value" className="text-left text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">

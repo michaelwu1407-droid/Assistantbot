@@ -51,7 +51,7 @@ export function CommandPalette() {
     setLoading(true)
     const timer = setTimeout(async () => {
       try {
-        const data = await globalSearchClient(workspaceId, query)
+        const data = await globalSearchClient(query)
         setResults(data)
       } catch (error) {
         console.error(error)

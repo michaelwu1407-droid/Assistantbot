@@ -25,7 +25,9 @@
     "twilio:cleanup-orphans": "npx tsx scripts/cleanup-twilio-orphan-subaccounts.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:visual": "playwright test --project=visual",
+    "test:visual:update": "playwright test --project=visual --update-snapshots"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
@@ -107,6 +109,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
+    "@types/jest-axe": "^3.5.9",
     "@types/node": "^25.3.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -117,6 +120,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "husky": "^9.1.7",
+    "jest-axe": "^10.0.0",
     "jsdom": "^28.1.0",
     "prisma": "^5.21.1",
     "tailwindcss": "^4",

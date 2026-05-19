@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { runIdempotent } from "@/lib/idempotency";
 import { findContactByPhone, findWorkspaceByTwilioNumber } from "@/lib/workspace-routing";
 import { isVoiceAgentSecretAuthorized } from "@/lib/voice-agent-auth";
 import { syncVoiceCallToCRM } from "@/lib/post-call-sync";
@@ -175,10 +176,6 @@ export async function POST(req: NextRequest) {
     }
 
     const payload = parsed.data;
-    const existingVoiceCall = await db.voiceCall.findUnique({
-      where: { callId: payload.callId },
-      select: { callId: true },
-    });
     const roomMetadata = getNestedRecord(payload.metadata, "roomMetadata");
     const isOutboundCallback = Boolean(
       roomMetadata?.outbound === true || roomMetadata?.outbound === "true",
@@ -259,97 +256,121 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // ── Post-call CRM sync: create Contact + Deal for normal calls ──
-    if (workspaceId && isOutboundCallback && !existingVoiceCall && callbackOutcome) {
-      await recordCallbackEvent({
-        eventType: "callback_call_finished",
-        payload: {
-          workspaceId,
-          contactId,
-          contactPhone: payload.callerPhone || null,
-          contactName: payload.callerName || null,
-          dealId: callbackDealId,
-          reason: callbackReason,
-          triggerSource: "voice_agent",
-          callbackKind,
-          callStatus: callbackOutcome,
-          providerCallSid: readOptionalString(getNestedRecord(payload.metadata, "providerCallIds"), "twilioCallSid"),
-        },
-      });
-    }
+    // ── Post-call side effects ─────────────────────────────────────────
+    // Twilio/LiveKit retries (same callId) used to slip past the
+    // findUnique-then-create dedupe and create duplicate callback events,
+    // duplicate urgent-callback Tasks, and duplicate CALL Activities.
+    // runIdempotent's actionExecution unique constraint on the
+    // idempotencyKey makes this exactly-once per callId. bucketAt is
+    // pinned to epoch so the key never expires.
+    const postCallClaim = await runIdempotent<{
+      crmSync: {
+        contactId: string | null;
+        dealId: string | null;
+        contactCreated: boolean;
+        dealCreated: boolean;
+        skipped: boolean;
+      } | null;
+    }>({
+      actionType: "VOICE_CALL_POST_PROCESS",
+      bucketAt: new Date(0),
+      parts: [payload.callId],
+      resultFactory: async () => {
+        if (workspaceId && isOutboundCallback && callbackOutcome) {
+          await recordCallbackEvent({
+            eventType: "callback_call_finished",
+            payload: {
+              workspaceId,
+              contactId,
+              contactPhone: payload.callerPhone || null,
+              contactName: payload.callerName || null,
+              dealId: callbackDealId,
+              reason: callbackReason,
+              triggerSource: "voice_agent",
+              callbackKind,
+              callStatus: callbackOutcome,
+              providerCallSid: readOptionalString(getNestedRecord(payload.metadata, "providerCallIds"), "twilioCallSid"),
+            },
+          });
+        }
 
-    let syncResult = null;
-    if (workspaceId && payload.callType === "normal" && transcriptText && !isOutboundCallback) {
-      try {
-        syncResult = await syncVoiceCallToCRM(workspaceId, {
-          callId: payload.callId,
-          callType: payload.callType,
-          callerPhone: payload.callerPhone,
-          calledPhone: payload.calledPhone,
-          callerName: payload.callerName,
-          businessName: payload.businessName,
-          transcriptText,
-          transcriptTurns: payload.transcriptTurns,
-          summary,
-          voiceCallId: payload.callId,
-          urgentEscalationReason: urgentEscalation?.reason ?? null,
-        });
-        console.log(`[voice-call-webhook] CRM sync result:`, syncResult);
-      } catch (err) {
-        // Non-fatal: the VoiceCall is already saved, CRM sync is best-effort
-        console.error("[voice-call-webhook] CRM sync failed (non-fatal):", err);
-      }
-    }
+        let syncResult: Awaited<ReturnType<typeof syncVoiceCallToCRM>> | null = null;
+        if (workspaceId && payload.callType === "normal" && transcriptText && !isOutboundCallback) {
+          try {
+            syncResult = await syncVoiceCallToCRM(workspaceId, {
+              callId: payload.callId,
+              callType: payload.callType,
+              callerPhone: payload.callerPhone,
+              calledPhone: payload.calledPhone,
+              callerName: payload.callerName,
+              businessName: payload.businessName,
+              transcriptText,
+              transcriptTurns: payload.transcriptTurns,
+              summary,
+              voiceCallId: payload.callId,
+              urgentEscalationReason: urgentEscalation?.reason ?? null,
+            });
+            console.log(`[voice-call-webhook] CRM sync result:`, syncResult);
+          } catch (err) {
+            console.error("[voice-call-webhook] CRM sync failed (non-fatal):", err);
+          }
+        }
 
-    if (workspaceId && urgentEscalation && !existingVoiceCall) {
-      const callbackTitle = payload.callerName
-        ? `Urgent callback: ${payload.callerName}`
-        : payload.callerPhone
-          ? `Urgent callback: ${payload.callerPhone}`
-          : "Urgent callback requested";
-      const callbackDescription = [
-        `Reason: ${urgentEscalation.reason}`,
-        payload.callerPhone ? `Caller: ${payload.callerPhone}` : null,
-        summary,
-      ].filter(Boolean).join("\n");
+        if (workspaceId && urgentEscalation) {
+          const callbackTitle = payload.callerName
+            ? `Urgent callback: ${payload.callerName}`
+            : payload.callerPhone
+              ? `Urgent callback: ${payload.callerPhone}`
+              : "Urgent callback requested";
+          const callbackDescription = [
+            `Reason: ${urgentEscalation.reason}`,
+            payload.callerPhone ? `Caller: ${payload.callerPhone}` : null,
+            summary,
+          ].filter(Boolean).join("\n");
 
-      await db.task.create({
-        data: {
-          title: callbackTitle,
-          description: callbackDescription,
-          dueAt: new Date(Date.now() + 15 * 60 * 1000),
-          contactId: contactId ?? syncResult?.contactId ?? undefined,
-          dealId: syncResult?.dealId ?? undefined,
-        },
-      });
-    }
+          await db.task.create({
+            data: {
+              title: callbackTitle,
+              description: callbackDescription,
+              dueAt: new Date(Date.now() + 15 * 60 * 1000),
+              contactId: contactId ?? syncResult?.contactId ?? undefined,
+              dealId: syncResult?.dealId ?? undefined,
+            },
+          });
+        }
 
-    // For non-normal calls or if sync was skipped, still log activity
-    if (workspaceId && transcriptText && (!syncResult || syncResult.skipped) && !isOutboundCallback) {
-      await db.activity.create({
-        data: {
-          type: "CALL",
-          title: urgentEscalation
-            ? "Urgent callback requested"
-            : payload.callType === "normal"
-              ? "Voice call handled by Tracey"
-              : "Earlymark AI voice call",
-          content: summary,
-          description: transcriptText.slice(0, 2000),
-          contactId: contactId ?? undefined,
-        },
-      });
-    }
+        if (workspaceId && transcriptText && (!syncResult || syncResult.skipped) && !isOutboundCallback) {
+          await db.activity.create({
+            data: {
+              type: "CALL",
+              title: urgentEscalation
+                ? "Urgent callback requested"
+                : payload.callType === "normal"
+                  ? "Voice call handled by Tracey"
+                  : "Earlymark AI voice call",
+              content: summary,
+              description: transcriptText.slice(0, 2000),
+              contactId: contactId ?? undefined,
+            },
+          });
+        }
+
+        return {
+          crmSync: syncResult ? {
+            contactId: syncResult.contactId,
+            dealId: syncResult.dealId,
+            contactCreated: syncResult.contactCreated,
+            dealCreated: syncResult.dealCreated,
+            skipped: syncResult.skipped,
+          } : null,
+        };
+      },
+    });
 
     return NextResponse.json({
       success: true,
-      crmSync: syncResult ? {
-        contactId: syncResult.contactId,
-        dealId: syncResult.dealId,
-        contactCreated: syncResult.contactCreated,
-        dealCreated: syncResult.dealCreated,
-        skipped: syncResult.skipped,
-      } : null,
+      duplicate: !postCallClaim.created,
+      crmSync: postCallClaim.result?.crmSync ?? null,
     });
   } catch (error) {
     console.error("[voice-call-webhook] Error:", error);

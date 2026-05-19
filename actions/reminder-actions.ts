@@ -10,6 +10,7 @@ import { NotificationScenario } from "@/lib/messaging/channel-router";
 import { DEFAULT_WORKSPACE_TIMEZONE, formatDateTimeInTimezone } from "@/lib/timezone";
 import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
 import { withCostCeiling } from "@/lib/cost-ceiling";
+import { requireDealInCurrentWorkspace } from "@/lib/workspace-access";
 
 const TWILIO_SMS_COST_USD = 0.05;
 
@@ -360,8 +361,14 @@ export async function checkAndSendReminders() {
 
 // Manual update functions for admin control
 export async function manualSendJobReminder(dealId: string, adminId?: string) {
+  try {
+    await requireDealInCurrentWorkspace(dealId);
+  } catch {
+    return { success: false, error: "Forbidden" };
+  }
+
   console.log(`🔧 [MANUAL] Admin ${adminId || 'unknown'} manually triggering job reminder for: ${dealId}`);
-  
+
   const result = await sendJobReminder(dealId);
   
   if (result.success) {
@@ -383,8 +390,14 @@ export async function manualSendJobReminder(dealId: string, adminId?: string) {
 }
 
 export async function manualSendTripSms(dealId: string, adminId?: string) {
+  try {
+    await requireDealInCurrentWorkspace(dealId);
+  } catch {
+    return { success: false, error: "Forbidden" };
+  }
+
   console.log(`🚗 [MANUAL] Admin ${adminId || 'unknown'} manually triggering trip SMS for: ${dealId}`);
-  
+
   const result = await sendTripSms(dealId);
   
   if (result.success) {

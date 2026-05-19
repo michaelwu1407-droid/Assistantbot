@@ -19,7 +19,9 @@ export async function GET(request: NextRequest) {
   const startTime = Date.now();
 
   try {
-    // Find all workspaces that have at least one overdue, incomplete task
+    // Find workspaces that have at least one overdue, incomplete task.
+    // Capped so a long backlog cannot blow the cron invocation budget;
+    // remaining workspaces are picked up on the next tick.
     const overdueTasks = await db.task.findMany({
       where: {
         completed: false,
@@ -32,6 +34,8 @@ export async function GET(request: NextRequest) {
         deal: { select: { workspaceId: true } },
         contact: { select: { workspaceId: true } },
       },
+      orderBy: { dueAt: "asc" },
+      take: 500,
     });
 
     // Group by workspace

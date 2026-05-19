@@ -1,6 +1,8 @@
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+import noFakeToolSuccess from "./eslint-rules/no-fake-tool-success.mjs";
+import noRedundantDialogClose from "./eslint-rules/no-redundant-dialog-close.mjs";
 
 // ─── Design Policy Rules ───────────────────────────────────────────────────
 // Enforces the Global Formatting & Design Policy defined in CLAUDE.md.
@@ -81,9 +83,15 @@ const eslintConfig = defineConfig([
   // UI source files — full design policy (Tailwind classes + locale methods).
   {
     files: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}"],
+    plugins: {
+      "earlymark-ui": {
+        rules: { "no-redundant-dialog-close": noRedundantDialogClose },
+      },
+    },
     rules: {
       "no-restricted-syntax": ["error", ...tailwindRules],
       "no-restricted-properties": localeMethodRules,
+      "earlymark-ui/no-redundant-dialog-close": "error",
     },
   },
 
@@ -99,8 +107,14 @@ const eslintConfig = defineConfig([
   // Tailwind classes don't appear in server actions, so no class rules needed.
   {
     files: ["actions/**/*.ts"],
+    plugins: {
+      "earlymark-tools": {
+        rules: { "no-fake-tool-success": noFakeToolSuccess },
+      },
+    },
     rules: {
       "no-restricted-properties": localeMethodRules,
+      "earlymark-tools/no-fake-tool-success": "error",
     },
   },
 

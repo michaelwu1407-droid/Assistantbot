@@ -90,7 +90,7 @@ describe("SearchDialog", () => {
     });
 
     await waitFor(() => {
-      expect(globalSearchClient).toHaveBeenCalledWith("ws_1", "blocked");
+      expect(globalSearchClient).toHaveBeenCalledWith("blocked");
     });
 
     fireEvent.click(screen.getByRole("button", { name: /Blocked Drain/i }));

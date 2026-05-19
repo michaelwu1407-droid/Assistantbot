@@ -7,6 +7,7 @@ import { sendSMS } from "./messaging-actions";
 import { createNotification } from "./notification-actions";
 import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
 import { withCostCeiling } from "@/lib/cost-ceiling";
+import { runIdempotent } from "@/lib/idempotency";
 
 const RESEND_EMAIL_COST_USD = 0.001;
 
@@ -284,7 +285,9 @@ export async function processFollowUpReminders(): Promise<{
   const errors: string[] = [];
 
   try {
-    // Find all deals with follow-ups due today or overdue
+    // Find all deals with follow-ups due today or overdue. Capped so a
+    // long backlog cannot fan-out into thousands of notifications in one
+    // cron invocation — leftovers are picked up on the next tick.
     const dueDeals = await db.deal.findMany({
       where: {
         followUpAt: { lte: endOfToday },
@@ -300,6 +303,8 @@ export async function processFollowUpReminders(): Promise<{
         workspaceId: true,
         contact: { select: { name: true, phone: true, email: true } },
       },
+      orderBy: { followUpAt: "asc" },
+      take: 200,
     });
 
     // Group by workspace
@@ -441,9 +446,11 @@ export async function processPostJobFollowUps(): Promise<{
         title: true,
         contactId: true,
         workspaceId: true,
+        stageChangedAt: true,
         contact: { select: { name: true, phone: true } },
         workspace: { select: { name: true } },
       },
+      take: 200,
     });
 
     for (const deal of completedDeals) {
@@ -466,19 +473,6 @@ export async function processPostJobFollowUps(): Promise<{
         continue;
       }
 
-      // Check if we already sent a post-job follow-up for this deal
-      const alreadySent = await db.activity.findFirst({
-        where: {
-          dealId: deal.id,
-          title: { contains: "Post-job follow-up" },
-        },
-      });
-
-      if (alreadySent) {
-        skipped++;
-        continue;
-      }
-
       // Personalize the template
       const message = rule.messageTemplate
         .replace(/\{\{clientName\}\}/g, deal.contact.name)
@@ -486,21 +480,36 @@ export async function processPostJobFollowUps(): Promise<{
         .replace(/\{\{businessName\}\}/g, deal.workspace.name || "us");
 
       try {
-        const result = await sendSMS(deal.contactId, message, deal.id);
-        if (result.success) {
-          // Log the post-job follow-up activity
-          await db.activity.create({
-            data: {
-              type: "NOTE",
-              title: "Post-job follow-up sent",
-              content: `Automated follow-up SMS to ${deal.contact.name}: "${message.substring(0, 100)}..."`,
-              dealId: deal.id,
-              contactId: deal.contactId,
-            },
-          });
+        const claim = await runIdempotent<{ success: boolean; error?: string }>({
+          actionType: "POST_JOB_FOLLOWUP",
+          // bucketAt is intentionally the stage change time so the key is
+          // stable across cron runs — same deal cannot fire twice ever.
+          bucketAt: deal.stageChangedAt ?? new Date(),
+          parts: [deal.id],
+          resultFactory: async () => {
+            const result = await sendSMS(deal.contactId, message, deal.id);
+            if (!result.success) {
+              return { success: false, error: result.error };
+            }
+            await db.activity.create({
+              data: {
+                type: "NOTE",
+                title: "Post-job follow-up sent",
+                content: `Automated follow-up SMS to ${deal.contact.name}: "${message.substring(0, 100)}..."`,
+                dealId: deal.id,
+                contactId: deal.contactId,
+              },
+            });
+            return { success: true };
+          },
+        });
+
+        if (!claim.created) {
+          skipped++;
+        } else if (claim.result?.success) {
           sent++;
         } else {
-          errors.push(`SMS to ${deal.contact.name} failed: ${result.error}`);
+          errors.push(`SMS to ${deal.contact.name} failed: ${claim.result?.error ?? "unknown"}`);
         }
       } catch (err) {
         errors.push(`Post-job follow-up for deal ${deal.id} failed: ${err}`);

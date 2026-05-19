@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Reconcile dialog — Variant A: tighter anatomy</title>
+<style>
+  :root {
+    --background:#F7F8FA; --foreground:#0D1117; --card:#FFFFFF;
+    --primary:#00D28B; --muted:#F3F4F6; --muted-fg:#6B7280;
+    --border:#E5E7EB; --destructive:#EF4444;
+    --status-amber-bg:#FEF3C7; --status-amber-fg:#92400E;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:Inter,system-ui,sans-serif; color:var(--foreground);
+    background:var(--background); min-height:100vh;
+    display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .backdrop{
+    position:fixed; inset:0; background:rgba(8,28,21,0.40);
+    backdrop-filter:blur(8px); z-index:1;
+  }
+  .dialog{
+    position:relative; z-index:2; width:min(calc(100vw - 32px), 460px);
+    background:var(--card); border-radius:18px; padding:0;
+    box-shadow:0 32px 90px rgba(7,29,22,0.22); border:1px solid rgba(255,255,255,0.7);
+    overflow:hidden;
+  }
+  .header{
+    display:flex; align-items:flex-start; justify-content:space-between;
+    padding:20px 20px 0;
+  }
+  .title-row{display:flex; align-items:center; gap:10px;}
+  .title{font-size:20px; font-weight:600; letter-spacing:-0.01em; margin:0;}
+  .icon-warn{
+    width:36px; height:36px; border-radius:18px;
+    background:#FEF3C7; color:#92400E;
+    display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .close{
+    width:36px; height:36px; border-radius:18px; border:1px solid var(--border);
+    background:var(--card); color:var(--muted-fg);
+    display:inline-flex; align-items:center; justify-content:center;
+    cursor:pointer; flex-shrink:0;
+  }
+  .close:hover{background:var(--muted); color:var(--foreground);}
+  .desc{font-size:13px; color:var(--muted-fg); margin:8px 20px 0; line-height:1.5;}
+  .body{padding:20px;}
+  .chip{
+    display:inline-flex; align-items:center; gap:8px; font-size:12px;
+    background:var(--muted); color:var(--muted-fg); padding:6px 10px;
+    border-radius:18px; margin-bottom:16px;
+  }
+  .chip strong{color:var(--foreground); font-weight:500;}
+  .label{
+    display:block; font-size:13px; font-weight:600; color:var(--foreground);
+    margin-bottom:10px;
+  }
+  .req{color:var(--destructive); margin-left:2px;}
+  .outcomes{display:flex; flex-direction:column; gap:8px;}
+  .outcome{
+    display:flex; align-items:center; gap:12px; padding:12px 14px;
+    border:1px solid var(--border); border-radius:18px; background:var(--card);
+    cursor:pointer; transition:all 0.15s;
+  }
+  .outcome:hover{border-color:#A7F3D0; background:#F0FDF4;}
+  .outcome input{margin:0;}
+  .outcome-icon{
+    width:32px; height:32px; border-radius:18px;
+    display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .o-completed{background:#D1FAE5; color:#047857;}
+  .o-rescheduled{background:#DBEAFE; color:#1D4ED8;}
+  .o-parked{background:#EDE9FE; color:#6D28D9;}
+  .o-noshow{background:#FFEDD5; color:#C2410C;}
+  .o-cancelled{background:#FEE2E2; color:#B91C1C;}
+  .outcome-text{flex:1;}
+  .outcome-text strong{display:block; font-size:14px; font-weight:500; color:var(--foreground);}
+  .outcome-text span{font-size:12px; color:var(--muted-fg);}
+  .notes-toggle{
+    margin-top:14px; background:none; border:none; color:var(--muted-fg);
+    font-size:13px; cursor:pointer; padding:0; display:inline-flex; align-items:center; gap:6px;
+  }
+  .notes-toggle:hover{color:var(--foreground);}
+  .footer{
+    display:flex; justify-content:flex-end; gap:8px;
+    padding:16px 20px; border-top:1px solid var(--border); background:#FAFBFB;
+  }
+  .btn{
+    height:40px; padding:0 18px; border-radius:18px; font-size:14px; font-weight:500;
+    cursor:pointer; border:none;
+  }
+  .btn-ghost{background:transparent; color:var(--muted-fg);}
+  .btn-ghost:hover{color:var(--foreground); background:var(--muted);}
+  .btn-primary{background:var(--primary); color:white;}
+  .btn-primary:disabled{opacity:0.5; cursor:not-allowed;}
+</style>
+</head>
+<body>
+<div class="backdrop"></div>
+<div class="dialog" role="dialog" aria-labelledby="t">
+  <div class="header">
+    <div class="title-row">
+      <span class="icon-warn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+      <h2 class="title" id="t">Reconcile overdue job</h2>
+    </div>
+    <button class="close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
+  <p class="desc">Scheduled <strong style="color:var(--foreground)">Apr 8 at 2:00 PM</strong> — no outcome recorded yet.</p>
+  <div class="body">
+    <span class="chip"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg><strong>ZZZ DIGEST FLOW</strong> · 12 Test Street, Sydney NSW</span>
+    <label class="label">What happened with this job?<span class="req">*</span></label>
+    <div class="outcomes">
+      <label class="outcome"><input type="radio" name="o"/><span class="outcome-icon o-completed"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></span><span class="outcome-text"><strong>Completed</strong><span>Mark job done and move to Completed</span></span></label>
+      <label class="outcome"><input type="radio" name="o"/><span class="outcome-icon o-rescheduled"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span><span class="outcome-text"><strong>Rescheduled</strong><span>Clear the date so you can book a new time</span></span></label>
+      <label class="outcome"><input type="radio" name="o"/><span class="outcome-icon o-parked"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="10" y1="15" x2="10" y2="9"/><line x1="14" y1="15" x2="14" y2="9"/></svg></span><span class="outcome-text"><strong>Parked</strong><span>Follow up later when the customer is ready</span></span></label>
+      <label class="outcome"><input type="radio" name="o"/><span class="outcome-icon o-noshow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="17" y1="8" x2="23" y2="14"/><line x1="23" y1="8" x2="17" y2="14"/></svg></span><span class="outcome-text"><strong>No-show</strong><span>Customer didn't show — close out of pipeline</span></span></label>
+      <label class="outcome"><input type="radio" name="o"/><span class="outcome-icon o-cancelled"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span><span class="outcome-text"><strong>Cancelled</strong><span>Record cancellation and close out of pipeline</span></span></label>
+    </div>
+    <button class="notes-toggle" type="button">+ Add a note (optional)</button>
+  </div>
+  <div class="footer">
+    <button class="btn btn-ghost">Cancel</button>
+    <button class="btn btn-primary" disabled>Update job</button>
+  </div>
+</div>
+</body>
+</html>
