@@ -87,7 +87,7 @@ export default async function DealDetailPage({ params }: PageProps) {
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto p-4 pb-24 md:p-6 md:pb-24">
-      <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm text-muted-foreground">
+      <nav aria-label="Breadcrumb" className="hidden md:flex items-center gap-1 text-sm text-muted-foreground">
         <Link href="/crm/dashboard" className="inline-flex items-center gap-1 hover:text-foreground transition-colors">
           <Home className="h-4 w-4" />
           Dashboard

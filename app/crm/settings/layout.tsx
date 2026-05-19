@@ -7,6 +7,9 @@ import { cn } from "@/lib/utils"
 import { useShellStore } from "@/lib/store"
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
+import { useIsMobile } from "@/hooks/use-is-mobile"
+import { SettingsIndexMobile } from "@/components/mobile/settings/settings-index-mobile"
+import { SettingsSubMobile } from "@/components/mobile/settings/settings-sub-mobile"
 
 interface SettingsLayoutProps {
     children: React.ReactNode
@@ -137,6 +140,14 @@ function SidebarNav({ className, ...props }: { className?: string } & React.HTML
 }
 
 export default function SettingsLayout({ children }: SettingsLayoutProps) {
+    const isMobile = useIsMobile()
+    const pathname = usePathname()
+    if (isMobile) {
+        if (pathname === "/crm/settings") {
+            return <SettingsIndexMobile />
+        }
+        return <SettingsSubMobile>{children}</SettingsSubMobile>
+    }
     return (
         <div className="min-h-full flex-1 space-y-6 p-4 pl-6 pb-16 md:p-8 md:pl-10 lg:p-10 lg:pl-14 max-w-6xl mx-auto w-full">
             <div className="space-y-1.5">

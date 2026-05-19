@@ -5,6 +5,8 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ChevronDown, Filter, Mail, MessageSquare, Phone, Search, X } from "lucide-react"
 import { toast } from "sonner"
+import { useIsMobile } from "@/hooks/use-is-mobile"
+import { ContactsMobile } from "@/components/mobile/contacts/contacts-mobile"
 
 import { ContactView, deleteContacts } from "@/actions/contact-actions"
 import { Badge } from "@/components/ui/badge"
@@ -89,6 +91,10 @@ function formatLastContact(date: Date | null): string {
 }
 
 export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
+  const isMobile = useIsMobile()
+  if (isMobile) {
+    return <ContactsMobile contacts={contacts} />
+  }
   const router = useRouter()
   const [search, setSearch] = useState("")
   const allStageIds = useMemo(() => new Set(KANBAN_STAGES.map((stage) => stage.id)), [])
