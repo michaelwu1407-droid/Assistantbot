@@ -492,7 +492,7 @@ export default function AnalyticsPage() {
                         <div className="rounded-md bg-[#F6F4EE] p-3">
                           <p className="text-xs text-muted-foreground">Largest deal</p>
                           <p className="text-sm font-bold text-neutral-900">{formatCurrency(monthBreakdown.largestDeal.revenue)}</p>
-                          <p className="text-[11px] text-muted-foreground truncate">{monthBreakdown.largestDeal.title}</p>
+                          <p className="text-xs text-muted-foreground truncate">{monthBreakdown.largestDeal.title}</p>
                         </div>
                       )}
                     </div>
@@ -524,7 +524,7 @@ export default function AnalyticsPage() {
                             </div>
                             <div className="text-right shrink-0 ml-3">
                               <p className="text-sm font-semibold text-[#00D28B]">{formatCurrency(deal.revenue)}</p>
-                              <p className="text-[11px] text-muted-foreground">{formatShortDate(deal.completedAt)}</p>
+                              <p className="text-xs text-muted-foreground">{formatShortDate(deal.completedAt)}</p>
                             </div>
                           </div>
                         ))}
@@ -640,7 +640,7 @@ export default function AnalyticsPage() {
                     <div key={`${month.month}-${index}`} className="rounded-md bg-[#F6F4EE] p-3">
                       <p className="text-xs text-muted-foreground">{month.month}</p>
                       <p className="text-sm font-medium text-neutral-900 mt-1">{month.count > 0 ? month.avg : "-"}</p>
-                      <p className="text-[11px] text-muted-foreground mt-1">{month.count} rating{month.count === 1 ? "" : "s"}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{month.count} rating{month.count === 1 ? "" : "s"}</p>
                     </div>
                   ))}
                 </div>

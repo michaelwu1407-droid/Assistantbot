@@ -295,7 +295,7 @@ function ScheduleCalendarDesktop({ deals, teamMembers, workspaceTimezone, initia
                 className={cn("p-2 border-b border-border/50 text-center cursor-pointer hover:bg-muted/30", isToday && "bg-[rgba(241,236,221,0.4)]")}
                 onClick={() => { setCurrent(day); setView("day") }}
               >
-                <p className="app-field-label tracking-[0.08em]">{formatShortWeekdayInTimezone(day, resolvedTimezone)}</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{formatShortWeekdayInTimezone(day, resolvedTimezone)}</p>
                 <p className={cn("text-lg font-bold text-foreground", isToday && "underline decoration-2 underline-offset-2")} style={isToday ? { color: "var(--color-ink)" } : undefined}>{dayParts.day}</p>
               </div>
               <div className="flex-1 overflow-y-auto p-1.5 space-y-1 bg-muted/10">{dayDeals.map(renderDealChip)}</div>
@@ -392,10 +392,10 @@ function ScheduleCalendarDesktop({ deals, teamMembers, workspaceTimezone, initia
                 key={`day-hour-${hour}`}
                 className="sticky top-0 z-20 border-b border-r border-border bg-background/95 px-2 py-3 text-center backdrop-blur"
               >
-                <p className="app-field-label">
+                <p className="text-[11px] font-medium text-muted-foreground leading-tight">
                   {hour < 12 ? "AM" : "PM"}
                 </p>
-                <p className="app-panel-title text-foreground">
+                <p className="text-sm font-semibold text-foreground leading-tight">
                   {hour <= 12 ? hour : hour - 12}:00
                 </p>
               </div>

@@ -849,11 +849,11 @@ If the request is to contact the customer, use the appropriate customer-contact 
                           >
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="app-body-primary text-xs font-semibold">{item.title}</span>
-                              <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                              <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                                 {label}
                               </span>
                               {!meta.system && (
-                                <span className="rounded-full border border-border/50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                                <span className="rounded-full border border-border/50 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                   {meta.direction === "outbound" ? "Outbound" : "Inbound"}
                                 </span>
                               )}
@@ -964,7 +964,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
 
               {/* Bottom: Ask Tracey vs direct SMS (workspace Twilio) */}
               <div className="border-t p-3 shrink-0" style={{ borderColor: "#E6E2D7", background: "var(--color-paper)" }}>
-                <p id="inbox-composer-mode-label" className="mb-1.5 app-field-label text-[11px] uppercase tracking-wide text-muted-foreground">
+                <p id="inbox-composer-mode-label" className="mb-1.5 app-field-label uppercase tracking-wide text-muted-foreground">
                   Who sends the next message?
                 </p>
                 <div
