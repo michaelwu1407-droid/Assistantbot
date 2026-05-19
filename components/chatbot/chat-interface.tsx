@@ -5,7 +5,7 @@ import { useChat } from '@ai-sdk/react';
 import { handleChatFallback } from "@/actions/chat-fallback";
 import { DefaultChatTransport } from 'ai';
 import type { UIMessage } from "ai";
-import { Send, Loader2, Sparkles, Clock, Calendar, FileText, Phone, Check, X, Mic, Undo2, ArrowUpRight } from 'lucide-react';
+import { Send, Loader2, Sparkles, Clock, Calendar, FileText, Phone, Check, X, Mic, Undo2, ArrowUpRight, ChevronUp, ChevronDown } from 'lucide-react';
 import { TraceyAvatar } from '@/components/ui/tracey-avatar';
 import { cn } from '@/lib/utils';
 import { Textarea } from "@/components/ui/textarea"
@@ -328,6 +328,7 @@ function ChatWithHistory({
   const [digestModal, setDigestModal] = useState<{ kind: "morning" | "evening"; agentMode: string | null; digest: DailyDigest } | null>(null);
   const [digestLoading, setDigestLoading] = useState<"morning" | "evening" | null>(null);
   const [waitingItems, setWaitingItems] = useState<WaitingOnYouAction[]>([]);
+  const [waitingMinimized, setWaitingMinimized] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const waitingPanelRef = useRef<HTMLElement>(null);
   /** When user confirms a job draft, we replace that message's draft with this confirmation text. */
@@ -964,15 +965,25 @@ function ChatWithHistory({
               aria-label="Waiting on you"
               className="rounded-2xl border border-border/60 bg-card/80 px-3 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.03)] backdrop-blur"
             >
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Waiting on you
-                </p>
-                <span className="text-[10px] text-muted-foreground">
-                  {waitingOnYouCount} item{waitingOnYouCount === 1 ? "" : "s"}
-                </span>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    Waiting on you
+                  </p>
+                  <span className="text-[10px] text-muted-foreground">
+                    {waitingOnYouCount} item{waitingOnYouCount === 1 ? "" : "s"}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setWaitingMinimized((v) => !v)}
+                  aria-label={waitingMinimized ? "Expand waiting panel" : "Minimise waiting panel"}
+                  className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {waitingMinimized ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
+                </button>
               </div>
-              <div className="max-h-[12rem] space-y-2 overflow-y-auto pr-1">
+              {!waitingMinimized && <div className="mt-2 max-h-[12rem] space-y-2 overflow-y-auto pr-1">
                 {waitingOnYouGroups.map((group) => (
                   <div key={group.group} className="space-y-1.5">
                     <p className="text-[10px] font-semibold uppercase tracking-wide text-foreground/70">
@@ -1016,7 +1027,7 @@ function ChatWithHistory({
                     ))}
                   </div>
                 ))}
-              </div>
+              </div>}
             </section>
           )}
 

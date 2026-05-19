@@ -136,8 +136,7 @@ function SidebarNav({ className, ...props }: { className?: string } & React.HTML
                             {item.title}
                         </Link>
                         )
-                    })
-                    ))}
+                    })}
                 </div>
             ))}
         </nav>
