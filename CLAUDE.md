@@ -118,3 +118,29 @@ Use en-AU locale (day-first). Never inline `.toLocaleDateString()` with custom o
   <p className="ott-empty-state-body">Helpful description of what to do next.</p>
 </div>
 ```
+
+## Homepage / marketing palette — warm cream surfaces
+The homepage uses a warm cream palette (not the app's cool-gray `--background`). Use the following tokens for homepage/marketing sections only:
+- `bg-paper` → `#F6F4EE` — default section background
+- `bg-cream` → `#F1ECDD` — alternate/accent section background
+- Forest bookends: hero (`bg-forest`) + footer (`bg-forest`) only
+- `var(--color-ink)` / `var(--color-ink2)` for headings and body text on warm surfaces
+- Never replace `--background` or `--card` globally — these are app-only tokens
+
+**Do NOT:** use `bg-[#F8FAFC]`, `bg-muted/30`, or `text-midnight` on homepage sections — these are cool-gray and clash with the warm palette.
+
+**TODO (revisit later):** serif display font for homepage headings (currently Plus Jakarta Sans for everything).
+
+## Typography — font strategy
+- Body + headings: Plus Jakarta Sans (`--font-sans`) for everything
+- No monospace font (JetBrains Mono, etc.) — skip unless explicitly adding code displays
+- No serif display font yet — deferred to future polish pass
+
+## Tracey visual identity — two marks, two roles
+- **Earlymark logo** (headset roundel): product identity — top bar, favicon, splash, footer
+- **Tracey glyph** (chat-bubble): Tracey the AI assistant — bottom-nav button, chat avatars, inline action tags
+- These are NOT interchangeable. Never put the Earlymark logo where Tracey speaks.
+- On mobile: exactly ONE Tracey entry point (bottom-nav centre button). Never add a second Tracey shortcut to the top bar.
+
+## App sidebar — forest green
+The sidebar (`components/core/sidebar.tsx`) uses forest green `var(--color-forest)` as its background (45px wide, icon-only). Icon states: inactive `text-white/55`, active `bg-white/15 text-white`, hover `hover:bg-white/10 hover:text-white`.

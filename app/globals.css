@@ -44,6 +44,16 @@
   /* Earlymark — surfaces */
   --color-page: #F7F8FA;
 
+  /* Earlymark — warm homepage palette (homepage sections only, not app) */
+  --color-paper: #F6F4EE;
+  --color-cream: #F1ECDD;
+  --color-sand: #E9E2CC;
+  --color-hair: #E6E2D7;
+  --color-forest: #16433A;
+  --color-forest-dk: #0E2F28;
+  --color-ink: #0E1F1A;
+  --color-ink2: #3D4A45;
+
   /* Earlymark — status colors */
   --color-status-new: #3B82F6;
   --color-status-new-bg: #EFF6FF;

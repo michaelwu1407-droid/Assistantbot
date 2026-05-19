@@ -72,14 +72,13 @@ export function Sidebar({ className, expanded }: SidebarProps) {
                 id="sidebar-nav"
                 className={cn(
                     "flex h-full flex-col items-center z-20 transition-all duration-300 shrink-0",
-                    /* No light border-r — it read as a white seam against the green header; use shadow only */
-                    "border-r-0 bg-card shadow-[2px_0_20px_-8px_rgba(15,23,42,0.1)] dark:bg-slate-950 dark:shadow-none",
+                    "border-r-0 shadow-[2px_0_20px_-8px_rgba(14,31,26,0.25)]",
                     className
                 )}
-                style={expanded ? undefined : { width: SIDEBAR_WIDTH }}
+                style={expanded ? undefined : { width: SIDEBAR_WIDTH, background: "var(--color-forest)" }}
             >
                 {/* Logo — same height as brand top bar; dark green fill to match header */}
-                <div className="flex h-12 w-full shrink-0 items-center justify-center border-b border-emerald-950/50 bg-emerald-900">
+                <div className="flex h-12 w-full shrink-0 items-center justify-center border-b border-white/10" style={{ background: "var(--color-forest-dk)" }}>
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <button
@@ -118,8 +117,8 @@ export function Sidebar({ className, expanded }: SidebarProps) {
                                             className={cn(
                                                 "flex h-10 w-full items-center justify-center rounded-lg transition-colors duration-150",
                                                 isActive
-                                                    ? "bg-emerald-50 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-200"
-                                                    : "text-muted-foreground hover:text-foreground hover:bg-muted/30 dark:text-muted-foreground dark:hover:bg-slate-900 dark:hover:text-slate-100"
+                                                    ? "bg-white/15 text-white"
+                                                    : "text-white/55 hover:text-white hover:bg-white/10"
                                             )}
                                         >
                                             <item.icon size={20} strokeWidth={1.75} />
@@ -136,7 +135,7 @@ export function Sidebar({ className, expanded }: SidebarProps) {
 
                 {/* Bottom Actions */}
                 <div className="mt-auto flex flex-col gap-1.5 px-1.5 w-full pb-3">
-                    <div className="border-t border-border/50 my-2 dark:border-slate-800" />
+                    <div className="border-t border-white/10 my-2" />
 
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -147,8 +146,8 @@ export function Sidebar({ className, expanded }: SidebarProps) {
                                     className={cn(
                                         "flex h-10 w-full items-center justify-center rounded-lg transition-colors duration-150",
                                         pathname.startsWith("/crm/settings")
-                                            ? "bg-emerald-700/25 text-emerald-950 dark:bg-emerald-500/25 dark:text-emerald-100"
-                                            : "text-foreground hover:text-foreground hover:bg-slate-400/45 dark:text-muted-foreground dark:hover:bg-slate-800 dark:hover:text-slate-100"
+                                            ? "bg-white/15 text-white"
+                                            : "text-white/55 hover:text-white hover:bg-white/10"
                                     )}
                                 >
                                     <Settings2 size={20} strokeWidth={1.75} />
@@ -163,7 +162,7 @@ export function Sidebar({ className, expanded }: SidebarProps) {
                             <button
                                 id="logout-btn"
                                 onClick={handleSignOut}
-                                className="flex h-10 w-full items-center justify-center rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive dark:text-muted-foreground dark:hover:text-destructive transition-colors duration-150"
+                                className="flex h-10 w-full items-center justify-center rounded-lg text-white/55 hover:bg-destructive/20 hover:text-red-300 transition-colors duration-150"
                             >
                                 <LogOut size={20} strokeWidth={1.75} />
                             </button>
