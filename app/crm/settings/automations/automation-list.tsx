@@ -102,7 +102,7 @@ export function AutomationList({ initialAutomations, workspaceId }: AutomationLi
 
     const getTriggerIcon = (event: string) => {
         switch (event) {
-            case "new_lead": return <Zap className="h-4 w-4 text-emerald-500" />
+            case "new_lead": return <Zap className="h-4 w-4 text-[#00D28B]" />
             case "deal_stale": return <Zap className="h-4 w-4 text-amber-500" />
             default: return <Zap className="h-4 w-4 text-blue-500" />
         }
@@ -114,7 +114,7 @@ export function AutomationList({ initialAutomations, workspaceId }: AutomationLi
             case "create_task": return <CheckSquare className="h-4 w-4 text-blue-500" />
             case "email": return <Mail className="h-4 w-4 text-purple-500" />
             case "send_sms": return <MessageSquare className="h-4 w-4 text-green-500" />
-            case "outbound_call": return <Phone className="h-4 w-4 text-emerald-500" />
+            case "outbound_call": return <Phone className="h-4 w-4 text-[#00D28B]" />
             default: return <ArrowRight className="h-4 w-4" />
         }
     }

@@ -137,7 +137,7 @@ export default function HelpSettingsPage() {
 
       <div className="pt-2 space-y-3">
         <h3 className="app-section-title flex items-center gap-2">
-          <BookOpen className="h-5 w-5 text-emerald-600" />
+          <BookOpen className="h-5 w-5 text-[#00D28B]" />
           Tracey handbook
         </h3>
         {handbookSections.map((section) => (
@@ -154,13 +154,13 @@ export default function HelpSettingsPage() {
       <Card className="border-emerald-200 dark:border-emerald-800 bg-gradient-to-br from-emerald-50 to-sky-50 dark:from-emerald-950/40 dark:to-sky-950/40">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <GraduationCap className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+            <GraduationCap className="h-5 w-5 text-[#00D28B] dark:text-emerald-400" />
             Guided tutorial
           </CardTitle>
           <CardDescription>Walk through the app again with the guided tutorial.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={handleRestartTutorial} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+          <Button onClick={handleRestartTutorial} className="bg-[#00D28B] hover:opacity-90 text-white">
             Restart tutorial
           </Button>
         </CardContent>

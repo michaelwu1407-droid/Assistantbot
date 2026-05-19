@@ -85,7 +85,7 @@ export function SmsTemplatesForm({ initialTemplates }: SmsTemplatesFormProps) {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="bg-emerald-100 dark:bg-emerald-900/30 p-1.5 rounded-lg">
-                    <Icon className="h-4 w-4 text-emerald-600" />
+                    <Icon className="h-4 w-4 text-[#00D28B]" />
                   </div>
                   <div>
                     <CardTitle className="text-sm">{meta.label}</CardTitle>

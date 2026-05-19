@@ -177,14 +177,14 @@ export default function TeamPage() {
         }
     }
 
-    const getRoleBadgeClass = (role: string) => {
+    const getRoleBadgeStyle = (role: string): React.CSSProperties => {
         switch (role) {
             case "OWNER":
-                return "bg-purple-50 text-purple-700 border-purple-200 rounded-full"
+                return { background: "#ECE6FA", color: "#8B6FE0", borderColor: "rgba(139,111,224,0.3)" }
             case "MANAGER":
-                return "bg-blue-50 text-blue-700 border-blue-200 rounded-full"
+                return { background: "#E2EAF8", color: "#4A7CE6", borderColor: "rgba(74,124,230,0.3)" }
             default:
-                return "bg-muted text-muted-foreground border-border rounded-full"
+                return {}
         }
     }
 
@@ -387,7 +387,7 @@ export default function TeamPage() {
                                     <div className="space-y-1">
                                         <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Role</p>
                                         {(!isManager || member.isCurrentUser || member.role === "OWNER") ? (
-                                            <Badge variant="outline" className={getRoleBadgeClass(member.role)}>
+                                            <Badge variant="outline" className="rounded-md border text-xs font-semibold" style={getRoleBadgeStyle(member.role)}>
                                                 {member.role === "OWNER" && <Shield className="mr-1 h-3 w-3" />}
                                                 {getRoleLabel(member.role)}
                                             </Badge>
@@ -474,7 +474,7 @@ export default function TeamPage() {
                                         <div className="flex items-center justify-between gap-3">
                                             <div className="space-y-1">
                                                 <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Role</p>
-                                                <Badge variant="outline" className={getRoleBadgeClass(invite.role)}>
+                                                <Badge variant="outline" className="rounded-md border text-xs font-semibold" style={getRoleBadgeStyle(invite.role)}>
                                                     {getRoleLabel(invite.role)}
                                                 </Badge>
                                             </div>
