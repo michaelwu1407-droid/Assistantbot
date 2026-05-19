@@ -82,10 +82,10 @@ export default function AnalyticsPage() {
         <div className="flex-1 min-h-0 overflow-y-auto">
           <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
             <div className="animate-pulse space-y-4">
-              <div className="h-8 w-1/3 rounded-md bg-secondary" />
+              <div className="h-8 w-1/3 rounded-md bg-[#E6E2D7]" />
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-28 rounded-md bg-secondary" />
+                  <div key={i} className="h-28 rounded-md bg-[#E6E2D7]" />
                 ))}
               </div>
             </div>
@@ -430,8 +430,8 @@ export default function AnalyticsPage() {
                 <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-48">
                   {gridLines.map((line, index) => (
                     <g key={index}>
-                      <line x1={PAD_LEFT} y1={line.y} x2={W - PAD_RIGHT} y2={line.y} stroke="#e2e8f0" strokeWidth={1} />
-                      <text x={PAD_LEFT - 6} y={line.y + 4} textAnchor="end" className="fill-slate-400" fontSize={10}>
+                      <line x1={PAD_LEFT} y1={line.y} x2={W - PAD_RIGHT} y2={line.y} stroke="#E6E2D7" strokeWidth={1} />
+                      <text x={PAD_LEFT - 6} y={line.y + 4} textAnchor="end" fill="#6B7773" fontSize={10}>
                         {formatCurrency(Math.round(line.value))}
                       </text>
                     </g>
@@ -449,7 +449,9 @@ export default function AnalyticsPage() {
                       x={point.x}
                       y={H - 6}
                       textAnchor="middle"
-                      className={selectedMonth === point.month ? "fill-emerald-700 font-semibold cursor-pointer" : "fill-slate-500 cursor-pointer"}
+                      fill={selectedMonth === point.month ? "#00D28B" : "#6B7773"}
+                    className="cursor-pointer"
+                    fontWeight={selectedMonth === point.month ? "700" : "400"}
                       fontSize={10}
                       onClick={() => handleMonthClick(point.month, point.start, point.end)}
                     >
@@ -474,20 +476,20 @@ export default function AnalyticsPage() {
                 {!monthLoading && monthBreakdown && (
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      <div className="rounded-md bg-secondary/30 p-3">
+                      <div className="rounded-md bg-[#F6F4EE] p-3">
                         <p className="text-xs text-muted-foreground">Revenue</p>
                         <p className="text-lg font-bold text-neutral-900">{formatCurrency(monthBreakdown.totalRevenue)}</p>
                       </div>
-                      <div className="rounded-md bg-secondary/30 p-3">
+                      <div className="rounded-md bg-[#F6F4EE] p-3">
                         <p className="text-xs text-muted-foreground">Jobs completed</p>
                         <p className="text-lg font-bold text-neutral-900">{monthBreakdown.dealCount}</p>
                       </div>
-                      <div className="rounded-md bg-secondary/30 p-3">
+                      <div className="rounded-md bg-[#F6F4EE] p-3">
                         <p className="text-xs text-muted-foreground">Avg deal value</p>
                         <p className="text-lg font-bold text-neutral-900">{formatCurrency(monthBreakdown.avgDealValue)}</p>
                       </div>
                       {monthBreakdown.largestDeal && (
-                        <div className="rounded-md bg-secondary/30 p-3">
+                        <div className="rounded-md bg-[#F6F4EE] p-3">
                           <p className="text-xs text-muted-foreground">Largest deal</p>
                           <p className="text-sm font-bold text-neutral-900">{formatCurrency(monthBreakdown.largestDeal.revenue)}</p>
                           <p className="text-[11px] text-muted-foreground truncate">{monthBreakdown.largestDeal.title}</p>
@@ -500,10 +502,10 @@ export default function AnalyticsPage() {
                         <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">By source</p>
                         <div className="flex gap-2 flex-wrap">
                           {monthBreakdown.bySource.map((source) => (
-                            <div key={source.source} className="rounded-md bg-secondary/40 px-3 py-2 text-xs">
+                            <div key={source.source} className="rounded-md bg-[#F6F4EE] px-3 py-2 text-xs">
                               <span className="font-medium text-neutral-900">{source.source}</span>
                               <span className="text-muted-foreground ml-2">{source.count} job{source.count !== 1 ? "s" : ""}</span>
-                              <span className="text-emerald-700 ml-2 font-semibold">{formatCurrency(source.revenue)}</span>
+                              <span className="text-[#00D28B] ml-2 font-semibold">{formatCurrency(source.revenue)}</span>
                             </div>
                           ))}
                         </div>
@@ -515,13 +517,13 @@ export default function AnalyticsPage() {
                       <div className="max-h-64 overflow-auto space-y-2 pr-1">
                         {monthBreakdown.deals.length === 0 && <p className="text-sm text-muted-foreground py-4">No completed jobs this month.</p>}
                         {monthBreakdown.deals.map((deal) => (
-                          <div key={deal.id} className="flex items-center justify-between rounded-md bg-secondary/30 p-3">
+                          <div key={deal.id} className="flex items-center justify-between rounded-md bg-[#F6F4EE] p-3">
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-medium text-neutral-900 truncate">{deal.title}</p>
                               <p className="text-xs text-muted-foreground">{deal.contactName} - {deal.source}</p>
                             </div>
                             <div className="text-right shrink-0 ml-3">
-                              <p className="text-sm font-semibold text-emerald-700">{formatCurrency(deal.revenue)}</p>
+                              <p className="text-sm font-semibold text-[#00D28B]">{formatCurrency(deal.revenue)}</p>
                               <p className="text-[11px] text-muted-foreground">{formatShortDate(deal.completedAt)}</p>
                             </div>
                           </div>
@@ -547,15 +549,15 @@ export default function AnalyticsPage() {
           <CardContent>
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="rounded-md bg-secondary/30 p-4">
+                <div className="rounded-md bg-[#F6F4EE] p-4">
                   <p className="text-xs font-medium text-neutral-500">Avg rating</p>
                   <p className="text-3xl font-bold text-neutral-900 mt-1">{data.customers.satisfaction}</p>
                 </div>
-                <div className="rounded-md bg-secondary/30 p-4">
+                <div className="rounded-md bg-[#F6F4EE] p-4">
                   <p className="text-xs font-medium text-neutral-500">Total ratings</p>
                   <p className="text-3xl font-bold text-neutral-900 mt-1">{data.customers.ratingCount}</p>
                 </div>
-                <div className="rounded-md bg-secondary/30 p-4">
+                <div className="rounded-md bg-[#F6F4EE] p-4">
                   <p className="text-xs font-medium text-neutral-500">New customers</p>
                   <p className="text-3xl font-bold text-neutral-900 mt-1">{data.customers.inRange}</p>
                 </div>
@@ -563,7 +565,7 @@ export default function AnalyticsPage() {
 
               <div className="space-y-3">
                 <p className="text-sm font-medium text-neutral-900">Ratings distribution</p>
-                <div className="rounded-md bg-secondary/30 p-3">
+                <div className="rounded-md bg-[#F6F4EE] p-3">
                   {(() => {
                     const distribution = data.customers.ratingDistribution
                     const maxCount = Math.max(...distribution.map((item) => item.count), 1)
@@ -599,7 +601,7 @@ export default function AnalyticsPage() {
                         {points.map((point) => (
                           <g key={point.score}>
                             <circle cx={point.x} cy={point.y} r={5} fill="#00D28B" stroke="white" strokeWidth={2} />
-                            <text x={point.x} y={H - 8} textAnchor="middle" className="fill-slate-500" fontSize={11}>
+                            <text x={point.x} y={H - 8} textAnchor="middle" fill="#6B7773" fontSize={11}>
                               {point.score}
                             </text>
                           </g>
@@ -615,7 +617,7 @@ export default function AnalyticsPage() {
                 {data.customers.latestFeedback.length > 0 ? (
                   <div className="space-y-3 max-h-72 overflow-auto pr-1">
                     {data.customers.latestFeedback.map((feedback) => (
-                      <div key={feedback.id} className="rounded-md bg-secondary/30 p-3">
+                      <div key={feedback.id} className="rounded-md bg-[#F6F4EE] p-3">
                         <div className="flex items-center justify-between gap-3">
                           <p className="text-xs font-medium text-neutral-900">{feedback.contactName}</p>
                           <p className="text-xs text-muted-foreground">{formatLongDate(feedback.createdAt)}</p>
@@ -635,7 +637,7 @@ export default function AnalyticsPage() {
                 <p className="text-sm font-medium text-neutral-900">Satisfaction trend</p>
                 <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
                   {data.customers.monthlySatisfaction.map((month, index) => (
-                    <div key={`${month.month}-${index}`} className="rounded-md bg-secondary/30 p-3">
+                    <div key={`${month.month}-${index}`} className="rounded-md bg-[#F6F4EE] p-3">
                       <p className="text-xs text-muted-foreground">{month.month}</p>
                       <p className="text-sm font-medium text-neutral-900 mt-1">{month.count > 0 ? month.avg : "-"}</p>
                       <p className="text-[11px] text-muted-foreground mt-1">{month.count} rating{month.count === 1 ? "" : "s"}</p>
@@ -687,7 +689,7 @@ export default function AnalyticsPage() {
           <CardContent>
             <div className="space-y-3">
               {data.team.performance.map((member, index) => (
-                <div key={index} className="flex items-center justify-between rounded-md bg-secondary/50 p-3">
+                <div key={index} className="flex items-center justify-between rounded-md bg-[#F6F4EE] p-3">
                   <div>
                     <p className="font-medium text-neutral-900">{member.name}</p>
                     <p className="text-sm text-muted-foreground">{member.jobs} jobs</p>
