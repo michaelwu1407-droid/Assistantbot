@@ -175,15 +175,25 @@ function ScheduleCalendarDesktop({ deals, teamMembers, workspaceTimezone, initia
     }
   }
 
+  const getStageChipStyle = (stage: string) => {
+    switch (stage) {
+      case "new": return "bg-[#E2EAF8] text-[#4A7CE6] border-[#4A7CE6]/20"
+      case "quote": return "bg-[#FBEFD8] text-[#E89A2B] border-[#E89A2B]/20"
+      case "awaiting": return "bg-[#ECE6FA] text-[#8B6FE0] border-[#8B6FE0]/20"
+      case "completed": return "bg-[#F0EFED] text-[#6B7773] border-[#6B7773]/20"
+      default: return "bg-[#E0FAF2] text-[#00D28B] border-[#00D28B]/20"
+    }
+  }
+
   const renderDealChip = (deal: DealView) => (
     <div
       key={deal.id}
       draggable
       onDragStart={(e) => handleDragStart(e, deal.id)}
       onClick={() => setSelectedDealId(deal.id)}
-      className="app-body-primary w-full truncate rounded border border-primary/20 bg-primary/10 px-2 py-1 text-left text-primary hover:bg-primary/20 cursor-grab active:cursor-grabbing"
+      className={cn("app-body-primary w-full truncate rounded border px-2 py-1 text-left hover:opacity-80 cursor-grab active:cursor-grabbing", getStageChipStyle(deal.stage))}
     >
-      {deal.scheduledAt && <span className="app-body-secondary mr-1 text-xs text-primary/60">{formatTimeInTimezone(deal.scheduledAt, resolvedTimezone)}</span>}
+      {deal.scheduledAt && <span className="mr-1 text-xs opacity-70">{formatTimeInTimezone(deal.scheduledAt, resolvedTimezone)}</span>}
       {deal.title}
     </div>
   )
@@ -222,7 +232,7 @@ function ScheduleCalendarDesktop({ deals, teamMembers, workspaceTimezone, initia
     return (
       <div className="grid grid-cols-7 flex-1 min-h-0">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-          <div key={d} className="p-1.5 border-b border-r border-border/50 font-medium text-muted-foreground bg-muted/20">{d}</div>
+          <div key={d} className="p-1.5 border-b border-r border-border/50 font-semibold bg-[#F1ECDD]" style={{ color: "var(--color-ink2)" }}>{d}</div>
         ))}
         {days.map((day) => {
           const key = toDateKeyInTimezone(day, resolvedTimezone)
@@ -247,7 +257,7 @@ function ScheduleCalendarDesktop({ deals, teamMembers, workspaceTimezone, initia
               >
                 <span className={cn(
                   "font-medium w-6 h-6 flex items-center justify-center rounded-full text-sm",
-                  isToday ? "bg-primary text-white shadow-sm" : "text-muted-foreground"
+                  isToday ? "bg-[#0E1F1A] text-white shadow-sm" : "text-muted-foreground"
                 )}>
                   {dayParts.day}
                 </span>
@@ -282,11 +292,11 @@ function ScheduleCalendarDesktop({ deals, teamMembers, workspaceTimezone, initia
               className="border-r border-border/50 flex flex-col min-h-[400px] bg-card"
             >
               <div
-                className={cn("p-2 border-b border-border/50 text-center cursor-pointer hover:bg-muted/30", isToday && "bg-primary/5")}
+                className={cn("p-2 border-b border-border/50 text-center cursor-pointer hover:bg-muted/30", isToday && "bg-[rgba(241,236,221,0.4)]")}
                 onClick={() => { setCurrent(day); setView("day") }}
               >
                 <p className="app-field-label tracking-[0.08em]">{formatShortWeekdayInTimezone(day, resolvedTimezone)}</p>
-                <p className={cn("text-lg font-bold", isToday ? "text-primary" : "text-foreground")}>{dayParts.day}</p>
+                <p className={cn("text-lg font-bold text-foreground", isToday && "underline decoration-2 underline-offset-2")} style={isToday ? { color: "var(--color-ink)" } : undefined}>{dayParts.day}</p>
               </div>
               <div className="flex-1 overflow-y-auto p-1.5 space-y-1 bg-muted/10">{dayDeals.map(renderDealChip)}</div>
             </div>
@@ -476,8 +486,8 @@ function ScheduleCalendarDesktop({ deals, teamMembers, workspaceTimezone, initia
   }
 
   return (
-    <div className="h-full flex flex-col bg-card rounded-lg border border-neutral-200 shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between p-3.5 border-b border-border/50 bg-muted/20 shrink-0">
+    <div className="h-full flex flex-col bg-card rounded-lg border shadow-sm overflow-hidden" style={{ borderColor: "#E6E2D7" }}>
+      <div className="flex items-center justify-between p-3.5 border-b shrink-0" style={{ borderColor: "#E6E2D7", background: "#F6F4EE" }}>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => nav(-1)} className="rounded-md h-8 w-8 hover:bg-card shadow-sm">
             <ChevronLeft className="h-4 w-4" />
@@ -509,15 +519,16 @@ function ScheduleCalendarDesktop({ deals, teamMembers, workspaceTimezone, initia
             </div>
           ) : null}
 
-          <div className="flex bg-neutral-100 rounded-lg p-1 gap-1">
+          <div className="flex rounded-lg p-1 gap-1" style={{ background: "#E6E2D7" }}>
             {(["month", "week", "day"] as ViewMode[]).map((v) => (
               <button
                 key={v}
                 onClick={() => setView(v)}
                 className={cn(
                   "px-4 py-1.5 text-sm font-semibold rounded-md transition-all capitalize",
-                  view === v ? "bg-card text-neutral-900 shadow-xs" : "text-neutral-500 hover:text-neutral-700"
+                  view === v ? "bg-card shadow-xs" : "hover:bg-white/50"
                 )}
+                style={{ color: view === v ? "var(--color-ink)" : "var(--color-ink2)" }}
               >
                 {v}
               </button>
