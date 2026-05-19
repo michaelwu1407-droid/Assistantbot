@@ -538,12 +538,12 @@ const FEATURE_MOCKUPS = [MockupComms, MockupCRM, MockupCalendar, MockupInbox, Mo
 
 export default function FeaturesPage() {
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-foreground">
+    <div className="min-h-screen bg-paper text-foreground">
       <Navbar />
       <main>
 
         {/* ── 1. Hero ── */}
-        <section className="pt-32 pb-20 px-6 bg-[linear-gradient(180deg,#F5F7F8_0%,#F4F7F5_60%,#F7F6F3_100%)] relative overflow-hidden isolate">
+        <section className="pt-32 pb-20 px-6 bg-[linear-gradient(180deg,#F6F4EE_0%,#F3EFE3_60%,#F6F4EE_100%)] relative overflow-hidden isolate">
           <div className="absolute inset-0 z-0 pointer-events-none" style={{
             background: "radial-gradient(110% 60% at 50% 0%,rgba(16,185,129,0.18) 0%,rgba(16,185,129,0.00) 72%)",
           }} />
@@ -551,7 +551,7 @@ export default function FeaturesPage() {
             <motion.p {...fadeUp(0)} className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">
               Product
             </motion.p>
-            <motion.h1 {...fadeUp(0.04)} className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.07] text-midnight text-balance">
+            <motion.h1 {...fadeUp(0.04)} className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.07] text-balance" style={{ color: "var(--color-ink)" }}>
               An AI assistant.<br />A CRM that runs itself.
             </motion.h1>
             <motion.p {...fadeUp(0.08)} className="text-lg leading-8 text-muted-foreground max-w-xl text-balance">
@@ -580,8 +580,8 @@ export default function FeaturesPage() {
         <section className="py-10 md:py-20 px-6 bg-card border-y border-border/70">
           <div className="mx-auto max-w-7xl">
             <motion.div {...fadeUp()} className="mx-auto mb-12 max-w-3xl text-center">
-              <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-emerald-600 mb-3">The platform</p>
-              <h2 className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-midnight">One comprehensive platform.</h2>
+              <p className="text-[11px] font-bold uppercase tracking-[0.28em] mb-3" style={{ color: "var(--color-forest)" }}>The platform</p>
+              <h2 className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em]" style={{ color: "var(--color-ink)" }}>One comprehensive platform.</h2>
               <p className="mt-4 text-lg text-muted-foreground">
                 An AI assistant and a CRM that runs itself, so you don&apos;t have to.
               </p>
@@ -593,11 +593,11 @@ export default function FeaturesPage() {
         </section>
 
         {/* ── 2. Core jobs ── */}
-        <section className="py-16 md:py-20 px-6 bg-[#F8FAFC] border-b border-border/70">
+        <section className="py-16 md:py-20 px-6 bg-cream border-b border-border/70">
           <div className="mx-auto max-w-6xl">
             <motion.div {...fadeUp()} className="mb-10 max-w-3xl">
-              <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-emerald-600">Product map</p>
-              <h2 className="mt-3 text-3xl md:text-5xl font-extrabold tracking-[-0.03em] text-midnight">
+              <p className="text-[11px] font-bold uppercase tracking-[0.28em]" style={{ color: "var(--color-forest)" }}>Product map</p>
+              <h2 className="mt-3 text-3xl md:text-5xl font-extrabold tracking-[-0.03em]" style={{ color: "var(--color-ink)" }}>
                 More than a call bot. A working system for the whole job lifecycle.
               </h2>
               <p className="mt-4 text-base leading-7 text-muted-foreground">
@@ -615,7 +615,7 @@ export default function FeaturesPage() {
                   <div className="mb-4 flex h-10 w-10 items-center justify-center rounded bg-emerald-50">
                     <Icon className="h-5 w-5 text-primary" />
                   </div>
-                  <h3 className="text-base font-bold text-midnight">{label}</h3>
+                  <h3 className="text-base font-bold" style={{ color: "var(--color-ink)" }}>{label}</h3>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">{detail}</p>
                 </motion.div>
               ))}
@@ -626,7 +626,7 @@ export default function FeaturesPage() {
                 {OPERATING_MODES.map((mode) => (
                   <div key={mode.mode} className="border-b border-border p-6 last:border-b-0 md:border-b-0 md:border-r md:last:border-r-0">
                     <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-primary">{mode.mode}</p>
-                    <h3 className="mt-3 text-lg font-extrabold text-midnight">{mode.owner}</h3>
+                    <h3 className="mt-3 text-lg font-extrabold" style={{ color: "var(--color-ink)" }}>{mode.owner}</h3>
                     <p className="mt-2 text-sm leading-6 text-muted-foreground">{mode.outcome}</p>
                   </div>
                 ))}
@@ -636,18 +636,18 @@ export default function FeaturesPage() {
         </section>
 
         {/* Comparison table */}
-        <section className="py-20 px-6 bg-[#F8FAFC] border-b border-border/60">
+        <section className="py-20 px-6 bg-cream border-b border-border/60">
           <div className="mx-auto max-w-4xl">
             <motion.div {...fadeUp()} className="text-center mb-12">
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">Why switch</p>
-              <h2 className="mt-3 text-4xl font-extrabold tracking-[-0.03em] text-midnight">Earlymark vs. the traditional setup</h2>
+              <h2 className="mt-3 text-4xl font-extrabold tracking-[-0.03em]" style={{ color: "var(--color-ink)" }}>Earlymark vs. the traditional setup</h2>
               <p className="mt-3 text-base text-muted-foreground">Phone + paper + spreadsheet + late-night follow-ups, vs. one AI that handles it all.</p>
             </motion.div>
 
             <motion.div {...fadeUp(0.06)} className="grid gap-4 md:hidden">
               {COMPARISON_ROWS.map((row) => (
                 <div key={row.task} className="rounded border border-border bg-card p-5 shadow-sm">
-                  <h3 className="text-base font-bold text-midnight">{row.task}</h3>
+                  <h3 className="text-base font-bold" style={{ color: "var(--color-ink)" }}>{row.task}</h3>
                   <div className="mt-4 grid gap-3">
                     <div className="rounded border border-emerald-100 bg-emerald-50/60 p-3">
                       <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">Earlymark</p>
@@ -677,7 +677,7 @@ export default function FeaturesPage() {
                 </div>
                 {COMPARISON_ROWS.map((row, i) => (
                   <div key={row.task} className={`grid grid-cols-3 ${i % 2 === 0 ? "bg-card" : "bg-muted/30"} border-t border-border`}>
-                    <div className="px-5 py-4 text-sm font-semibold text-midnight">{row.task}</div>
+                    <div className="px-5 py-4 text-sm font-semibold" style={{ color: "var(--color-ink)" }}>{row.task}</div>
                     <div className="px-5 py-4 border-l border-border flex items-start gap-2">
                       <Check className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
                       <span className="text-sm text-foreground">{row.earlymark}</span>
@@ -693,7 +693,7 @@ export default function FeaturesPage() {
           </div>
         </section>
 
-        <section className="py-10 md:py-20 px-6 bg-[#F8FAFC] border-y border-border/70">
+        <section className="py-10 md:py-20 px-6 bg-paper border-y border-border/70">
           <div className="mx-auto max-w-5xl">
             <motion.p {...fadeUp()} className="text-center text-[11px] font-semibold uppercase tracking-[0.28em] text-primary mb-10">
               What Tracey does for you
@@ -703,7 +703,7 @@ export default function FeaturesPage() {
                 const Icon = job.icon
                 return (
                   <motion.div key={job.num} {...fadeUp(i * 0.07)}
-                    className="rounded border border-border bg-muted/30 p-6 flex flex-col gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+                    className="rounded border border-border bg-cream p-6 flex flex-col gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
                     <div className="flex items-center gap-3">
                       <span className="text-[11px] font-bold text-primary/60 tracking-wider">{job.num}</span>
                       <div className="w-10 h-10 rounded bg-emerald-50 flex items-center justify-center">
@@ -711,7 +711,7 @@ export default function FeaturesPage() {
                       </div>
                     </div>
                     <div>
-                      <h3 className="text-base font-bold text-midnight">{job.title}</h3>
+                      <h3 className="text-base font-bold" style={{ color: "var(--color-ink)" }}>{job.title}</h3>
                       <p className="mt-2 text-sm leading-6 text-muted-foreground">{job.desc}</p>
                     </div>
                   </motion.div>
@@ -737,9 +737,9 @@ export default function FeaturesPage() {
           },
         ] as const).map((group, groupIdx) => (
           <div key={group.key}>
-            <section className={`px-6 pt-20 pb-6 ${groupIdx === 0 ? "bg-card" : "bg-[#F8FAFC]"} border-b border-border/60`}>
+            <section className={`px-6 pt-20 pb-6 ${groupIdx === 0 ? "bg-paper" : "bg-cream"} border-b border-border/60`}>
               <div className="mx-auto max-w-6xl text-center">
-                <motion.h2 {...fadeUp(0.04)} className="text-3xl md:text-5xl font-extrabold tracking-[-0.03em] text-midnight">
+                <motion.h2 {...fadeUp(0.04)} className="text-3xl md:text-5xl font-extrabold tracking-[-0.03em]" style={{ color: "var(--color-ink)" }}>
                   {group.heading}
                 </motion.h2>
                 <motion.p {...fadeUp(0.08)} className="mx-auto mt-3 max-w-2xl text-base leading-7 text-muted-foreground">
@@ -752,14 +752,14 @@ export default function FeaturesPage() {
               const Mockup = FEATURE_MOCKUPS[i]
               const isEven = localIdx % 2 === 0
               const bg = groupIdx === 0
-                ? (isEven ? "bg-card" : "bg-[#F8FAFC]")
-                : (isEven ? "bg-[#F8FAFC]" : "bg-card")
+                ? (isEven ? "bg-paper" : "bg-cream")
+                : (isEven ? "bg-cream" : "bg-paper")
               return (
                 <section key={feat.eyebrow} className={`py-16 px-6 ${bg} border-b border-border/60`}>
                   <div className="mx-auto max-w-6xl grid md:grid-cols-2 gap-10 lg:gap-16 items-center">
                     <motion.div {...fadeUp()} className={!isEven ? "md:order-2" : ""}>
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">{feat.eyebrow}</span>
-                      <h3 className="mt-3 text-3xl md:text-4xl font-extrabold tracking-[-0.03em] text-midnight leading-tight">{feat.title}</h3>
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.28em]" style={{ color: "var(--color-forest)" }}>{feat.eyebrow}</span>
+                      <h3 className="mt-3 text-3xl md:text-4xl font-extrabold tracking-[-0.03em] leading-tight" style={{ color: "var(--color-ink)" }}>{feat.title}</h3>
                       <p className="mt-4 text-base leading-7 text-muted-foreground">{feat.body}</p>
                       <ul className="mt-6 space-y-3">
                         {feat.bullets.map(b => (
@@ -769,6 +769,15 @@ export default function FeaturesPage() {
                           </li>
                         ))}
                       </ul>
+                      {i === 3 && (
+                        <div className="mt-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3.5">
+                          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                          <p className="text-sm leading-6 text-foreground">
+                            <span className="font-semibold">Works with services marketplaces too.</span>{" "}
+                            Tracey monitors your inbox for lead notifications from hipages, ServiceSeeking, Oneflare and more — so no enquiry slips through, even when it arrives as an email.
+                          </p>
+                        </div>
+                      )}
                     </motion.div>
                     <motion.div {...fadeUp(0.08)} className={`h-[260px] sm:h-[320px] md:h-[360px] rounded overflow-hidden shadow-[0_8px_48px_rgba(15,23,42,0.12)] ${!isEven ? "md:order-1" : ""}`}>
                       {Mockup && <Mockup />}
@@ -781,11 +790,11 @@ export default function FeaturesPage() {
         ))}
 
         {/* ── 4. How it works ── */}
-        <section className="py-20 px-6 bg-card border-b border-border/60">
+        <section className="py-20 px-6 bg-paper border-b border-border/60">
           <div className="mx-auto max-w-5xl">
             <motion.div {...fadeUp()} className="text-center mb-14">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">How it works</p>
-              <h2 className="mt-3 text-4xl font-extrabold tracking-[-0.03em] text-midnight">Up and running in under a day</h2>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em]" style={{ color: "var(--color-forest)" }}>How it works</p>
+              <h2 className="mt-3 text-4xl font-extrabold tracking-[-0.03em]" style={{ color: "var(--color-ink)" }}>Up and running in under a day</h2>
             </motion.div>
             <div className="grid md:grid-cols-3 gap-6 relative">
               {/* connecting line — desktop only */}
@@ -794,12 +803,12 @@ export default function FeaturesPage() {
                 const Icon = step.icon
                 return (
                   <motion.div key={step.num} {...fadeUp(i * 0.1)}
-                    className="relative flex flex-col items-center text-center p-7 rounded bg-muted/30 border border-border">
+                    className="relative flex flex-col items-center text-center p-7 rounded bg-cream border border-border">
                     <div className="w-14 h-14 rounded bg-card border border-emerald-200 shadow-sm flex items-center justify-center mb-5 relative z-10">
                       <Icon className="w-6 h-6 text-primary" />
                     </div>
                     <span className="text-[11px] font-bold text-primary/60 tracking-widest mb-2">{step.num}</span>
-                    <h3 className="text-base font-bold text-midnight">{step.title}</h3>
+                    <h3 className="text-base font-bold" style={{ color: "var(--color-ink)" }}>{step.title}</h3>
                     <p className="mt-2 text-sm leading-6 text-muted-foreground">{step.desc}</p>
                   </motion.div>
                 )
@@ -809,16 +818,16 @@ export default function FeaturesPage() {
         </section>
 
         {/* ── 6. Testimonials ── */}
-        <section className="py-20 px-6 bg-card border-b border-border/60">
+        <section className="py-20 px-6 bg-cream border-b border-border/60">
           <div className="mx-auto max-w-4xl">
             <motion.div {...fadeUp()} className="text-center mb-12">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">What customers say</p>
-              <h2 className="mt-3 text-4xl font-extrabold tracking-[-0.03em] text-midnight">Loved by tradies across Australia</h2>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em]" style={{ color: "var(--color-forest)" }}>What customers say</p>
+              <h2 className="mt-3 text-4xl font-extrabold tracking-[-0.03em]" style={{ color: "var(--color-ink)" }}>Loved by tradies across Australia</h2>
             </motion.div>
             <div className="grid md:grid-cols-2 gap-6">
               {TESTIMONIALS.map((t, i) => (
                 <motion.div key={i} {...fadeUp(i * 0.08)}
-                  className="rounded border border-border bg-muted/30 p-8 flex flex-col gap-6">
+                  className="rounded border border-border bg-paper p-8 flex flex-col gap-6">
                   <div className="flex gap-1">
                     {[1,2,3,4,5].map(s => (
                       <svg key={s} className="w-4 h-4 text-amber-400 fill-current" viewBox="0 0 20 20">
@@ -828,7 +837,7 @@ export default function FeaturesPage() {
                   </div>
                   <p className="text-[15px] leading-7 text-foreground italic flex-1">&ldquo;{t.quote}&rdquo;</p>
                   <div>
-                    <p className="text-sm font-bold text-midnight">{t.author}</p>
+                    <p className="text-sm font-bold" style={{ color: "var(--color-ink)" }}>{t.author}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">{t.role}</p>
                   </div>
                 </motion.div>
@@ -838,7 +847,7 @@ export default function FeaturesPage() {
         </section>
 
         {/* ── 7. Final CTA ── */}
-        <section className="py-24 px-6 bg-[linear-gradient(135deg,#0f172a_0%,#065f46_100%)]">
+        <section className="py-24 px-6" style={{ background: "var(--color-forest)" }}>
           <div className="mx-auto max-w-3xl text-center flex flex-col items-center gap-6">
             <motion.p {...fadeUp()} className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-400">
               Ready to start
