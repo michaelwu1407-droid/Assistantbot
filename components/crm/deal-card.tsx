@@ -382,10 +382,10 @@ export function DealCard({
           e.preventDefault()
           onDelete()
         }}
-        className="shrink-0 py-1 pl-1 text-muted-foreground transition-colors hover:text-destructive"
+        className="flex h-10 w-10 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-destructive"
         title="Move to Deleted"
       >
-        <Trash2 className="h-3.5 w-3.5" />
+        <Trash2 className="h-4 w-4" />
       </button>
     ) : null
 
@@ -571,7 +571,7 @@ export function DealCard({
                     <Button
                       type="button"
                       size="sm"
-                      className="h-6 bg-emerald-600 px-2.5 text-[10px] font-semibold text-white hover:bg-emerald-700"
+                      className="h-8 bg-emerald-600 px-2.5 text-[10px] font-semibold text-white hover:bg-emerald-700"
                       disabled={approvalBusy}
                       onClick={showDraftApproval ? handleApproveDraft : handleApproveKanban}
                       onPointerDown={(e) => e.stopPropagation()}
@@ -582,7 +582,7 @@ export function DealCard({
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="h-6 border-amber-200 bg-card/95 px-2.5 text-[10px] font-semibold text-amber-900 hover:bg-amber-50"
+                      className="h-8 border-amber-200 bg-card/95 px-2.5 text-[10px] font-semibold text-amber-900 hover:bg-amber-50"
                       disabled={approvalBusy}
                       onClick={(e) => {
                         e.stopPropagation()
