@@ -90,11 +90,15 @@ function formatLastContact(date: Date | null): string {
   return formatMonthYearInTimezone(contactDate, DEFAULT_WORKSPACE_TIMEZONE)
 }
 
-export function ContactsClient({ contacts, pagination }: ContactsClientProps) {
+export function ContactsClient(props: ContactsClientProps) {
   const isMobile = useIsMobile()
   if (isMobile) {
-    return <ContactsMobile contacts={contacts} />
+    return <ContactsMobile contacts={props.contacts} />
   }
+  return <ContactsClientDesktop {...props} />
+}
+
+function ContactsClientDesktop({ contacts, pagination }: ContactsClientProps) {
   const router = useRouter()
   const [search, setSearch] = useState("")
   const allStageIds = useMemo(() => new Set(KANBAN_STAGES.map((stage) => stage.id)), [])

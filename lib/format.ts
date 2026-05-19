@@ -29,6 +29,20 @@ export function formatShortDate(date: Date | string | null | undefined): string 
   })
 }
 
+export function formatWeekdayLong(date: Date | string | null | undefined): string {
+  if (!date) return "—"
+  return new Date(date).toLocaleDateString("en-AU", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  })
+}
+
+export function formatWeekdayShort(date: Date | string | null | undefined): string {
+  if (!date) return "—"
+  return new Date(date).toLocaleDateString("en-AU", { weekday: "short" })
+}
+
 export function formatTime(date: Date | string | null | undefined): string {
   if (!date) return "—"
   return new Date(date).toLocaleTimeString("en-AU", {

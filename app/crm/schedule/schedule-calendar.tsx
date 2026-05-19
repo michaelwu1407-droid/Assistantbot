@@ -46,11 +46,15 @@ interface ScheduleCalendarProps {
 
 const DAY_HOURS = Array.from({ length: 15 }, (_, index) => index + 6)
 
-export function ScheduleCalendar({ deals, teamMembers, workspaceTimezone, initialDate }: ScheduleCalendarProps) {
+export function ScheduleCalendar(props: ScheduleCalendarProps) {
   const isMobile = useIsMobile()
   if (isMobile) {
-    return <ScheduleMobile deals={deals} />
+    return <ScheduleMobile deals={props.deals} />
   }
+  return <ScheduleCalendarDesktop {...props} />
+}
+
+function ScheduleCalendarDesktop({ deals, teamMembers, workspaceTimezone, initialDate }: ScheduleCalendarProps) {
   const router = useRouter()
   const [current, setCurrent] = useState(() => initialDate ?? new Date())
   const [view, setView] = useState<ViewMode>("month")

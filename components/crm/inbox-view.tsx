@@ -173,16 +173,20 @@ function findInitialSelectedActivityId(
   return interactions[0]?.id ?? null;
 }
 
-export function InboxView({
+export function InboxView(props: InboxViewProps) {
+  const isMobile = useIsMobile()
+  if (isMobile) {
+    return <InboxMobile interactions={props.initialInteractions} contactSegment={props.contactSegment ?? {}} />
+  }
+  return <InboxViewDesktop {...props} />
+}
+
+function InboxViewDesktop({
   initialInteractions,
   contactSegment = {},
   workspaceId,
   initialContactId = null,
 }: InboxViewProps) {
-  const isMobile = useIsMobile()
-  if (isMobile) {
-    return <InboxMobile interactions={initialInteractions} contactSegment={contactSegment} />
-  }
   const router = useRouter()
   const { viewMode, tutorialStepIndex } = useShellStore()
   const isTutorialInboxStep = viewMode === "TUTORIAL" && TUTORIAL_STEPS[tutorialStepIndex]?.id === "nav-inbox"

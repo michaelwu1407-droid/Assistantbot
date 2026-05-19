@@ -5,7 +5,7 @@ import Link from "next/link"
 import { ChevronLeft, ChevronRight, MapPin } from "lucide-react"
 import { DealView } from "@/actions/deal-actions"
 import { MobileHeader } from "@/components/mobile/_primitives/mobile-header"
-import { formatTime, formatShortDate } from "@/lib/format"
+import { formatTime, formatShortDate, formatWeekdayShort } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 interface ScheduleMobileProps {
@@ -91,7 +91,7 @@ export function ScheduleMobile({ deals, userName }: ScheduleMobileProps) {
                 )}
               >
                 <span className={cn("text-[10px] uppercase tracking-wide", active ? "text-background/70" : "text-muted-foreground")}>
-                  {d.toLocaleDateString("en-AU", { weekday: "short" }).slice(0, 3)}
+                  {formatWeekdayShort(d).slice(0, 3)}
                 </span>
                 <span className="text-lg font-bold tabular-nums leading-tight">{d.getDate()}</span>
                 {isToday && !active && <span className="mt-0.5 h-1 w-1 rounded-full bg-primary" />}

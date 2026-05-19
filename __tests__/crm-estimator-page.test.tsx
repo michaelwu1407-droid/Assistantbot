@@ -49,7 +49,8 @@ describe("CrmEstimatorPage", () => {
   it("renders the estimator with active deals", async () => {
     render(await CrmEstimatorPage());
 
-    expect(screen.getByText("Estimator")).toBeInTheDocument();
+    // Mobile shell + desktop header both render "Estimator"; assert at least one.
+    expect(screen.getAllByText("Estimator").length).toBeGreaterThan(0);
     expect(screen.getByText("estimator:ws_1:Blocked drain")).toBeInTheDocument();
   });
 
