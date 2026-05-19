@@ -25,7 +25,14 @@ export function ShellHost({ children, chatbot }: { children: React.ReactNode; ch
     )
   }
 
-  if (isMobile && pathname.startsWith("/crm")) {
+  const isAppRoute =
+    pathname.startsWith("/crm") ||
+    pathname.startsWith("/tradie") ||
+    pathname.startsWith("/agent") ||
+    pathname.startsWith("/contacts") ||
+    pathname.startsWith("/jobs")
+
+  if (isMobile && isAppRoute) {
     return <MobileShell chatbot={chatbot}>{children}</MobileShell>
   }
 

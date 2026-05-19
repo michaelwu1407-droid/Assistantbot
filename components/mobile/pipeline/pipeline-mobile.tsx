@@ -1,8 +1,10 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import Link from "next/link"
 import { Plus } from "lucide-react"
-import { DealView, WorkspaceView } from "@/actions/deal-actions"
+import { DealView } from "@/actions/deal-actions"
+import { WorkspaceView } from "@/actions/workspace-actions"
 import { MobileHeader } from "@/components/mobile/_primitives/mobile-header"
 import { DashboardKpiCards } from "@/components/dashboard/dashboard-kpi-cards"
 import { PipelineStageChips, PIPELINE_STAGES } from "./pipeline-stage-chips"
@@ -14,10 +16,9 @@ interface PipelineMobileProps {
   workspace: WorkspaceView
   deals: DealView[]
   userName: string
-  onAddDeal?: () => void
 }
 
-export function PipelineMobile({ workspace, deals, userName, onAddDeal }: PipelineMobileProps) {
+export function PipelineMobile({ workspace, deals, userName }: PipelineMobileProps) {
   const [activeStage, setActiveStage] = useState<string>(PIPELINE_STAGES[0].id)
 
   const dealsByStage = useMemo(() => {
@@ -78,14 +79,13 @@ export function PipelineMobile({ workspace, deals, userName, onAddDeal }: Pipeli
               </span>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onAddDeal}
+          <Link
+            href="/crm/deals/new"
             aria-label="Add deal"
             className="flex h-12 w-12 items-center justify-center rounded-full bg-foreground text-background shadow-md"
           >
             <Plus className="h-5 w-5" />
-          </button>
+          </Link>
         </div>
       </div>
 
