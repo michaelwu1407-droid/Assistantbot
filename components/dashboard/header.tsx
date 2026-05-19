@@ -24,11 +24,10 @@ interface HeaderProps {
     showPrimaryCta?: boolean
     /** Renders between the search bar and weather/activity (e.g. New Job + Filter on dashboard) */
     headerActions?: ReactNode
-    /** `brand` = dark green bar + white text (dashboard shell) */
     variant?: "default" | "brand"
 }
 
-export function Header({ pageTitle, userName, userId, workspaceId, userRole, onOpenActivity, headerActions, variant = "default" }: HeaderProps) {
+export function Header({ pageTitle, userName, userId, workspaceId, userRole, onOpenActivity, headerActions, variant = "brand" }: HeaderProps) {
     const isBrand = variant === "brand"
     const [weather, setWeather] = useState<{ temp: number; condition: string } | null>(null)
 
@@ -76,9 +75,10 @@ export function Header({ pageTitle, userName, userId, workspaceId, userRole, onO
             className={cn(
                 "flex items-center gap-2 md:gap-3 h-12 px-4 md:px-6 shrink-0 min-w-0",
                 isBrand
-                    ? "bg-emerald-900 text-white border-b border-emerald-950/50 shadow-sm"
+                    ? "text-white border-b border-white/10"
                     : "glass-panel"
             )}
+            style={isBrand ? { background: "var(--color-forest)" } : undefined}
         >
             {/* Mobile menu */}
             <Button
@@ -125,7 +125,7 @@ export function Header({ pageTitle, userName, userId, workspaceId, userRole, onO
                             "flex items-center gap-1 shrink-0",
                             isBrand &&
                                 /* Moderate emphasis on green bar — not full white pills */
-                                "[&_#new-deal-btn]:border [&_#new-deal-btn]:border-white/25 [&_#new-deal-btn]:bg-emerald-950/45 [&_#new-deal-btn]:text-white [&_#new-deal-btn]:shadow-none [&_#new-deal-btn]:hover:bg-emerald-950/65 [&_#new-deal-btn]:hover:border-white/35 [&_#pipeline-filter-trigger]:!border [&_#pipeline-filter-trigger]:!border-white/25 [&_#pipeline-filter-trigger]:!bg-card/10 [&_#pipeline-filter-trigger]:!text-white [&_#pipeline-filter-trigger]:shadow-none [&_#pipeline-filter-trigger]:hover:!bg-card/18"
+                                "[&_#new-deal-btn]:border [&_#new-deal-btn]:border-white/25 [&_#new-deal-btn]:bg-white/10 [&_#new-deal-btn]:text-white [&_#new-deal-btn]:shadow-none [&_#new-deal-btn]:hover:bg-white/15 [&_#new-deal-btn]:hover:border-white/35 [&_#pipeline-filter-trigger]:!border [&_#pipeline-filter-trigger]:!border-white/25 [&_#pipeline-filter-trigger]:!bg-white/10 [&_#pipeline-filter-trigger]:!text-white [&_#pipeline-filter-trigger]:shadow-none [&_#pipeline-filter-trigger]:hover:!bg-white/15"
                         )}
                     >
                         {headerActions}
@@ -193,7 +193,7 @@ export function Header({ pageTitle, userName, userId, workspaceId, userRole, onO
                         <p
                             className={cn(
                                 "text-[11px] uppercase tracking-wider",
-                                isBrand ? "text-emerald-200/80" : "text-muted-foreground"
+                                isBrand ? "text-white/55" : "text-muted-foreground"
                             )}
                         >
                             {roleLabel}
