@@ -1,7 +1,10 @@
 "use client"
 
 import { useSyncExternalStore } from "react"
+import { usePathname } from "next/navigation"
 import { Shell } from "@/components/layout/Shell"
+import { MobileShell } from "@/components/mobile/_primitives/mobile-shell"
+import { useIsMobile } from "@/hooks/use-is-mobile"
 
 export function ShellHost({ children, chatbot }: { children: React.ReactNode; chatbot?: React.ReactNode }) {
   const mounted = useSyncExternalStore(
@@ -9,6 +12,8 @@ export function ShellHost({ children, chatbot }: { children: React.ReactNode; ch
     () => true,
     () => false,
   )
+  const isMobile = useIsMobile()
+  const pathname = usePathname()
 
   if (!mounted) {
     return (
@@ -20,6 +25,9 @@ export function ShellHost({ children, chatbot }: { children: React.ReactNode; ch
     )
   }
 
+  if (isMobile && pathname.startsWith("/crm")) {
+    return <MobileShell chatbot={chatbot}>{children}</MobileShell>
+  }
+
   return <Shell chatbot={chatbot}>{children}</Shell>
 }
-
