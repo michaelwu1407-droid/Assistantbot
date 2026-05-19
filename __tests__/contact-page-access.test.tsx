@@ -74,7 +74,8 @@ describe("ContactDetailPage", () => {
   it("renders the contact detail page when scoped access succeeds", async () => {
     render(await ContactDetailPage({ params: Promise.resolve({ id: "contact_1" }) }));
 
-    expect(screen.getByRole("heading", { name: "Acme Plumbing" })).toBeInTheDocument();
+    // Mobile shell + desktop header both render the heading; assert at least one.
+    expect(screen.getAllByRole("heading", { name: "Acme Plumbing" }).length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: /open customer timeline/i })).toHaveAttribute(
       "href",
       "/crm/inbox?contact=contact_1",

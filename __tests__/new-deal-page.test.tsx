@@ -36,7 +36,8 @@ describe("NewDealPage", () => {
   it("renders the standalone new booking workflow", async () => {
     render(await NewDealPage());
 
-    expect(screen.getByText("New Booking")).toBeInTheDocument();
+    // Mobile shell + desktop header both render "New Booking"; assert at least one.
+    expect(screen.getAllByText("New Booking").length).toBeGreaterThan(0);
     expect(screen.getByText("new-deal-form:ws_1")).toBeInTheDocument();
   });
 
