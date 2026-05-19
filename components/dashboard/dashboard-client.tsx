@@ -57,11 +57,15 @@ interface DashboardClientProps {
     userId: string
 }
 
-export function DashboardClient({ workspace, deals, teamMembers, userName }: DashboardClientProps) {
+export function DashboardClient(props: DashboardClientProps) {
     const isMobile = useIsMobile()
     if (isMobile) {
-        return <PipelineMobile workspace={workspace} deals={deals} userName={userName} />
+        return <PipelineMobile workspace={props.workspace} deals={props.deals} userName={props.userName} />
     }
+    return <DashboardClientDesktop {...props} />
+}
+
+function DashboardClientDesktop({ workspace, deals, teamMembers, userName }: DashboardClientProps) {
     const FILTER_ALL = "__all__"
     const FILTER_UNASSIGNED = "__unassigned__"
     const PRESETS_KEY = `kanban-filter-presets:${workspace.id}`

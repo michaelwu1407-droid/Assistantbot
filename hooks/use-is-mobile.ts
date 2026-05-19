@@ -1,22 +1,27 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useSyncExternalStore } from "react"
 
 const MOBILE_QUERY = "(max-width: 767px)"
 
+function subscribe(callback: () => void): () => void {
+  if (typeof window === "undefined") return () => {}
+  const mq = window.matchMedia(MOBILE_QUERY)
+  mq.addEventListener("change", callback)
+  return () => mq.removeEventListener("change", callback)
+}
+
+function getSnapshot(): boolean {
+  return window.matchMedia(MOBILE_QUERY).matches
+}
+
+function getServerSnapshot(): boolean {
+  // Desktop-first on the server so the desktop shell renders during SSR;
+  // the real value is settled on the client mount via useSyncExternalStore
+  // without an extra render commit.
+  return false
+}
+
 export function useIsMobile(): boolean {
-  const [isMobile, setIsMobile] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false
-    return window.matchMedia(MOBILE_QUERY).matches
-  })
-
-  useEffect(() => {
-    const mq = window.matchMedia(MOBILE_QUERY)
-    const handler = (event: MediaQueryListEvent) => setIsMobile(event.matches)
-    setIsMobile(mq.matches)
-    mq.addEventListener("change", handler)
-    return () => mq.removeEventListener("change", handler)
-  }, [])
-
-  return isMobile
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 }

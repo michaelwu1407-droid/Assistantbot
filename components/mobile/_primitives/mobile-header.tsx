@@ -2,6 +2,7 @@
 
 import { useMemo } from "react"
 import { cn } from "@/lib/utils"
+import { formatWeekdayLong } from "@/lib/format"
 
 interface MobileHeaderProps {
   pageTitle: string
@@ -28,11 +29,7 @@ export function MobileHeader({
 }: MobileHeaderProps) {
   const today = useMemo(() => {
     if (dateLabel) return dateLabel
-    return new Date().toLocaleDateString("en-AU", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-    })
+    return formatWeekdayLong(new Date())
   }, [dateLabel])
 
   const userInitial = (userName?.trim()?.[0] || "U").toUpperCase()

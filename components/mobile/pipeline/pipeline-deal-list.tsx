@@ -19,7 +19,7 @@ const STATUS_BADGES: Record<string, { label: string; className: string }> = {
 
 function inferBadge(deal: DealView) {
   if (deal.agentFlags?.includes("urgent")) return STATUS_BADGES.urgent
-  if ((deal.health || "").toLowerCase() === "critical") return STATUS_BADGES.urgent
+  if (deal.health?.status === "ROTTING") return STATUS_BADGES.urgent
   if (deal.stage === "quote_sent") return STATUS_BADGES.sent
   if (deal.stage === "scheduled") return STATUS_BADGES.scheduled
   if (deal.stage === "completed") return STATUS_BADGES.paid
