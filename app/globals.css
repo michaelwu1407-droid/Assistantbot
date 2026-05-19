@@ -55,16 +55,18 @@
   --color-ink2: #3D4A45;
 
   /* Earlymark — status colors */
-  --color-status-new: #3B82F6;
-  --color-status-new-bg: #EFF6FF;
-  --color-status-quote: #F59E0B;
-  --color-status-quote-bg: #FFFBEB;
+  --color-status-new: #4A7CE6;
+  --color-status-new-bg: #E2EAF8;
+  --color-status-quote: #E89A2B;
+  --color-status-quote-bg: #FBEFD8;
   --color-status-scheduled: #00D28B;
   --color-status-scheduled-bg: #E0FAF2;
-  --color-status-awaiting: #8B5CF6;
-  --color-status-awaiting-bg: #F5F3FF;
-  --color-status-complete: #6B7280;
-  --color-status-complete-bg: #F3F4F6;
+  --color-status-awaiting: #8B6FE0;
+  --color-status-awaiting-bg: #ECE6FA;
+  --color-status-complete: #6B7773;
+  --color-status-complete-bg: #F0EFED;
+  --color-status-urgent: #DC4A4A;
+  --color-status-urgent-bg: #FBDDD9;
 
   /* Shadows */
   --shadow-ott: 0px 1px 2px rgba(0,0,0,0.05), 0px 10px 15px -3px rgba(0,0,0,0.03), 0px 4px 6px -2px rgba(0,0,0,0.02);
@@ -471,13 +473,14 @@
    * Use: <span className="ott-status-pill ott-status-new">New</span>
    * Combine ott-status-pill (sizing) + one status modifier (color). */
   .ott-status-pill {
-    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold;
+    @apply inline-flex items-center px-2 py-[3px] rounded-[5px] text-[10.5px] font-bold uppercase tracking-[0.05em];
   }
-  .ott-status-new       { @apply bg-status-new-bg      text-status-new       border border-status-new/20; }
-  .ott-status-quote     { @apply bg-status-quote-bg    text-status-quote     border border-status-quote/20; }
-  .ott-status-scheduled { @apply bg-status-scheduled-bg text-status-scheduled border border-status-scheduled/20; }
-  .ott-status-awaiting  { @apply bg-status-awaiting-bg text-status-awaiting  border border-status-awaiting/20; }
-  .ott-status-complete  { @apply bg-status-complete-bg text-status-complete  border border-status-complete/20; }
+  .ott-status-new       { @apply bg-status-new-bg      text-status-new; }
+  .ott-status-quote     { @apply bg-status-quote-bg    text-status-quote; }
+  .ott-status-scheduled { @apply bg-status-scheduled-bg text-status-scheduled; }
+  .ott-status-awaiting  { @apply bg-status-awaiting-bg text-status-awaiting; }
+  .ott-status-complete  { @apply bg-status-complete-bg text-status-complete; }
+  .ott-status-urgent    { background: var(--color-status-urgent-bg); color: var(--color-status-urgent); }
 
   /* FORM VALIDATION ERROR STATES
    * Apply ott-field-error to the <input>/<select> element.
