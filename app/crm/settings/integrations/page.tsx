@@ -311,10 +311,10 @@ export default function IntegrationsPage() {
                                 <label className="text-sm font-medium">Connected email accounts</label>
                                 <div className="space-y-2">
                                     {emailIntegrations.map((integration) => (
-                                        <div key={integration.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                                            <div className="flex items-center gap-2">
-                                                <div className={`w-2 h-2 rounded-full ${integration.isActive ? "bg-green-500" : "bg-muted-foreground"}`} />
-                                                <span className="text-sm font-medium">{integration.emailAddress}</span>
+                                        <div key={integration.id} className="flex items-center justify-between gap-2 p-3 bg-muted/30 rounded-lg">
+                                            <div className="flex min-w-0 items-center gap-2">
+                                                <div className={`w-2 h-2 shrink-0 rounded-full ${integration.isActive ? "bg-green-500" : "bg-muted-foreground"}`} />
+                                                <span className="truncate text-sm font-medium">{integration.emailAddress}</span>
                                                 <Badge variant="outline" className="text-xs">
                                                     {integration.provider}
                                                 </Badge>
