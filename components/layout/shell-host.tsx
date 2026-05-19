@@ -32,7 +32,10 @@ export function ShellHost({ children, chatbot }: { children: React.ReactNode; ch
     pathname.startsWith("/contacts") ||
     pathname.startsWith("/jobs")
 
-  if (isMobile && isAppRoute) {
+  // Full-bleed routes that manage their own layout (no bottom nav / scroll wrapper)
+  const isFullBleed = /^\/crm\/inbox\/[^/]+$/.test(pathname)
+
+  if (isMobile && isAppRoute && !isFullBleed) {
     return <MobileShell chatbot={chatbot}>{children}</MobileShell>
   }
 

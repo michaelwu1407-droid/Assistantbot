@@ -3,6 +3,7 @@ import { requireDealInCurrentWorkspace } from "@/lib/workspace-access"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { ChevronLeft, ChevronRight, Edit, MessageSquare, FileText, MapPin, Briefcase, ImageIcon, Home, DollarSign, AlertTriangle, Navigation, Phone } from "lucide-react"
+import { DealHeaderMobile } from "@/components/mobile/deals/deal-header-mobile"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -87,6 +88,7 @@ export default async function DealDetailPage({ params }: PageProps) {
 
   return (
     <div className="flex h-full flex-col gap-4 overflow-y-auto p-4 pb-24 md:p-6 md:pb-24">
+      <DealHeaderMobile title={deal.title} stageLabel={stageLabel} dealId={id} />
       <nav aria-label="Breadcrumb" className="hidden md:flex items-center gap-1 text-sm text-muted-foreground">
         <Link href="/crm/dashboard" className="inline-flex items-center gap-1 hover:text-foreground transition-colors">
           <Home className="h-4 w-4" />
@@ -98,8 +100,8 @@ export default async function DealDetailPage({ params }: PageProps) {
         <span className="font-medium text-foreground">{deal.title}</span>
       </nav>
 
-      {/* Header */}
-      <div className="flex items-center justify-between shrink-0">
+      {/* Header — desktop only; mobile uses DealHeaderMobile above */}
+      <div className="hidden md:flex items-center justify-between shrink-0">
         <div className="flex items-center gap-4">
           <Link
             href="/crm/dashboard"

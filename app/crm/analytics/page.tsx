@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { MobileHeader } from "@/components/mobile/_primitives/mobile-header"
 import { TrendingUp, TrendingDown, DollarSign, Users, Star, CheckCircle, LayoutList, Printer } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -285,6 +286,7 @@ export default function AnalyticsPage() {
 
   return (
     <div className="h-full min-h-0 flex flex-col overflow-hidden">
+      <MobileHeader pageTitle="Analytics" />
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
           <div className="flex items-center justify-between">

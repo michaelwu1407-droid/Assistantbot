@@ -108,7 +108,7 @@ export function InboxMobile({ interactions, contactSegment, userName }: InboxMob
         )}
         {threads.map((a) => {
           const Icon = activityIcon(a.type)
-          const href = a.contactId ? `/crm/inbox?contact=${a.contactId}` : "#"
+          const href = a.contactId ? `/crm/inbox/${a.contactId}` : "#"
           return (
             <li key={a.id}>
               <Link href={href} className="flex items-start gap-3 px-4 py-4 active:bg-muted/40">

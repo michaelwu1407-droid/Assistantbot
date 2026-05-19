@@ -37,6 +37,7 @@ import { getTeamMembers, getWorkspaceInvites, createInvite, revokeInvite, remove
 import { toast } from "sonner"
 import { useShellStore } from "@/lib/store"
 import { formatDate } from "@/lib/format"
+import { MobileHeader } from "@/components/mobile/_primitives/mobile-header"
 
 interface TeamMember {
     id: string
@@ -207,6 +208,8 @@ export default function TeamPage() {
     }
 
     return (
+        <>
+        <MobileHeader pageTitle="Team" />
         <div className="mx-auto w-full max-w-6xl space-y-8 px-6 py-8">
             <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
                 <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-muted-foreground">
@@ -513,5 +516,6 @@ export default function TeamPage() {
                 )}
             </div>
         </div>
+        </>
     )
 }
