@@ -92,9 +92,6 @@ export default function SolutionsPage() {
                     <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50" style={{ color: "var(--color-forest)" }}>
                       <Icon className="h-5 w-5" />
                     </span>
-                    <p className="text-xs font-bold uppercase tracking-[0.22em]" style={{ color: "var(--color-forest)" }}>
-                      {service.summaryTitle}
-                    </p>
                   </div>
                   <h2 className="text-2xl font-extrabold tracking-[-0.02em] md:text-3xl" style={{ color: "var(--color-ink)" }}>
                     {service.summaryTeaser}
@@ -115,9 +112,6 @@ export default function SolutionsPage() {
                 {/* Visual side — dark green panel with workflow list */}
                 <div className={`relative flex flex-col justify-center gap-5 bg-[linear-gradient(155deg,#0f172a_0%,#0d3b2a_55%,#065f46_100%)] p-8 md:p-10 ${reverse ? "md:order-1" : ""}`}>
                   <div className="pointer-events-none absolute inset-0 opacity-40" style={{ background: "radial-gradient(60% 50% at 80% 0%, rgba(16,185,129,0.25) 0%, rgba(16,185,129,0) 70%)" }} />
-                  <p className="relative text-[11px] font-bold uppercase tracking-[0.24em] text-emerald-300">
-                    What Tracey handles
-                  </p>
                   <ul className="relative flex flex-col gap-3">
                     {service.workflows.slice(0, 3).map((workflow) => (
                       <li
