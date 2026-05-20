@@ -408,7 +408,6 @@ export default function Home() {
             <section id="platform" className="bg-background px-6 py-12 md:py-24">
                 <div className="container mx-auto max-w-7xl">
                     <motion.div {...fadeUp()} className="mx-auto mb-12 max-w-3xl text-center">
-                        <p className="text-xs font-bold uppercase tracking-[0.18em] mb-3" style={{ color: "var(--color-forest)" }}>The platform</p>
                         <h2 className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em]" style={{ color: "var(--color-ink)" }}>One comprehensive platform.</h2>
                         <p className="mt-4 text-lg" style={{ color: "var(--color-ink2)" }}>
                             An AI assistant and a CRM that runs itself, so you don&apos;t have to.
@@ -424,7 +423,6 @@ export default function Home() {
             <section id="meet-tracey" className="bg-background px-6 py-12 md:py-24">
                 <div className="container mx-auto max-w-7xl">
                     <motion.div {...fadeUp()} className="mx-auto mb-12 max-w-3xl text-center">
-                        <p className="text-xs font-bold uppercase tracking-[0.18em] mb-3" style={{ color: "var(--color-forest)" }}>The platform</p>
                         <h2 className="text-4xl font-extrabold tracking-[-0.03em] md:text-5xl" style={{ color: "var(--color-ink)" }}>Meet Tracey.</h2>
                         <p className="mt-3 text-lg max-w-xl mx-auto" style={{ color: "var(--color-ink2)" }}>
                             Your AI receptionist, CRM manager, and follow-up specialist — all in one.
