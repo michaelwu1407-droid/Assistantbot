@@ -548,9 +548,6 @@ export default function FeaturesPage() {
             background: "radial-gradient(110% 60% at 50% 0%,rgba(16,185,129,0.18) 0%,rgba(16,185,129,0.00) 72%)",
           }} />
           <div className="relative z-10 mx-auto max-w-3xl text-center flex flex-col items-center gap-6">
-            <motion.p {...fadeUp(0)} className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">
-              Product
-            </motion.p>
             <motion.h1 {...fadeUp(0.04)} className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.07] text-balance" style={{ color: "var(--color-ink)" }}>
               An AI assistant.<br />A CRM that runs itself.
             </motion.h1>
@@ -580,7 +577,6 @@ export default function FeaturesPage() {
         <section className="py-10 md:py-20 px-6 bg-card border-y border-border/70">
           <div className="mx-auto max-w-7xl">
             <motion.div {...fadeUp()} className="mx-auto mb-12 max-w-3xl text-center">
-              <p className="text-[11px] font-bold uppercase tracking-[0.28em] mb-3" style={{ color: "var(--color-forest)" }}>The platform</p>
               <h2 className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em]" style={{ color: "var(--color-ink)" }}>One comprehensive platform.</h2>
               <p className="mt-4 text-lg text-muted-foreground">
                 An AI assistant and a CRM that runs itself, so you don&apos;t have to.
@@ -596,7 +592,6 @@ export default function FeaturesPage() {
         <section className="py-16 md:py-20 px-6 bg-card border-b border-border/70">
           <div className="mx-auto max-w-6xl">
             <motion.div {...fadeUp()} className="mb-10 max-w-3xl">
-              <p className="text-[11px] font-bold uppercase tracking-[0.28em]" style={{ color: "var(--color-forest)" }}>Product map</p>
               <h2 className="mt-3 text-3xl md:text-5xl font-extrabold tracking-[-0.03em]" style={{ color: "var(--color-ink)" }}>
                 More than a call bot. A working system for the whole job lifecycle.
               </h2>
@@ -639,7 +634,6 @@ export default function FeaturesPage() {
         <section className="py-20 px-6 bg-card border-b border-border/60">
           <div className="mx-auto max-w-4xl">
             <motion.div {...fadeUp()} className="text-center mb-12">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">Why switch</p>
               <h2 className="mt-3 text-4xl font-extrabold tracking-[-0.03em]" style={{ color: "var(--color-ink)" }}>Earlymark vs. the traditional setup</h2>
               <p className="mt-3 text-base text-muted-foreground">Phone + paper + spreadsheet + late-night follow-ups, vs. one AI that handles it all.</p>
             </motion.div>
@@ -695,9 +689,6 @@ export default function FeaturesPage() {
 
         <section className="py-10 md:py-20 px-6 bg-background border-y border-border/70">
           <div className="mx-auto max-w-5xl">
-            <motion.p {...fadeUp()} className="text-center text-[11px] font-semibold uppercase tracking-[0.28em] text-primary mb-10">
-              What Tracey does for you
-            </motion.p>
             <div className="grid md:grid-cols-3 gap-6">
               {CORE_JOBS.map((job, i) => {
                 const Icon = job.icon
@@ -758,7 +749,6 @@ export default function FeaturesPage() {
                 <section key={feat.eyebrow} className={`py-16 px-6 ${bg} border-b border-border/60`}>
                   <div className="mx-auto max-w-6xl grid md:grid-cols-2 gap-10 lg:gap-16 items-center">
                     <motion.div {...fadeUp()} className={!isEven ? "md:order-2" : ""}>
-                      <span className="text-[11px] font-semibold uppercase tracking-[0.28em]" style={{ color: "var(--color-forest)" }}>{feat.eyebrow}</span>
                       <h3 className="mt-3 text-3xl md:text-4xl font-extrabold tracking-[-0.03em] leading-tight" style={{ color: "var(--color-ink)" }}>{feat.title}</h3>
                       <p className="mt-4 text-base leading-7 text-muted-foreground">{feat.body}</p>
                       <ul className="mt-6 space-y-3">
@@ -793,7 +783,6 @@ export default function FeaturesPage() {
         <section className="py-20 px-6 bg-background border-b border-border/60">
           <div className="mx-auto max-w-5xl">
             <motion.div {...fadeUp()} className="text-center mb-14">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em]" style={{ color: "var(--color-forest)" }}>How it works</p>
               <h2 className="mt-3 text-4xl font-extrabold tracking-[-0.03em]" style={{ color: "var(--color-ink)" }}>Up and running in under a day</h2>
             </motion.div>
             <div className="grid md:grid-cols-3 gap-6 relative">
@@ -821,7 +810,6 @@ export default function FeaturesPage() {
         <section className="py-20 px-6 bg-card border-b border-border/60">
           <div className="mx-auto max-w-4xl">
             <motion.div {...fadeUp()} className="text-center mb-12">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em]" style={{ color: "var(--color-forest)" }}>What customers say</p>
               <h2 className="mt-3 text-4xl font-extrabold tracking-[-0.03em]" style={{ color: "var(--color-ink)" }}>Loved by tradies across Australia</h2>
             </motion.div>
             <div className="grid md:grid-cols-2 gap-6">
@@ -849,9 +837,6 @@ export default function FeaturesPage() {
         {/* ── 7. Final CTA ── */}
         <section className="py-24 px-6" style={{ background: "var(--color-forest)" }}>
           <div className="mx-auto max-w-3xl text-center flex flex-col items-center gap-6">
-            <motion.p {...fadeUp()} className="text-[11px] font-semibold uppercase tracking-[0.28em] text-emerald-400">
-              Ready to start
-            </motion.p>
             <motion.h2 {...fadeUp(0.04)} className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-white leading-tight text-balance">
               Give yourself an early mark today
             </motion.h2>

@@ -320,7 +320,6 @@ function FaqSection() {
     return (
         <section className="py-10 md:py-20 px-4 bg-background">
             <div className="max-w-3xl mx-auto">
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-center mb-3" style={{ color: "var(--color-forest)" }}>FAQ</p>
                 <h2 className="text-3xl font-bold text-center mb-10" style={{ color: "var(--color-ink)" }}>Frequently asked.</h2>
                 <div className="space-y-3">
                     {FAQ_ITEMS.map((item, idx) => {
@@ -458,7 +457,6 @@ export default function Home() {
                     </motion.div>
 
                     <motion.div {...fadeUp(0.10)} className="mt-12 flex flex-col items-center gap-5">
-                        <p className="text-sm font-bold uppercase tracking-[0.18em]" style={{ color: "var(--color-forest)" }}>Total control. Pick your mode:</p>
                         <AutonomyModeTabs />
                     </motion.div>
                 </div>
@@ -467,7 +465,6 @@ export default function Home() {
             <section id="product" className="py-12 md:py-24 px-6 bg-card">
                 <div className="container mx-auto max-w-7xl flex flex-col gap-16">
                     <motion.div {...fadeUp()} className="text-center max-w-2xl mx-auto">
-                        <p className="text-xs font-bold uppercase tracking-[0.18em] mb-3" style={{ color: "var(--color-forest)" }}>The CRM</p>
                         <h2 className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em]" style={{ color: "var(--color-ink)" }}>A CRM that fills itself in.</h2>
                         <p className="mt-3 text-lg leading-relaxed" style={{ color: "var(--color-ink2)" }}>
                             Run it from the dashboard, the in-app chat, or just message Tracey on WhatsApp.
@@ -478,11 +475,9 @@ export default function Home() {
                         <div className="flex flex-col gap-6">
                             <ul className="flex flex-col gap-3">
                                 {[
-                                    "Message Tracey on WhatsApp to move a job, send a quote, or pull a customer record",
-                                    "In-app chat sidebar that drives the CRM — no forms, no manual data entry",
-                                    "Actionable notifications: confirm jobs, approve completions, reply to customers in one tap",
-                                    "Lead bouncer triages every enquiry against your no-go rules before it hits the pipeline",
-                                    "Xero-ready invoicing with on-site signature capture and draft filing",
+                                    "One message moves a job, sends a quote, or closes a lead",
+                                    "Chat drives the CRM — Tracey handles the form-filling",
+                                    "Your whole pipeline, accessible by message",
                                 ].map((b) => (
                                     <li key={b} className="flex items-start gap-2.5 text-sm text-slate-body">
                                         <CheckCircle2 className="mt-0.5 w-4 h-4 text-primary shrink-0" />
@@ -524,7 +519,6 @@ export default function Home() {
                 <div aria-hidden className="absolute top-[-60px] left-[-40px] w-56 h-56 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(0,210,139,0.3), rgba(22,67,58,0) 70%)" }} />
                 <div aria-hidden className="absolute bottom-[-40px] right-[-60px] w-72 h-72 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(0,210,139,0.15), rgba(22,67,58,0) 70%)" }} />
                 <div className="mx-auto max-w-3xl text-center flex flex-col items-center gap-6 relative z-10">
-                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#00D28B]">Give yourself an early mark</p>
                     <motion.h2 {...fadeUp()} className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-white leading-tight text-balance">Focus on the job.<br/><span style={{ color: "#00D28B" }}>Not the admin.</span></motion.h2>
                     <motion.p {...fadeUp(0.04)} className="text-lg text-white/65 leading-7 max-w-xl">Start free. No card required. Live in under a day.</motion.p>
                     <motion.div {...fadeUp(0.12)} className="flex flex-col sm:flex-row gap-3">
