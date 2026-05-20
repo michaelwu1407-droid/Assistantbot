@@ -498,8 +498,7 @@ export default function Home() {
 
                     <motion.div {...fadeUp(0.10)} className="flex flex-col gap-6">
                         <div className="text-center">
-                            <p className="text-xs font-bold uppercase tracking-[0.18em]" style={{ color: "var(--color-forest)" }}>Everything in the box</p>
-                            <h3 className="mt-2 text-2xl font-extrabold tracking-[-0.02em] md:text-3xl" style={{ color: "var(--color-ink)" }}>A full-featured CRM, built for the way trades actually work.</h3>
+                            <h3 className="text-2xl font-extrabold tracking-[-0.02em] md:text-3xl" style={{ color: "var(--color-ink)" }}>A full-featured CRM, built for the way trades actually work.</h3>
                         </div>
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             {FEATURE_CARDS.map(({ icon: Icon, title, desc }) => (
