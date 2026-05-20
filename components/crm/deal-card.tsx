@@ -69,28 +69,20 @@ interface DealCardProps {
   currentUserRole?: string
 }
 
-/** Overdue bottom strip - 65% colour opacity (design reference: /crm/design/deal-cards). */
-function overdueBannerOverlayClasses(_severity: "critical" | "warning" | "mild" | "none"): string {
-  return "bg-destructive/65 text-white shadow-inner dark:bg-destructive"
-}
 
-/** Bottom strip for health / draft / pending - 65% opacity to match overdue / design page. */
-function statusBannerOverlayClasses(label: string): string {
+function statusPillStyle(label: string, severity?: "critical" | "warning" | "mild" | "none"): React.CSSProperties {
+  if (severity && severity !== "none") {
+    if (severity === "critical") return { background: "#FBDDD9", color: "#DC4A4A" }
+    return { background: "#FBEFD8", color: "#E89A2B" }
+  }
   switch (label) {
-    case "Pending approval":
-      return "bg-amber-400/65 text-amber-950 shadow-inner dark:bg-amber-500/65 dark:text-amber-950"
-    case "Draft":
-      return "bg-indigo-400/65 text-indigo-950 shadow-inner dark:bg-indigo-500/65 dark:text-indigo-950"
+    case "Draft":         return { background: "#ECE6FA", color: "#8B6FE0" }
+    case "Pending approval": return { background: "#FBEFD8", color: "#E89A2B" }
     case "Urgent":
-      return "bg-destructive/70 text-destructive shadow-inner dark:bg-destructive/65 dark:text-destructive"
-    case "Follow up":
-      return "bg-amber-400/65 text-amber-950 shadow-inner dark:bg-amber-500/65 dark:text-amber-950"
-    case "Rejected":
-      return "bg-destructive/70 text-destructive shadow-inner dark:bg-destructive/65 dark:text-destructive"
-    case "Needs review":
-      return "bg-orange-400/65 text-orange-950 shadow-inner dark:bg-orange-500/65 dark:text-orange-950"
-    default:
-      return "bg-muted/65 text-foreground shadow-inner"
+    case "Rejected":      return { background: "#FBDDD9", color: "#DC4A4A" }
+    case "Follow up":     return { background: "#FBEFD8", color: "#E89A2B" }
+    case "Needs review":  return { background: "#FEF0E6", color: "#D97706" }
+    default:              return { background: "#F0EFED", color: "#6B7773" }
   }
 }
 
@@ -127,7 +119,6 @@ export function DealCard({
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false)
   const [rejectReason, setRejectReason] = useState("")
   const [approvalBusy, setApprovalBusy] = useState(false)
-  const [pendingApprovalActionsOpen, setPendingApprovalActionsOpen] = useState(false)
   const longPressTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const isManager = currentUserRole === "OWNER" || currentUserRole === "MANAGER"
@@ -205,14 +196,7 @@ export function DealCard({
     cardClasses += ` ${overdueStyling.borderClass}`
   }
 
-  /** Status / overdue: bottom overlay (3C) - coloured layer runs under price + status text (no white gap). */
-  const showStatusBanner = !!overdueStyling.badgeText || (!!statusLabel && statusLabel.length > 0)
-  const overlayLabel = overdueStyling.badgeText
-    ? overdueStyling.badgeText
-    : statusLabel
-  const overlayBannerClass = overdueStyling.badgeText
-    ? overdueBannerOverlayClasses(overdueStyling.severity)
-    : statusBannerOverlayClasses(statusLabel)
+
 
   const dealMetadata = (deal.metadata ?? undefined) as Record<string, unknown> | undefined
   const isUnread = dealMetadata?.unread === true
@@ -252,7 +236,6 @@ export function DealCard({
       const result = await approveCompletion(deal.id)
       if (result.success) {
         toast.success("Job approved and marked completed")
-        setPendingApprovalActionsOpen(false)
         onDecisionApplied?.({ type: "approve_completion" })
         router.refresh()
       } else {
@@ -273,7 +256,6 @@ export function DealCard({
       const result = await approveDraft(deal.id)
       if (result.success) {
         toast.success("Draft approved")
-        setPendingApprovalActionsOpen(false)
         onDecisionApplied?.({ type: "approve_draft" })
         router.refresh()
       } else {
@@ -296,7 +278,6 @@ export function DealCard({
         toast.success(showDraftApproval ? "Draft rejected and moved to Deleted." : "Completion rejected. The job was sent back for editing.")
         setRejectDialogOpen(false)
         setRejectReason("")
-        setPendingApprovalActionsOpen(false)
         onDecisionApplied?.(
           showDraftApproval
             ? { type: "reject_draft", reason: rejectReason.trim() || undefined }
@@ -400,14 +381,6 @@ export function DealCard({
       </button>
     ) : null
 
-  /** Left edge lines up with body-row icons (px-3), not the text after icon+gap. */
-  const footerBaseRow = (
-    <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
-      {footerPriceLeftOnly}
-      {footerTrashButton}
-    </div>
-  )
-
   return (
     <div
       ref={setNodeRef}
@@ -455,10 +428,22 @@ export function DealCard({
         role="button"
         tabIndex={0}
       >
+        {/* Status pill — top-right absolute */}
+        {(overdueStyling.badgeText || statusLabel) && (
+          <span
+            className="absolute right-2 top-2 z-10 flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase leading-none tracking-wide"
+            style={statusPillStyle(overdueStyling.badgeText ? "overdue" : statusLabel, overdueStyling.badgeText ? overdueStyling.severity : undefined)}
+            title={statusBannerTitle}
+          >
+            {overdueStyling.badgeText ? <AlertTriangle className="h-2.5 w-2.5 shrink-0" aria-hidden /> : null}
+            {overdueStyling.badgeText || statusLabel}
+          </span>
+        )}
+
         {/* Main fields - no flex-1 (avoids empty white band between body and footer). */}
         <div className="flex shrink-0 flex-col px-3 pt-2">
           <div className="flex flex-col gap-2 pt-0">
-            <div className="flex w-full min-w-0 shrink-0 items-center gap-1.5">
+            <div className={cn("flex w-full min-w-0 shrink-0 items-center gap-1.5", (overdueStyling.badgeText || statusLabel) && "pr-14")}>
               {!overlay && selectionMode && onToggleSelected && (
                 <Checkbox
                   checked={isSelected}
@@ -484,7 +469,7 @@ export function DealCard({
             <div className="flex min-h-0 items-center gap-2">
               <Briefcase className="h-3.5 w-3.5 shrink-0 text-foreground" />
               <span
-                className="min-w-0 truncate text-[13px] font-medium leading-snug text-foreground"
+                className="min-w-0 truncate text-xs font-medium leading-snug text-foreground"
                 title={deal.title}
               >
                 {deal.title}
@@ -508,110 +493,41 @@ export function DealCard({
           </div>
         </div>
 
-        {/* 3C footer: dollar left-aligned with row icons (same px-3 inset as MapPin/Briefcase/User) */}
-        <div
-          className={cn(
-            "relative mt-1 flex shrink-0 flex-col overflow-hidden rounded-b-lg border-t border-border/10",
-            showBannerActions && "min-h-0"
-          )}
-        >
-          {showStatusBanner ? (
-            <div className="relative z-0 h-9">
-              <div className="relative z-0 flex h-9 items-center gap-2 px-3 py-1">
-                {footerBaseRow}
-              </div>
-              <div
-                className={cn(
-                  "absolute inset-0 z-[1] flex flex-col items-center justify-center rounded-b-lg",
-                  showBannerActions ? "cursor-pointer" : "pointer-events-none"
-                )}
-                title={statusBannerTitle}
-                data-no-card-click={showBannerActions ? true : undefined}
-                onPointerDown={(e) => {
-                  if (!showBannerActions) return
-                  e.stopPropagation()
-                }}
-                onPointerUp={(e) => {
-                  if (!showBannerActions) return
-                  if (e.pointerType === "mouse") return
-                  e.stopPropagation()
-                  setPendingApprovalActionsOpen((current) => !current)
-                }}
-                onClick={(e) => {
-                  if (!showBannerActions) return
-                  e.stopPropagation()
-                  e.preventDefault()
-                }}
-                onMouseLeave={() => {
-                  if (showBannerActions) setPendingApprovalActionsOpen(false)
-                }}
+        {/* Footer: price + assignee, with approve/reject for draft/pending */}
+        <div className="relative mt-1 flex shrink-0 items-center justify-between overflow-hidden rounded-b-lg border-t border-border/10 bg-muted/15 px-3 py-1 dark:bg-muted/25">
+          {footerPriceLeftOnly}
+          {showBannerActions ? (
+            <div
+              className="flex shrink-0 items-center gap-1.5"
+              data-no-card-click
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); e.preventDefault() }}
+            >
+              <Button
+                type="button"
+                size="sm"
+                className="h-7 px-2 text-[10px] font-semibold hover:opacity-90"
+                style={{ background: "#00D28B", color: "#0E1F1A" }}
+                disabled={approvalBusy}
+                onClick={showDraftApproval ? handleApproveDraft : handleApproveKanban}
+                onPointerDown={(e) => e.stopPropagation()}
               >
-                <div className={cn("absolute inset-0 rounded-b-lg shadow-inner", overlayBannerClass)} />
-                <div
-                  className={cn(
-                    "relative z-[2] flex min-w-0 max-w-[min(100%,12rem)] items-center justify-center gap-1 px-2 text-center text-[11px] font-bold uppercase leading-tight tracking-wide text-white drop-shadow-md transition-opacity duration-150",
-                    showBannerActions && (pendingApprovalActionsOpen
-                      ? "opacity-0"
-                      : "opacity-100 group-hover:opacity-0")
-                  )}
-                >
-                  {overdueStyling.badgeText ? (
-                    <>
-                      <AlertTriangle className="h-3 w-3 shrink-0" aria-hidden />
-                      <span className="truncate">{overlayLabel}</span>
-                    </>
-                  ) : (
-                    <span className="truncate">{overlayLabel}</span>
-                  )}
-                </div>
-                {showBannerActions && (
-                  <div
-                    className={cn(
-                      "absolute inset-0 z-[3] flex items-center justify-center gap-2 px-2 transition-opacity duration-150",
-                      pendingApprovalActionsOpen
-                        ? "opacity-100 pointer-events-auto"
-                        : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100"
-                    )}
-                    data-no-card-click
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      e.preventDefault()
-                    }}
-                  >
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="h-8 px-2.5 text-xs font-semibold text-white hover:opacity-90" style={{ background: "#00D28B" }}
-                      disabled={approvalBusy}
-                      onClick={showDraftApproval ? handleApproveDraft : handleApproveKanban}
-                      onPointerDown={(e) => e.stopPropagation()}
-                    >
-                      Approve
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="h-8 border-amber-200 bg-card/95 px-2.5 text-xs font-semibold text-amber-900 hover:bg-amber-50"
-                      disabled={approvalBusy}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        e.preventDefault()
-                        setRejectDialogOpen(true)
-                      }}
-                      onPointerDown={(e) => e.stopPropagation()}
-                    >
-                      Reject
-                    </Button>
-                  </div>
-                )}
-              </div>
+                Approve
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 border-amber-300 px-2 text-[10px] font-semibold text-amber-800 hover:bg-amber-50"
+                disabled={approvalBusy}
+                onClick={(e) => { e.stopPropagation(); e.preventDefault(); setRejectDialogOpen(true) }}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                Reject
+              </Button>
             </div>
           ) : (
-            <div className="relative flex h-9 items-center gap-2 bg-muted/15 px-3 py-1 dark:bg-muted/25">
-              {footerBaseRow}
-            </div>
+            footerTrashButton
           )}
         </div>
       </div>
@@ -622,7 +538,6 @@ export function DealCard({
           setRejectDialogOpen(open)
           if (!open) {
             setRejectReason("")
-            setPendingApprovalActionsOpen(false)
           }
         }}
       >
