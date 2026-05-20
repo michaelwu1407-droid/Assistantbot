@@ -380,7 +380,6 @@ export default function Home() {
             <section className="bg-card px-6 py-12 md:py-24 overflow-hidden">
                 <div className="container mx-auto max-w-7xl">
                     <motion.div {...fadeUp()} className="text-center mb-8 md:mb-12">
-                        <p className="text-xs font-bold uppercase tracking-[0.18em] mb-3" style={{ color: "var(--color-forest)" }}>Loved by tradies</p>
                         <h2 className="text-2xl sm:text-3xl md:text-5xl font-extrabold tracking-[-0.03em]" style={{ color: "var(--color-ink)" }}>Built for businesses with non-stop calls.</h2>
                     </motion.div>
                     <motion.div {...fadeUp(0.08)} className="-mx-6 px-6"><TestimonialsCarousel /></motion.div>
