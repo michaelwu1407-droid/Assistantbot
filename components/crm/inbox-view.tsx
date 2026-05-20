@@ -690,7 +690,22 @@ If the request is to contact the customer, use the appropriate customer-contact 
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Messages / Activity toggle */}
+                  <div className="flex rounded-md p-0.5" style={{ background: "#E6E2D7" }}>
+                    <button
+                      onClick={() => setDetailTab("conversations")}
+                      className={cn("px-2.5 py-1 text-[11px] font-semibold rounded transition-colors", detailTab === "conversations" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                    >
+                      Messages
+                    </button>
+                    <button
+                      onClick={() => setDetailTab("activity")}
+                      className={cn("px-2.5 py-1 text-[11px] font-semibold rounded transition-colors", detailTab === "activity" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                    >
+                      Activity
+                    </button>
+                  </div>
                   {/* Call button */}
                   <Button
                     variant="outline"
@@ -769,23 +784,6 @@ If the request is to contact the customer, use the appropriate customer-contact 
                 </div>
               </div>
 
-              {/* Conversations / System Activity toggle - inside RHS */}
-              <div className="px-4 pt-3 pb-2 border-b mb-1" style={{ borderColor: "#E6E2D7" }}>
-                <div className="flex rounded-lg p-0.5 max-w-xs" style={{ background: "#E6E2D7" }}>
-                  <button
-                    onClick={() => setDetailTab("conversations")}
-                    className={cn("flex-1 px-3 py-1.5 app-body-secondary text-xs font-medium rounded-md transition-colors", detailTab === "conversations" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
-                  >
-                    Customer messages
-                  </button>
-                  <button
-                    onClick={() => setDetailTab("activity")}
-                    className={cn("flex-1 px-3 py-1.5 app-body-secondary text-xs font-medium rounded-md transition-colors", detailTab === "activity" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
-                  >
-                    CRM activity
-                  </button>
-                </div>
-              </div>
 
               {/* Interactions list */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -1011,9 +1009,12 @@ If the request is to contact the customer, use the appropriate customer-contact 
                   role="region"
                   aria-live="polite"
                 >
-                  <div className="mb-1 flex items-center gap-2">
+                  <div className="flex items-center gap-2">
                     <span
                       className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
+                      title={messageMode === "direct"
+                        ? "Sends directly from your Twilio number — exactly what you type, nothing more."
+                        : "Tracey reads your instruction and decides how to reply, update the CRM, or both."}
                       style={
                         messageMode === "direct"
                           ? { background: "#E0FAF2", color: "#00D28B" }
@@ -1023,16 +1024,6 @@ If the request is to contact the customer, use the appropriate customer-contact 
                       {messageMode === "direct" ? "Sends immediately" : "AI handles next step"}
                     </span>
                   </div>
-                  <p className="text-xs font-medium text-foreground">
-                    {messageMode === "direct"
-                      ? "Direct SMS: sends immediately from your workspace Twilio number as a manual text."
-                      : "Ask Tracey: give Tracey an instruction and she may reply to the customer, update the CRM, or both."}
-                  </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {messageMode === "direct"
-                      ? "You control the wording here - only the exact text you type below is sent."
-                      : "This is not a raw SMS draft - Tracey decides how to act based on your instruction."}
-                  </p>
                   {!selectedContactHasPhone && (
                     <div className="mt-1 flex flex-wrap items-center gap-2">
                       <p className="text-xs text-amber-700">

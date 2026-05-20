@@ -256,9 +256,16 @@ function resolveStage(raw: string): string | null {
   return null;
 }
 
-/** Fuzzy-match a deal title from the deals list while preserving extra fields. */
+/** Fuzzy-match a deal title from the deals list while preserving extra fields.
+ *  Also accepts a raw database ID — useful when the AI receives an ID from UI context. */
 function findDealByTitle<T extends { id: string; title: string }>(deals: T[], query: string): T | null {
-  const q = query.toLowerCase().trim();
+  const raw = query.trim();
+  // Direct ID lookup: alphanumeric-only, no spaces, 20+ chars (CUID/nanoid format)
+  if (raw.length >= 20 && /^[a-z0-9]+$/i.test(raw) && !raw.includes(" ")) {
+    const byId = deals.find(d => d.id === raw);
+    if (byId) return byId;
+  }
+  const q = raw.toLowerCase();
   // Exact match first
   const exact = deals.find(d => d.title.toLowerCase() === q);
   if (exact) return exact;
@@ -1797,13 +1804,14 @@ const MAX_AGENT_FLAGS_PER_DEAL = 10;
  */
 export async function runAddAgentFlag(workspaceId: string, params: { dealTitle: string; flag: string }) {
   try {
-    const deal = await db.deal.findFirst({
-      where: {
-        workspaceId,
-        title: { contains: params.dealTitle, mode: "insensitive" },
-      },
-      select: { id: true, agentFlags: true },
-    });
+    const raw = params.dealTitle.trim();
+    const looksLikeId = raw.length >= 20 && /^[a-z0-9]+$/i.test(raw) && !raw.includes(" ");
+    const deal = looksLikeId
+      ? await db.deal.findFirst({ where: { id: raw, workspaceId }, select: { id: true, agentFlags: true } })
+      : await db.deal.findFirst({
+          where: { workspaceId, title: { contains: raw, mode: "insensitive" } },
+          select: { id: true, agentFlags: true },
+        });
     if (!deal) return `Could not find a deal matching "${params.dealTitle}".`;
 
     const existing = Array.isArray(deal.agentFlags) ? (deal.agentFlags as string[]) : [];

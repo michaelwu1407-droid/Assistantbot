@@ -189,6 +189,7 @@ vi.mock("resend", () => ({
 import {
   getChatHistory,
   handleSupportRequest,
+  runAddAgentFlag,
   runAddDealNote,
   runCreateDeal,
   runCreateDraftInvoice,
@@ -1417,6 +1418,112 @@ describe("chat-actions", () => {
 
       expect(hoisted.initiateOutboundCall).not.toHaveBeenCalled();
       expect(result).toContain("No phone number configured");
+    });
+  });
+
+  describe("deal lookup by ID (CUID)", () => {
+    const DEAL_ID = "cmnpwqbrt0003l94duvfon192";
+
+    it("runMoveDeal resolves deal when dealTitle is a raw database ID", async () => {
+      hoisted.getDeals.mockResolvedValue([
+        {
+          id: DEAL_ID,
+          title: "Switchboard Upgrade",
+          assignedToId: "user_2",
+          contactId: "contact_1",
+          scheduledAt: new Date("2026-06-01T09:00:00.000Z"),
+        },
+      ]);
+
+      const result = await runMoveDeal("ws_1", DEAL_ID, "scheduled");
+
+      expect(result.success).toBe(true);
+      // updateDealStage is called with (dealId, stage) positional args
+      expect(hoisted.updateDealStage).toHaveBeenCalledWith(DEAL_ID, expect.any(String));
+    });
+
+    it("runMoveDeal falls through to title search when ID is not in the list", async () => {
+      hoisted.getDeals.mockResolvedValue([
+        {
+          id: "different_id_000000000000",
+          title: "Switchboard Upgrade",
+          assignedToId: "user_2",
+          contactId: "contact_1",
+          scheduledAt: new Date("2026-06-01T09:00:00.000Z"),
+        },
+      ]);
+      // resolveDealForInvoiceTarget also finds nothing
+      hoisted.db.deal.findMany.mockResolvedValue([]);
+      hoisted.db.user.findMany.mockResolvedValue([]);
+
+      const result = await runMoveDeal("ws_1", DEAL_ID, "scheduled");
+
+      expect(result.success).toBe(false);
+      expect(result.message).toMatch(/couldn't find|Could not find/i);
+    });
+
+    it("runAddDealNote resolves deal when dealTitle is a raw database ID", async () => {
+      hoisted.getDeals.mockResolvedValue([
+        { id: DEAL_ID, title: "Switchboard Upgrade", assignedToId: null, contactId: "c1" },
+      ]);
+      hoisted.logActivity.mockResolvedValue({ success: true });
+
+      const result = await runAddDealNote("ws_1", { dealTitle: DEAL_ID, note: "Check permit" });
+
+      expect(result.success).toBe(true);
+      // runAddDealNote uses logActivity internally
+      expect(hoisted.logActivity).toHaveBeenCalledWith(
+        expect.objectContaining({ dealId: DEAL_ID, type: "NOTE" })
+      );
+    });
+
+    it("runAddAgentFlag resolves deal when dealTitle is a raw database ID (direct DB lookup)", async () => {
+      hoisted.db.deal.findFirst.mockResolvedValue({ id: DEAL_ID, agentFlags: [] });
+
+      await runAddAgentFlag("ws_1", { dealTitle: DEAL_ID, flag: "verify license" });
+
+      // Should query by id, not by title contains
+      expect(hoisted.db.deal.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ id: DEAL_ID, workspaceId: "ws_1" }),
+        })
+      );
+    });
+
+    it("runAddAgentFlag still uses title contains when input is a plain job title", async () => {
+      hoisted.db.deal.findFirst.mockResolvedValue({ id: "deal_1", agentFlags: [] });
+
+      await runAddAgentFlag("ws_1", { dealTitle: "Switchboard Upgrade", flag: "verify license" });
+
+      expect(hoisted.db.deal.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            workspaceId: "ws_1",
+            title: expect.objectContaining({ contains: "Switchboard Upgrade" }),
+          }),
+        })
+      );
+    });
+
+    it("runAddAgentFlag returns not-found when ID does not belong to workspace", async () => {
+      hoisted.db.deal.findFirst.mockResolvedValue(null);
+
+      const result = await runAddAgentFlag("ws_1", { dealTitle: DEAL_ID, flag: "verify license" });
+
+      expect(result).toMatch(/could not find/i);
+    });
+
+    it("short alphanumeric strings are treated as titles not IDs", async () => {
+      // e.g. a job titled "abc123" (12 chars) should NOT trigger the ID path
+      hoisted.getDeals.mockResolvedValue([
+        { id: "deal_1", title: "abc123", assignedToId: null, contactId: "c1" },
+      ]);
+      hoisted.fuzzyScore.mockReturnValue(1);
+      hoisted.logActivity.mockResolvedValue({ success: true });
+
+      const result = await runAddDealNote("ws_1", { dealTitle: "abc123", note: "Check" });
+
+      expect(result.success).toBe(true);
     });
   });
 });
