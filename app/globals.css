@@ -179,8 +179,8 @@
 
   /* LIGHT THEME - Earlymark "Mint & Milk" */
   --background: #F7F8FA;
-  /* Main content area (excl. sidebar): 10% blend toward slate */
-  --main-canvas: color-mix(in srgb, var(--background) 90%, #94a3b8 10%);
+  /* Main content area (excl. sidebar): warm cream to match app palette */
+  --main-canvas: var(--color-paper);
   --foreground: #0D1117;
 
   --card: #FFFFFF;

@@ -112,7 +112,7 @@ export function DealDetailModal({ dealId, open, onOpenChange, currentUserRole = 
         onOpenChange(nextOpen)
       }}
     >
-      <DialogContent className="ott-dialog max-w-[1440px] h-[90vh] overflow-hidden flex flex-col p-0 gap-0">
+      <DialogContent hideCloseButton className="ott-dialog max-w-[1440px] h-[90vh] overflow-hidden flex flex-col p-0 gap-0">
         <DialogTitle className="sr-only">Deal details</DialogTitle>
         <DialogDescription className="sr-only">
           View and edit the job details, activity timeline, notes, and follow-up actions for this deal.
