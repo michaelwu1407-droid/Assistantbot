@@ -293,8 +293,8 @@ function TestimonialsCarousel() {
                     transition={{ duration: 26, ease: "linear", repeat: Infinity }}>
                     {slides.map((t, i) => <div key={`${t.author}-${i}`} className="w-[350px]"><Card t={t} /></div>)}
                 </motion.div>
-                <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-[linear-gradient(90deg,#F1ECDD_0%,rgba(241,236,221,0)_100%)]" />
-                <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-[linear-gradient(270deg,#F1ECDD_0%,rgba(241,236,221,0)_100%)]" />
+                <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-[linear-gradient(90deg,#F8FAFC_0%,rgba(248,250,252,0)_100%)]" />
+                <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-[linear-gradient(270deg,#F8FAFC_0%,rgba(248,250,252,0)_100%)]" />
             </div>
         </div>
     );
@@ -318,7 +318,7 @@ function FaqSection() {
     const toggle = (idx: number) =>
         setOpenIndices((prev) => prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx]);
     return (
-        <section className="py-10 md:py-20 px-4 bg-paper">
+        <section className="py-10 md:py-20 px-4 bg-background">
             <div className="max-w-3xl mx-auto">
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-center mb-3" style={{ color: "var(--color-forest)" }}>FAQ</p>
                 <h2 className="text-3xl font-bold text-center mb-10" style={{ color: "var(--color-ink)" }}>Frequently asked.</h2>
@@ -348,11 +348,11 @@ function FaqSection() {
 
 export default function Home() {
     return (
-        <div className="min-h-screen bg-paper">
+        <div className="min-h-screen bg-background">
             <Navbar />
 
             {/* Hero */}
-            <section className="pt-24 sm:pt-32 pb-16 sm:pb-24 px-6 relative overflow-hidden isolate bg-[linear-gradient(180deg,#F5F4EF_0%,#F4F2EA_55%,#F6F4EE_100%)]">
+            <section className="pt-24 sm:pt-32 pb-16 sm:pb-24 px-6 relative overflow-hidden isolate bg-[linear-gradient(180deg,#F8FAFC_0%,#F1F5F9_55%,#F8FAFC_100%)]">
                 <div className="absolute inset-0 z-0 pointer-events-none" style={{ background: `radial-gradient(110% 70% at 50% 10%, rgba(16,185,129,0.20) 0%, rgba(16,185,129,0.10) 42%, rgba(16,185,129,0.00) 74%),radial-gradient(90% 50% at 50% 86%, rgba(34,197,94,0.30) 0%, rgba(34,197,94,0.14) 32%, rgba(34,197,94,0.00) 72%),radial-gradient(70% 34% at 50% 86%, rgba(163,230,53,0.22) 0%, rgba(163,230,53,0.00) 75%)` }} />
                 <div className="absolute inset-y-[2%] left-0 w-[32%] z-0 pointer-events-none opacity-60" style={{ background: "linear-gradient(180deg, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.05) 48%, rgba(16,185,129,0.00) 100%)", clipPath: "polygon(0 0, 100% 6%, 76% 100%, 0 100%)" }} />
                 <div className="absolute inset-y-[2%] right-0 w-[32%] z-0 pointer-events-none opacity-60" style={{ background: "linear-gradient(180deg, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.05) 48%, rgba(16,185,129,0.00) 100%)", clipPath: "polygon(24% 0, 100% 0, 100% 100%, 0 100%)" }} />
@@ -377,7 +377,7 @@ export default function Home() {
             <TrustStrip />
 
             {/* Testimonials */}
-            <section className="bg-cream px-6 py-12 md:py-24 overflow-hidden">
+            <section className="bg-card px-6 py-12 md:py-24 overflow-hidden">
                 <div className="container mx-auto max-w-7xl">
                     <motion.div {...fadeUp()} className="text-center mb-8 md:mb-12">
                         <p className="text-xs font-bold uppercase tracking-[0.18em] mb-3" style={{ color: "var(--color-forest)" }}>Loved by tradies</p>
@@ -406,7 +406,7 @@ export default function Home() {
             </section>
 
             {/* Platform diagram — voice agent + CRM */}
-            <section id="platform" className="bg-paper px-6 py-12 md:py-24">
+            <section id="platform" className="bg-background px-6 py-12 md:py-24">
                 <div className="container mx-auto max-w-7xl">
                     <motion.div {...fadeUp()} className="mx-auto mb-12 max-w-3xl text-center">
                         <p className="text-xs font-bold uppercase tracking-[0.18em] mb-3" style={{ color: "var(--color-forest)" }}>The platform</p>
@@ -422,7 +422,7 @@ export default function Home() {
             </section>
 
             {/* Section 1 — Meet Tracey (the voice agent) */}
-            <section id="meet-tracey" className="bg-paper px-6 py-12 md:py-24">
+            <section id="meet-tracey" className="bg-background px-6 py-12 md:py-24">
                 <div className="container mx-auto max-w-7xl">
                     <motion.div {...fadeUp()} className="mx-auto mb-12 max-w-3xl text-center">
                         <p className="text-xs font-bold uppercase tracking-[0.18em] mb-3" style={{ color: "var(--color-forest)" }}>The platform</p>
@@ -440,7 +440,7 @@ export default function Home() {
                             return (
                                 <div key={label} className="bg-card border border-[var(--color-hair)] rounded-md p-5 flex gap-4 sm:flex-col sm:gap-4">
                                     <div className="flex-shrink-0 relative z-10">
-                                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: accent[0], boxShadow: `0 0 0 4px var(--color-paper), 0 4px 12px -4px ${accent[0]}80` }}>
+                                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: accent[0], boxShadow: `0 0 0 4px #F8FAFC, 0 4px 12px -4px ${accent[0]}80` }}>
                                             0{i + 1}
                                         </div>
                                     </div>
@@ -467,7 +467,7 @@ export default function Home() {
                 </div>
             </section>
             {/* Section 2 — A CRM that fills itself in */}
-            <section id="product" className="py-12 md:py-24 px-6 bg-cream">
+            <section id="product" className="py-12 md:py-24 px-6 bg-card">
                 <div className="container mx-auto max-w-7xl flex flex-col gap-16">
                     <motion.div {...fadeUp()} className="text-center max-w-2xl mx-auto">
                         <p className="text-xs font-bold uppercase tracking-[0.18em] mb-3" style={{ color: "var(--color-forest)" }}>The CRM</p>

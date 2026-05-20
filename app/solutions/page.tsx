@@ -33,7 +33,7 @@ const INCLUDED = [
 
 export default function SolutionsPage() {
   return (
-    <div className="min-h-screen bg-paper text-foreground">
+    <div className="min-h-screen bg-background text-foreground">
       <Navbar />
       <main className="mx-auto flex max-w-7xl flex-col gap-20 px-6 pb-24 pt-36">
 

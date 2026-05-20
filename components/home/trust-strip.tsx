@@ -18,7 +18,7 @@ export function TrustStrip() {
     ];
 
     return (
-        <section className="bg-cream border-y border-[var(--color-hair)] px-6 py-10 md:py-14">
+        <section className="bg-card border-y border-border px-6 py-10 md:py-14">
             <div className="container mx-auto max-w-5xl">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-0 sm:divide-x sm:divide-[var(--color-hair)]">
                     {metrics.map((m) => (

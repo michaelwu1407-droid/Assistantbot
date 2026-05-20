@@ -538,12 +538,12 @@ const FEATURE_MOCKUPS = [MockupComms, MockupCRM, MockupCalendar, MockupInbox, Mo
 
 export default function FeaturesPage() {
   return (
-    <div className="min-h-screen bg-paper text-foreground">
+    <div className="min-h-screen bg-background text-foreground">
       <Navbar />
       <main>
 
         {/* ── 1. Hero ── */}
-        <section className="pt-32 pb-20 px-6 bg-[linear-gradient(180deg,#F6F4EE_0%,#F3EFE3_60%,#F6F4EE_100%)] relative overflow-hidden isolate">
+        <section className="pt-32 pb-20 px-6 bg-[linear-gradient(180deg,#F8FAFC_0%,#F1F5F9_60%,#F8FAFC_100%)] relative overflow-hidden isolate">
           <div className="absolute inset-0 z-0 pointer-events-none" style={{
             background: "radial-gradient(110% 60% at 50% 0%,rgba(16,185,129,0.18) 0%,rgba(16,185,129,0.00) 72%)",
           }} />
@@ -593,7 +593,7 @@ export default function FeaturesPage() {
         </section>
 
         {/* ── 2. Core jobs ── */}
-        <section className="py-16 md:py-20 px-6 bg-cream border-b border-border/70">
+        <section className="py-16 md:py-20 px-6 bg-card border-b border-border/70">
           <div className="mx-auto max-w-6xl">
             <motion.div {...fadeUp()} className="mb-10 max-w-3xl">
               <p className="text-[11px] font-bold uppercase tracking-[0.28em]" style={{ color: "var(--color-forest)" }}>Product map</p>
@@ -636,7 +636,7 @@ export default function FeaturesPage() {
         </section>
 
         {/* Comparison table */}
-        <section className="py-20 px-6 bg-cream border-b border-border/60">
+        <section className="py-20 px-6 bg-card border-b border-border/60">
           <div className="mx-auto max-w-4xl">
             <motion.div {...fadeUp()} className="text-center mb-12">
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">Why switch</p>
@@ -693,7 +693,7 @@ export default function FeaturesPage() {
           </div>
         </section>
 
-        <section className="py-10 md:py-20 px-6 bg-paper border-y border-border/70">
+        <section className="py-10 md:py-20 px-6 bg-background border-y border-border/70">
           <div className="mx-auto max-w-5xl">
             <motion.p {...fadeUp()} className="text-center text-[11px] font-semibold uppercase tracking-[0.28em] text-primary mb-10">
               What Tracey does for you
@@ -703,7 +703,7 @@ export default function FeaturesPage() {
                 const Icon = job.icon
                 return (
                   <motion.div key={job.num} {...fadeUp(i * 0.07)}
-                    className="rounded border border-border bg-cream p-6 flex flex-col gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
+                    className="rounded border border-border bg-card p-6 flex flex-col gap-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
                     <div className="flex items-center gap-3">
                       <span className="text-[11px] font-bold text-primary/60 tracking-wider">{job.num}</span>
                       <div className="w-10 h-10 rounded bg-emerald-50 flex items-center justify-center">
@@ -737,7 +737,7 @@ export default function FeaturesPage() {
           },
         ] as const).map((group, groupIdx) => (
           <div key={group.key}>
-            <section className={`px-6 pt-20 pb-6 ${groupIdx === 0 ? "bg-paper" : "bg-cream"} border-b border-border/60`}>
+            <section className={`px-6 pt-20 pb-6 ${groupIdx === 0 ? "bg-background" : "bg-card"} border-b border-border/60`}>
               <div className="mx-auto max-w-6xl text-center">
                 <motion.h2 {...fadeUp(0.04)} className="text-3xl md:text-5xl font-extrabold tracking-[-0.03em]" style={{ color: "var(--color-ink)" }}>
                   {group.heading}
@@ -752,8 +752,8 @@ export default function FeaturesPage() {
               const Mockup = FEATURE_MOCKUPS[i]
               const isEven = localIdx % 2 === 0
               const bg = groupIdx === 0
-                ? (isEven ? "bg-paper" : "bg-cream")
-                : (isEven ? "bg-cream" : "bg-paper")
+                ? (isEven ? "bg-background" : "bg-card")
+                : (isEven ? "bg-card" : "bg-background")
               return (
                 <section key={feat.eyebrow} className={`py-16 px-6 ${bg} border-b border-border/60`}>
                   <div className="mx-auto max-w-6xl grid md:grid-cols-2 gap-10 lg:gap-16 items-center">
@@ -790,7 +790,7 @@ export default function FeaturesPage() {
         ))}
 
         {/* ── 4. How it works ── */}
-        <section className="py-20 px-6 bg-paper border-b border-border/60">
+        <section className="py-20 px-6 bg-background border-b border-border/60">
           <div className="mx-auto max-w-5xl">
             <motion.div {...fadeUp()} className="text-center mb-14">
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em]" style={{ color: "var(--color-forest)" }}>How it works</p>
@@ -803,7 +803,7 @@ export default function FeaturesPage() {
                 const Icon = step.icon
                 return (
                   <motion.div key={step.num} {...fadeUp(i * 0.1)}
-                    className="relative flex flex-col items-center text-center p-7 rounded bg-cream border border-border">
+                    className="relative flex flex-col items-center text-center p-7 rounded bg-card border border-border">
                     <div className="w-14 h-14 rounded bg-card border border-emerald-200 shadow-sm flex items-center justify-center mb-5 relative z-10">
                       <Icon className="w-6 h-6 text-primary" />
                     </div>
@@ -818,7 +818,7 @@ export default function FeaturesPage() {
         </section>
 
         {/* ── 6. Testimonials ── */}
-        <section className="py-20 px-6 bg-cream border-b border-border/60">
+        <section className="py-20 px-6 bg-card border-b border-border/60">
           <div className="mx-auto max-w-4xl">
             <motion.div {...fadeUp()} className="text-center mb-12">
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em]" style={{ color: "var(--color-forest)" }}>What customers say</p>
@@ -827,7 +827,7 @@ export default function FeaturesPage() {
             <div className="grid md:grid-cols-2 gap-6">
               {TESTIMONIALS.map((t, i) => (
                 <motion.div key={i} {...fadeUp(i * 0.08)}
-                  className="rounded border border-border bg-paper p-8 flex flex-col gap-6">
+                  className="rounded border border-border bg-card p-8 flex flex-col gap-6">
                   <div className="flex gap-1">
                     {[1,2,3,4,5].map(s => (
                       <svg key={s} className="w-4 h-4 text-amber-400 fill-current" viewBox="0 0 20 20">

@@ -181,12 +181,12 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-paper text-foreground">
+    <div className="min-h-screen bg-background text-foreground">
       <Navbar />
 
       <main>
         {/* ── 1. Hero / Pricing Header ── */}
-        <section className="pt-24 sm:pt-32 pb-10 md:pb-16 px-6 relative overflow-hidden isolate bg-[linear-gradient(180deg,#F6F4EE_0%,#F3EFE3_60%,#F6F4EE_100%)]">
+        <section className="pt-24 sm:pt-32 pb-10 md:pb-16 px-6 relative overflow-hidden isolate bg-[linear-gradient(180deg,#F8FAFC_0%,#F1F5F9_60%,#F8FAFC_100%)]">
           <div
             className="absolute inset-0 z-0 pointer-events-none"
             style={{
@@ -366,7 +366,7 @@ export default function PricingPage() {
         </section>
 
         {/* ── 3. ROI Justification ── */}
-        <section className="py-10 md:py-20 px-6 bg-cream border-t border-border/60">
+        <section className="py-10 md:py-20 px-6 bg-card border-t border-border/60">
           <div className="max-w-4xl mx-auto">
             <motion.div {...fadeUp()} className="text-center mb-14">
               <h2 className="text-3xl font-extrabold" style={{ color: "var(--color-ink)" }}>Pays for itself by saving 1 missed job</h2>
@@ -380,7 +380,7 @@ export default function PricingPage() {
                 <motion.div
                   key={i}
                   {...fadeUp(0.1 + i * 0.1)}
-                  className="bg-paper rounded-md p-8 border border-border shadow-sm text-center flex flex-col items-center justify-center"
+                  className="bg-card rounded-md p-8 border border-border shadow-sm text-center flex flex-col items-center justify-center"
                 >
                   <div className="text-4xl font-extrabold text-primary mb-3">{stat.value}</div>
                   <div className="text-sm font-semibold text-muted-foreground">{stat.label}</div>
@@ -391,7 +391,7 @@ export default function PricingPage() {
         </section>
 
         {/* ── 4. Feature Grid ── */}
-        <section className="py-10 md:py-20 px-6 bg-paper border-t border-border/60">
+        <section className="py-10 md:py-20 px-6 bg-background border-t border-border/60">
           <div className="max-w-5xl mx-auto">
             <motion.div {...fadeUp()} className="text-center mb-14">
               <h2 className="text-3xl font-extrabold" style={{ color: "var(--color-ink)" }}>Everything you need is included</h2>
@@ -422,7 +422,7 @@ export default function PricingPage() {
         </section>
 
         {/* ── 5. FAQ ── */}
-        <section className="py-10 md:py-20 px-6 bg-cream border-t border-border/60">
+        <section className="py-10 md:py-20 px-6 bg-card border-t border-border/60">
           <div className="max-w-3xl mx-auto">
             <motion.div {...fadeUp()} className="text-center mb-10">
               <h2 className="text-3xl font-extrabold" style={{ color: "var(--color-ink)" }}>Pricing questions</h2>
@@ -435,7 +435,7 @@ export default function PricingPage() {
         </section>
 
         {/* ── 6. Contact Form ── */}
-        <section id="contact-form" className="py-10 md:py-20 px-6 bg-paper border-t border-border/60 scroll-mt-20">
+        <section id="contact-form" className="py-10 md:py-20 px-6 bg-background border-t border-border/60 scroll-mt-20">
           <div className="container mx-auto max-w-xl">
             <motion.div {...fadeUp()} className="text-center mb-10">
               <h2 className="text-3xl font-extrabold" style={{ color: "var(--color-ink)" }}>Still have questions?</h2>

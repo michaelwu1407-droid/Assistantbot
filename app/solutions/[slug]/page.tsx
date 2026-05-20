@@ -69,7 +69,7 @@ export default async function SolutionDetailPage({
   const ctaIndustry = CTA_INDUSTRIES[solution.slug] ?? `${solution.summaryTitle.toLowerCase()} business`;
 
   return (
-    <div className="min-h-screen bg-paper text-foreground">
+    <div className="min-h-screen bg-background text-foreground">
       <Navbar />
       <main className="flex flex-col">
 
@@ -133,7 +133,7 @@ export default async function SolutionDetailPage({
         </section>
 
         {/* ── 3 outcomes ── */}
-        <section className="border-b border-border bg-cream px-6 py-10">
+        <section className="border-b border-border bg-card px-6 py-10">
           <div className="mx-auto max-w-4xl grid grid-cols-1 sm:grid-cols-3 gap-6">
             {[
               { icon: Phone, label: "Every call answered", desc: "Tracey picks up 24/7 so no lead goes to voicemail." },
@@ -189,7 +189,7 @@ export default async function SolutionDetailPage({
         </section>
 
         {/* ── FAQ ── */}
-        <section className="border-t border-border bg-cream px-6 py-20">
+        <section className="border-t border-border bg-card px-6 py-20">
           <div className="mx-auto max-w-3xl flex flex-col gap-8">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">

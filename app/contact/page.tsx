@@ -76,7 +76,7 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="min-h-screen bg-paper">
+    <div className="min-h-screen bg-background">
       <Navbar />
 
       <main className="pt-28 pb-20 px-6">
