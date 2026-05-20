@@ -126,24 +126,6 @@ export function PlatformDiagram() {
                     </div>
                 </motion.div>
             </div>
-
-            <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-60px" }}
-                transition={{ duration: 0.5, delay: 0.3, ease: EASE }}
-                className="mt-10 flex flex-col items-center gap-4"
-            >
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Reach Tracey &amp; the CRM on any channel</p>
-                <div className="flex flex-wrap items-center justify-center gap-2">
-                    {CHANNELS.map(({ label, icon: Icon }) => (
-                        <span key={label} className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-sm font-medium text-foreground shadow-sm">
-                            <Icon className="h-4 w-4 text-emerald-600" />
-                            {label}
-                        </span>
-                    ))}
-                </div>
-            </motion.div>
         </div>
     );
 }
