@@ -470,7 +470,6 @@ export default function Home() {
                         <p className="text-xs font-bold uppercase tracking-[0.18em] mb-3" style={{ color: "var(--color-forest)" }}>The CRM</p>
                         <h2 className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em]" style={{ color: "var(--color-ink)" }}>A CRM that fills itself in.</h2>
                         <p className="mt-3 text-lg leading-relaxed" style={{ color: "var(--color-ink2)" }}>
-                            Tracey writes every call, SMS, email, WhatsApp, job, quote, and payment to your CRM as it happens.<br />
                             Run it from the dashboard, the in-app chat, or just message Tracey on WhatsApp.
                         </p>
                     </motion.div>
