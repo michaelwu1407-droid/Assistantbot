@@ -256,7 +256,7 @@ export function GoogleMapView({ jobs, todayIds, onFallbackToLeaflet }: GoogleMap
 
   return (
     <div className="relative flex h-full w-full min-h-0">
-      <div className={cn("z-10 flex shrink-0 flex-col overflow-hidden border-r border-border bg-card transition-[width] duration-200", sidebarCollapsed ? "w-12" : "w-80")}>
+      <div className={cn("z-10 flex shrink-0 flex-col overflow-hidden border-r transition-[width] duration-200 bg-card", sidebarCollapsed ? "w-12" : "w-80")} style={{ borderColor: "#E6E2D7" }}>
         {sidebarCollapsed ? (
           <div className="flex flex-col items-center gap-2 py-3">
             <button
@@ -273,11 +273,11 @@ export function GoogleMapView({ jobs, todayIds, onFallbackToLeaflet }: GoogleMap
           </div>
         ) : (
           <div className="flex h-full flex-col">
-            <div className="flex flex-col gap-3 border-b border-border bg-muted/30 p-3">
+            <div className="flex flex-col gap-3 border-b p-3" style={{ borderColor: "#E6E2D7", background: "var(--color-paper)" }}>
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="flex items-center gap-2 text-sm font-bold text-foreground">
-                    <MapPin className="h-4 w-4 text-teal-600" />
+                  <h3 className="flex items-center gap-2 text-sm font-bold" style={{ color: "var(--color-ink)" }}>
+                    <MapPin className="h-4 w-4" style={{ color: "#00D28B" }} />
                     Today&apos;s Jobs
                   </h3>
                   <p className="mt-0.5 text-xs text-muted-foreground">{jobsToday.length} job{jobsToday.length !== 1 ? "s" : ""}</p>
@@ -296,10 +296,8 @@ export function GoogleMapView({ jobs, todayIds, onFallbackToLeaflet }: GoogleMap
               <button
                 type="button"
                 onClick={() => setIsRouteMode(!isRouteMode)}
-                className={cn(
-                  "flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
-                  isRouteMode ? "bg-muted-foreground text-white hover:bg-slate-800" : "border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
-                )}
+                className="flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                style={{ background: isRouteMode ? "var(--color-ink)" : "var(--color-forest)" }}
               >
                 <Route className="h-4 w-4" />
                 {isRouteMode ? "Exit Route Mode" : "Enable Route Mode"}
@@ -308,7 +306,7 @@ export function GoogleMapView({ jobs, todayIds, onFallbackToLeaflet }: GoogleMap
 
             <div className="flex-1 overflow-y-auto">
               {jobsUpcoming.length > 0 && !isRouteMode && (
-                <div className="border-b border-border/50 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                <div className="border-b px-3 py-2 text-xs text-muted-foreground" style={{ borderColor: "#E6E2D7", background: "var(--color-paper)" }}>
                   {jobsUpcoming.length} upcoming job{jobsUpcoming.length === 1 ? "" : "s"} are on the map too.
                 </div>
               )}
@@ -334,23 +332,23 @@ export function GoogleMapView({ jobs, todayIds, onFallbackToLeaflet }: GoogleMap
                     const isSelected = job.id === effectiveActiveJobId
                     const isStarted = job.id === startedJobId
                     return (
-                      <div key={job.id} className={cn("border-b border-border/50 transition-all", isSelected && "bg-blue-50", isStarted && "bg-emerald-50")}>
+                      <div key={job.id} className="border-b transition-all" style={{ borderColor: "#E6E2D7", background: (isSelected || isStarted) ? "rgba(0,210,139,0.05)" : undefined }}>
                         <button
                           type="button"
                           onClick={() => selectJob(job)}
                           className={cn(
-                            "w-full border-l-4 p-3 text-left transition-all",
-                            isStarted ? "border-l-emerald-500" : isSelected ? "border-l-blue-500" : "border-l-transparent hover:bg-muted/30"
+                            "w-full border-l-[3px] p-3 text-left transition-all",
+                            (isStarted || isSelected) ? "border-l-[#00D28B]" : "border-l-transparent hover:bg-black/[0.02]"
                           )}
                           aria-label={`Select job ${job.title} for ${job.clientName}`}
                         >
                           <div className="flex items-start gap-3">
-                            <div className={cn("mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full", isStarted ? "bg-emerald-500" : isSelected ? "bg-blue-500" : "bg-teal-500")} />
+                            <div className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: isStarted ? "#00D28B" : isSelected ? "#4A7CE6" : "#00D28B" }} />
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
                                 <p className="truncate text-sm font-semibold text-foreground">{job.clientName}</p>
                                 {isStarted && (
-                                  <span className="shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">
+                                  <span className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide" style={{ background: "#E0FAF2", color: "#00D28B" }}>
                                     In Progress
                                   </span>
                                 )}
@@ -378,7 +376,8 @@ export function GoogleMapView({ jobs, todayIds, onFallbackToLeaflet }: GoogleMap
                                 setViewJobTab(undefined)
                                 setViewJobDealId(job.id)
                               }}
-                              className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-blue-600 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
+                              className="flex w-full items-center justify-center gap-1.5 rounded-md py-2.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                              style={{ background: "var(--color-forest)" }}
                             >
                               <ChevronRight className="h-3.5 w-3.5" />
                               View Job
@@ -389,7 +388,8 @@ export function GoogleMapView({ jobs, todayIds, onFallbackToLeaflet }: GoogleMap
                                 setViewJobTab("activities")
                                 setViewJobDealId(job.id)
                               }}
-                              className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-indigo-600 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-indigo-700"
+                              className="flex w-full items-center justify-center gap-1.5 rounded-md py-2.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                              style={{ background: "#8B6FE0" }}
                             >
                               <MessageSquare className="h-3.5 w-3.5" />
                               Open customer timeline
@@ -397,7 +397,8 @@ export function GoogleMapView({ jobs, todayIds, onFallbackToLeaflet }: GoogleMap
                             <button
                               type="button"
                               onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(job.address)}&travelmode=driving`, "_blank")}
-                              className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-border bg-muted py-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
+                              className="flex w-full items-center justify-center gap-1.5 rounded-md border py-2.5 text-xs font-semibold text-foreground transition-colors hover:bg-muted/10"
+                              style={{ borderColor: "#E6E2D7" }}
                             >
                               <Navigation className="h-3.5 w-3.5" />
                               Open in Google Maps
@@ -422,16 +423,16 @@ export function GoogleMapView({ jobs, todayIds, onFallbackToLeaflet }: GoogleMap
                 <div className="flex h-full flex-col p-3">
                   {activeTargetJob ? (
                     <div className="flex flex-col overflow-hidden rounded-xl border-2 border-border bg-card shadow-sm">
-                      <div className="flex items-center gap-2 border-b border-border/50 bg-muted/30 px-3 py-2">
-                        <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
-                        <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Active Target</span>
+                      <div className="flex items-center gap-2 border-b px-3 py-2" style={{ borderColor: "#E6E2D7", background: "var(--color-paper)" }}>
+                        <div className="h-2 w-2 rounded-full animate-pulse" style={{ background: "#00D28B" }} />
+                        <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--color-ink2)" }}>Active Target</span>
                       </div>
                       <div className="flex flex-col gap-3 p-4">
                         <div>
                           <h4 className="text-lg font-bold leading-tight text-foreground">{activeTargetJob.clientName}</h4>
                           <p className="mt-0.5 text-sm text-muted-foreground">{activeTargetJob.title}</p>
                         </div>
-                        <div className="space-y-2 rounded-lg bg-muted/30 p-3">
+                        <div className="space-y-2 rounded-md p-3" style={{ background: "var(--color-paper)" }}>
                           <div className="flex items-start gap-2 text-sm text-foreground">
                             <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                             <span>{activeTargetJob.address}</span>
@@ -446,7 +447,8 @@ export function GoogleMapView({ jobs, todayIds, onFallbackToLeaflet }: GoogleMap
                           <button
                             type="button"
                             onClick={() => startJob(activeTargetJob)}
-                            className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700"
+                            className="flex w-full items-center justify-center gap-2 rounded-md py-3 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
+                            style={{ background: "var(--color-forest)" }}
                           >
                             <Navigation className="h-4 w-4" />
                             Navigate to Job
@@ -456,7 +458,8 @@ export function GoogleMapView({ jobs, todayIds, onFallbackToLeaflet }: GoogleMap
                             <button
                               type="button"
                               onClick={() => finishJob(activeTargetJob)}
-                              className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-500 py-3 text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-600"
+                              className="flex w-full items-center justify-center gap-2 rounded-md py-3 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
+                            style={{ background: "#00D28B" }}
                             >
                               <CheckCircle2 className="h-4 w-4" />
                               Complete & Next
@@ -466,9 +469,9 @@ export function GoogleMapView({ jobs, todayIds, onFallbackToLeaflet }: GoogleMap
                       </div>
                     </div>
                   ) : (
-                    <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-border bg-muted/30 p-6 text-center">
-                      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100">
-                        <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+                    <div className="flex flex-1 flex-col items-center justify-center rounded-md border p-6 text-center" style={{ borderColor: "#E6E2D7", background: "var(--color-paper)" }}>
+                      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full" style={{ background: "#E0FAF2" }}>
+                        <CheckCircle2 className="h-6 w-6" style={{ color: "#00D28B" }} />
                       </div>
                       <h4 className="text-base font-bold text-foreground">All Done!</h4>
                       <p className="mt-1 text-sm text-muted-foreground">You&apos;ve completed all scheduled jobs for today.</p>
@@ -490,7 +493,8 @@ export function GoogleMapView({ jobs, todayIds, onFallbackToLeaflet }: GoogleMap
                                 setIsRouteMode(false)
                                 selectJob(nextUpcomingJob)
                               }}
-                              className="flex w-full items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 py-2.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100"
+                              className="flex w-full items-center justify-center gap-2 rounded-md border py-2.5 text-xs font-semibold transition-opacity hover:opacity-80"
+                            style={{ borderColor: "#E6E2D7", background: "var(--color-paper)", color: "var(--color-ink)" }}
                             >
                               <CalendarClock className="h-4 w-4" />
                               Show all upcoming jobs
@@ -506,8 +510,8 @@ export function GoogleMapView({ jobs, todayIds, onFallbackToLeaflet }: GoogleMap
                       <p className="mb-2 px-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">Up Next</p>
                       <div className="space-y-2">
                         {jobsToday.filter((job) => job.status !== "COMPLETED" && job.id !== activeTargetJob.id).map((job, idx) => (
-                          <div key={job.id} className="flex items-center gap-3 rounded-lg border border-border/50 bg-muted/30 px-3 py-2 opacity-60">
-                            <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
+                          <div key={job.id} className="flex items-center gap-3 rounded-md border px-3 py-2 opacity-70" style={{ borderColor: "#E6E2D7" }}>
+                            <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white" style={{ background: "#00D28B" }}>
                               {idx + 2}
                             </div>
                             <div className="min-w-0 flex-1">
@@ -642,7 +646,8 @@ export function GoogleMapView({ jobs, todayIds, onFallbackToLeaflet }: GoogleMap
           type="button"
           onClick={locateMe}
           disabled={locating}
-          className="absolute right-4 top-4 z-[1000] flex items-center gap-2 rounded-xl border border-border bg-card/95 px-3 py-2 shadow-lg transition-all hover:bg-muted/30 disabled:opacity-50"
+          className="absolute right-4 top-4 z-[1000] flex items-center gap-2 rounded-md border bg-card px-3 py-2 shadow-md transition-all hover:bg-muted/10 disabled:opacity-50"
+          style={{ borderColor: "#E6E2D7" }}
           title="Find my location"
           aria-label={locating ? "Locating current position" : "Find my current location"}
         >
@@ -656,16 +661,17 @@ export function GoogleMapView({ jobs, todayIds, onFallbackToLeaflet }: GoogleMap
               type="button"
               onClick={() => setLegendOpen((open) => !open)}
               className={cn(
-                "flex items-center gap-2 rounded-xl border border-border bg-card/95 shadow-lg transition-all",
+                "flex items-center gap-2 rounded-md border bg-card shadow-md transition-all",
                 legendOpen ? "p-3" : "px-3 py-2"
               )}
+              style={{ borderColor: "#E6E2D7" }}
               aria-label={legendOpen ? "Hide map layers" : "Show map layers"}
             >
               <Layers className="h-4 w-4 shrink-0 text-muted-foreground" />
               <span className="text-xs font-semibold text-muted-foreground">Layers</span>
             </button>
             {legendOpen && (
-              <div className="absolute bottom-full left-0 mb-1 min-w-[180px] space-y-2 rounded-xl border border-border bg-card/95 p-3 shadow-lg">
+              <div className="absolute bottom-full left-0 mb-1 min-w-[180px] space-y-2 rounded-md border bg-card p-3 shadow-md" style={{ borderColor: "#E6E2D7" }}>
                 <label className="flex cursor-pointer items-center gap-2">
                   <input type="checkbox" checked={showToday} onChange={(event) => setShowToday(event.target.checked)} className="rounded border-border" />
                   <span className="flex items-center gap-1.5 text-sm text-foreground">

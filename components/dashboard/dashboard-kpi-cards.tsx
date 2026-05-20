@@ -40,9 +40,10 @@ function KpiMetric({ children, className }: { children: ReactNode; className?: s
   return (
     <h2
       className={cn(
-        "app-kpi-value tabular-nums text-black dark:text-white",
+        "app-kpi-value tabular-nums",
         className
       )}
+      style={{ color: "var(--color-ink)" }}
     >
       {children}
     </h2>
@@ -50,7 +51,7 @@ function KpiMetric({ children, className }: { children: ReactNode; className?: s
 }
 
 const kpiLabelClass =
-  "app-micro-label font-bold tracking-widest text-black dark:text-white/90"
+  "app-micro-label font-bold tracking-widest"
 
 function KpiCardFrame({
   stripeClass,
@@ -61,12 +62,11 @@ function KpiCardFrame({
 }) {
   return (
     <div
-      className={cn(
-        "overflow-hidden rounded-md border border-[#DCE6DE] bg-[#F4F7F4] shadow-sm dark:border-[#243229] dark:bg-[#152019]"
-      )}
+      className="overflow-hidden rounded-md border bg-card shadow-sm"
+      style={{ borderColor: "#E6E2D7" }}
     >
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className={cn("h-[4px] w-full", stripeClass)} />
+        <div className={cn("h-[3px] w-full", stripeClass)} />
         <div className="flex min-w-0 flex-1 flex-col justify-between gap-1 p-3">{children}</div>
       </div>
     </div>
@@ -105,29 +105,29 @@ export function DashboardKpiCards({ deals }: DashboardKpiCardsProps) {
 
   return (
     <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
-      <KpiCardFrame stripeClass="bg-sky-700">
-        <p className={kpiLabelClass}>{monthLabel} Revenue</p>
+      <KpiCardFrame stripeClass="bg-[#4A7CE6]">
+        <p className={kpiLabelClass} style={{ color: "var(--color-ink2)" }}>{monthLabel} Revenue</p>
         <div className="flex min-w-0 items-end justify-between gap-2">
           <KpiMetric>{formatCurrency(revenue)}</KpiMetric>
         </div>
       </KpiCardFrame>
 
-      <KpiCardFrame stripeClass="bg-emerald-700">
-        <p className={kpiLabelClass}>Jobs Won With Tracey ({monthLabel})</p>
+      <KpiCardFrame stripeClass="bg-[#00D28B]">
+        <p className={kpiLabelClass} style={{ color: "var(--color-ink2)" }}>Jobs Won With Tracey ({monthLabel})</p>
         <div className="flex min-w-0 items-end justify-between gap-2">
           <KpiMetric>{formatCurrency(travisWonRevenue)} ({travisWonCount})</KpiMetric>
         </div>
       </KpiCardFrame>
 
-      <KpiCardFrame stripeClass="bg-stone-700 dark:bg-stone-500">
-        <p className={kpiLabelClass}>Upcoming Jobs ({monthLabel})</p>
+      <KpiCardFrame stripeClass="bg-[#8B6FE0]">
+        <p className={kpiLabelClass} style={{ color: "var(--color-ink2)" }}>Upcoming Jobs ({monthLabel})</p>
         <div className="flex min-w-0 items-end justify-between gap-2">
           <KpiMetric>{upcomingCount}</KpiMetric>
         </div>
       </KpiCardFrame>
 
-      <KpiCardFrame stripeClass="bg-amber-700 dark:bg-amber-500">
-        <p className={cn(kpiLabelClass, "min-w-0 flex-1 truncate")}>Attention Required</p>
+      <KpiCardFrame stripeClass="bg-[#E89A2B]">
+        <p className={cn(kpiLabelClass, "min-w-0 flex-1 truncate")} style={{ color: "var(--color-ink2)" }}>Attention Required</p>
         <div className="flex min-w-0 items-end justify-between gap-2">
           <KpiMetric>{attentionRequiredCount}</KpiMetric>
         </div>

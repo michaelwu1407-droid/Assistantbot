@@ -15,6 +15,8 @@ import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Button } from "@/components/ui/button";
 import { requestDemoCall } from "@/actions/demo-call-action";
+import { TrustStrip } from "@/components/home/trust-strip";
+import { MobileStickyCTA } from "@/components/home/mobile-sticky-cta";
 
 const HeroDashboardReel = dynamic(
     () => import("@/components/home/hero-dashboard-reel").then((mod) => mod.HeroDashboardReel),
@@ -155,7 +157,7 @@ function HireMockup1() {
 // ─── Interview Form ───────────────────────────────────────────────────────────
 
 const INPUT_CLASS =
-    "w-full px-4 py-2.5 rounded-md border border-border text-sm text-midnight placeholder:text-muted-foreground bg-card transition";
+    "w-full px-4 py-2.5 rounded-md border border-border text-sm placeholder:text-muted-foreground bg-card transition";
 
 const DEMO_CALL_TIMEOUT_MS = 30_000;
 
@@ -214,7 +216,7 @@ function InterviewForm() {
                 <div className="w-16 h-16 rounded-full bg-primary/15 flex items-center justify-center">
                     <Phone className="w-8 h-8 text-primary" />
                 </div>
-                <h3 className="text-xl font-bold text-midnight">
+                <h3 className="text-xl font-bold" style={{ color: "var(--color-ink)" }}>
                     {message || "Tracey is calling you now!"}
                 </h3>
             </div>
@@ -272,10 +274,10 @@ function TestimonialsCarousel() {
                         </svg>
                     ))}
                 </div>
-                <p className="text-midnight/80 italic text-[15px] leading-relaxed mb-6">&quot;{t.quote}&quot;</p>
+                <p className="italic text-[15px] leading-relaxed mb-6" style={{ color: "var(--color-ink)", opacity: 0.8 }}>&quot;{t.quote}&quot;</p>
             </div>
             <div>
-                <p className="font-bold text-midnight text-sm">{t.author}</p>
+                <p className="font-bold text-sm" style={{ color: "var(--color-ink)" }}>{t.author}</p>
                 <p className="text-xs text-muted-foreground font-medium mt-0.5">{t.role}</p>
             </div>
         </div>
@@ -291,8 +293,8 @@ function TestimonialsCarousel() {
                     transition={{ duration: 26, ease: "linear", repeat: Infinity }}>
                     {slides.map((t, i) => <div key={`${t.author}-${i}`} className="w-[350px]"><Card t={t} /></div>)}
                 </motion.div>
-                <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-[linear-gradient(90deg,#f8fafc_0%,rgba(248,250,252,0)_100%)]" />
-                <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-[linear-gradient(270deg,#f8fafc_0%,rgba(248,250,252,0)_100%)]" />
+                <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-[linear-gradient(90deg,#F8FAFC_0%,rgba(248,250,252,0)_100%)]" />
+                <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-[linear-gradient(270deg,#F8FAFC_0%,rgba(248,250,252,0)_100%)]" />
             </div>
         </div>
     );
@@ -316,9 +318,9 @@ function FaqSection() {
     const toggle = (idx: number) =>
         setOpenIndices((prev) => prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx]);
     return (
-        <section className="py-10 md:py-20 px-4 bg-card">
+        <section className="py-10 md:py-20 px-4 bg-background">
             <div className="max-w-3xl mx-auto">
-                <h2 className="text-3xl font-bold text-center text-midnight mb-10">Frequently Asked Questions</h2>
+                <h2 className="text-3xl font-bold text-center mb-10" style={{ color: "var(--color-ink)" }}>Frequently asked.</h2>
                 <div className="space-y-3">
                     {FAQ_ITEMS.map((item, idx) => {
                         const isOpen = openIndices.includes(idx);
@@ -326,7 +328,7 @@ function FaqSection() {
                             <div key={idx} className="border border-border rounded overflow-hidden">
                                 <button onClick={() => toggle(idx)}
                                     className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-muted/30 transition-colors">
-                                    <span className="font-semibold text-midnight text-sm pr-4">{item.q}</span>
+                                    <span className="font-semibold text-sm pr-4" style={{ color: "var(--color-ink)" }}>{item.q}</span>
                                     <ChevronDown className={`w-5 h-5 text-muted-foreground shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
                                 </button>
                                 <div className={`transition-all duration-200 overflow-hidden ${isOpen ? "max-h-60" : "max-h-0"}`}>
@@ -345,16 +347,16 @@ function FaqSection() {
 
 export default function Home() {
     return (
-        <div className="min-h-screen bg-card">
+        <div className="min-h-screen bg-background">
             <Navbar />
 
             {/* Hero */}
-            <section className="pt-24 sm:pt-32 pb-16 sm:pb-24 px-6 relative overflow-hidden isolate bg-[linear-gradient(180deg,#F5F7F8_0%,#F4F7F5_55%,#F7F6F3_100%)]">
+            <section className="pt-24 sm:pt-32 pb-16 sm:pb-24 px-6 relative overflow-hidden isolate bg-[linear-gradient(180deg,#F8FAFC_0%,#F1F5F9_55%,#F8FAFC_100%)]">
                 <div className="absolute inset-0 z-0 pointer-events-none" style={{ background: `radial-gradient(110% 70% at 50% 10%, rgba(16,185,129,0.20) 0%, rgba(16,185,129,0.10) 42%, rgba(16,185,129,0.00) 74%),radial-gradient(90% 50% at 50% 86%, rgba(34,197,94,0.30) 0%, rgba(34,197,94,0.14) 32%, rgba(34,197,94,0.00) 72%),radial-gradient(70% 34% at 50% 86%, rgba(163,230,53,0.22) 0%, rgba(163,230,53,0.00) 75%)` }} />
                 <div className="absolute inset-y-[2%] left-0 w-[32%] z-0 pointer-events-none opacity-60" style={{ background: "linear-gradient(180deg, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.05) 48%, rgba(16,185,129,0.00) 100%)", clipPath: "polygon(0 0, 100% 6%, 76% 100%, 0 100%)" }} />
                 <div className="absolute inset-y-[2%] right-0 w-[32%] z-0 pointer-events-none opacity-60" style={{ background: "linear-gradient(180deg, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.05) 48%, rgba(16,185,129,0.00) 100%)", clipPath: "polygon(24% 0, 100% 0, 100% 100%, 0 100%)" }} />
                 <div className="container mx-auto max-w-6xl relative z-10 flex flex-col items-center gap-8">
-                    <motion.h1 {...fadeUp(0.06)} className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.08] text-midnight text-balance text-center">
+                    <motion.h1 {...fadeUp(0.06)} className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.08] text-balance text-center" style={{ color: "var(--color-ink)" }}>
                         Your AI assistant &amp; CRM.
                         <span className="block">Here to give you an <span className="text-primary">early mark</span></span>
                     </motion.h1>
@@ -371,11 +373,13 @@ export default function Home() {
                 </div>
             </section>
 
+            <TrustStrip />
+
             {/* Testimonials */}
-            <section className="bg-muted/30 px-6 py-12 md:py-24 overflow-hidden">
+            <section className="bg-card px-6 py-12 md:py-24 overflow-hidden">
                 <div className="container mx-auto max-w-7xl">
                     <motion.div {...fadeUp()} className="text-center mb-8 md:mb-12">
-                        <h2 className="text-2xl sm:text-3xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em]">Loved by service businesses with non-stop calls</h2>
+                        <h2 className="text-2xl sm:text-3xl md:text-5xl font-extrabold tracking-[-0.03em]" style={{ color: "var(--color-ink)" }}>Built for businesses with non-stop calls.</h2>
                     </motion.div>
                     <motion.div {...fadeUp(0.08)} className="-mx-6 px-6"><TestimonialsCarousel /></motion.div>
                 </div>
@@ -391,7 +395,7 @@ export default function Home() {
                             </motion.h2>
                         </div>
                         <motion.div {...fadeUp(0.1)} className="bg-card/95 backdrop-blur-md rounded border border-white/40 p-7 shadow-xl">
-                            <h3 className="font-bold text-midnight text-lg mb-1">Interview Tracey for free</h3>
+                            <h3 className="font-bold text-lg mb-1" style={{ color: "var(--color-ink)" }}>Interview Tracey for free</h3>
                             <p className="text-slate-body text-sm mb-6 leading-relaxed">Tracey will call you and answer questions, explain her capabilities, or roleplay as your very own AI receptionist.</p>
                             <InterviewForm />
                         </motion.div>
@@ -400,11 +404,11 @@ export default function Home() {
             </section>
 
             {/* Platform diagram — voice agent + CRM */}
-            <section id="platform" className="bg-card px-6 py-12 md:py-24">
+            <section id="platform" className="bg-background px-6 py-12 md:py-24">
                 <div className="container mx-auto max-w-7xl">
                     <motion.div {...fadeUp()} className="mx-auto mb-12 max-w-3xl text-center">
-                        <h2 className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-midnight">One comprehensive platform.</h2>
-                        <p className="mt-4 text-lg text-slate-body">
+                        <h2 className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em]" style={{ color: "var(--color-ink)" }}>One comprehensive platform.</h2>
+                        <p className="mt-4 text-lg" style={{ color: "var(--color-ink2)" }}>
                             An AI assistant and a CRM that runs itself, so you don&apos;t have to.
                         </p>
                     </motion.div>
@@ -415,37 +419,41 @@ export default function Home() {
             </section>
 
             {/* Section 1 — Meet Tracey (the voice agent) */}
-            <section id="meet-tracey" className="bg-[#F8FAFC] px-6 py-12 md:py-24">
+            <section id="meet-tracey" className="bg-background px-6 py-12 md:py-24">
                 <div className="container mx-auto max-w-7xl">
-                    <motion.div {...fadeUp()} className="mx-auto mb-14 max-w-3xl text-center">
-                        <h2 className="text-4xl font-extrabold tracking-[-0.03em] text-midnight md:text-5xl">Meet Tracey</h2>
-                        <p className="mt-3 text-lg text-slate-body max-w-xl mx-auto">
+                    <motion.div {...fadeUp()} className="mx-auto mb-12 max-w-3xl text-center">
+                        <h2 className="text-4xl font-extrabold tracking-[-0.03em] md:text-5xl" style={{ color: "var(--color-ink)" }}>Meet Tracey.</h2>
+                        <p className="mt-3 text-lg max-w-xl mx-auto" style={{ color: "var(--color-ink2)" }}>
                             Your AI receptionist, CRM manager, and follow-up specialist — all in one.
                         </p>
                     </motion.div>
 
-                    <motion.div {...fadeUp(0.06)} className="rounded-md border border-emerald-900/10 bg-[linear-gradient(145deg,#103126_0%,#1B4637_52%,#2B5F4D_100%)] shadow-[0_24px_80px_rgba(15,23,42,0.14)]">
-                        <div className="grid divide-y sm:divide-y-0 sm:divide-x divide-white/10 sm:grid-cols-3 p-8 md:p-12">
-                            {TRACEY_WORKFLOW.map(({ label, icon: Icon, points }, i) => (
-                                <div key={label} className="flex flex-col gap-5 sm:px-8 first:pl-0 last:pr-0 py-8 sm:py-0 first:pt-0 last:pb-0">
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-xs font-bold tabular-nums text-white/30 tracking-widest">0{i + 1}</span>
-                                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-card/10">
-                                            <Icon className="h-4 w-4 text-white" />
+                    <motion.div {...fadeUp(0.06)} className="grid sm:grid-cols-3 gap-4 relative">
+                        {/* dashed vertical guide on mobile */}
+                        <div className="absolute left-[22px] top-6 bottom-6 w-0.5 sm:hidden" style={{ background: "repeating-linear-gradient(to bottom, var(--color-hair) 0 4px, transparent 4px 8px)" }} aria-hidden />
+                        {TRACEY_WORKFLOW.map(({ label, points }, i) => {
+                            const accent = [["#00D28B", "rgba(0,210,139,0.12)"], ["#4A7CE6", "rgba(74,124,230,0.12)"], ["#8B6FE0", "rgba(139,111,224,0.12)"]][i];
+                            return (
+                                <div key={label} className="bg-card border border-[var(--color-hair)] rounded-md p-5 flex gap-4 sm:flex-col sm:gap-4">
+                                    <div className="flex-shrink-0 relative z-10">
+                                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: accent[0], boxShadow: `0 0 0 4px #F8FAFC, 0 4px 12px -4px ${accent[0]}80` }}>
+                                            0{i + 1}
                                         </div>
-                                        <h4 className="text-base font-bold text-white">{label}</h4>
                                     </div>
-                                    <ul className="space-y-3">
-                                        {points.map((point) => (
-                                            <li key={point} className="flex items-start gap-2.5">
-                                                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
-                                                <span className="text-sm leading-relaxed text-white/75">{point}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="text-base font-bold mb-3" style={{ color: "var(--color-ink)" }}>{label}</h4>
+                                        <ul className="space-y-2.5">
+                                            {points.map((point) => (
+                                                <li key={point} className="flex items-start gap-2.5">
+                                                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: accent[0] }} />
+                                                    <span className="text-sm leading-relaxed" style={{ color: "var(--color-ink2)" }}>{point}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
                                 </div>
-                            ))}
-                        </div>
+                            );
+                        })}
                     </motion.div>
 
                     <motion.div {...fadeUp(0.10)} className="mt-12 flex flex-col items-center gap-5">
@@ -457,9 +465,8 @@ export default function Home() {
             <section id="product" className="py-12 md:py-24 px-6 bg-card">
                 <div className="container mx-auto max-w-7xl flex flex-col gap-16">
                     <motion.div {...fadeUp()} className="text-center max-w-2xl mx-auto">
-                        <h2 className="text-4xl md:text-5xl font-extrabold text-midnight tracking-[-0.03em]">A CRM that fills itself in.</h2>
-                        <p className="text-slate-body mt-3 text-lg leading-relaxed">
-                            Tracey writes every call, SMS, email, WhatsApp, job, quote, and payment to your CRM as it happens.<br />
+                        <h2 className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em]" style={{ color: "var(--color-ink)" }}>A CRM that fills itself in.</h2>
+                        <p className="mt-3 text-lg leading-relaxed" style={{ color: "var(--color-ink2)" }}>
                             Run it from the dashboard, the in-app chat, or just message Tracey on WhatsApp.
                         </p>
                     </motion.div>
@@ -468,11 +475,9 @@ export default function Home() {
                         <div className="flex flex-col gap-6">
                             <ul className="flex flex-col gap-3">
                                 {[
-                                    "Message Tracey on WhatsApp to move a job, send a quote, or pull a customer record",
-                                    "In-app chat sidebar that drives the CRM — no forms, no manual data entry",
-                                    "Actionable notifications: confirm jobs, approve completions, reply to customers in one tap",
-                                    "Lead bouncer triages every enquiry against your no-go rules before it hits the pipeline",
-                                    "Xero-ready invoicing with on-site signature capture and draft filing",
+                                    "One message moves a job, sends a quote, or closes a lead",
+                                    "Chat drives the CRM — Tracey handles the form-filling",
+                                    "Your whole pipeline, accessible by message",
                                 ].map((b) => (
                                     <li key={b} className="flex items-start gap-2.5 text-sm text-slate-body">
                                         <CheckCircle2 className="mt-0.5 w-4 h-4 text-primary shrink-0" />
@@ -488,16 +493,16 @@ export default function Home() {
 
                     <motion.div {...fadeUp(0.10)} className="flex flex-col gap-6">
                         <div className="text-center">
-                            <h3 className="text-2xl font-extrabold tracking-[-0.02em] text-midnight md:text-3xl">A full-featured CRM, built for the way trades actually work.</h3>
+                            <h3 className="text-2xl font-extrabold tracking-[-0.02em] md:text-3xl" style={{ color: "var(--color-ink)" }}>A full-featured CRM, built for the way trades actually work.</h3>
                         </div>
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             {FEATURE_CARDS.map(({ icon: Icon, title, desc }) => (
-                                <div key={title} className="group flex items-start gap-3 rounded-2xl border border-border bg-card p-5 transition-all hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-[0_12px_36px_rgba(15,23,42,0.08)]">
-                                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 ring-1 ring-emerald-100 group-hover:bg-emerald-100">
-                                        <Icon className="h-5 w-5 text-emerald-600" />
+                                <div key={title} className="group flex items-start gap-3 rounded-md border border-[var(--color-hair)] bg-card p-4 transition-all hover:-translate-y-0.5 hover:shadow-[0_6px_18px_-10px_rgba(14,31,26,0.18)]">
+                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                                        <Icon className="h-4 w-4 text-primary" />
                                     </div>
-                                    <div className="flex flex-col gap-1">
-                                        <span className="text-sm font-semibold text-midnight">{title}</span>
+                                    <div className="flex flex-col gap-0.5 min-w-0">
+                                        <span className="text-sm font-semibold" style={{ color: "var(--color-ink)" }}>{title}</span>
                                         <span className="text-xs leading-relaxed text-muted-foreground">{desc}</span>
                                     </div>
                                 </div>
@@ -510,10 +515,12 @@ export default function Home() {
             <FaqSection />
 
             {/* Final CTA */}
-            <section className="py-14 md:py-24 px-6 bg-[linear-gradient(135deg,#0f172a_0%,#065f46_100%)]">
-                <div className="mx-auto max-w-3xl text-center flex flex-col items-center gap-6">
-                    <motion.h2 {...fadeUp()} className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-white leading-tight text-balance">Give yourself an early mark today</motion.h2>
-                    <motion.p {...fadeUp(0.04)} className="text-lg text-white/65 leading-7 max-w-xl">Focus on the job, not the admin.</motion.p>
+            <section className="py-14 md:py-24 px-6 relative overflow-hidden" style={{ background: "var(--color-forest)" }}>
+                <div aria-hidden className="absolute top-[-60px] left-[-40px] w-56 h-56 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(0,210,139,0.3), rgba(22,67,58,0) 70%)" }} />
+                <div aria-hidden className="absolute bottom-[-40px] right-[-60px] w-72 h-72 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(0,210,139,0.15), rgba(22,67,58,0) 70%)" }} />
+                <div className="mx-auto max-w-3xl text-center flex flex-col items-center gap-6 relative z-10">
+                    <motion.h2 {...fadeUp()} className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-white leading-tight text-balance">Focus on the job.<br/><span style={{ color: "#00D28B" }}>Not the admin.</span></motion.h2>
+                    <motion.p {...fadeUp(0.04)} className="text-lg text-white/65 leading-7 max-w-xl">Start free. No card required. Live in under a day.</motion.p>
                     <motion.div {...fadeUp(0.12)} className="flex flex-col sm:flex-row gap-3">
                         <Link href="/auth"><Button size="lg" variant="mint">Get started <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
                         <Link href="/contact#contact-form"><Button size="lg" variant="ghost" className="text-white border-white/30 hover:bg-card/10">Get a demo</Button></Link>
@@ -522,6 +529,7 @@ export default function Home() {
             </section>
 
             <Footer />
+            <MobileStickyCTA />
         </div>
     );
 }

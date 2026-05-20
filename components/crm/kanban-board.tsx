@@ -207,12 +207,12 @@ function KanbanColumnHeader({ col, count }: { col: (typeof COLUMNS)[number]; cou
               <HoverScrollName
                 text="Awaiting payment"
                 className="min-w-0 flex-1"
-                textClassName="text-[11px] font-bold uppercase leading-none tracking-wide sm:tracking-wider"
+                textClassName="text-[11px] font-bold uppercase leading-none tracking-wide sm:tracking-wider text-foreground"
               />
             </h4>
           ) : (
             <h4
-              className="min-w-0 flex-1 truncate text-[11px] font-bold uppercase leading-none tracking-wider"
+              className="min-w-0 flex-1 truncate text-[11px] font-bold uppercase leading-none tracking-wider text-foreground"
               title={col.title}
             >
               {col.title}

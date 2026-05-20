@@ -118,21 +118,25 @@ function SidebarNav({ className, ...props }: { className?: string } & React.HTML
                             {section.label}
                         </p>
                     )}
-                    {section.items.map((item) => (
+                    {section.items.map((item) => {
+                        const isActive = pathname === item.href
+                        return (
                         <Link
                             key={item.href}
                             href={item.href}
                             className={cn(
                                 "justify-start text-left whitespace-nowrap",
-                                pathname === item.href
-                                    ? "bg-mint-50 font-medium text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400"
-                                    : "hover:bg-muted hover:text-foreground dark:hover:bg-slate-800 dark:hover:text-slate-50 text-muted-foreground",
-                                "inline-flex h-10 items-center rounded-xl px-4 py-2 app-body-primary transition-colors"
+                                isActive
+                                    ? "font-semibold"
+                                    : "text-muted-foreground hover:bg-black/[0.03] hover:text-foreground",
+                                "inline-flex h-10 items-center rounded-md px-4 py-2 app-body-primary transition-colors"
                             )}
+                            style={isActive ? { background: "#E0FAF2", color: "#00D28B" } : undefined}
                         >
                             {item.title}
                         </Link>
-                    ))}
+                        )
+                    })}
                 </div>
             ))}
         </nav>

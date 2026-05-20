@@ -285,7 +285,7 @@ export default function IntegrationsPage() {
                         )}
 
                         {emailIntegrations.length > 0 && (
-                            <div className="rounded-lg border border-blue-200 bg-blue-50/70 p-4 text-sm text-blue-900">
+                            <div className="rounded-md border p-4 text-sm" style={{ borderColor: "#E6E2D7", background: "#F6F4EE", color: "var(--color-ink)" }}>
                                 <p className="font-medium">Inbox connected.</p>
                                 <p className="mt-1">
                                     Next, scroll down to <span className="font-medium">Where your leads come from</span> to see what is live now and what still needs one more step on Google LSA, Meta, or your website.
@@ -293,7 +293,7 @@ export default function IntegrationsPage() {
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    className="mt-3 border-blue-200 bg-white text-blue-900 hover:bg-blue-100"
+                                    className="mt-3 hover:opacity-80" style={{ borderColor: "#E6E2D7" }}
                                     onClick={() => leadChannelsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
                                 >
                                     Show Lead Channels
@@ -311,7 +311,7 @@ export default function IntegrationsPage() {
                                 <label className="text-sm font-medium">Connected email accounts</label>
                                 <div className="space-y-2">
                                     {emailIntegrations.map((integration) => (
-                                        <div key={integration.id} className="flex items-center justify-between gap-2 p-3 bg-muted/30 rounded-lg">
+                                        <div key={integration.id} className="flex items-center justify-between gap-2 p-3 rounded-md border" style={{ borderColor: "#E6E2D7" }}>
                                             <div className="flex min-w-0 items-center gap-2">
                                                 <div className={`w-2 h-2 shrink-0 rounded-full ${integration.isActive ? "bg-green-500" : "bg-muted-foreground"}`} />
                                                 <span className="truncate text-sm font-medium">{integration.emailAddress}</span>
@@ -338,7 +338,7 @@ export default function IntegrationsPage() {
 
                 <div id="lead-channels" ref={leadChannelsRef} className="space-y-3">
                     {showLeadChannelPrompt && (
-                        <div className="rounded-lg border border-emerald-200 bg-emerald-50/70 p-4 text-sm text-emerald-900">
+                        <div className="rounded-md border p-4 text-sm" style={{ borderColor: "rgba(0,210,139,0.3)", background: "#E0FAF2", color: "var(--color-ink)" }}>
                             <p className="font-medium">Your inbox connection is live.</p>
                             <p className="mt-1">
                                 This panel shows what Tracey can capture right now, where a platform still needs one more setup step, and where a lead path looks suspiciously quiet.
@@ -380,7 +380,7 @@ export default function IntegrationsPage() {
                             </div>
                         </div>
                     </CardContent>
-                    <CardFooter className="bg-muted/30 border-t flex justify-between items-center px-6 py-4">
+                    <CardFooter className="border-t flex justify-between items-center px-6 py-4" style={{ background: "var(--color-paper)", borderColor: "#E6E2D7" }}>
                         <div className="text-xs text-muted-foreground">
                             Keep your calendar and scheduled jobs in sync.
                         </div>
@@ -437,9 +437,9 @@ export default function IntegrationsPage() {
                             </div>
                         </div>
                     </CardContent>
-                    <CardFooter className="bg-muted/30 border-t flex justify-between items-center px-6 py-4">
+                    <CardFooter className="border-t flex justify-between items-center px-6 py-4" style={{ background: "var(--color-paper)", borderColor: "#E6E2D7" }}>
                         {xeroStatus === "connected" ? (
-                            <div className="flex items-center text-sm text-emerald-600 font-medium">
+                            <div className="flex items-center text-sm font-medium" style={{ color: "#00D28B" }}>
                                 <Check className="h-4 w-4 mr-2" />
                                 Xero Connected
                             </div>
@@ -468,7 +468,7 @@ export default function IntegrationsPage() {
                             </Button>
                         )}
                         {xeroStatus === "connected" ? (
-                            <Badge className="border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50">
+                            <Badge className="border hover:opacity-80" style={{ borderColor: "rgba(0,210,139,0.3)", background: "#E0FAF2", color: "#00D28B" }}>
                                 Connected
                             </Badge>
                         ) : null}

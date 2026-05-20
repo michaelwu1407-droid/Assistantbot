@@ -67,7 +67,7 @@ export function LossReasonModal({ open, onOpenChange, deal, onConfirm }: LossRea
 
         <div className="space-y-4">
           {/* Deal Summary */}
-          <div className="bg-muted/30 rounded-lg p-3">
+          <div className="rounded-md border p-3" style={{ background: "#F6F4EE", borderColor: "#E6E2D7" }}>
             <p className="font-medium text-foreground">{deal.title}</p>
             <p className="text-sm text-muted-foreground">{deal.contactName}</p>
           </div>

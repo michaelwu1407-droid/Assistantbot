@@ -33,7 +33,7 @@ const INCLUDED = [
 
 export default function SolutionsPage() {
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-foreground">
+    <div className="min-h-screen bg-background text-foreground">
       <Navbar />
       <main className="mx-auto flex max-w-7xl flex-col gap-20 px-6 pb-24 pt-36">
 
@@ -43,7 +43,7 @@ export default function SolutionsPage() {
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">
               {TRADE_SERVICES_SUMMARY.eyebrow}
             </p>
-            <h1 className="mt-4 text-4xl font-extrabold tracking-[-0.03em] text-midnight md:text-6xl">
+            <h1 className="mt-4 text-4xl font-extrabold tracking-[-0.03em] md:text-6xl" style={{ color: "var(--color-ink)" }}>
               {TRADE_SERVICES_SUMMARY.title}
             </h1>
             <p className="mt-4 text-lg leading-8 text-muted-foreground">
@@ -89,11 +89,11 @@ export default function SolutionsPage() {
                 {/* Text side */}
                 <div className={`flex flex-col justify-center gap-5 p-8 md:p-10 ${reverse ? "md:order-2" : ""}`}>
                   <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50" style={{ color: "var(--color-forest)" }}>
                       <Icon className="h-5 w-5" />
                     </span>
                   </div>
-                  <h2 className="text-2xl font-extrabold tracking-[-0.02em] text-midnight md:text-3xl">
+                  <h2 className="text-2xl font-extrabold tracking-[-0.02em] md:text-3xl" style={{ color: "var(--color-ink)" }}>
                     {service.summaryTeaser}
                   </h2>
                   <p className="text-base leading-7 text-muted-foreground">
@@ -133,7 +133,7 @@ export default function SolutionsPage() {
         </section>
 
         {/* Bottom CTA */}
-        <section className="rounded-md bg-[linear-gradient(135deg,#0f172a_0%,#065f46_100%)] p-10 text-white text-center flex flex-col items-center gap-6">
+        <section className="rounded-md p-10 text-white text-center flex flex-col items-center gap-6" style={{ background: "var(--color-forest)" }}>
           <h2 className="text-3xl font-extrabold tracking-[-0.03em] md:text-4xl">
             Give yourself an early mark today
           </h2>

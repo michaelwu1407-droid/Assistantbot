@@ -59,10 +59,10 @@ export default async function BillingSettingsPage() {
                     <span className="app-field-label">Status</span>
                     <div className="flex items-center gap-2 mt-1">
                         <span className="relative flex h-3 w-3">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00D28B] opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-[#00D28B]"></span>
                         </span>
-                        <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400 capitalize">
+                        <span className="text-sm font-medium text-[#00D28B] dark:text-emerald-400 capitalize">
                             {workspace.subscriptionStatus || "Active"}
                         </span>
                     </div>

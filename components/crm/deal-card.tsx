@@ -322,6 +322,21 @@ export function DealCard({
         : statusLabel
 
   /** Left side only - under the 3C overlay (tint + label may cover this). */
+  const assigneeInitial = deal.assignedToName?.trim()?.[0]?.toUpperCase() ?? null
+  const assigneeAvatar = (
+    <span
+      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold leading-none select-none"
+      title={assigneeLabel}
+      style={
+        assigneeInitial
+          ? { background: "#E0FAF2", color: "#00D28B" }
+          : { background: "#F0EFED", color: "#6B7773" }
+      }
+    >
+      {assigneeInitial ?? "—"}
+    </span>
+  )
+
   const assigneeControl =
     onAssign && teamMembers.length > 0 && !overlay ? (
       <DropdownMenu>
@@ -329,10 +344,10 @@ export function DealCard({
           <button
             type="button"
             data-no-card-click
-            className="min-w-0 truncate text-left text-[10px] font-semibold text-foreground transition-colors hover:text-primary"
+            className="flex items-center transition-opacity hover:opacity-70"
             onClick={(e) => e.stopPropagation()}
           >
-            {assigneeLabel}
+            {assigneeAvatar}
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
@@ -356,19 +371,15 @@ export function DealCard({
         </DropdownMenuContent>
       </DropdownMenu>
     ) : (
-      <span className="min-w-0 truncate text-[10px] font-semibold text-foreground">
-        {assigneeLabel}
-      </span>
+      assigneeAvatar
     )
 
   const footerPriceLeftOnly = (
-    <div className="flex min-w-0 items-center gap-2.5">
+    <div className="flex items-center gap-2.5">
       <span className="shrink-0 text-xs font-bold text-foreground leading-none">
         {deal.invoicedAmount !== undefined ? formatCurrency(deal.invoicedAmount) : formatCurrency(deal.value)}
       </span>
-      <div className="min-w-0 flex-1">
-        {assigneeControl}
-      </div>
+      {assigneeControl}
     </div>
   )
 
@@ -464,7 +475,7 @@ export function DealCard({
             <div className="flex min-h-0 items-center gap-2">
               <MapPin className="h-3.5 w-3.5 shrink-0 text-foreground" />
               <span
-                className="min-w-0 truncate text-[10.5px] leading-tight text-foreground"
+                className="min-w-0 truncate text-xs leading-snug text-foreground"
                 title={deal.address || "No address"}
               >
                 {deal.address || "-"}
@@ -473,7 +484,7 @@ export function DealCard({
             <div className="flex min-h-0 items-center gap-2">
               <Briefcase className="h-3.5 w-3.5 shrink-0 text-foreground" />
               <span
-                className="min-w-0 truncate text-[11px] font-medium leading-tight text-foreground"
+                className="min-w-0 truncate text-[13px] font-medium leading-snug text-foreground"
                 title={deal.title}
               >
                 {deal.title}
@@ -488,7 +499,7 @@ export function DealCard({
             <div className="flex min-h-0 items-center gap-2" data-no-card-click>
               <CalendarDays className="h-3.5 w-3.5 shrink-0 text-foreground" />
               <span
-                className="min-w-0 truncate text-[10px] font-medium text-foreground"
+                className="min-w-0 truncate text-xs font-medium text-foreground"
                 title={booking.title}
               >
                 {booking.text}
@@ -538,7 +549,7 @@ export function DealCard({
                 <div className={cn("absolute inset-0 rounded-b-lg shadow-inner", overlayBannerClass)} />
                 <div
                   className={cn(
-                    "relative z-[2] flex min-w-0 max-w-[min(100%,12rem)] items-center justify-center gap-1 px-2 text-center text-[10px] font-bold uppercase leading-none tracking-wide text-white drop-shadow-md transition-opacity duration-150",
+                    "relative z-[2] flex min-w-0 max-w-[min(100%,12rem)] items-center justify-center gap-1 px-2 text-center text-[11px] font-bold uppercase leading-tight tracking-wide text-white drop-shadow-md transition-opacity duration-150",
                     showBannerActions && (pendingApprovalActionsOpen
                       ? "opacity-0"
                       : "opacity-100 group-hover:opacity-0")
@@ -571,7 +582,7 @@ export function DealCard({
                     <Button
                       type="button"
                       size="sm"
-                      className="h-8 bg-emerald-600 px-2.5 text-[10px] font-semibold text-white hover:bg-emerald-700"
+                      className="h-8 px-2.5 text-xs font-semibold text-white hover:opacity-90" style={{ background: "#00D28B" }}
                       disabled={approvalBusy}
                       onClick={showDraftApproval ? handleApproveDraft : handleApproveKanban}
                       onPointerDown={(e) => e.stopPropagation()}
@@ -582,7 +593,7 @@ export function DealCard({
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="h-8 border-amber-200 bg-card/95 px-2.5 text-[10px] font-semibold text-amber-900 hover:bg-amber-50"
+                      className="h-8 border-amber-200 bg-card/95 px-2.5 text-xs font-semibold text-amber-900 hover:bg-amber-50"
                       disabled={approvalBusy}
                       onClick={(e) => {
                         e.stopPropagation()

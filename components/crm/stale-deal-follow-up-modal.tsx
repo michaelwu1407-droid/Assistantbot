@@ -178,7 +178,7 @@ export function StaleDealFollowUpModal({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="rounded-lg bg-muted/30 p-4">
+          <div className="rounded-md border p-4" style={{ background: "#F6F4EE", borderColor: "#E6E2D7" }}>
             <div className="flex items-start justify-between">
               <div>
                 <p className="font-medium text-foreground">{deal.title}</p>
@@ -246,8 +246,8 @@ export function StaleDealFollowUpModal({
                         (opt.disabled
                           ? "cursor-not-allowed border-border bg-muted/30 text-muted-foreground"
                           : selected
-                          ? "border-primary bg-primary/5"
-                          : "border-border bg-card hover:border-primary/40 hover:bg-muted/40")
+                          ? "border-[#00D28B] bg-[#E0FAF2]"
+                          : "border-border bg-card hover:border-[#00D28B]/40 hover:bg-[#F6F4EE]")
                       }
                     >
                       <span className="app-panel-title">{opt.label}</span>
@@ -364,6 +364,8 @@ export function StaleDealFollowUpModal({
                 (selectedChannel !== "phone" && !customMessage.trim()) ||
                 (selectedChannel === "phone" && !scheduleDate)
               }
+              className="rounded-full"
+              style={{ background: "#00D28B", color: "#0E1F1A" }}
             >
               {isSending ? (
                 <>

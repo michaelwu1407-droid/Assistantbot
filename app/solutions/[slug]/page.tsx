@@ -69,7 +69,7 @@ export default async function SolutionDetailPage({
   const ctaIndustry = CTA_INDUSTRIES[solution.slug] ?? `${solution.summaryTitle.toLowerCase()} business`;
 
   return (
-    <div className="min-h-screen bg-card text-foreground">
+    <div className="min-h-screen bg-background text-foreground">
       <Navbar />
       <main className="flex flex-col">
 
@@ -130,7 +130,7 @@ export default async function SolutionDetailPage({
         </section>
 
         {/* ── 3 outcomes ── */}
-        <section className="border-b border-border bg-[#F8FAFC] px-6 py-10">
+        <section className="border-b border-border bg-card px-6 py-10">
           <div className="mx-auto max-w-4xl grid grid-cols-1 sm:grid-cols-3 gap-6">
             {[
               { icon: Phone, label: "Every call answered", desc: "Tracey picks up 24/7 so no lead goes to voicemail." },
@@ -142,7 +142,7 @@ export default async function SolutionDetailPage({
                   <div className="w-8 h-8 rounded-md bg-[#E0FAF2] flex items-center justify-center shrink-0">
                     <Icon className="w-4 h-4 text-primary" />
                   </div>
-                  <p className="text-sm font-semibold text-midnight">{label}</p>
+                  <p className="text-sm font-semibold" style={{ color: "var(--color-ink)" }}>{label}</p>
                 </div>
                 <p className="text-sm text-muted-foreground leading-6">{desc}</p>
               </div>
@@ -157,7 +157,7 @@ export default async function SolutionDetailPage({
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">
                 How it works
               </p>
-              <h2 className="mt-3 text-3xl font-extrabold tracking-[-0.03em] text-midnight md:text-4xl">
+              <h2 className="mt-3 text-3xl font-extrabold tracking-[-0.03em] md:text-4xl" style={{ color: "var(--color-ink)" }}>
                 What Tracey handles for {solution.navLabel.toLowerCase()}
               </h2>
             </div>
@@ -169,10 +169,10 @@ export default async function SolutionDetailPage({
                   className="group relative flex flex-col gap-4 rounded-2xl border border-border bg-card p-7 transition-all hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-[0_12px_36px_rgba(15,23,42,0.08)]"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-sm font-bold text-emerald-700 ring-1 ring-emerald-100">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-sm font-bold ring-1 ring-emerald-100" style={{ color: "var(--color-forest)" }}>
                       {String(index + 1).padStart(2, "0")}
                     </span>
-                    <h3 className="text-lg font-bold tracking-[-0.02em] text-midnight">
+                    <h3 className="text-lg font-bold tracking-[-0.02em]" style={{ color: "var(--color-ink)" }}>
                       {workflow.title}
                     </h3>
                   </div>
@@ -186,13 +186,13 @@ export default async function SolutionDetailPage({
         </section>
 
         {/* ── FAQ ── */}
-        <section className="border-t border-border bg-[#F8FAFC] px-6 py-20">
+        <section className="border-t border-border bg-card px-6 py-20">
           <div className="mx-auto max-w-3xl flex flex-col gap-8">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">
                 FAQ
               </p>
-              <h2 className="mt-3 text-3xl font-extrabold tracking-[-0.03em] text-midnight">
+              <h2 className="mt-3 text-3xl font-extrabold tracking-[-0.03em]" style={{ color: "var(--color-ink)" }}>
                 Common questions from {solution.navLabel.toLowerCase()}
               </h2>
             </div>
@@ -204,7 +204,7 @@ export default async function SolutionDetailPage({
                   className="group overflow-hidden rounded-2xl border border-border bg-card shadow-[0_2px_8px_rgba(15,23,42,0.04)] transition-all open:border-emerald-200 open:bg-emerald-50/40 open:shadow-[0_8px_24px_rgba(15,23,42,0.06)]"
                 >
                   <summary className="flex cursor-pointer list-none items-start justify-between gap-4 px-6 py-5 [&::-webkit-details-marker]:hidden">
-                    <span className="text-base font-semibold text-midnight">{faq.question}</span>
+                    <span className="text-base font-semibold" style={{ color: "var(--color-ink)" }}>{faq.question}</span>
                     <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground transition-all group-open:rotate-45 group-open:bg-emerald-600 group-open:text-white">
                       <Plus className="h-4 w-4" />
                     </span>
@@ -219,7 +219,7 @@ export default async function SolutionDetailPage({
         </section>
 
         {/* ── CTA ── */}
-        <section className="bg-[linear-gradient(135deg,#0f172a_0%,#065f46_100%)] px-6 py-20 text-white">
+        <section className="px-6 py-20 text-white" style={{ background: "var(--color-forest)" }}>
           <div className="mx-auto max-w-4xl flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div className="max-w-xl">
               <h2 className="text-3xl font-extrabold tracking-[-0.03em] text-white md:text-4xl">

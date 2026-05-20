@@ -264,7 +264,7 @@ export function Shell({ children, chatbot }: { children: React.ReactNode; chatbo
 
   // Full viewport height — avoid calc(100dvh-57px), which left a ~57px body-colour strip at the bottom (57px belongs to the assistant mode toggle row, not the shell).
   return (
-    <div className="h-dvh min-h-0 w-full bg-background relative flex flex-col overflow-hidden">
+    <div className="h-dvh min-h-0 w-full bg-paper relative flex flex-col overflow-hidden">
       {/* Tutorial Overlay always mounted, handles its own visibility */}
       <TutorialOverlay onComplete={handleTutorialComplete} />
 

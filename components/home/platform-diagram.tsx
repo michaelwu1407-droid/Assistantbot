@@ -62,6 +62,17 @@ export function PlatformDiagram() {
                             </li>
                         ))}
                     </ul>
+                    <div className="border-t border-white/10 pt-4 mt-1">
+                        <p className="text-xs text-white/50 mb-2.5">Tracey supports every customer channel — calls, texts, your website, email, hipages and more.</p>
+                        <div className="flex flex-wrap gap-2">
+                            {CHANNELS.map(({ label, icon: Icon }) => (
+                                <span key={label} className="inline-flex items-center gap-1.5 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-xs text-white/75">
+                                    <Icon className="h-3 w-3 text-emerald-400" />
+                                    {label}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
                 </motion.div>
 
                 {/* Connector — large bidirectional arrows */}
@@ -115,24 +126,6 @@ export function PlatformDiagram() {
                     </div>
                 </motion.div>
             </div>
-
-            <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-60px" }}
-                transition={{ duration: 0.5, delay: 0.3, ease: EASE }}
-                className="mt-10 flex flex-col items-center gap-4"
-            >
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Reach Tracey &amp; the CRM on any channel</p>
-                <div className="flex flex-wrap items-center justify-center gap-2">
-                    {CHANNELS.map(({ label, icon: Icon }) => (
-                        <span key={label} className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-1.5 text-sm font-medium text-foreground shadow-sm">
-                            <Icon className="h-4 w-4 text-emerald-600" />
-                            {label}
-                        </span>
-                    ))}
-                </div>
-            </motion.div>
         </div>
     );
 }

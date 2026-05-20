@@ -77,7 +77,7 @@ export function StaleJobReconciliationModal({ deal, onClose, onSuccess }: Props)
 
   const body = (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <div className="flex items-center gap-2 rounded-md bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+      <div className="flex items-center gap-2 rounded-md border px-3 py-2 text-xs text-muted-foreground" style={{ background: "#F6F4EE", borderColor: "#E6E2D7" }}>
         <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         <span className="min-w-0 truncate">
           <span className="font-medium text-foreground">{deal.title}</span>
@@ -112,7 +112,7 @@ export function StaleJobReconciliationModal({ deal, onClose, onSuccess }: Props)
         <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>
           Cancel
         </Button>
-        <Button type="submit" disabled={!actualOutcome || isSubmitting}>
+        <Button type="submit" disabled={!actualOutcome || isSubmitting} className="rounded-full" style={{ background: "#00D28B", color: "#0E1F1A" }}>
           {isSubmitting ? "Saving…" : staleJobOutcomeLabel(actualOutcome)}
         </Button>
       </div>

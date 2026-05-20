@@ -28,26 +28,28 @@ export function MapPageClient({ jobs }: { jobs: Job[] }) {
 
   if (jobs.length === 0) {
     return (
-      <div className="h-full w-full bg-muted/30 px-6 py-10">
+      <div className="h-full w-full px-6 py-10" style={{ background: "var(--color-paper)" }}>
         <div className="mx-auto flex h-full max-w-3xl items-center justify-center">
-          <div className="w-full rounded-3xl border border-border bg-card p-8 text-center shadow-sm">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
-              <MapPinned className="h-7 w-7 text-muted-foreground" />
+          <div className="w-full rounded-md border bg-card p-8 text-center shadow-sm" style={{ borderColor: "#E6E2D7" }}>
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full" style={{ background: "#E0FAF2" }}>
+              <MapPinned className="h-7 w-7" style={{ color: "#00D28B" }} />
             </div>
-            <h2 className="text-2xl font-semibold text-foreground">No scheduled jobs to map yet</h2>
+            <h2 className="text-2xl font-semibold" style={{ color: "var(--color-ink)" }}>No scheduled jobs to map yet</h2>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
               The map appears once jobs have both a scheduled time and an address. Book or schedule a job first, then return here to plan the route.
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               <Link
                 href="/crm/dashboard"
-                className="inline-flex items-center justify-center rounded-lg bg-muted-foreground px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800"
+                className="inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-semibold text-white transition-colors"
+                style={{ background: "var(--color-forest)" }}
               >
                 Open dashboard
               </Link>
               <Link
                 href="/crm/schedule"
-                className="inline-flex items-center justify-center rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/30"
+                className="inline-flex items-center justify-center rounded-md border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/10"
+                style={{ borderColor: "#E6E2D7" }}
               >
                 Go to schedule
               </Link>
