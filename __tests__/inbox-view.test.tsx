@@ -340,12 +340,13 @@ describe("InboxView", () => {
     expect(traceyTab).toHaveAttribute("aria-selected", "false");
     expect(directTab).toHaveAttribute("aria-selected", "true");
 
-    expect(screen.getByText(/Direct SMS: sends immediately from your workspace Twilio number/i)).toBeInTheDocument();
+    // Description text was moved to a hover tooltip on the status pill; verify the pill itself
+    expect(screen.getByText(/Sends immediately/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Send now/i })).toBeInTheDocument();
 
     await user.click(traceyTab);
     expect(traceyTab).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByText(/Ask Tracey: give Tracey an instruction/i)).toBeInTheDocument();
+    expect(screen.getByText(/AI handles next step/i)).toBeInTheDocument();
     expect(screen.getByText(/AI handles next step/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Ask Tracey to act/i })).toBeInTheDocument();
   }, 10000);
@@ -499,7 +500,7 @@ describe("InboxView", () => {
     expect(screen.getByText(/Caller asked for an urgent callback about a burst pipe/i)).toBeInTheDocument();
     expect(screen.queryByText("Urgent callback requested")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /CRM activity/i }));
+    await user.click(screen.getByRole("button", { name: /Activity/i }));
 
     expect(screen.getByText("Urgent callback requested")).toBeInTheDocument();
     expect(screen.getByText(/Caller: 0400000001/i)).toBeInTheDocument();
