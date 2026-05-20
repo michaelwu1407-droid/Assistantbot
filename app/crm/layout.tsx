@@ -122,7 +122,14 @@ export default async function DashboardLayout({
             headerDisplayName={headerDisplayName}
             workspaceIndustryType={workspaceIndustryType}
           />
-          <Suspense fallback={<div className="h-screen w-full bg-paper flex items-center justify-center"><div className="animate-pulse text-muted-foreground">Loading...</div></div>}>
+          <Suspense fallback={
+            <div className="h-dvh w-full bg-paper flex overflow-hidden">
+              <div className="w-[45px] shrink-0 h-full" style={{ background: "var(--color-forest)" }} />
+              <div className="flex flex-col flex-1 min-w-0">
+                <div className="h-12 shrink-0 w-full" style={{ background: "var(--color-forest)" }} />
+              </div>
+            </div>
+          }>
             <ShellHost chatbot={<DeferredChatInterface workspaceId={workspaceId} />}>{children}</ShellHost>
           </Suspense>
           <Toaster />
