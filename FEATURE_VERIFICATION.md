@@ -2,7 +2,18 @@
 
 This file exists to keep product truth tighter than "the code looks right."
 
-Pair this with `JOURNEY_ACCEPTANCE.md`, which checks whether the intended user can actually find, access, complete, and understand the flow end to end.
+It pairs with two siblings:
+
+- `JOURNEY_ACCEPTANCE.md` — the 8-check journey gate (Discoverability,
+  Access, Completion, Outcome, Coherence, Follow-through,
+  Failure-handling, Proof). Checks whether the intended user can
+  actually find, access, complete and understand the flow end to end.
+- `docs/USE_CASE_TEST_MATRIX.md` — the scored row-by-row grid of every
+  user-facing surface. Tells you whether a specific row is ✅ / 🟡 /
+  🔴 / ⬜ today, with linked proof.
+
+This file is the **proof-layer framework**. The other two are the
+journey framework and the live data. Do not duplicate row data here.
 
 The live source of truth is the internal admin ops page:
 

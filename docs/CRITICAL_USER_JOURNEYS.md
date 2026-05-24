@@ -1,240 +1,160 @@
-# Critical User Journeys
+# Critical User Journeys — Product-Level Acceptance
 
-This document tracks the highest-impact user journeys we need to validate for
-product logic, interpretation, and UX quality, not just technical correctness.
+> This file is the **product-level acceptance contract** for the
+> highest-impact tradie + customer journeys. It captures the *intent*
+> of each journey (what "good" looks like from the user's perspective),
+> not the row-by-row test status. For row-by-row state and proof, see
+> `USE_CASE_TEST_MATRIX.md`.
 
-## Validation standard
+## How this file relates to the rest of the doc set
 
-For each journey we validate:
+| File | What lives here | What lives there |
+|------|------------------|------------------|
+| **`CRITICAL_USER_JOURNEYS.md`** (this) | Product acceptance criteria for the top journeys. Prose, not tables. The "what does it mean for this journey to be ready?" | — |
+| `USE_CASE_TEST_MATRIX.md` | Every surface, every 8-gate row, current state. The "is row X green today?" | — |
+| `JOURNEY_ACCEPTANCE.md` | The 8-check journey gate definition (D · A · C · O · 🧠 · ↪ · 🛡 · 📋) | — |
+| `FEATURE_VERIFICATION.md` | The 4-layer proof model (Behavior · Delivery · Observability · Live-proof) | — |
+| `CLAUDE.md` | Cross-cutting product + design policies (tradie cognitive load, Tracey-number identity, design tokens, mobile rules) | — |
 
-1. Entry: the user understands what this feature does before acting.
-2. Execution: the interaction feels coherent while in progress.
-3. Outcome: the success state matches what actually happened.
-4. Recovery: if something fails, the next step is clear and reassuring.
+This file used to also track "current validation" status per journey.
+That was redundant with the matrix and is removed. Status now lives in
+the matrix; pull it from there.
+
+## Validation standard (applies to every journey below)
+
+For each journey we validate, in priority order:
+
+1. **Entry** — the user understands what this feature does *before*
+   acting.
+2. **Execution** — the interaction feels coherent while in progress
+   (reassuring loading copy, no dead spinners, no unexplained delays).
+3. **Outcome** — the success state matches what actually happened. We
+   never let the UI lie about whether something was sent / placed /
+   saved.
+4. **Recovery** — if something fails, the next step is clear and
+   reassuring. The user is never left wondering whether to resubmit.
+
+Each journey's row in `USE_CASE_TEST_MATRIX.md` cross-checks the same
+criteria against the 8 journey-acceptance gates.
 
 ## Priority 1 journeys
 
 ### 1. Homepage "Interview Tracey" callback flow
 
-Why it matters:
-- This is a top-of-funnel trust flow.
-- If the promise is unclear or the result is ambiguous, users lose confidence fast.
+**Why it matters.** This is a top-of-funnel trust flow. If the promise
+is unclear or the result is ambiguous, users lose confidence fast and
+never sign up.
 
-Acceptance criteria:
+**Acceptance criteria.**
+
 - The form clearly communicates that Tracey will call within seconds.
-- Validation errors are field-specific and human-readable.
+- Validation errors are field-specific and human-readable (not generic
+  "Invalid input").
 - During submit, the CTA reflects in-progress state.
 - On success, the page clearly says a call is happening now.
-- On timeout or callback failure, the user is told their details were still captured.
-- The recovery path does not make the user wonder whether they need to resubmit.
+- On timeout or callback failure, the user is told their details were
+  still captured.
+- The recovery path does not make the user wonder whether they need to
+  resubmit.
 
-Current validation:
-- Browser coverage now asserts the pre-submit promise and key form affordances.
-- Success and timeout messaging still deserve deeper journey coverage in a dedicated follow-up pass.
+Matrix rows: `acq-01`, `acq-02`.
 
 ### 2. Public contact / sales enquiry flow
 
-Why it matters:
-- This is the fallback acquisition path when users want a human or sales reply.
-- A mismatch between actual callback behavior and success copy is a trust problem.
+**Why it matters.** This is the fallback acquisition path when users
+want a human or sales reply. A mismatch between actual callback
+behaviour and success copy is a trust problem.
 
-Acceptance criteria:
-- The page makes clear whether the user is sending a message, getting a callback, or both.
-- If a phone number is present and a callback is initiated, the success state says so.
-- If only email/support handling occurs, the success state says that instead.
-- Department selection feels meaningful and not decorative.
+**Acceptance criteria.**
+
+- The page makes clear whether the user is sending a message, getting
+  a callback, or both.
+- If a phone number is present and a callback is initiated, the
+  success state says so.
+- If only email/support handling occurs, the success state says that
+  instead.
+- Department selection feels meaningful and not decorative — every
+  option must actually route somewhere different.
 - Failures preserve user confidence and give a next step.
 
-Current validation:
-- Contact and pricing pages now both reflect `callPlaced`.
-- Browser coverage now exists for callback, non-callback, and friendly-error states.
+Matrix rows: `acq-05`, `acq-06`, `acq-07`, `acq-08`, `acq-09`,
+`logic-13`.
 
-### 3. Sign in -> billing -> setup -> ready workspace
+### 3. Sign in → billing → setup → ready workspace
 
-Why it matters:
-- This is the revenue path and the most fragile multi-step journey.
+**Why it matters.** This is the revenue path and the most fragile
+multi-step journey.
 
-Acceptance criteria:
+**Acceptance criteria.**
+
 - Redirect logic never strands the user or loops them.
 - Users understand why they are on billing, setup, or dashboard.
-- Billing success does not feel like a silent redirect with no confirmation.
+- Billing success does not feel like a silent redirect with no
+  confirmation.
 - Provisioning outcomes are understandable:
-  - success: user knows Tracey is live
-  - partial success: user knows what still needs attention
-  - failure: user knows exactly what to do next
+  - success — user knows Tracey is live
+  - partial success — user knows what still needs attention
+  - failure — user knows exactly what to do next, including a clear
+    retry path
+- Resuming the flow after the user closes the browser lands them on
+  the right step with reassuring "welcome back" copy.
 
-Current validation:
-- Good technical coverage on redirects and provisioning APIs.
-- Billing success now has dedicated UI/state coverage instead of a silent handoff.
-- Onboarding completion now has direct UX coverage for:
-  - dedicated number provisioned successfully
-  - dedicated number not requested in billing
-  - number provisioning failure with clear retry guidance
-- Full browser validation of the authenticated post-payment path is still outstanding.
+Matrix rows: `onb-03` through `onb-17`, `auth-meta`.
 
-### 4. Missed call -> Tracey handles it -> CRM reflects it
+### 4. Missed call → Tracey handles it → CRM reflects it
 
-Why it matters:
-- This is a core value proposition, not a support feature.
+**Why it matters.** This is the core value proposition, not a support
+feature. The tradie's confidence in the product is set here.
 
-Acceptance criteria:
-- Calls handled by Tracey result in clear CRM visibility.
+**Acceptance criteria.**
+
+- Calls handled by Tracey result in clear CRM visibility (contact,
+  transcript, deal where applicable).
 - Urgent escalations produce obvious follow-up tasks.
 - Non-urgent calls do not create noisy or confusing artifacts.
-- Users can understand what happened without reading logs or raw transcripts.
+- Users can understand what happened without reading logs or raw
+  transcripts.
+- The operator handoff from contacts list → contact detail → deal
+  detail → inbox timeline is continuous and never loses context.
 
-Current validation:
-- Strong backend route coverage.
-- Inbox and recent-call UI now have direct user-facing coverage.
-- Browser coverage now validates the authenticated handoff from:
-  - contacts list
-  - contact detail
-  - deal detail
-  - inbox timeline
-- Deeper browser coverage for follow-up actions inside authenticated CRM views is still outstanding.
+Matrix rows: `voice-01..03`, `lead-04`, `crm-08..10`, `crm-23`,
+`crm-27..28`.
 
-### 5. New lead -> contact -> deal -> schedule / follow-up
+### 5. New lead → contact → deal → schedule / follow-up
 
-Why it matters:
-- This is the main day-to-day operations flow.
+**Why it matters.** This is the main day-to-day operations flow. If
+this feels rigid or noisy, the product loses its trust on day one.
 
-Acceptance criteria:
-- Lead capture creates the right CRM objects without duplication confusion.
+**Acceptance criteria.**
+
+- Lead capture creates the right CRM objects without duplication
+  confusion.
 - Deal stage transitions feel predictable.
-- Follow-ups and reminders appear like helpful automation, not random system noise.
-- Users can always tell what the system did automatically.
+- Follow-ups and reminders appear like helpful automation, not random
+  system noise.
+- Users can always tell what the system did automatically vs. what
+  they need to do themselves.
+- Recovery paths are clear when contact data is partial (email-only,
+  phone-only, no phone on a deal page).
+- Repeat follow-up work on the same deal preserves the prior reminder
+  context, not silent overwrites.
 
-Current validation:
-- Strong action and route coverage.
-- Contacts list now has direct UX coverage for:
-  - current lead/job title visibility
-  - visible stage and balance context
-  - quick call, text, and email next actions
-- Follow-up modal now has direct UX coverage for:
-  - immediate SMS follow-up using a guided template
-  - scheduled phone reminder when the user wants to call later
-  - recovery guidance when phone or email details are missing
-- Browser coverage now validates:
-  - the page-to-page operator handoff from lead row to contact detail to deal detail to inbox timeline
-  - the authenticated dashboard path from Chat mode into Advanced mode, opening a real deal card, and scheduling a follow-up reminder inside the deal modal
-  - repeat follow-up work on the same deal by clearing an existing reminder before scheduling a new one
-  - the inbox communication composer clearly distinguishes Direct SMS from Ask Tracey, preserves drafts when switching modes, and keeps the operator oriented about what sends immediately versus what the AI decides
-  - recovery paths when contact data is partial:
-    - email-only contacts default the inbox to Ask Tracey, explain why direct SMS is unavailable, and point to Add phone in CRM
-    - phone-only contacts keep Direct SMS usable while surfacing that email follow-up is unavailable and pointing to Add email in CRM
-    - deal pages without a phone number give a clear Add phone in CRM recovery path instead of leaving call/text actions ambiguous
+Matrix rows: `lead-01..14`, `crm-08..16`, `crm-21..22`, `comm-01..09`,
+`crm-19..20` (currently 🔴 — kanban drag broken).
 
-## Current product-level findings
+## Where this file used to track findings
 
-### Finding 1: Pricing enquiry flow hid callback behavior
+Historical "Finding 1..5" entries (pricing flow callback copy,
+contact-flow intent before submit, billing success UI, onboarding
+completion failure guidance, day-to-day CRM follow-up coverage) all
+resolved and now live as ✅ rows in the matrix:
 
-Severity: resolved
+- Finding 1 → `acq-05`, `acq-06`
+- Finding 2 → `acq-05` entry-time copy
+- Finding 3 → `onb-05`
+- Finding 4 → `onb-09..11`
+- Finding 5 → `crm-08`, `comm-04..08`
 
-Files:
-- [pricing page](C:/Users/micha/Projects/Assistantbot/app/pricing/page.tsx)
-- [contact route](C:/Users/micha/Projects/Assistantbot/app/api/contact/route.ts)
-
-Issue:
-- The pricing page posts to `/api/contact`.
-- `/api/contact` can initiate a Tracey callback when `phone` is provided.
-- Unlike the dedicated contact page, the pricing page ignored `callPlaced` and always showed a generic "message sent" state.
-
-User impact:
-- A user could receive an immediate call without the UI telling them to expect it.
-- That weakens trust and makes the product feel inconsistent.
-
-Resolution:
-- Pricing now uses the same success-state branching as the contact page.
-- Browser coverage now asserts both callback and message-only outcomes.
-
-### Finding 2: Contact flow intent was not explicit before submission
-
-Severity: resolved
-
-Files:
-- [contact page](C:/Users/micha/Projects/Assistantbot/app/contact/page.tsx)
-- [pricing page](C:/Users/micha/Projects/Assistantbot/app/pricing/page.tsx)
-
-Issue:
-- The callback behavior was only revealed after success.
-- A user could reasonably think they were only sending a message.
-
-User impact:
-- The callback could feel surprising rather than helpful.
-
-Resolution:
-- Both contact and pricing pages now explain the callback option before submit.
-  - "Add your phone if you want Tracey to call you back immediately."
-
-### Finding 3: Billing success was technically correct but UX-light
-
-Severity: resolved
-
-File:
-- [billing success page](C:/Users/micha/Projects/Assistantbot/app/billing/success/page.tsx)
-
-Issue:
-- The route verified Stripe, updated the workspace, ran provisioning, and immediately redirected.
-- There was no explicit success UI for the user on that page.
-
-User impact:
-- The user could feel bounced around rather than reassured.
-- Provisioning outcomes were not surfaced in a clear, dedicated success moment.
-
-Resolution:
-- `/billing/success` now renders an explicit success/provisioning transition before routing to `/auth/next`.
-- The transition has direct tests for:
-  - paid vs unpaid session handling
-  - provisioned vs no-number-requested copy
-  - auto-redirect and manual continue
-
-### Finding 4: Onboarding completion needed clearer failure guidance
-
-Severity: resolved
-
-File:
-- [Tracey onboarding](C:/Users/micha/Projects/Assistantbot/components/onboarding/tracey-onboarding.tsx)
-
-Issue:
-- The final onboarding step handled provisioning states technically, but the primary CTA became too vague when number setup failed.
-- Users could reach a finish step where the system knew what was wrong, but the button language still felt like a generic waiting state.
-
-User impact:
-- A user could be unsure whether they should wait, retry, or contact support.
-- "No number requested" and "number setup failed" are very different outcomes and need different guidance.
-
-Resolution:
-- The activation button now explicitly tells the user to fix number setup when provisioning fails.
-- The finish-step journey is now tested for:
-  - no-number-requested onboarding completion
-  - failed provisioning with retry guidance
-
-### Finding 5: The day-to-day CRM follow-up path needed stronger operator-level validation
-
-Severity: improved
-
-Files:
-- [contacts client](C:/Users/micha/Projects/Assistantbot/components/crm/contacts-client.tsx)
-- [stale deal follow-up modal](C:/Users/micha/Projects/Assistantbot/components/crm/stale-deal-follow-up-modal.tsx)
-
-Issue:
-- We had good backend confidence that leads became contacts and deals, but weaker proof that an operator could scan the CRM and know what to do next.
-- The most common path is not "create a record"; it is "understand the row in front of me, then follow up confidently."
-
-User impact:
-- If the row does not surface job, stage, and balance clearly, follow-up work becomes slower and more error-prone.
-- If the follow-up modal does not clearly support "send now" versus "remind me to call later," the workflow feels rigid.
-
-Resolution:
-- Contacts list coverage now asserts that job title, stage, balance, and quick action links are visible together.
-- Follow-up modal coverage now asserts both:
-  - send-now SMS flow via template
-  - schedule-later phone reminder flow
-- Browser coverage now asserts that a seeded lead can be followed from the contacts list through the contact page, the deal page, and into the inbox timeline without losing context.
-
-## Next automation targets
-
-1. Browser tests for the authenticated post-payment setup path
-2. Browser tests for follow-up execution from inside authenticated CRM surfaces
-3. Browser tests for CRM visibility after call handling and automation
-4. Manual mobile walkthroughs for acquisition, onboarding completion, and core CRM follow-up flows
+If you want to see the original prose for these findings, the file at
+this version in git history (commit before 2026-05-24) has them in
+full. We do not re-narrate them here.
