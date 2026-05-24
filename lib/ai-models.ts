@@ -32,9 +32,9 @@ const google = createGoogleGenerativeAI({
 export const contextModel = google("gemini-2.0-flash-lite-preview-02-05");
 
 /**
- * Logic Model — DeepSeek V3 (via DeepInfra)
+ * Logic Model — DeepSeek V4 Flash (via DeepInfra)
  *
  * Use for: Drafting emails, formatting CRM JSON, and complex business logic.
- * GPT-4o-class intelligence at ~$0.14/M tokens.
+ * Smarter than V3 at $0.14/$0.28 per M in/out tokens.
  */
-export const logicModel = deepinfra("deepseek-ai/DeepSeek-V3");
+export const logicModel = deepinfra("deepseek-ai/DeepSeek-V4-Flash");
