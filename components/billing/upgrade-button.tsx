@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { createCheckoutSession } from "@/actions/billing-actions";
 import { Loader2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
 
 export function UpgradeButton({
     workspaceId,
@@ -20,6 +22,7 @@ export function UpgradeButton({
             await createCheckoutSession(workspaceId, billingPeriod, provisionPhoneNumberRequested);
         } catch (error) {
             console.error("Failed to start checkout:", error);
+            toast.error("Could not start checkout — please try again in a moment.");
             setLoading(false);
         }
     };
