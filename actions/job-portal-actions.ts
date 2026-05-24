@@ -69,6 +69,18 @@ export async function getJobPortalStatus(token: string): Promise<JobPortalStatus
         contactId: deal.contactId,
       },
     })
+    await db.webhookEvent.create({
+      data: {
+        provider: "internal",
+        eventType: "portal.opened",
+        status: "success",
+        payload: {
+          dealId: deal.id,
+          contactId: deal.contactId,
+          workspaceId: deal.workspaceId,
+        },
+      },
+    }).catch(() => {})
   }
 
   const isComplete = deal.jobStatus === "COMPLETED"
