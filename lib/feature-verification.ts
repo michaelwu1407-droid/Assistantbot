@@ -83,11 +83,16 @@ export function buildFeatureVerificationReport(params: {
   const env = params.env ?? process.env;
   const checkedAt = params.checkedAt ?? new Date().toISOString();
   const resendDiagnostics = params.webhookDiagnostics.find((provider) => provider.provider === "resend") ?? null;
+  const internalDiagnostics = params.webhookDiagnostics.find((provider) => provider.provider === "internal") ?? null;
   const supportInbox = env.SUPPORT_EMAIL_TO || "support@earlymark.ai";
   const supportEmailConfigured = Boolean((env.RESEND_API_KEY || "").trim());
   const globalSmsTraffic = params.launch.passiveProduction.sms.recentReplySmsSuccessCount;
   const resendLastSuccess = resendDiagnostics?.lastSuccess ?? null;
   const multilingualCanarySuccess = params.launch.canary.monitor.lastSuccessAt ?? null;
+  const lastBookingConfirmationSent = internalDiagnostics?.recentEvents
+    .find((e) => e.eventType === "booking_confirmation.sent" && e.status === "success")?.createdAt.toISOString() ?? null;
+  const lastPortalOpened = internalDiagnostics?.recentEvents
+    .find((e) => e.eventType === "portal.opened" && e.status === "success")?.createdAt.toISOString() ?? null;
 
   const whatsappBehavior = evidence(
     "strong",
@@ -170,14 +175,12 @@ export function buildFeatureVerificationReport(params: {
     "partial",
     "Confirmation sending updates deal metadata and activity notes, but there is no dedicated proof surface for every scheduled transition.",
   );
-  const bookingObservability = evidence(
-    "partial",
-    "Activity logs exist after successful sends, but there is no ops rollup showing the last scheduled-trigger confirmation succeeded or failed.",
-  );
-  const bookingLiveProof = evidence(
-    "missing",
-    "No synthetic check or dashboard row currently proves a real scheduled transition produced a booking confirmation recently.",
-  );
+  const bookingObservability = lastBookingConfirmationSent
+    ? evidence("strong", "booking_confirmation.sent webhook events recorded; ops can query last success from WebhookEvent table.", lastBookingConfirmationSent)
+    : evidence("partial", "booking_confirmation.sent webhook events now recorded but none seen yet. Activity logs also exist after successful sends.");
+  const bookingLiveProof = lastBookingConfirmationSent
+    ? evidence("partial", "booking_confirmation.sent event seen recently — real production use confirmed.", lastBookingConfirmationSent)
+    : evidence("missing", "No booking_confirmation.sent event recorded yet. Webhook events are in place — waiting for first real scheduled transition.");
 
   const portalBehavior = evidence(
     "partial",
@@ -187,14 +190,12 @@ export function buildFeatureVerificationReport(params: {
     "partial",
     "Messages can include a job portal link, and portal opens now create a deduped activity note, but there is still no provider-level proof that a customer actually received and opened a specific portal link end to end.",
   );
-  const portalObservability = evidence(
-    "partial",
-    "Portal opens now create a deduped activity note on the job timeline, but there is no aggregated ops row yet showing the last successful portal open across workspaces.",
-  );
-  const portalLiveProof = evidence(
-    "missing",
-    "There is no synthetic or production check proving a customer-specific job portal page rendered successfully recently.",
-  );
+  const portalObservability = lastPortalOpened
+    ? evidence("strong", "portal.opened webhook events recorded; ops can query last success from WebhookEvent table.", lastPortalOpened)
+    : evidence("partial", "portal.opened webhook events now recorded but none seen yet. Activity notes also exist per open.");
+  const portalLiveProof = lastPortalOpened
+    ? evidence("partial", "portal.opened event seen recently — customer portal access confirmed in production.", lastPortalOpened)
+    : evidence("missing", "No portal.opened event recorded yet. Webhook events in place — waiting for first customer portal access.");
 
   const items: FeatureVerificationItem[] = [
     {
