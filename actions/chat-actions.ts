@@ -677,10 +677,18 @@ export async function runProposeReschedule(
 /**
  * List deals for the LLM (title, stage, value). Used by the chat listDeals tool.
  */
-export async function runListDeals(workspaceId: string): Promise<{ deals: { id: string; title: string; stage: string; value: number; contactName: string }[] }> {
+export async function runListDeals(workspaceId: string, keyword?: string): Promise<{ deals: { id: string; title: string; stage: string; value: number; contactName: string }[] }> {
   const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+  const kw = (keyword || "").trim().toLowerCase();
+  const filtered = kw
+    ? deals.filter((d) =>
+        d.title.toLowerCase().includes(kw) ||
+        (d.contactName ?? "").toLowerCase().includes(kw) ||
+        (d.address ?? "").toLowerCase().includes(kw)
+      )
+    : deals;
   return {
-    deals: deals.map((d) => {
+    deals: filtered.map((d) => {
       const rawStage = String(d.stage ?? "");
       return {
         id: d.id,

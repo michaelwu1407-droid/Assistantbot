@@ -95,9 +95,11 @@ export function getAgentTools(workspaceId: string, settings: AgentToolSettings |
     const workspaceTimezone = resolveWorkspaceTimezone(settings?.workspaceTimezone);
     return {
         listDeals: tool({
-            description: "List all jobs in the pipeline (id, title, stage, value).",
-            inputSchema: z.object({}),
-            execute: async () => runListDeals(workspaceId),
+            description: "List jobs in the pipeline. Pass an optional keyword to filter by title — e.g. 'indoor', 'plumbing', 'Smith', or a suburb name. Returns all jobs when keyword is empty.",
+            inputSchema: z.object({
+                keyword: z.string().optional().describe("Optional keyword to filter job titles"),
+            }),
+            execute: async ({ keyword }) => runListDeals(workspaceId, keyword),
         }),
         getAttentionRequired: tool({
             description: "Audit jobs that need attention (overdue, stale, rotting, rejected, parked) and return quick-action prompts.",
