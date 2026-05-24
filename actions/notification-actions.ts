@@ -220,6 +220,23 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
 }
 
 /**
+ * Returns true if the workspace has the given email notification pref enabled.
+ * Uses workspaceId directly so non-auth server code (webhooks, crons) can call it.
+ */
+export async function shouldSendNotificationEmail(
+  workspaceId: string,
+  key: keyof Pick<NotificationPreferences, "emailDealUpdates" | "emailNewContacts" | "emailWeeklySummary">
+): Promise<boolean> {
+  const workspace = await db.workspace.findUnique({
+    where: { id: workspaceId },
+    select: { settings: true },
+  })
+  const settings = (workspace?.settings as Record<string, unknown>) ?? {}
+  const prefs = (settings.notificationPreferences as Partial<NotificationPreferences>) ?? {}
+  return prefs[key] ?? DEFAULT_PREFS[key]
+}
+
+/**
  * Save notification preferences to workspace settings JSON.
  */
 export async function saveNotificationPreferences(prefs: NotificationPreferences) {

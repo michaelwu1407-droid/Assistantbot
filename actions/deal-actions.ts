@@ -8,7 +8,8 @@ import { nanoid } from "nanoid";
 import { db } from "@/lib/db";
 import { getDealHealth, type DealHealth } from "@/lib/pipeline";
 import { evaluateAutomations } from "./automation-actions";
-import { createNotification } from "./notification-actions";
+import { createNotification, shouldSendNotificationEmail } from "./notification-actions";
+import { sendOwnerNotificationEmail } from "@/lib/owner-notification-email";
 import { getAuthUser } from "@/lib/auth";
 import { MonitoringService } from "@/lib/monitoring";
 import { maybeCreatePricingSuggestionFromConfirmedJob } from "@/lib/pricing-learning";
@@ -777,6 +778,16 @@ export async function updateDealStage(dealId: string, stage: string) {
     revalidatePath("/crm/schedule");
     revalidatePath("/crm/map");
     revalidatePath(`/crm/deals/${parsed.data.dealId}`);
+
+    const shouldEmail = await shouldSendNotificationEmail(deal.workspaceId, "emailDealUpdates").catch(() => false)
+    if (shouldEmail) {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.earlymark.ai"
+      sendOwnerNotificationEmail({
+        workspaceId: deal.workspaceId,
+        subject: `Deal updated: ${deal.title}`,
+        text: `A deal in your workspace moved to a new stage.\n\nDeal: ${deal.title}\nNew stage: ${parsed.data.stage}\n\nView: ${appUrl}/crm/deals/${parsed.data.dealId}`,
+      }).catch(() => {})
+    }
 
     return { success: true };
   } catch (err) {

@@ -180,10 +180,10 @@ export default function NotificationsSettingsPage() {
           </div>
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>Weekly summary</Label>
+              <Label>Weekly summary <span className="ml-1 text-xs text-muted-foreground">(coming soon)</span></Label>
               <p className="text-sm text-muted-foreground">Receive a weekly pipeline summary.</p>
             </div>
-            <Switch checked={prefs.emailWeeklySummary} onCheckedChange={(v) => updatePref("emailWeeklySummary", v)} />
+            <Switch checked={prefs.emailWeeklySummary} onCheckedChange={(v) => updatePref("emailWeeklySummary", v)} disabled />
           </div>
         </CardContent>
       </Card>
