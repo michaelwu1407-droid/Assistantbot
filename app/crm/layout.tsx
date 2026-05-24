@@ -54,8 +54,15 @@ export default async function DashboardLayout({
         tutorialComplete
       });
 
-      // Gating mechanism - explicitly mandate a paid Stripe tier
-      if (workspace.subscriptionStatus !== "active") {
+      // Gating mechanism - explicitly mandate a paid Stripe tier.
+      // Grace-period exception: a cancelled subscription still grants access
+      // until stripeCurrentPeriodEnd so the customer isn't locked out mid-period.
+      const isCancelledInGracePeriod =
+        workspace.subscriptionStatus === "canceled" &&
+        workspace.stripeCurrentPeriodEnd != null &&
+        workspace.stripeCurrentPeriodEnd > new Date();
+
+      if (workspace.subscriptionStatus !== "active" && !isCancelledInGracePeriod) {
         logger.authFlow("User subscription not active, redirecting to billing", {
           component: "DashboardLayout",
           workspaceId,

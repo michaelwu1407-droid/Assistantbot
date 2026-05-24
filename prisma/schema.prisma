@@ -347,6 +347,8 @@ model Contact {
   avatarUrl String?
   address   String?
 
+  smsOptedOut Boolean @default(false)
+
   // Preferences for Matchmaker (e.g., { "budget": 1200000, "bedrooms": 3 })
   preferences Json?
   metadata    Json?

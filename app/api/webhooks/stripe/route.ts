@@ -8,6 +8,7 @@ import { processReferralConversionForCheckout } from "@/actions/referral-actions
 import { logger } from "@/lib/logging";
 import { ensureWorkspaceProvisioned } from "@/lib/onboarding-provision";
 import { runIdempotent } from "@/lib/idempotency";
+import { twilioMasterClient } from "@/lib/twilio";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -160,15 +161,11 @@ async function processStripeEvent(event: Stripe.Event): Promise<void> {
             case "invoice.paid":
                 break;
 
-            case "customer.subscription.updated":
-            case "customer.subscription.deleted": {
+            case "customer.subscription.updated": {
                 const subscriptionEvent = event.data.object as Stripe.Subscription;
-
-                // Find the generic workspace using the customer ID
                 const workspace = await db.workspace.findUnique({
                     where: { stripeCustomerId: subscriptionEvent.customer as string },
                 });
-
                 if (workspace) {
                     await db.workspace.update({
                         where: { id: workspace.id },
@@ -178,6 +175,51 @@ async function processStripeEvent(event: Stripe.Event): Promise<void> {
                             stripeCurrentPeriodEnd: new Date((subscriptionEvent as any).current_period_end * 1000),
                         },
                     });
+                }
+                break;
+            }
+
+            case "customer.subscription.deleted": {
+                const subscriptionEvent = event.data.object as Stripe.Subscription;
+                const workspace = await db.workspace.findUnique({
+                    where: { stripeCustomerId: subscriptionEvent.customer as string },
+                });
+                if (workspace) {
+                    await db.workspace.update({
+                        where: { id: workspace.id },
+                        data: {
+                            subscriptionStatus: subscriptionEvent.status,
+                            stripePriceId: subscriptionEvent.items.data[0].price.id,
+                            stripeCurrentPeriodEnd: new Date((subscriptionEvent as any).current_period_end * 1000),
+                        },
+                    });
+
+                    // Release the Twilio phone number — subscription has fully ended,
+                    // so we stop paying carrier rental on this workspace's number.
+                    if (workspace.twilioPhoneNumberSid && twilioMasterClient) {
+                        try {
+                            await twilioMasterClient.incomingPhoneNumbers(workspace.twilioPhoneNumberSid).remove();
+                            await db.workspace.update({
+                                where: { id: workspace.id },
+                                data: {
+                                    twilioPhoneNumber: null,
+                                    twilioPhoneNumberSid: null,
+                                    twilioSubaccountId: null,
+                                    twilioSubaccountAuthToken: null,
+                                },
+                            });
+                            logger.info("BILLING: Released Twilio number on subscription deletion", {
+                                workspaceId: workspace.id,
+                                phoneNumberSid: workspace.twilioPhoneNumberSid,
+                            });
+                        } catch (err) {
+                            logger.error("BILLING: Failed to release Twilio number on subscription deletion", {
+                                workspaceId: workspace.id,
+                                phoneNumberSid: workspace.twilioPhoneNumberSid,
+                                error: err instanceof Error ? err.message : String(err),
+                            });
+                        }
+                    }
                 }
                 break;
             }
