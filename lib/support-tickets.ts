@@ -1,33 +1,26 @@
 import "server-only";
 
+import { randomBytes } from "crypto";
 import { db } from "@/lib/db";
 import { createNotification } from "@/actions/notification-actions";
 
 type SupportPriority = "low" | "medium" | "high" | "urgent";
 
 function normalizePriority(value: string | null | undefined): SupportPriority {
-  const normalized = (value || "").trim().toLowerCase();
-  if (normalized === "low" || normalized === "medium" || normalized === "high" || normalized === "urgent") {
-    return normalized;
-  }
+  const p = (value || "").trim().toLowerCase();
+  if (p === "low" || p === "medium" || p === "high" || p === "urgent") return p;
   return "medium";
 }
 
-function getSlaHours(priority: SupportPriority) {
-  switch (priority) {
-    case "urgent":
-      return 4;
-    case "high":
-      return 12;
-    case "low":
-      return 48;
-    default:
-      return 24;
-  }
+function getSlaHours(priority: SupportPriority): number {
+  if (priority === "urgent") return 4;
+  if (priority === "high") return 12;
+  if (priority === "low") return 48;
+  return 24;
 }
 
-export function buildSupportTicketReference(ticketId: string) {
-  return `SUP-${ticketId.slice(-6).toUpperCase()}`;
+export function buildSupportTicketReference(): string {
+  return `SUP-${randomBytes(3).toString("hex").toUpperCase()}`;
 }
 
 export async function createSupportTicket(input: {
@@ -46,45 +39,26 @@ export async function createSupportTicket(input: {
 }) {
   const priority = normalizePriority(input.priority);
   const slaHours = getSlaHours(priority);
+  const slaDeadline = new Date(Date.now() + slaHours * 60 * 60 * 1000);
+  const ref = buildSupportTicketReference();
 
-  const activity = await db.activity.create({
+  const ticket = await db.supportTicket.create({
     data: {
-      type: "NOTE",
-      title: `${input.source === "chatbot" ? "Chatbot Support Request" : "Support Request"}: ${input.subject}`,
-      content: [
-        `Priority: ${priority}`,
-        `Source: ${input.source}`,
-        "",
-        input.message,
-        "",
-        `User: ${input.requesterEmail || "Unknown user"}`,
-        `Workspace: ${input.workspaceName || "Unknown workspace"}`,
-        `Tracey number: ${input.traceyNumber || "Not configured"}`,
-      ].join("\n"),
-      userId: input.userId,
-    },
-  });
-
-  await db.activityLog.create({
-    data: {
+      ref,
       workspaceId: input.workspaceId,
       userId: input.userId,
-      action: "support.ticket.created",
-      entityType: "support_ticket",
-      entityId: activity.id,
+      subject: input.subject,
+      message: input.message,
+      priority,
+      source: input.source,
+      slaDeadline,
       metadata: {
-        ticketId: activity.id,
-        ticketRef: buildSupportTicketReference(activity.id),
-        status: "open",
-        priority,
-        source: input.source,
-        slaHours,
-        requesterName: input.requesterName || null,
-        requesterEmail: input.requesterEmail || null,
-        requesterPhone: input.requesterPhone || null,
-        workspaceName: input.workspaceName || null,
-        workspaceType: input.workspaceType || null,
-        traceyNumber: input.traceyNumber || null,
+        requesterName: input.requesterName ?? null,
+        requesterEmail: input.requesterEmail ?? null,
+        requesterPhone: input.requesterPhone ?? null,
+        workspaceName: input.workspaceName ?? null,
+        workspaceType: input.workspaceType ?? null,
+        traceyNumber: input.traceyNumber ?? null,
       },
     },
   });
@@ -92,24 +66,14 @@ export async function createSupportTicket(input: {
   await createNotification({
     userId: input.userId,
     title: `Support ticket created: ${input.subject}`,
-    message: `${buildSupportTicketReference(activity.id)} is open with ${priority} priority.`,
+    message: `${ref} is open with ${priority} priority.`,
     type: priority === "urgent" || priority === "high" ? "WARNING" : "INFO",
     link: "/crm/settings/help#support-request",
     actionType: "VIEW_SUPPORT_TICKET",
-    actionPayload: {
-      ticketId: activity.id,
-      ticketRef: buildSupportTicketReference(activity.id),
-      status: "open",
-      priority,
-    },
+    actionPayload: { ticketId: ticket.id, ticketRef: ref, status: "OPEN", priority },
   });
 
-  return {
-    ticketId: activity.id,
-    ticketRef: buildSupportTicketReference(activity.id),
-    priority,
-    slaHours,
-  };
+  return { ticketId: ticket.id, ticketRef: ref, priority, slaHours };
 }
 
 export async function appendSupportTicketNote(input: {
@@ -118,61 +82,39 @@ export async function appendSupportTicketNote(input: {
   noteContent: string;
   userId?: string | null;
 }) {
-  const ticket = await db.activity.findFirst({
-    where: {
-      id: input.ticketId,
-      userId: input.userId ?? undefined,
-      title: { startsWith: "Support Request:" },
-    },
-    select: {
-      id: true,
-      title: true,
-      userId: true,
-    },
+  const ticket = await db.supportTicket.findFirst({
+    where: { id: input.ticketId, workspaceId: input.workspaceId },
+    select: { id: true, ref: true },
   });
 
-  const chatbotTicket =
-    ticket ||
-    (await db.activity.findFirst({
-      where: {
-        id: input.ticketId,
-        userId: input.userId ?? undefined,
-        title: { startsWith: "Chatbot Support Request:" },
-      },
-      select: {
-        id: true,
-        title: true,
-        userId: true,
-      },
-    }));
+  if (!ticket) throw new Error("Ticket not found.");
 
-  if (!chatbotTicket) {
-    throw new Error("Ticket not found.");
-  }
+  await db.supportTicketNote.create({
+    data: { ticketId: ticket.id, content: input.noteContent },
+  });
 
-  await db.activity.create({
+  return `Note added to ticket ${ticket.ref}.`;
+}
+
+export async function getSupportTickets(workspaceId: string, userId: string) {
+  return db.supportTicket.findMany({
+    where: { workspaceId, userId },
+    orderBy: { createdAt: "desc" },
+    take: 10,
+    include: { notes: { orderBy: { createdAt: "asc" } } },
+  });
+}
+
+export async function updateSupportTicketStatus(
+  ticketId: string,
+  workspaceId: string,
+  status: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED",
+) {
+  return db.supportTicket.update({
+    where: { id: ticketId, workspaceId },
     data: {
-      type: "NOTE",
-      title: `Support ticket note: ${buildSupportTicketReference(chatbotTicket.id)}`,
-      content: input.noteContent,
-      userId: chatbotTicket.userId ?? undefined,
+      status,
+      resolvedAt: status === "RESOLVED" || status === "CLOSED" ? new Date() : null,
     },
   });
-
-  await db.activityLog.create({
-    data: {
-      workspaceId: input.workspaceId,
-      userId: input.userId ?? undefined,
-      action: "support.ticket.note_added",
-      entityType: "support_ticket",
-      entityId: chatbotTicket.id,
-      metadata: {
-        ticketId: chatbotTicket.id,
-        ticketRef: buildSupportTicketReference(chatbotTicket.id),
-        note: input.noteContent,
-      },
-    },
-  });
-
-  return `Note added to ticket ${buildSupportTicketReference(chatbotTicket.id)}.`;
 }
