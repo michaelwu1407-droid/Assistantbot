@@ -68,6 +68,7 @@ export type WorkspaceVoiceGrounding = {
   flagOnlyRules: string[];
   emergencyBypass: boolean;
   ownerPhone: string | null;
+  agentLanguage: string | null;
 };
 
 const AGENT_CONTEXT_CACHE_TTL_MS = 120_000;
@@ -679,6 +680,7 @@ export async function getWorkspaceVoiceGrounding(workspaceId: string): Promise<W
         flagOnlyRules: dedupedFlagOnlyRules,
         emergencyBypass: Boolean(settings?.emergencyBypass),
         ownerPhone: ownerUser?.phone || null,
+        agentLanguage: (settings?.voiceLanguage as string | null | undefined) || null,
     };
 
     await sharedSet(voiceCacheKey, JSON.stringify(grounding), Math.ceil(VOICE_GROUNDING_CACHE_TTL_MS / 1000));

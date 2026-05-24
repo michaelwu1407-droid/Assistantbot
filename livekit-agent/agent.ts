@@ -212,6 +212,7 @@ type WorkspaceVoiceGrounding = {
   flagOnlyRules: string[];
   emergencyBypass: boolean;
   ownerPhone: string | null;
+  agentLanguage: string | null;
 };
 
 type LeadCapture = {
@@ -2608,6 +2609,12 @@ export default defineAgent({
           phaseTwoBacklog: getPhaseTwoBacklog(),
         })}`
       );
+    }
+
+    // If the workspace has a configured TTS language, prime the multilingual TTS
+    // so the initial greeting is spoken in that language, not just the env-default.
+    if (normalVoiceGrounding?.agentLanguage) {
+      (tts as MultilingualTTS).setReplyLanguage(normalVoiceGrounding.agentLanguage);
     }
 
     const normalLookupTools = normalVoiceGrounding ? buildWorkspaceLookupTools(normalVoiceGrounding) : {};
