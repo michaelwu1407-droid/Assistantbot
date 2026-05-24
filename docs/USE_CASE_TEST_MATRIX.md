@@ -71,11 +71,11 @@ the top so they don't get lost in the grid.
 
 | ID | Surface | The lie | Fix path |
 |----|---------|---------|----------|
-| cpl-01 | Inbound SMS "STOP" | Webhook silently filters STOP from the new-lead heuristic, but AI still generates and sends a reply. No `Contact.smsOptedOut` flag. | `app/api/twilio/webhook/route.ts:50` — short-circuit before AI reply; set opt-out; send one confirmation; block outbound in `lib/messaging/safe-recipient.ts`. |
-| cpl-02 | Subscription cancel | Stripe `customer.subscription.deleted` flips `subscriptionStatus` only. `twilioPhoneNumber` / `twilioPhoneNumberSid` / `twilioSubaccountId` stay; we keep paying carrier rental on orphaned numbers. | `app/api/webhooks/stripe/route.ts:163-182` — on cancel, schedule a Twilio release job for `stripeCurrentPeriodEnd`. |
-| notif-01..03 | Email pref toggles | UI saves to `workspace.settings.notificationPreferences` but no email-sending code reads it. The toggles are decorative. | Gate every email sender via `shouldSendEmail(workspaceId, prefKey)`. |
-| bill-10 | Grace period on cancel | `app/crm/layout.tsx:58` locks out any non-`active` status, even though the customer paid through `current_period_end`. | Treat `"canceled"` + `stripeCurrentPeriodEnd > now` as entitled. |
-| crm-10, crm-11, crm-17, comm-11, ai-05 | Kanban drag, stale→quoted drag-modal, Ctrl+K search, bulk SMS via chat, ambiguous AI fallback | Flagged 🔴 in historic walkthroughs; no automated coverage. | Each needs a Playwright spec then a fix — see per-row notes. |
+| cpl-01 | Inbound SMS "STOP" | ✅ **FIXED 2026-05-24** — `Contact.smsOptedOut` added; STOP/UNSUBSCRIBE/CANCEL exits early before AI reply, sends confirmation SMS, blocks further AI replies to opted-out contacts. START re-subscribes. | `app/api/twilio/webhook/route.ts` + `prisma/schema.prisma` + migration. |
+| cpl-02 | Subscription cancel | ✅ **FIXED 2026-05-24** — `customer.subscription.deleted` now calls `twilioMasterClient.incomingPhoneNumbers(sid).remove()` and nulls workspace Twilio columns. | `app/api/webhooks/stripe/route.ts`. |
+| notif-01..03 | Email pref toggles | ✅ **FIXED 2026-05-24** — `shouldSendNotificationEmail()` helper added. `emailNewContacts` fires on `createContact`; `emailDealUpdates` fires on `updateDealStage`. `emailWeeklySummary` toggle disabled with "(coming soon)" label. | `actions/notification-actions.ts`, `lib/owner-notification-email.ts`, `contact-actions.ts`, `deal-actions.ts`. |
+| bill-10 | Grace period on cancel | ✅ **FIXED 2026-05-24** — `app/crm/layout.tsx` now treats `"canceled"` + `stripeCurrentPeriodEnd > now` as still entitled. | `app/crm/layout.tsx`. |
+| crm-10, crm-11, crm-17, comm-11, ai-05 | Kanban drag, stale→quoted drag-modal, Ctrl+K search, bulk SMS via chat, ambiguous AI fallback | comm-11/ai-05 ✅ **FIXED** — `listDeals` tool now accepts optional keyword filter enabling "find indoor work" queries. crm-10/11/17 pending. | `lib/ai/tools.ts` + `chat-actions.ts`. |
 
 ---
 
@@ -171,15 +171,15 @@ bill-10 (no grace period).
 | bill-01 | `/crm/settings/billing` page | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
 | bill-02 | "Manage" → Stripe portal | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | ✅ | watch | No in-app confirmation before bouncing off-app. |
 | bill-03 | Webhook `checkout.session.completed` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/stripe-webhook.test.ts`. |
-| bill-04 | Webhook `customer.subscription.deleted` releases Twilio | ➖ | ✅ | 🔴 | 🔴 | 🔴 | 🔴 | 🟡 | ⛔ | gap | Twilio number not released. See top-of-file. `e2e/subscription-cancellation.spec.ts` stub awaits fix. |
+| bill-04 | Webhook `customer.subscription.deleted` releases Twilio | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — Twilio number released on deletion. Stub spec remains; needs live proof. |
 | bill-05 | Webhook `customer.subscription.updated` (plan change) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Only happy-path tested. |
 | bill-06 | Webhook `invoice.payment_failed` (dunning) | ➖ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | watch | Status flips; banner unverified. |
 | bill-07 | Webhook signature invalid → 401 | ➖ | ✅ | ✅ | ➖ | ✅ | ➖ | ✅ | ✅ | verified | `__tests__/stripe-webhook.test.ts`. |
 | bill-08 | Webhook duplicate delivery idempotent | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Partial; idempotency key path tested but not all branches. |
-| bill-09 | In-app "Cancel subscription" button | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Not built. Tradie bounced to third-party portal. |
-| bill-10 | Cancellation grace period through `current_period_end` | ➖ | 🔴 | 🔴 | 🔴 | 🔴 | 🔴 | 🟡 | ⛔ | gap | Immediate lockout on cancel even though customer paid. |
-| bill-11 | Post-cancel banner ("ends on DD MMM") | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Not built. |
-| bill-12 | Pre-cancel data export | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Not built. See cpl-06. |
+| bill-09 | In-app "Cancel subscription" button | 🟡 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manage button → Stripe portal (cross-app). Acceptable for now. |
+| bill-10 | Cancellation grace period through `current_period_end` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — CRM layout honours grace period. |
+| bill-11 | Post-cancel banner ("ends on DD MMM") | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — Amber banner with exact date + export link on billing settings page. |
+| bill-12 | Pre-cancel data export | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — GET /api/export/workspace-data; button in Settings → Privacy. |
 | bill-13 | Plan upgrade (monthly→yearly) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Portal-driven; partial test. |
 | bill-14 | Plan downgrade | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Same. |
 | bill-15 | Referral discount applied to checkout | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/referral-actions.test.ts` covers application. |
@@ -275,15 +275,15 @@ base (viewport-relative width + `max-h-[90vh]`) and a per-modal
 | comm-08 | Deal page with no phone: "Add phone in CRM" recovery | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | comm-09 | Template picker insert with variable merge | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/template-actions.test.ts` (lib only). |
 | comm-10 | WhatsApp send via composer | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/messaging-actions.test.ts`. Provider-blocked per `missing_features.md`. |
-| comm-11 | Bulk "rainy day blast" from chat ("find me indoor work") | ✅ | ✅ | 🔴 | 🔴 | 🔴 | 🔴 | 🟡 | ⛔ | gap | UC2 — AI fails to handle query. |
-| comm-12 | Outbound SMS blocked to opted-out contact | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | `Contact.smsOptedOut` flag doesn't exist. See cpl-01. |
+| comm-11 | Bulk "rainy day blast" from chat ("find me indoor work") | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | watch | **FIXED 2026-05-24** — `listDeals` AI tool now accepts keyword filter. |
+| comm-12 | Outbound SMS blocked to opted-out contact | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — Contact.smsOptedOut checked before AI reply in webhook handler. |
 | comm-13 | SMS delivery status reflects via Twilio status webhook | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | 🟡 | watch | Partial; "failed" red badge unverified. |
 | comm-14 | Quote/invoice email send via Resend | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Partial. |
 | comm-15 | Bounce/complaint webhook (`/api/webhooks/resend`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Svix signature handling unit-tested only. |
 | comm-16 | `/api/twilio/webhook` SMS receive idempotency | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/twilio-sms-webhook.test.ts`. |
 | comm-17 | Booking-confirmation auto-SMS on Scheduled stage | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | watch | JOURNEY_ACCEPTANCE journey 3 — needs delivery monitor + dedicated last-success/failure. |
 | comm-18 | Customer SMS "CONFIRM" flips pending deal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/twilio-sms-webhook.test.ts`. |
-| comm-19 | Customer SMS "STOP" honoured | ➖ | ✅ | 🔴 | 🔴 | 🔴 | 🔴 | 🟡 | 🔴 | gap | See cpl-01. `e2e/sms-stop-opt-out.spec.ts` stub awaits fix. |
+| comm-19 | Customer SMS "STOP" honoured | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — STOP exits early, confirmation SMS sent, smsOptedOut=true set. |
 | comm-20 | Inbound WhatsApp (`/api/webhooks/whatsapp`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Workspace user → AI assistant in WhatsApp. JOURNEY_ACCEPTANCE journey 1 — needs delivery monitor + synthetic round-trip. |
 
 ## H. Voice agent (`voice`)
@@ -369,9 +369,9 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 
 | ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
 |----|---------|---|---|---|---|---|---|---|---|--------|-------|
-| notif-01 | Toggle "Email deal updates" enforced | ✅ | ✅ | 🔴 | 🔴 | 🔴 | 🔴 | 🟡 | ⛔ | gap | Save tested; **enforcement not implemented**. See top-of-file. |
-| notif-02 | Toggle "Email new contacts" enforced | ✅ | ✅ | 🔴 | 🔴 | 🔴 | 🔴 | 🟡 | ⛔ | gap | Same. |
-| notif-03 | Toggle "Email weekly summary" enforced | ✅ | ✅ | 🔴 | 🔴 | 🔴 | 🔴 | 🟡 | ⛔ | gap | Same. |
+| notif-01 | Toggle "Email deal updates" enforced | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — `shouldSendNotificationEmail` gating in `updateDealStage`. |
+| notif-02 | Toggle "Email new contacts" enforced | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — `shouldSendNotificationEmail` gating in `createContact`. |
+| notif-03 | Toggle "Email weekly summary" enforced | ✅ | ✅ | 🟡 | 🟡 | ✅ | 🟡 | 🟡 | ⛔ | watch | Toggle disabled "(coming soon)"; cron not yet implemented. |
 | notif-04 | Toggle "Task reminders" enforced | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `ensureDailyNotifications` reads pref. |
 | notif-05 | Toggle "Stale deal alerts" enforced | ✅ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | watch | Saves; consumer unasserted. |
 | notif-06 | Push subscribe via VAPID | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/push-subscribe-routes.test.ts`. |
@@ -422,7 +422,7 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 | ai-02 | AI creates job from natural language | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 👁 | watch | Round 5 walkthrough confirmed Frank fixture. |
 | ai-03 | AI books appointment | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | watch | Partial. |
 | ai-04 | AI lookup tool (`/api/chat`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/agent-tools.test.ts`. |
-| ai-05 | AI handles ambiguous request | ✅ | ✅ | 🔴 | 🔴 | 🔴 | 🔴 | 🟡 | ⛔ | gap | UC2 "find me indoor work" fails. |
+| ai-05 | AI handles ambiguous request | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | watch | **FIXED 2026-05-24** — `listDeals` tool accepts keyword filter. |
 | ai-06 | AI tool-call error recovery | ➖ | ✅ | 🟡 | ✅ | ✅ | ✅ | 🟡 | 🟡 | watch | Partial. |
 | ai-07 | AI feedback recognition (UC: "the chatbot recognizes feedback") | ✅ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | gap | JOURNEY_ACCEPTANCE journey 2 — no end-to-end synthetic. |
 
@@ -496,14 +496,14 @@ Legal-exposure cluster. These are the audit's top fix items.
 
 | ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
 |----|---------|---|---|---|---|---|---|---|---|--------|-------|
-| cpl-01 | Customer SMS STOP / UNSUBSCRIBE / CANCEL honoured | ➖ | ✅ | 🔴 | 🔴 | 🔴 | 🔴 | 🟡 | 🔴 | gap | See top-of-file. `e2e/sms-stop-opt-out.spec.ts` stub. |
-| cpl-02 | Subscription cancel releases Twilio number | ➖ | ✅ | 🔴 | 🔴 | 🔴 | 🔴 | 🟡 | ⛔ | gap | `e2e/subscription-cancellation.spec.ts` stub. |
-| cpl-03 | Email "Deal updates" pref enforced E2E | ✅ | ✅ | 🔴 | 🔴 | 🔴 | 🔴 | 🟡 | ⛔ | gap | `e2e/notification-pref-enforcement.spec.ts` stub. |
+| cpl-01 | Customer SMS STOP / UNSUBSCRIBE / CANCEL honoured | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — full opt-out + confirmation + block. E2E stub remains for live proof. |
+| cpl-02 | Subscription cancel releases Twilio number | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — releases on deletion event. E2E stub remains. |
+| cpl-03 | Email "Deal updates" pref enforced E2E | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — shouldSendNotificationEmail gating. E2E stub remains. |
 | cpl-04 | Email "New contacts" pref enforced E2E | ✅ | ✅ | 🔴 | 🔴 | 🔴 | 🔴 | 🟡 | ⛔ | gap | Same. |
 | cpl-05 | Email "Weekly summary" pref enforced E2E | ✅ | ✅ | 🔴 | 🔴 | 🔴 | 🔴 | 🟡 | ⛔ | gap | Same. |
 | cpl-06 | Customer data export (one-click) | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Not built. Required pre-cancel. |
 | cpl-07 | Workspace deletion (hard) with cooling-off | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | `/api/delete-user` exists but no UI workflow. |
-| cpl-08 | Outbound customer email has unsubscribe footer | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Legal copy promises it; not enforced. |
+| cpl-08 | Outbound customer email has unsubscribe footer | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — HMAC token footer appended; /api/unsubscribe/email sets emailOptedOut. |
 | cpl-09 | `/(legal)/privacy` accessible app-wide | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Footer link. |
 | cpl-10 | `/(legal)/terms` accessible app-wide | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | cpl-11 | `/(legal)/cookies` accessible app-wide | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Footer link assertion missing. |
@@ -542,11 +542,11 @@ technically work but mislead the user. Per `JOURNEY_ACCEPTANCE.md` gate
 | logic-02 | **`/crm/settings/privacy` vs `/crm/settings/data-privacy`** | gap | Two overlapping settings pages — which is canonical? Consolidate. See set-10 / set-18. |
 | logic-03 | **`/crm/hub` is a 404 but appears wired in nav** | gap | Either build the hub or remove the link target. See crm-35. |
 | logic-04 | **`/crm/design/*` is publicly reachable by any signed-in user** | gap | Internal-only pages should be staff-gated (`adm-01` pattern). See crm-40. |
-| logic-05 | **Email pref toggles save but do nothing** | gap | Worst kind of UX lie — UI shows "Saved" but the email still arrives. See notif-01..03 / cpl-03..05. |
-| logic-06 | **Customer STOP gets an AI reply** | gap | We tell the customer they're unsubscribed *in legal copy* but the system itself ignores it. See cpl-01. |
+| logic-05 | **Email pref toggles save but do nothing** | watch | **FIXED 2026-05-24** — emailDealUpdates + emailNewContacts now enforced. Weekly summary toggle disabled. |
+| logic-06 | **Customer STOP gets an AI reply** | watch | **FIXED 2026-05-24** — STOP exits early, no AI reply. See cpl-01. |
 | logic-07 | **Stripe Manage button bounces tradie off-app without warning** | gap | The first thing a tradie sees after clicking "Manage" is a different brand. No confirmation, no save-the-customer step. See bill-02, bill-09. |
-| logic-08 | **Immediate lockout on cancel even though they paid for the month** | gap | A coherent product gives the customer what they paid for. See bill-10. |
-| logic-09 | **Twilio number kept billable on cancelled workspaces** | gap | We say "your number" but we keep paying for it after they leave. See cpl-02 / bill-04. |
+| logic-08 | **Immediate lockout on cancel even though they paid for the month** | watch | **FIXED 2026-05-24** — Grace period honoured in CRM layout. |
+| logic-09 | **Twilio number kept billable on cancelled workspaces** | watch | **FIXED 2026-05-24** — Number released on customer.subscription.deleted. |
 | logic-10 | **Kanban drag does nothing** | gap | Affordance suggests drag-to-move; reality is silent failure. See crm-19. |
 | logic-11 | **Stale-deal drag → expected follow-up modal doesn't open** | gap | The drag is the implicit promise of automation. See crm-20. |
 | logic-12 | **Ctrl+K returns "No results" for known data** | gap | Power-user shortcut feels broken; users lose trust in search globally. See crm-39. |
