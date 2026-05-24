@@ -13,6 +13,7 @@ import {
   Clock,
   Scale,
   PhoneCall,
+  Download,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -321,6 +322,15 @@ export default function PrivacySettingsPage() {
             <li><strong>Right of access:</strong> You may request a copy of the personal information Earlymark AI holds about you.</li>
             <li><strong>Right to correction:</strong> You may request correction of inaccurate or outdated personal information.</li>
           </ul>
+          <div className="pt-2">
+            <Button asChild variant="outline" size="sm" className="gap-2">
+              <a href="/api/export/workspace-data" download>
+                <Download className="h-4 w-4" />
+                Download my workspace data
+              </a>
+            </Button>
+            <p className="mt-2 text-xs text-muted-foreground">Downloads contacts and deals as a JSON file. Does not include voice recordings or message logs.</p>
+          </div>
           <p className="text-sm text-muted-foreground dark:text-muted-foreground">
             Requests will be responded to within 30 days. Earlymark AI may decline a request if it would
             impose an unreasonable burden, conflict with a legal obligation, or relate to data that has
