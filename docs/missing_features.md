@@ -13,6 +13,44 @@ For historical changes and proof, use:
 
 ## Current Open Product Gaps
 
+### Compliance & opt-out (added 2026-05-24 audit)
+
+Tracked exhaustively in `docs/USE_CASE_TEST_MATRIX.md` under the `cpl-*`
+and `bill-*` rows. The blockers are:
+
+- **Customer SMS STOP is not honoured** (`cpl-01` / `lead-05`). The
+  Twilio webhook silently filters STOP out of the new-lead heuristic but
+  the AI still generates and sends a reply, and there is no
+  contact-level opt-out flag. Twilio carrier-level blocks save us from
+  spamming, but we have zero in-app visibility and our own legal copy
+  promises enforcement.
+
+- **Subscription cancellation leaks a Twilio number** (`cpl-02` /
+  `bill-04`). On `customer.subscription.deleted` only
+  `subscriptionStatus` flips. The Twilio subaccount and phone number SID
+  remain on the workspace and we keep paying carrier rental.
+
+- **Email-notification preferences are decorative** (`cpl-03..05` /
+  `notif-01..03`). The toggles in `/crm/settings/notifications` save to
+  `workspace.settings.notificationPreferences` but no email-sending code
+  reads them. `grep` confirms two references only: the settings page
+  itself and the actions file where the type is defined.
+
+- **No in-app subscription-cancel surface** (`bill-06..09`). Tradies are
+  bounced to Stripe's hosted portal with no warning dialog, no
+  save-the-customer step, no data-export offer, and no post-cancel
+  banner on return.
+
+- **Immediate lockout on cancellation** (`bill-10`). `app/crm/layout.tsx`
+  treats any non-`active` status as locked, even if the customer has
+  paid through end of period.
+
+- **No customer data export / deletion surface** (`cpl-06..07`). Legal
+  page implies we honour these, but there's no UI or workflow.
+
+- **Outbound emails to end-customers have no unsubscribe footer**
+  (`cpl-08`). Required by `app/(legal)/privacy/page.tsx` copy.
+
 ### High-confidence gaps
 
 - **Real voice signoff is not finished**
