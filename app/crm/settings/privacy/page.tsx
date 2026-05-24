@@ -16,10 +16,27 @@ import {
   Download,
 } from "lucide-react";
 import Link from "next/link";
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
+import { db } from "@/lib/db";
+import { redirect } from "next/navigation";
+import { DeleteWorkspaceButton } from "@/components/settings/delete-workspace-button";
 
 export const dynamic = "force-dynamic";
 
-export default function PrivacySettingsPage() {
+export default async function PrivacySettingsPage() {
+  let actor: Awaited<ReturnType<typeof requireCurrentWorkspaceAccess>>;
+  try {
+    actor = await requireCurrentWorkspaceAccess();
+  } catch {
+    redirect("/auth");
+  }
+
+  const workspace = await db.workspace.findUnique({
+    where: { id: actor.workspaceId },
+    select: { ownerId: true },
+  });
+  const isOwner = workspace?.ownerId === actor.id;
+
   return (
     <div className="space-y-8">
       <div>
@@ -331,6 +348,15 @@ export default function PrivacySettingsPage() {
             </Button>
             <p className="mt-2 text-xs text-muted-foreground">Downloads contacts and deals as a JSON file. Does not include voice recordings or message logs.</p>
           </div>
+          {isOwner && (
+            <div className="pt-2 border-t border-border mt-2">
+              <p className="text-sm text-muted-foreground mb-3">
+                To permanently remove your workspace and all associated data, use the button below.
+                This action cannot be undone — download your data first.
+              </p>
+              <DeleteWorkspaceButton userId={actor.id} />
+            </div>
+          )}
           <p className="text-sm text-muted-foreground dark:text-muted-foreground">
             Requests will be responded to within 30 days. Earlymark AI may decline a request if it would
             impose an unreasonable burden, conflict with a legal obligation, or relate to data that has
