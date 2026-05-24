@@ -456,6 +456,25 @@ export async function sendConfirmationSMS(dealId: string): Promise<MessageResult
           contactId: deal.contactId
         }
       });
+
+      await db.webhookEvent.create({
+        data: {
+          provider: "internal",
+          eventType: "booking_confirmation.sent",
+          status: "success",
+          payload: { dealId, contactId: deal.contactId, workspaceId: deal.workspaceId },
+        },
+      }).catch(() => {});
+    } else {
+      await db.webhookEvent.create({
+        data: {
+          provider: "internal",
+          eventType: "booking_confirmation.failed",
+          status: "error",
+          payload: { dealId, contactId: deal.contactId, workspaceId: deal.workspaceId },
+          error: result.error ?? "Unknown error",
+        },
+      }).catch(() => {});
     }
 
     return result;
