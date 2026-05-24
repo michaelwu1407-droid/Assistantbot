@@ -12,6 +12,7 @@ import { getDeals, createDeal, updateDealStage, updateDealMetadata, updateDealAs
 import { appendTicketNote, logActivity } from "./activity-actions";
 import { createContact, searchContacts } from "./contact-actions";
 import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
+import { signUnsubscribeToken } from "@/lib/email-unsubscribe-token";
 import { withCostCeiling } from "@/lib/cost-ceiling";
 
 const TWILIO_SMS_COST_USD = 0.05;
@@ -2863,6 +2864,17 @@ export async function runSendEmail(
     if (!contact.email) return `Contact "${contact.name}" has no email address on file. Add one first.`;
     const contactEmail = contact.email;
 
+    // Honour email opt-out before sending
+    const freshContact = await db.contact.findUnique({ where: { id: contact.id }, select: { emailOptedOut: true } })
+    if (freshContact?.emailOptedOut) {
+      return `${contact.name} has unsubscribed from emails. Sending has been skipped.`
+    }
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.earlymark.ai"
+    const unsubToken = signUnsubscribeToken(contact.id)
+    const unsubUrl = `${appUrl}/api/unsubscribe/email?token=${unsubToken}`
+    const bodyWithFooter = `${params.body}\n\n---\nTo unsubscribe from emails: ${unsubUrl}`
+
     const bodyHash = crypto.createHash("sha256").update(params.body).digest("hex");
 
     const idem = await runIdempotent<{ returnMessage: string }>({
@@ -2931,7 +2943,7 @@ export async function runSendEmail(
             from: fromAddress,
             to: [safeEmailTo],
             subject: params.subject,
-            text: params.body,
+            text: bodyWithFooter,
             replyTo: replyToAddress,
             bcc: bccAddress,
           }),
