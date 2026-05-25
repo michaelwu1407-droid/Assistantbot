@@ -651,6 +651,7 @@ export function KanbanBoard({
     hasDragged.current = true
     const deal = deals.find((d) => d.id === id)
     dragStartStageRef.current = deal?.stage ?? null
+    dragStartColumnRef.current = deal ? kanbanColumnIdForDealStage(deal.stage) : null
 
     if (
       selectionMode &&
