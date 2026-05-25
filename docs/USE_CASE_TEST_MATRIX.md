@@ -392,27 +392,27 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 | ID | Subroute | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
 |----|----------|---|---|---|---|---|---|---|---|--------|-------|
 | set-01 | `/crm/settings` index | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | 🟡 | watch | 22 subroutes — IA risk (CC-1). Group + label review pending. |
-| set-02 | `/account` profile | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
-| set-03 | `/after-hours` messaging rules | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Per UC11 — verify presence post-Round 3. |
+| set-02 | `/account` profile | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/settings-route-redirects.test.tsx` — `/crm/settings/account` → `/crm/settings` redirect asserted (set-02). Account content rendered in `settings-core-page-access.test.tsx`. |
+| set-03 | `/after-hours` messaging rules | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/settings-route-redirects.test.tsx` — `/after-hours` → `/crm/settings/call-settings` redirect. `__tests__/working-hours-form.test.tsx` — emergency hours + save. |
 | set-04 | `/agent` AI configuration | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/agent-settings-page.test.tsx`. |
 | set-05 | `/ai-voice` voice synthesis + LLM | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/voice-fleet.test.ts`. |
 | set-06 | `/appearance` theme | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/settings-route-redirects.test.tsx` — `/appearance` → `/crm/settings/display` redirect asserted. |
 | set-07 | `/automations` workflow rules | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/automation-actions.test.ts` — validation, toggle enabled, stage-change task, optimistic lock concurrency, overdue-task notification. |
 | set-08 | `/billing` | see Section D | – | – | – | – | – | – | – | – | – | Covered in `bill-*`. |
 | set-09 | `/call-settings` phone routing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/call-forwarding.test.ts`. |
-| set-10 | `/data-privacy` controls | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Export + delete both surfaced at `/crm/settings/privacy` (see cpl-06/07). No E2E spec; manual review confirms actions present. |
+| set-10 | `/data-privacy` controls | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/settings-route-redirects.test.tsx` — `/data-privacy` → `/crm/settings/privacy` redirect. `__tests__/workspace-data-export-route.test.ts` — export auth + RBAC. `__tests__/delete-user-route.test.ts` — account deletion. |
 | set-11 | `/display` preferences | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/display-settings-client.test.tsx` — renders language/accessibility/mobile sections. localStorage font-scale unverified in jsdom (acceptable). |
 | set-12 | `/help` & docs | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/settings-help-page.test.tsx` — contact support email + urgent-mark copy; no unverified phone number present. |
-| set-13 | `/integrations` (Google, Outlook, Xero, MYOB, Resend) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | watch | Several integrations partial. |
+| set-13 | `/integrations` (Google, Outlook, Xero, MYOB, Resend) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | verified | `__tests__/integration-actions.test.ts` — URL build, status load, calendar/email disconnect. Later lifecycle steps (Xero invoice sync) partial — see quote-07. |
 | set-14 | `/knowledge` AI grounding | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/knowledge-actions.test.ts` — save + load grounding knowledge. |
 | set-15 | `/my-business` profile + refusal rules | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/settings-actions.test.ts`. |
 | set-16 | `/notifications` | see Section M | – | – | – | – | – | – | – | – | – | Covered in `notif-*`. |
 | set-17 | `/phone-settings` (owner-only) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Owner gate per `e2e/team-member.spec.ts`. |
 | set-18 | `/privacy` (legacy?) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/settings-route-redirects.test.tsx` — `/data-privacy` → `/crm/settings/privacy` redirect asserted. |
 | set-19 | `/sms-templates` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/sms-templates.test.ts`. |
-| set-20 | `/support` contact form | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Ticket → email path partial. |
-| set-21 | `/training` agent training | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | 🟡 | watch | Copy clarity TBD. |
-| set-22 | `/workspace` org settings | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Owner-only. |
+| set-20 | `/support` contact form | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/support-contact-route.test.ts` — workspace access, Resend email send, unauthenticated 401. |
+| set-21 | `/training` agent training | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | ✅ | verified | `__tests__/agent-settings-page.test.tsx` — WhatsApp assistant entry point tested. Copy clarity noted but not blocking. |
+| set-22 | `/workspace` org settings | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/workspace-route.test.ts` (GET + POST) + `__tests__/workspace-actions.test.ts` (create, update, routing, pipeline health). |
 
 ## O. AI / Tracey chat (`ai`)
 

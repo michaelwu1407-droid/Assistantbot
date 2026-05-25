@@ -45,6 +45,7 @@ import PhoneSettingsPage from "@/app/crm/settings/phone-settings/page";
 import SmsTemplatesPage from "@/app/crm/settings/sms-templates/page";
 import SupportPage from "@/app/crm/settings/support/page";
 import DataPrivacySettingsPage from "@/app/crm/settings/data-privacy/page";
+import AccountSettingsRedirectPage from "@/app/crm/settings/account/page";
 
 describe("settings route redirects", () => {
   beforeEach(() => {
@@ -97,5 +98,9 @@ describe("settings route redirects", () => {
         stripeCurrentPeriodEnd: true,
       },
     });
+  });
+
+  it("redirects /crm/settings/account to the main settings index (set-02)", () => {
+    expect(() => AccountSettingsRedirectPage()).toThrow("REDIRECT:/crm/settings");
   });
 });
