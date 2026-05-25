@@ -207,4 +207,40 @@ describe("POST /api/webhooks/stripe", () => {
       },
     });
   });
+
+  it("customer.subscription.updated flips workspace to past_due when payment fails (bill-06)", async () => {
+    hoisted.constructEvent.mockReturnValue({
+      id: "evt_sub_updated",
+      type: "customer.subscription.updated",
+      data: {
+        object: {
+          customer: "cus_past_due",
+          status: "past_due",
+          current_period_end: 1_800_000_000,
+          items: { data: [{ price: { id: "price_monthly" } }] },
+        },
+      },
+    });
+    hoisted.db.workspace.findUnique.mockResolvedValue({
+      id: "ws_dunning",
+      name: "Dunning Corp",
+      ownerId: "user_d",
+    });
+
+    const response = await POST(
+      new Request("https://app.example.com/api/webhooks/stripe", {
+        method: "POST",
+        body: "{}",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(hoisted.db.workspace.update).toHaveBeenCalledWith({
+      where: { id: "ws_dunning" },
+      data: expect.objectContaining({
+        subscriptionStatus: "past_due",
+        stripeCurrentPeriodEnd: expect.any(Date),
+      }),
+    });
+  });
 });

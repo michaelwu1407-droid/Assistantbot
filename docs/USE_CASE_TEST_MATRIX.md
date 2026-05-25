@@ -173,7 +173,7 @@ bill-10 (no grace period).
 | bill-03 | Webhook `checkout.session.completed` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/stripe-webhook.test.ts`. |
 | bill-04 | Webhook `customer.subscription.deleted` releases Twilio | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — Twilio number released on deletion. Stub spec remains; needs live proof. |
 | bill-05 | Webhook `customer.subscription.updated` (plan change) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Only happy-path tested. |
-| bill-06 | Webhook `invoice.payment_failed` (dunning) | ➖ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | watch | Status flips; banner unverified. |
+| bill-06 | Webhook `invoice.payment_failed` (dunning) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `customer.subscription.updated` handler persists `past_due` status; CRM layout blocks access (non-active + not in grace period). `__tests__/stripe-webhook.test.ts` asserts `past_due` DB write. In-app dunning banner not yet implemented. |
 | bill-07 | Webhook signature invalid → 401 | ➖ | ✅ | ✅ | ➖ | ✅ | ➖ | ✅ | ✅ | verified | `__tests__/stripe-webhook.test.ts`. |
 | bill-08 | Webhook duplicate delivery idempotent | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Partial; idempotency key path tested but not all branches. |
 | bill-09 | In-app "Cancel subscription" button | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `CancelSubscriptionButton` added to billing page; dialog explains Tracey number release + data export; calls `cancelSubscriptionAtPeriodEnd`. |
@@ -275,7 +275,7 @@ base (viewport-relative width + `max-h-[90vh]`) and a per-modal
 | comm-08 | Deal page with no phone: "Add phone in CRM" recovery | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | comm-09 | Template picker insert with variable merge | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/template-actions.test.ts` (lib only). |
 | comm-10 | WhatsApp send via composer | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/messaging-actions.test.ts`. Provider-blocked per `missing_features.md`. |
-| comm-11 | Bulk "rainy day blast" from chat ("find me indoor work") | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | watch | **FIXED 2026-05-24** — `listDeals` AI tool now accepts keyword filter. |
+| comm-11 | Bulk "rainy day blast" from chat ("find me indoor work") | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24/25** — `listDeals` AI tool accepts keyword filter; `__tests__/chat-actions.test.ts` asserts filter narrows by title/contactName/address. |
 | comm-12 | Outbound SMS blocked to opted-out contact | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — Contact.smsOptedOut checked before AI reply in webhook handler. |
 | comm-13 | SMS delivery status reflects via Twilio status webhook | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | 🟡 | watch | Partial; "failed" red badge unverified. |
 | comm-14 | Quote/invoice email send via Resend | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Partial. |
