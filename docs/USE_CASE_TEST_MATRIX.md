@@ -122,7 +122,7 @@ critical here.
 | auth-06 | `/(auth)/login/google` OAuth init | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
 | auth-07 | `/(auth)/signup` page | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | 🟡 | watch | Cross-references auth-meta. |
 | auth-08 | `/(auth)/signup/google` OAuth signup | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
-| auth-09 | `/(auth)/forgot-password` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ | gap | No E2E; reset email content unverified. |
+| auth-09 | `/(auth)/forgot-password` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `e2e/auth-forgot-password.spec.ts` — form render + success message. Email delivery unverifiable in test environment (Supabase auth, no hook). |
 | auth-10 | `/invite/join` teammate accept | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/team-member.spec.ts`. |
 | auth-11 | `/api/auth/send-sms` OTP request | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Rate-limit verified; copy unverified. |
 | auth-12 | `/api/auth/verify-sms` OTP verify | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Same. |
@@ -373,7 +373,7 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 | notif-02 | Toggle "Email new contacts" enforced | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — `shouldSendNotificationEmail` gating in `createContact`. |
 | notif-03 | Toggle "Email weekly summary" enforced | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — toggle live; `GET /api/cron/weekly-summary` gated by `shouldSendNotificationEmail`. E2E test infra added: `GET /api/test/inspect/email-outbox` + `POST /api/test/trigger/weekly-digest`; "toggle survives reload" E2E test un-fixme'd. |
 | notif-04 | Toggle "Task reminders" enforced | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `ensureDailyNotifications` reads pref. |
-| notif-05 | Toggle "Stale deal alerts" enforced | ✅ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | watch | Saves; consumer unasserted. |
+| notif-05 | Toggle "Stale deal alerts" enforced | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `createNotification` pre-checks `inAppStaleDealAlerts` pref before creating the notification when `notificationType === "stale_deal"`. |
 | notif-06 | Push subscribe via VAPID | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/push-subscribe-routes.test.ts`. |
 | notif-07 | Push unsubscribe | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | notif-08 | Push send respects `webPushEnabled` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `notification-actions.ts:158`. |
@@ -571,7 +571,7 @@ have been driven on mobile.
 | mob-02 | `/pricing`, `/contact` | ✅ | ✅ | Same. |
 | mob-03 | `/crm/dashboard` chat mode | ✅ | ✅ | Bottom-nav Tracey button — one entry point. |
 | mob-04 | `/crm/inbox` composer | ✅ | 🟡 | Tablet split-view unverified. |
-| mob-05 | `/crm/deals` kanban | 🟡 | 🟡 | Kanban broken on desktop (crm-19); mobile usability not separately tested. |
+| mob-05 | `/crm/deals` kanban | 🟡 | 🟡 | Kanban drag fix landed (crm-19); mobile touch-drag usability not separately tested. |
 | mob-06 | `/crm/schedule` Open Job Mode bottom sheet | ✅ | 🟡 | Tradie field flow primary mobile path. |
 | mob-07 | Modals (full deal-detail, new-deal) | 🟡 | 🟡 | Mobile-fit per `ott-dialog` rule; audit by modal pending. |
 | mob-08 | Settings index + 22 subroutes | ✅ | 🟡 | `SettingsIndexMobile` renders 10 icon+subtitle rows; desktop sidebar already grouped. See logic-18. |

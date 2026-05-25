@@ -114,6 +114,15 @@ export async function createNotification(data: {
 }) {
   const normalizedType = normalizeNotificationType(data.type);
 
+  if (data.notificationType === "stale_deal") {
+    const user = await db.user.findUnique({ where: { id: data.userId }, select: { workspaceId: true } });
+    if (user?.workspaceId) {
+      const ws = await db.workspace.findUnique({ where: { id: user.workspaceId }, select: { settings: true } });
+      const prefs = { ...DEFAULT_PREFS, ...((ws?.settings as Record<string, unknown>)?.notificationPreferences ?? {}) } as NotificationPreferences;
+      if (!prefs.inAppStaleDealAlerts) return { success: true };
+    }
+  }
+
   const bucketAt = new Date();
   const res = await runIdempotent<{ notificationId: string }>({
     actionType: "NOTIFICATION_CREATE",
