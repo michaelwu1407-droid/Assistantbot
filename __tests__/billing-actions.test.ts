@@ -168,4 +168,18 @@ describe("billing-actions", () => {
     await expect(createCheckoutSession("ws_1", "monthly", false)).rejects.toThrow("Unauthorized");
     expect(hoisted.stripeCheckoutCreate).not.toHaveBeenCalled();
   });
+
+  it("propagates the error when Stripe API is unreachable during checkout (res-01)", async () => {
+    hoisted.stripeCheckoutCreate.mockRejectedValue(
+      new Error("connect ETIMEDOUT api.stripe.com:443"),
+    );
+    hoisted.db.workspace.findUnique.mockResolvedValue({
+      id: "ws_1",
+      stripeCustomerId: null,
+    });
+
+    await expect(createCheckoutSession("ws_1", "monthly", false)).rejects.toThrow(
+      "connect ETIMEDOUT api.stripe.com:443",
+    );
+  });
 });

@@ -516,7 +516,7 @@ the tradie see a sensible message and can ops see the failure?
 
 | ID | Failure mode | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
 |----|--------------|---|---|---|---|---|---|---|---|--------|-------|
-| res-01 | Stripe API down during checkout | ➖ | ➖ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | watch | No retry/banner spec; CTA likely just spins. |
+| res-01 | Stripe API down during checkout | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ⛔ | watch | `__tests__/billing-actions.test.ts` — Stripe ETIMEDOUT propagates as thrown error; `UpgradeButton` catches it and shows toast "Could not start checkout — please try again in a moment." No retry backoff. |
 | res-02 | Stripe webhook delayed/missed (worker outage) | ➖ | ➖ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | watch | No backfill job documented. |
 | res-03 | Twilio voice API rate-limit (429) | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Cost-ceiling + retry/backoff. |
 | res-04 | Twilio SMS API down | ➖ | ➖ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | watch | Outbound queued? Unverified. |
