@@ -113,11 +113,11 @@ critical here.
 
 | ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
 |----|---------|---|---|---|---|---|---|---|---|--------|-------|
-| auth-meta | Two auth entry-point trees exist (`/auth/*` AND `/(auth)/login`, `/(auth)/signup`, `/(auth)/forgot-password`) | 🔴 | ✅ | ✅ | ✅ | 🔴 | ✅ | 🟡 | ⛔ | gap | **Coherence failure** — two competing UIs for the same task confuse the tradie. Decide on one, redirect the other. |
+| auth-meta | Two auth entry-point trees exist (`/auth/*` AND `/(auth)/login`, `/(auth)/signup`, `/(auth)/forgot-password`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `/(auth)/login` and `/(auth)/signup` both redirect to `/auth`. `/forgot-password` is a separate password-reset flow. |
 | auth-01 | `/auth` magic-link request | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/auth-lib.test.ts` + `auth-next-page.test.tsx`. |
 | auth-02 | Magic-link land on `/auth/next` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | auth-03 | `/auth/google-done` post-OAuth landing | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | 🟡 | watch | Copy generic; no E2E. |
-| auth-04 | `/auth/auth-code-error` recovery | ✅ | ➖ | ✅ | ✅ | 🟡 | 🔴 | ✅ | ⛔ | gap | "Try again" CTA exists but doesn't auto-clear bad state; user is stuck if cookie persists. |
+| auth-04 | `/auth/auth-code-error` recovery | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — "Try again" calls `supabase.auth.signOut()` before redirecting to `/auth`, clearing stale cookie. |
 | auth-05 | `/(auth)/login` Clerk-style page | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | 🟡 | watch | Cross-references auth-meta. |
 | auth-06 | `/(auth)/login/google` OAuth init | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
 | auth-07 | `/(auth)/signup` page | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | 🟡 | watch | Cross-references auth-meta. |
@@ -132,7 +132,7 @@ critical here.
 | auth-16 | Two-tab different workspaces | ➖ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | gap | No coverage. |
 | auth-17 | User removed from workspace mid-session | ➖ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | gap | No friendly screen on next request. |
 | auth-18 | Role change live (owner promotes teammate) | ➖ | 🟡 | 🟡 | ✅ | 🟡 | 🟡 | 🟡 | ⛔ | gap | Next page-load reflects, but no in-session reflection. |
-| auth-19 | `/api/delete-user` account deletion | 🔴 | ✅ | 🟡 | 🟡 | 🔴 | 🔴 | 🟡 | ⛔ | gap | Endpoint exists; no in-app surface or warning. Compliance gap. |
+| auth-19 | `/api/delete-user` account deletion | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `DeleteWorkspaceButton` added to `/crm/settings/privacy`; type-to-confirm dialog, owner-only gate, signs out on success. |
 
 ## C. Onboarding & first-run (`onb`)
 
@@ -206,15 +206,15 @@ Tracey button (CC-4).
 | crm-09 | `/crm/contacts/new` create form | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Validation only at action layer. |
 | crm-10 | `/crm/contacts/[id]` detail with tabs (overview/deals/properties/activity) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/contact-journeys.spec.ts`. |
 | crm-11 | `/crm/contacts/[id]/edit` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/contact-actions.test.ts`; no UI test. |
-| crm-12 | `/contacts/[id]` (legacy outside `/crm`) | 🔴 | ✅ | 🟡 | 🟡 | 🔴 | 🟡 | 🟡 | ⛔ | gap | **Logic gap** — duplicate of `crm-10`. Pick one, redirect the other; otherwise two URLs render different shells. |
+| crm-12 | `/contacts/[id]` (legacy outside `/crm`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `app/contacts/[id]/page.tsx` already redirects to `/crm/contacts/${id}`. |
 | crm-13 | Contact filter chip — "Service Due" | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
 | crm-14 | Contact filter chip — "Last Job" | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Not built (UC9/15). |
 | crm-15 | Contact merge prompt on dedup | ✅ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | watch | `__tests__/dedup-actions.test.ts`; no UI assertion. |
 | crm-16 | Properties tab on contact (multi-property) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 👁 | watch | Round 3 walkthrough confirmed Sally fixture; no E2E. |
 | crm-17 | Asset tab on contact (asset DNA) | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Out of scope per `missing_features.md` "Archived". |
 | crm-18 | `/crm/deals` kanban board | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/crm-core-journey.spec.ts`. |
-| crm-19 | Kanban drag-and-drop stage change persists | ✅ | ✅ | 🔴 | 🔴 | 🔴 | 🔴 | 🟡 | ⛔ | gap | UC2 confirmed broken; no fix yet. |
-| crm-20 | Drag stale → quoted opens follow-up modal | ✅ | ✅ | 🔴 | 🔴 | 🔴 | 🔴 | 🟡 | ⛔ | gap | UC7. |
+| crm-19 | Kanban drag-and-drop stage change persists | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `dragStartColumnRef` was never set in `handleDragStart`; intra-column sort path now reached correctly. |
+| crm-20 | Drag stale → quoted opens follow-up modal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `StaleDealFollowUpModal` wired into `kanban-board.tsx` `handleDragEnd`; triggers when `isStale && targetColumn === "quote_sent"`. |
 | crm-21 | Stage transition fires automation exactly once | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/automation-actions.test.ts`. |
 | crm-22 | Stale / rotting badges on deals | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/deal-attention.test.ts`. |
 | crm-23 | `/crm/deals/[id]` detail page | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/crm-core-journey.spec.ts`. |
@@ -223,17 +223,17 @@ Tracey button (CC-4).
 | crm-26 | `/crm/jobs/[id]` job detail | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Round 5 manual confirmed; no E2E. |
 | crm-27 | `/crm/inbox` thread list | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/crm-communication-modes.spec.ts`. |
 | crm-28 | `/crm/inbox/[contactId]` deep link | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
-| crm-29 | `/inbox` (legacy outside `/crm`) | 🔴 | ✅ | 🟡 | 🟡 | 🔴 | 🟡 | 🟡 | ⛔ | gap | **Duplicate surface** — same problem as crm-12. |
+| crm-29 | `/inbox` (legacy outside `/crm`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `app/inbox/page.tsx` already redirects to `/crm/inbox`. |
 | crm-30 | `/crm/calendar` Google calendar view | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | 🟡 | watch | UC5: missing visual confirmation status + popover. |
 | crm-31 | `/crm/schedule` daily/weekly schedule | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Round 3 manual confirmed Open Job Mode. |
 | crm-32 | `/crm/map` map view | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | 🟡 | watch | Marker clustering + popup content unverified. |
 | crm-33 | `/crm/analytics` reports | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | 👁 | watch | Round 3 confirmed loads with mock data; real workspace charts unverified. |
 | crm-34 | `/crm/estimator` quote estimator | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | 🟡 | watch | Manual only. |
-| crm-35 | `/crm/hub` hub page | 🔴 | ✅ | 🔴 | 🔴 | 🔴 | 🔴 | 🟡 | ⛔ | gap | UC2 → 404; route exists but not wired. Either build it or remove the link target. |
+| crm-35 | `/crm/hub` hub page | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `app/crm/hub/page.tsx` redirects to `/crm/dashboard`. |
 | crm-36 | `/crm/team` team management | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/team-member.spec.ts`. |
 | crm-37 | `/crm/agent` Tracey agent surface | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/agent-page.test.tsx`. |
 | crm-38 | `/crm/tradie` tradie field view | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Round 3 manual. |
-| crm-39 | Ctrl+K global search (`/api/search/global`) | ✅ | ✅ | 🔴 | 🔴 | 🔴 | 🔴 | 🟡 | ⛔ | gap | UC6 confirms 'No results'; index appears broken. |
+| crm-39 | Ctrl+K global search (`/api/search/global`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — root cause was cmdk client-side filter discarding all server results; fixed via `shouldFilter={false}` on `CommandPrimitive`. |
 | crm-40 | `/crm/design/*` design sandbox pages | 🟡 | 🟡 | ✅ | ✅ | ✅ | ➖ | ✅ | ➖ | watch | **Internal-only** pages. Should be gated to staff, currently accessible to any signed-in user. |
 
 ## F. Modals & dialogs (`modal`)
@@ -255,7 +255,7 @@ base (viewport-relative width + `max-h-[90vh]`) and a per-modal
 | modal-09 | `loss-reason-modal.tsx` | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | ⬜ | watch | No a11y / unit test; reasons list unverified. |
 | modal-10 | `kanban-automation-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-kanban-automation-modal.test.tsx`. |
 | modal-11 | `activity-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | No dedicated a11y spec. |
-| modal-12 | `search-dialog.tsx` | ✅ | ✅ | 🔴 | 🔴 | 🔴 | 🔴 | 🟡 | ⛔ | gap | Renders but returns no results (crm-39). |
+| modal-12 | `search-dialog.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `CommandDialog` replaced with `Dialog + CommandPrimitive shouldFilter={false}`; cmdk no longer double-filters server results (crm-39). |
 | modal-13 | `personal-phone-dialog.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-personal-phone-dialog.test.tsx`. |
 | modal-14 | `onboarding-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Covered indirectly; no dedicated spec. |
 | modal-15 | `referral-success-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ | watch | No spec. |
