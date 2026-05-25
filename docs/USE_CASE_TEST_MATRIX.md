@@ -519,11 +519,11 @@ the tradie see a sensible message and can ops see the failure?
 | res-01 | Stripe API down during checkout | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ⛔ | watch | `__tests__/billing-actions.test.ts` — Stripe ETIMEDOUT propagates as thrown error; `UpgradeButton` catches it and shows toast "Could not start checkout — please try again in a moment." No retry backoff. |
 | res-02 | Stripe webhook delayed/missed (worker outage) | ➖ | ➖ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | watch | No backfill job documented. |
 | res-03 | Twilio voice API rate-limit (429) | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Cost-ceiling + retry/backoff. |
-| res-04 | Twilio SMS API down | ➖ | ➖ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | watch | Outbound queued? Unverified. |
+| res-04 | Twilio SMS API down | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ⛔ | watch | `retryWithBackoff()` in `automated-message-actions.ts` retries transient errors up to 3× with exponential backoff; 4xx errors are NOT retried (correct). Email fallback path in same function. |
 | res-05 | Gemini/LLM timeout | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ⛔ | watch | `__tests__/ai-agent.test.ts` — `generateText` rejection returns graceful user-friendly message. |
 | res-06 | LiveKit SIP setup fails on inbound call | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Voice fallback (voice-03). |
-| res-07 | DB connection saturation | ➖ | ➖ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | watch | No degradation strategy verified. |
-| res-08 | Inngest worker queue stuck | ➖ | ➖ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | watch | Cron heartbeats catch it; no auto-alert? |
+| res-07 | DB connection saturation | ➖ | ➖ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | watch | Prisma pool (default 10) implicit; no explicit pool-saturation guard or degraded-mode path. |
+| res-08 | Cron worker queue stuck | ➖ | ➖ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | watch | `voice-monitor-watchdog` cron catches voice-worker gaps; other crons monitored via GitHub Actions only (no in-app auto-alert if cron misses). |
 | res-09 | Push send to expired endpoint | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Auto-remove on 410. |
 | res-10 | Outbound email bounce | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Resend webhook handles; CRM badge unverified. |
 | res-11 | Resume-after-crash on partial provision | ➖ | ➖ | 🟡 | ✅ | ✅ | 🟡 | 🟡 | 🟡 | watch | `provisioning-retry` route exists. |
