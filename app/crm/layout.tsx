@@ -28,6 +28,7 @@ export default async function DashboardLayout({
   let tutorialComplete = false;
   let shouldRedirectToBilling = false;
   let shouldRedirectToSetup = false;
+  let shouldRedirectToNoWorkspace = false;
 
   let shouldRedirectToAuth = false;
   let headerDisplayName = "";
@@ -38,6 +39,8 @@ export default async function DashboardLayout({
     if (!dashboardState) {
       logger.authFlow("No userId in dashboard layout, redirecting to /auth", { component: "DashboardLayout" });
       shouldRedirectToAuth = true;
+    } else if ('noWorkspace' in dashboardState && dashboardState.noWorkspace) {
+      shouldRedirectToNoWorkspace = true;
     } else {
       userId = dashboardState.userId;
       logger.authFlow("Getting workspace for dashboard layout", { userId, component: "DashboardLayout" });
@@ -88,6 +91,10 @@ export default async function DashboardLayout({
   // Redirect triggered outside the try/catch to avoid intercepting Next.js internal redirect throws
   if (shouldRedirectToAuth) {
     redirect("/auth");
+  }
+
+  if (shouldRedirectToNoWorkspace) {
+    redirect("/no-workspace");
   }
 
   if (shouldRedirectToBilling) {

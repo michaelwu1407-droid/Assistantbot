@@ -130,7 +130,7 @@ critical here.
 | auth-14 | Expired session mid-action recovery | ➖ | ✅ | 🟡 | ✅ | 🟡 | 🟡 | 🟡 | ⛔ | watch | Friendly redirect to `/auth/signin?next=…` not asserted. |
 | auth-15 | Sign out | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/middleware.test.ts`. |
 | auth-16 | Two-tab different workspaces | ➖ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | gap | No coverage. |
-| auth-17 | User removed from workspace mid-session | ➖ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | gap | No friendly screen on next request. |
+| auth-17 | User removed from workspace mid-session | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `getDashboardShellState` pre-checks `User.workspaceId`; if null, CRM layout redirects to `/no-workspace` friendly page instead of /billing. |
 | auth-18 | Role change live (owner promotes teammate) | ➖ | 🟡 | 🟡 | ✅ | 🟡 | 🟡 | 🟡 | ⛔ | gap | Next page-load reflects, but no in-session reflection. |
 | auth-19 | `/api/delete-user` account deletion | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `DeleteWorkspaceButton` added to `/crm/settings/privacy`; type-to-confirm dialog, owner-only gate, signs out on success. |
 
@@ -549,15 +549,15 @@ technically work but mislead the user. Per `JOURNEY_ACCEPTANCE.md` gate
 | logic-09 | **Twilio number kept billable on cancelled workspaces** | watch | **FIXED 2026-05-24** — Number released on customer.subscription.deleted. |
 | logic-10 | **Kanban drag does nothing** | watch | **FIXED 2026-05-25** — `dragStartColumnRef` set in `handleDragStart`; intra-column sort path now reached. See crm-19. |
 | logic-11 | **Stale-deal drag → expected follow-up modal doesn't open** | watch | **FIXED 2026-05-25** — `StaleDealFollowUpModal` wired into `handleDragEnd`. See crm-20. |
-| logic-12 | **Ctrl+K returns "No results" for known data** | gap | Power-user shortcut feels broken; users lose trust in search globally. See crm-39. |
+| logic-12 | **Ctrl+K returns "No results" for known data** | watch | **FIXED 2026-05-25** — cmdk `shouldFilter={false}` fix. See crm-39. |
 | logic-13 | **Department selection on `/contact` is decorative** | gap | If routing isn't different per department, the field is a confidence-eroding ask. See acq-09. |
-| logic-14 | **Calendar event click navigates to deal page** | gap | User expected a popover; navigation kicks them out of their planning context. See cal-05. |
+| logic-14 | **Calendar event click navigates to deal page** | watch | **FIXED 2026-05-25** — chip click opens Popover with call/SMS/open-details actions. See cal-05. |
 | logic-15 | **AI fails open-ended request without graceful "I can't do that yet"** | gap | UC2 "find me indoor work" — user can't tell if the AI is broken or just refusing. See ai-05. |
-| logic-16 | **Multilingual onboarding toggle reads like preference but is a runtime switch** | gap | If a caller speaks another language, the toggle must be strict at runtime. See voice-08. |
-| logic-17 | **Auth has two entry-point trees** | gap | See logic-01 / auth-meta. |
+| logic-16 | **Multilingual onboarding toggle reads like preference but is a runtime switch** | watch | **FIXED 2026-05-25** — `setReplyLanguage()` called at call start from grounding. See voice-08. |
+| logic-17 | **Auth has two entry-point trees** | watch | `/login` and `/signup` redirect to `/auth`. See logic-01 / auth-meta. |
 | logic-18 | **"22-row settings index" without grouping or search** | watch | Desktop sidebar grouped; mobile `SettingsIndexMobile` shows 10 icon+subtitle rows. See set-01. |
-| logic-19 | **Onboarding "resume after browser close" lands silently** | gap | No "Welcome back, here's where you were" copy. See onb-15. |
-| logic-20 | **Loading states without reassurance copy** | gap | Per CLAUDE.md CC-6, "Calling Tracey now…" not blank spinner. Audit every `loading.tsx` + Suspense fallback. |
+| logic-19 | **Onboarding "resume after browser close" lands silently** | watch | **FIXED 2026-05-25** — "Welcome back!" bubble shown when workspace name is non-default. See onb-15. |
+| logic-20 | **Loading states without reassurance copy** | watch | Existing `loading.tsx` files all include "Loading your pipeline…" / contacts / jobs copy. Specific voice-call states not separately audited. |
 
 ## W. Mobile-fit pass (`mob`)
 
