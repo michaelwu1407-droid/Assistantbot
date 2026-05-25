@@ -552,7 +552,7 @@ technically work but mislead the user. Per `JOURNEY_ACCEPTANCE.md` gate
 | logic-12 | **Ctrl+K returns "No results" for known data** | watch | **FIXED 2026-05-25** — cmdk `shouldFilter={false}` fix. See crm-39. |
 | logic-13 | **Department selection on `/contact` is decorative** | watch | Department appears as `[Contact – sales]` email subject prefix; no separate inbox routing. Acceptable MVP behaviour. See acq-09. |
 | logic-14 | **Calendar event click navigates to deal page** | watch | **FIXED 2026-05-25** — chip click opens Popover with call/SMS/open-details actions. See cal-05. |
-| logic-15 | **AI fails open-ended request without graceful "I can't do that yet"** | gap | UC2 "find me indoor work" — user can't tell if the AI is broken or just refusing. See ai-05. |
+| logic-15 | **AI fails open-ended request without graceful "I can't do that yet"** | watch | **FIXED 2026-05-24** — `listDeals` keyword filter handles open-ended queries. See ai-05. |
 | logic-16 | **Multilingual onboarding toggle reads like preference but is a runtime switch** | watch | **FIXED 2026-05-25** — `setReplyLanguage()` called at call start from grounding. See voice-08. |
 | logic-17 | **Auth has two entry-point trees** | watch | `/login` and `/signup` redirect to `/auth`. See logic-01 / auth-meta. |
 | logic-18 | **"22-row settings index" without grouping or search** | watch | Desktop sidebar grouped; mobile `SettingsIndexMobile` shows 10 icon+subtitle rows. See set-01. |
