@@ -12,6 +12,9 @@ import CrmIndexPage from "@/app/crm/page";
 import ContactPage from "@/app/contacts/[id]/page";
 import LoginPage from "@/app/(auth)/login/[[...rest]]/page";
 import SignUpPage from "@/app/(auth)/signup/[[...rest]]/page";
+import LegacyInboxPage from "@/app/inbox/page";
+import LegacyHubPage from "@/app/crm/hub/page";
+import LegacyDealCardsPage from "@/app/crm/design/deal-cards/page";
 
 describe("legacy route redirects", () => {
   beforeEach(() => {
@@ -34,5 +37,17 @@ describe("legacy route redirects", () => {
 
   it("/(auth)/signup redirects to /auth (auth-meta)", () => {
     expect(() => SignUpPage()).toThrow("REDIRECT:/auth");
+  });
+
+  it("/inbox redirects to /crm/inbox (crm-29)", () => {
+    expect(() => LegacyInboxPage()).toThrow("REDIRECT:/crm/inbox");
+  });
+
+  it("/crm/hub redirects to /crm/dashboard (crm-35)", () => {
+    expect(() => LegacyHubPage()).toThrow("REDIRECT:/crm/dashboard");
+  });
+
+  it("/crm/design/deal-cards redirects to /crm/dashboard (crm-40)", () => {
+    expect(() => LegacyDealCardsPage()).toThrow("REDIRECT:/crm/dashboard");
   });
 });

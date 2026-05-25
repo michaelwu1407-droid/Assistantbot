@@ -118,9 +118,9 @@ critical here.
 | auth-02 | Magic-link land on `/auth/next` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | auth-03 | `/auth/google-done` post-OAuth landing | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | 🟡 | watch | Copy generic; no E2E. |
 | auth-04 | `/auth/auth-code-error` recovery | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `__tests__/auth-code-error-page.test.tsx`: "Try again" calls `signOut()` before `router.push("/auth")`; navigates even when signOut throws (stale session). |
-| auth-05 | `/(auth)/login` Clerk-style page | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | 🟡 | watch | Cross-references auth-meta. |
+| auth-05 | `/(auth)/login` Clerk-style page | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/(auth)/login` → `/auth` redirect asserted. See auth-meta. |
 | auth-06 | `/(auth)/login/google` OAuth init | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
-| auth-07 | `/(auth)/signup` page | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | 🟡 | watch | Cross-references auth-meta. |
+| auth-07 | `/(auth)/signup` page | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/(auth)/signup` → `/auth` redirect asserted. See auth-meta. |
 | auth-08 | `/(auth)/signup/google` OAuth signup | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
 | auth-09 | `/(auth)/forgot-password` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/auth-forgot-password.spec.ts` — form render + success message. Email delivery unverifiable in test environment (Supabase auth, no hook). |
 | auth-10 | `/invite/join` teammate accept | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/team-member.spec.ts`. |
@@ -148,7 +148,7 @@ resume mid-flow) are scored individually.
 | onb-03 | Redirect post-signup → `/billing` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/billing-activation-flow.test.ts`. |
 | onb-04 | `/billing` plan select → Stripe checkout | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/billing-actions.test.ts`. |
 | onb-05 | `/billing/success` explicit success UI | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | CRITICAL_USER_JOURNEYS §3 finding 3 resolved. |
-| onb-06 | `/onboarding` start screen | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/onboarding.test.ts` covers action; no E2E browser drive. |
+| onb-06 | `/onboarding` start screen | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/onboarding-save.test.ts` — validates input, requires auth, persists business/pricing/onboarding state in transaction. No browser E2E (unit only). |
 | onb-07 | `/setup` trade-type + pricing wizard | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Step validation tested at action layer only. |
 | onb-08 | Twilio number provisioned during onboarding | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/comms-provision.test.ts`. |
 | onb-09 | Onboarding completion: number provisioned copy | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | CRITICAL_USER_JOURNEYS §3 finding 4 resolved. |
@@ -223,18 +223,18 @@ Tracey button (CC-4).
 | crm-26 | `/crm/jobs/[id]` job detail | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Round 5 manual confirmed; no E2E. |
 | crm-27 | `/crm/inbox` thread list | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/crm-communication-modes.spec.ts`. |
 | crm-28 | `/crm/inbox/[contactId]` deep link | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
-| crm-29 | `/inbox` (legacy outside `/crm`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `app/inbox/page.tsx` already redirects to `/crm/inbox`. |
+| crm-29 | `/inbox` (legacy outside `/crm`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/inbox` → `/crm/inbox` asserted. |
 | crm-30 | `/crm/calendar` Google calendar view | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — Status icon (CheckCircle2/Clock/XCircle) and quick-action Popover (call/SMS/open-details) added to each calendar chip. See cal-04, cal-05. |
 | crm-31 | `/crm/schedule` daily/weekly schedule | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Round 3 manual confirmed Open Job Mode. |
 | crm-32 | `/crm/map` map view | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | 🟡 | watch | Marker clustering + popup content unverified. |
 | crm-33 | `/crm/analytics` reports | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | 👁 | watch | Round 3 confirmed loads with mock data; real workspace charts unverified. |
 | crm-34 | `/crm/estimator` quote estimator | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | 🟡 | watch | Manual only. |
-| crm-35 | `/crm/hub` hub page | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `app/crm/hub/page.tsx` redirects to `/crm/dashboard`. |
+| crm-35 | `/crm/hub` hub page | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/crm/hub` → `/crm/dashboard` asserted. |
 | crm-36 | `/crm/team` team management | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/team-member.spec.ts`. |
 | crm-37 | `/crm/agent` Tracey agent surface | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/agent-page.test.tsx` — renders legacy dashboard message with CRM path; redirects unauthenticated users. |
 | crm-38 | `/crm/tradie` tradie field view | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Round 3 manual. |
-| crm-39 | Ctrl+K global search (`/api/search/global`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — root cause was cmdk client-side filter discarding all server results; fixed via `shouldFilter={false}` on `CommandPrimitive`. |
-| crm-40 | `/crm/design/*` design sandbox pages | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Both sandbox pages redirect to `/crm/dashboard`; no live UI exposed to users. |
+| crm-39 | Ctrl+K global search (`/api/search/global`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `__tests__/search-global-route.test.ts`: 401 unauth, session-scoped query, short-query skip, results returned, 500 on failure. cmdk `shouldFilter={false}` fix prevents double-filtering of server results. |
+| crm-40 | `/crm/design/*` design sandbox pages | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/crm/design/deal-cards` → `/crm/dashboard` asserted. Both sandbox pages redirect; no live UI exposed. |
 
 ## F. Modals & dialogs (`modal`)
 
@@ -255,7 +255,7 @@ base (viewport-relative width + `max-h-[90vh]`) and a per-modal
 | modal-09 | `loss-reason-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-loss-reason-modal.test.tsx` — renders + a11y; fixed hardcoded `#F6F4EE` inline-style → `bg-muted/30 border-border`. |
 | modal-10 | `kanban-automation-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-kanban-automation-modal.test.tsx`. |
 | modal-11 | `activity-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-activity-modal.test.tsx` — renders + a11y; fixed `style={{ borderColor: "#E6E2D7" }}` → `border-border` and `bg-paper` → `bg-muted/20`. |
-| modal-12 | `search-dialog.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `CommandDialog` replaced with `Dialog + CommandPrimitive shouldFilter={false}`; cmdk no longer double-filters server results (crm-39). |
+| modal-12 | `search-dialog.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `CommandDialog` replaced with `Dialog + CommandPrimitive shouldFilter={false}`; server results no longer discarded by client filter. See crm-39 / `__tests__/search-global-route.test.ts`. |
 | modal-13 | `personal-phone-dialog.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-personal-phone-dialog.test.tsx`. |
 | modal-14 | `onboarding-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-onboarding-modal.test.tsx` — renders + a11y. |
 | modal-15 | `referral-success-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-referral-success-modal.test.tsx` — renders + a11y; fixed missing `aria-label="Close"` on close button. |
@@ -279,7 +279,7 @@ base (viewport-relative width + `max-h-[90vh]`) and a per-modal
 | comm-12 | Outbound SMS blocked to opted-out contact | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24** — Contact.smsOptedOut checked before AI reply in webhook handler. `__tests__/twilio-sms-stop-handling.test.ts` — STOP sets flag; AI not called on opted-out numbers. |
 | comm-13 | SMS delivery status reflects via Twilio status webhook | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | 🟡 | watch | Partial; "failed" red badge unverified. |
 | comm-14 | Quote/invoice email send via Resend | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Partial. |
-| comm-15 | Bounce/complaint webhook (`/api/webhooks/resend`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Svix signature handling unit-tested only. |
+| comm-15 | Bounce/complaint webhook (`/api/webhooks/resend`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/resend-route.test.ts` — rejects invalid signature; skips unsupported events; records open events + notifies owner. |
 | comm-16 | `/api/twilio/webhook` SMS receive idempotency | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/twilio-sms-webhook.test.ts`. |
 | comm-17 | Booking-confirmation auto-SMS on Scheduled stage | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `messaging-actions.ts` records `booking_confirmation.sent` / `.failed` WebhookEvents; `feature-verification.ts` queries last success for ops. No cross-workspace synthetic canary yet. |
 | comm-18 | Customer SMS "CONFIRM" flips pending deal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/twilio-sms-webhook.test.ts`. |
@@ -302,8 +302,8 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 | voice-07 | Auto-call blocked on inbound-lead-guard | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/inbound-lead-guard.test.ts`. |
 | voice-08 | Tracey replies in caller's language (multilingual) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `agentLanguage` added to `WorkspaceVoiceGrounding`; `setReplyLanguage()` called at call start in `livekit-agent/agent.ts`. `__tests__/voice-grounding-language.test.ts` asserts `voiceLanguage→agentLanguage` flow. Live canary outstanding. |
 | voice-09 | Demo voice call from homepage (`/api/demo-call`) | ✅ | ➖ | 🟡 | 🟡 | ✅ | 🟡 | 🟡 | ⬜ | gap | `missing_features.md` — real handset signoff still outstanding. |
-| voice-10 | Retell webhook integration (`/api/retell/webhook`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Unit only. |
-| voice-11 | Outbound call queue (`/api/internal/voice-outbound-queue`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Internal; covered by scheduled-calls cron. |
+| voice-10 | Retell webhook integration (`/api/retell/webhook`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/retell-webhook-route.test.ts` — returns 410 Gone (ARCHIVED: migrated to LiveKit in 2026-03). |
+| voice-11 | Outbound call queue (`/api/internal/voice-outbound-queue`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/voice-outbound-queue-route.test.ts` — rejects unauth, claims oldest queued call, marks completed. |
 | voice-12 | Voice cost-ceiling circuit breaker at $50 threshold | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/cost-ceiling.test.ts` + `twilio-usage-route.test.ts`. |
 | voice-13 | Customer-agent drift reconcile cron | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/customer-agent-readiness.test.ts`. |
 | voice-14 | Voice fleet synthetic probe | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/voice-synthetic-probe-route.test.ts`. |
@@ -318,7 +318,7 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 | lead-04 | Voice inbound → contact + transcript | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | See voice-01. |
 | lead-05 | Email inbound — hipages/airtasker/oneflare (`/api/webhooks/email`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/email-received-route.test.ts` — includes hipages provider test (subject "New hipages job request", from `notifications@hipages.com.au`). |
 | lead-06 | Email inbound — Gmail PubSub (`/api/webhooks/email-received`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Partial. |
-| lead-07 | Email inbound — Resend-forwarded (`/api/webhooks/inbound-email`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Svix signature path verified; AI-parse end-to-end manual. |
+| lead-07 | Email inbound — Resend-forwarded (`/api/webhooks/inbound-email`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/inbound-email-route.test.ts` — signature, hipages/Google LSA/Meta lead capture, triage flags, voice-agent callback, normal email → AI agent. |
 | lead-08 | Embeddable webform (`/api/webhooks/webform`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Partial. |
 | lead-09 | Lead capture email alias (`/crm/settings/integrations`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/lead-capture-email.test.ts`. |
 | lead-10 | Manual contact + deal create from CRM | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/crm-core-journey.spec.ts`. |
