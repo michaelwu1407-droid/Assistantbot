@@ -68,10 +68,10 @@ export function MessageActionSheet({
         onSent?.();
         onOpenChange(false);
       } else {
-        toast.error(result.error || "Failed to send");
+        toast.error(result.error || "Couldn't send that message — please try again.");
       }
     } catch {
-      toast.error("An error occurred");
+      toast.error("Couldn't send that message — please try again.");
     } finally {
       setSending(false);
     }

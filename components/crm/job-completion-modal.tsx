@@ -123,7 +123,7 @@ export function JobCompletionModal({ open, onOpenChange, deal, onComplete }: Job
         issues: []
       })
     } catch {
-      toast.error("Failed to submit review")
+      toast.error("Couldn't submit the review — please try again.")
     } finally {
       setIsSubmitting(false)
     }

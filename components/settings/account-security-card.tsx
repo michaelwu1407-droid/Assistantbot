@@ -121,7 +121,7 @@ export function AccountSecurityCard({ userId, businessName = "" }: AccountSecuri
       toast.success("Password updated successfully.")
       setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" })
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to update password.")
+      toast.error(err instanceof Error ? err.message : "Couldn't update your password — please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -145,7 +145,7 @@ export function AccountSecurityCard({ userId, businessName = "" }: AccountSecuri
 
       const errorMessage = result.error?.includes("data synchronization issue")
         ? "Deletion could not be completed automatically. Please contact support so we can finish it safely."
-        : result.error || "Failed to delete account."
+        : result.error || "Couldn't delete the account — please contact support."
 
       toast.error(errorMessage)
     } catch {

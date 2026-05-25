@@ -32,10 +32,10 @@ export function GoogleReviewUrlSection({ initialUrl }: GoogleReviewUrlSectionPro
         aiPreferences: current.aiPreferences ?? undefined,
         googleReviewUrl: url.trim(),
       })
-      if (!result.success) throw new Error("Failed to save")
+      if (!result.success) throw new Error("Couldn't save — please try again.")
       toast.success("Google Review URL saved")
     } catch {
-      toast.error("Failed to save")
+      toast.error("Couldn't save that URL — please try again.")
     } finally {
       setSaving(false)
     }

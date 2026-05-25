@@ -117,12 +117,39 @@ export function EmailLeadCaptureSettings() {
       setAutoCallLeads(checked);
       toast.success(checked ? "Tracey will call new leads immediately." : "Auto-call new leads turned off.");
     } catch {
-      toast.error("Failed to save");
+      toast.error("Couldn't save that setting — please try again.");
     } finally {
       setSaving(false);
     }
   };
 
+  const handleSaveDelay = async (nextSec: number) => {
+    const clamped = Math.max(0, Math.min(900, Math.floor(nextSec)));
+    setAutoCallDelaySec(clamped);
+    setSaving(true);
+    try {
+      const settings = await getWorkspaceSettings();
+      if (!settings) throw new Error("No settings");
+      await updateWorkspaceSettings({
+        ...settings,
+        aiPreferences: settings.aiPreferences ?? undefined,
+        jobReminderHours: settings.jobReminderHours ?? undefined,
+        inboundEmailAlias: settings.inboundEmailAlias ?? undefined,
+        agentScriptStyle: (settings.agentScriptStyle as "opening" | "closing") ?? undefined,
+        agentMode: settings.agentMode,
+        workingHoursStart: settings.workingHoursStart ?? "08:00",
+        workingHoursEnd: settings.workingHoursEnd ?? "17:00",
+        agendaNotifyTime: settings.agendaNotifyTime ?? "07:30",
+        wrapupNotifyTime: settings.wrapupNotifyTime ?? "17:30",
+        autoCallDelaySec: clamped,
+      });
+      toast.success(clamped === 0 ? "Tracey will dial new leads immediately." : `Tracey will wait ${clamped}s before dialling new leads.`);
+    } catch {
+      toast.error("Couldn't save that setting — please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (loading) {
     return (
