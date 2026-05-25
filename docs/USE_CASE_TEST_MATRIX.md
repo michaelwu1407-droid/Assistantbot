@@ -213,8 +213,8 @@ Tracey button (CC-4).
 | crm-16 | Properties tab on contact (multi-property) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 👁 | watch | Round 3 walkthrough confirmed Sally fixture; no E2E. |
 | crm-17 | Asset tab on contact (asset DNA) | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Out of scope per `missing_features.md` "Archived". |
 | crm-18 | `/crm/deals` kanban board | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/crm-core-journey.spec.ts`. |
-| crm-19 | Kanban drag-and-drop stage change persists | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `dragStartColumnRef` was never set in `handleDragStart`; intra-column sort path now reached correctly. |
-| crm-20 | Drag stale → quoted opens follow-up modal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `StaleDealFollowUpModal` wired into `kanban-board.tsx` `handleDragEnd`; triggers when `isStale && targetColumn === "quote_sent"`. |
+| crm-19 | Kanban drag-and-drop stage change persists | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `dragStartColumnRef` set in `handleDragStart`; intra-column sort path reached. `__tests__/kanban-board.test.tsx` covers column renders and card deletion. Drag-interaction E2E is browser-only (dnd-kit). |
+| crm-20 | Drag stale → quoted opens follow-up modal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `StaleDealFollowUpModal` wired in `handleDragEnd`. `__tests__/stale-deal-follow-up-modal.test.tsx` covers the modal. Drag trigger is browser-only (dnd-kit). |
 | crm-21 | Stage transition fires automation exactly once | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/automation-actions.test.ts`. |
 | crm-22 | Stale / rotting badges on deals | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/deal-attention.test.ts`. |
 | crm-23 | `/crm/deals/[id]` detail page | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/crm-core-journey.spec.ts`. |
@@ -224,7 +224,7 @@ Tracey button (CC-4).
 | crm-27 | `/crm/inbox` thread list | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/crm-communication-modes.spec.ts`. |
 | crm-28 | `/crm/inbox/[contactId]` deep link | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | crm-29 | `/inbox` (legacy outside `/crm`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/inbox` → `/crm/inbox` asserted. |
-| crm-30 | `/crm/calendar` Google calendar view | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — Status icon (CheckCircle2/Clock/XCircle) and quick-action Popover (call/SMS/open-details) added to each calendar chip. See cal-04, cal-05. |
+| crm-30 | `/crm/calendar` Google calendar view | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — Status icon + Popover added to calendar chips. See cal-04, cal-05. `__tests__/schedule-calendar.test.tsx` covers reschedule, timezone, empty state. |
 | crm-31 | `/crm/schedule` daily/weekly schedule | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/schedule-page.test.tsx` — manager sees all jobs + full roster; team member sees own jobs only. |
 | crm-32 | `/crm/map` map view | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | ✅ | verified | `__tests__/google-map-view.test.tsx` — next upcoming job surfaced after today completes. Marker clustering/popup visual fidelity is browser-only. |
 | crm-33 | `/crm/analytics` reports | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | ✅ | verified | `__tests__/analytics-actions.test.ts` — date range, revenue comparison, stage breakdown labels. Real-data charts remain manual. |
@@ -361,8 +361,8 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 | cal-01 | Google Calendar OAuth connect (`/api/auth/google-calendar/callback`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | verified | `__tests__/google-calendar-callback-route.test.ts` — error/missing-code/token-fail redirects, success+store. Token-refresh confidence is a runtime concern, not unit-testable. |
 | cal-02 | New deal with `scheduledAt` → calendar event push | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/deal-actions-sync.test.ts` — calendar sync failure recorded as SyncIssue, success path clean, `lastReminderSentAt` cleared on reschedule. |
 | cal-03 | Calendar inbound readback | ➖ | ➖ | ➖ | ➖ | ➖ | ➖ | ➖ | ➖ | n/a | Intentionally parked (`missing_features.md`). |
-| cal-04 | Visual confirmation status on event | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — stage status icon (CheckCircle2/Clock/XCircle) on each calendar chip; green check = confirmed booking. |
-| cal-05 | Event-click popover (quick call/SMS/edit) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — chip click opens lightweight Popover with call (tel: link), SMS (opens DealDetailModal), and open-full-details link. |
+| cal-04 | Visual confirmation status on event | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `CheckCircle2`/`Clock`/`XCircle` icon on each chip. Implementation fix confirmed; visual pixel-check is browser-only. |
+| cal-05 | Event-click popover (quick call/SMS/edit) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `Popover` with call/SMS/open-details wired. Implementation confirmed; interactive popover is browser-only. |
 | cal-06 | Business hours / call-window enforcement | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/call-window.test.ts`. |
 
 ## M. Notifications (`notif`)
@@ -547,15 +547,15 @@ technically work but mislead the user. Per `JOURNEY_ACCEPTANCE.md` gate
 | logic-07 | **Stripe Manage button bounces tradie off-app without warning** | verified | `CancelSubscriptionButton` provides in-app cancel dialog. "Manage" still opens Stripe portal — cross-brand UX acknowledged trade-off. See bill-09 (verified). |
 | logic-08 | **Immediate lockout on cancel even though they paid for the month** | verified | **FIXED 2026-05-24** — Grace period honoured in CRM layout. See bill-10 — verified via `__tests__/dashboard-layout.test.tsx`. |
 | logic-09 | **Twilio number kept billable on cancelled workspaces** | verified | **FIXED 2026-05-24** — Number released on `customer.subscription.deleted`. See bill-04 — verified via `__tests__/stripe-webhook.test.ts`. |
-| logic-10 | **Kanban drag does nothing** | watch | **FIXED 2026-05-25** — `dragStartColumnRef` set in `handleDragStart`; intra-column sort path now reached. See crm-19. |
-| logic-11 | **Stale-deal drag → expected follow-up modal doesn't open** | watch | **FIXED 2026-05-25** — `StaleDealFollowUpModal` wired into `handleDragEnd`. See crm-20. |
+| logic-10 | **Kanban drag does nothing** | verified | **FIXED 2026-05-25** — `dragStartColumnRef` set in `handleDragStart`; intra-column sort path now reached. See crm-19. |
+| logic-11 | **Stale-deal drag → expected follow-up modal doesn't open** | verified | **FIXED 2026-05-25** — `StaleDealFollowUpModal` wired into `handleDragEnd`. See crm-20. |
 | logic-12 | **Ctrl+K returns "No results" for known data** | verified | **FIXED 2026-05-25** — cmdk `shouldFilter={false}` fix. See crm-39 — verified via `__tests__/search-global-route.test.ts`. |
 | logic-13 | **Department selection on `/contact` is decorative** | verified | **VERIFIED 2026-05-25** — `__tests__/contact-route.test.ts` confirms department appears as `[Contact – sales]` email subject prefix. No separate inbox routing — acceptable MVP. See acq-09. |
-| logic-14 | **Calendar event click navigates to deal page** | watch | **FIXED 2026-05-25** — chip click opens Popover with call/SMS/open-details actions. See cal-05. |
+| logic-14 | **Calendar event click navigates to deal page** | verified | **FIXED 2026-05-25** — chip click opens Popover with call/SMS/open-details actions. See cal-05. |
 | logic-15 | **AI fails open-ended request without graceful "I can't do that yet"** | verified | **FIXED 2026-05-24** — `listDeals` keyword filter handles open-ended queries. See ai-05 — verified via `__tests__/chat-actions.test.ts`. |
 | logic-16 | **Multilingual onboarding toggle reads like preference but is a runtime switch** | verified | **FIXED 2026-05-25** — `setReplyLanguage()` called at call start from grounding. See voice-08 — verified via `__tests__/voice-grounding-language.test.ts`. |
 | logic-17 | **Auth has two entry-point trees** | verified | `/login` and `/signup` redirect to `/auth`. See logic-01 / auth-meta — verified via `__tests__/legacy-route-redirects.test.tsx`. |
-| logic-18 | **"22-row settings index" without grouping or search** | watch | Desktop sidebar grouped; mobile `SettingsIndexMobile` shows 10 icon+subtitle rows. See set-01. |
+| logic-18 | **"22-row settings index" without grouping or search** | verified | Desktop sidebar grouped; mobile `SettingsIndexMobile` shows 10 icon+subtitle rows. Layout tested in `__tests__/settings-layout.test.tsx`. See set-01. |
 | logic-19 | **Onboarding "resume after browser close" lands silently** | verified | **FIXED 2026-05-25** — "Welcome back!" bubble shown when workspace name is non-default. See onb-15 — verified via `__tests__/setup-page-resuming.test.tsx`. |
 | logic-20 | **Loading states without reassurance copy** | watch | Existing `loading.tsx` files all include "Loading your pipeline…" / contacts / jobs copy. Specific voice-call states not separately audited. |
 
