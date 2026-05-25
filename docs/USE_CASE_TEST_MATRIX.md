@@ -113,11 +113,11 @@ critical here.
 
 | ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
 |----|---------|---|---|---|---|---|---|---|---|--------|-------|
-| auth-meta | Two auth entry-point trees exist (`/auth/*` AND `/(auth)/login`, `/(auth)/signup`, `/(auth)/forgot-password`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `/(auth)/login` and `/(auth)/signup` both redirect to `/auth`. `/forgot-password` is a separate password-reset flow. |
+| auth-meta | Two auth entry-point trees exist (`/auth/*` AND `/(auth)/login`, `/(auth)/signup`, `/(auth)/forgot-password`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/(auth)/login` → `/auth` and `/(auth)/signup` → `/auth` both asserted. `/forgot-password` is a separate password-reset flow. |
 | auth-01 | `/auth` magic-link request | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/auth-lib.test.ts` + `auth-next-page.test.tsx`. |
 | auth-02 | Magic-link land on `/auth/next` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | auth-03 | `/auth/google-done` post-OAuth landing | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | 🟡 | watch | Copy generic; no E2E. |
-| auth-04 | `/auth/auth-code-error` recovery | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — "Try again" calls `supabase.auth.signOut()` before redirecting to `/auth`, clearing stale cookie. |
+| auth-04 | `/auth/auth-code-error` recovery | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `__tests__/auth-code-error-page.test.tsx`: "Try again" calls `signOut()` before `router.push("/auth")`; navigates even when signOut throws (stale session). |
 | auth-05 | `/(auth)/login` Clerk-style page | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | 🟡 | watch | Cross-references auth-meta. |
 | auth-06 | `/(auth)/login/google` OAuth init | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
 | auth-07 | `/(auth)/signup` page | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | 🟡 | watch | Cross-references auth-meta. |
@@ -156,7 +156,7 @@ resume mid-flow) are scored individually.
 | onb-11 | Onboarding completion: provisioning failure retry copy | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | CTA explicitly tells user to fix number setup. |
 | onb-12 | `/api/internal/provisioning-retry` manual retry | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `__tests__/provisioning-retry-route.test.ts`: asserts 400 on missing workspaceId, 404 on unknown workspace, 200 + correct `ensureWorkspaceProvisioned` call on happy path, null ownerPhone when owner has no phone. |
 | onb-13 | Tutorial overlay (`?tutorial=1`) dismiss | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/workspace-actions.test.ts` — `completeTutorial` asserts `{ data: { tutorialComplete: true } }` DB write. |
-| onb-14 | `/api/workspace/complete-tutorial` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
+| onb-14 | `/api/workspace/complete-tutorial` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/complete-tutorial-route.test.ts` — 401 unauth, marks session workspace only (not body param), 500 on action failure. |
 | onb-15 | Resume onboarding mid-flow after browser close | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `setup/page.tsx` detects non-default workspace name → passes `isResuming`; `TraceyOnboarding` shows "Welcome back!" bubble copy. |
 | onb-16 | Full post-payment browser journey (signup → CRM ready) | ✅ | ✅ | 🟡 | ✅ | ✅ | ✅ | 🟡 | ⬜ | gap | CRITICAL_USER_JOURNEYS §3 "Next automation targets" — still outstanding. |
 | onb-17 | Teammate join via `/invite/join` skips onboarding | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/team-member.spec.ts`. |
@@ -195,7 +195,7 @@ Tracey button (CC-4).
 
 | ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
 |----|---------|---|---|---|---|---|---|---|---|--------|-------|
-| crm-01 | `/crm` root (legacy redirect to dashboard) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Bare redirect; no E2E assertion. |
+| crm-01 | `/crm` root (legacy redirect to dashboard) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/crm` → `/crm/dashboard` asserted. |
 | crm-02 | `/crm/dashboard` chat-mode default | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/crm-core-journey.spec.ts`. |
 | crm-03 | `/crm/dashboard` advanced-mode toggle | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | crm-04 | `/crm/dashboard` KPI cards render | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
@@ -206,7 +206,7 @@ Tracey button (CC-4).
 | crm-09 | `/crm/contacts/new` create form | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Validation only at action layer. |
 | crm-10 | `/crm/contacts/[id]` detail with tabs (overview/deals/properties/activity) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/contact-journeys.spec.ts`. |
 | crm-11 | `/crm/contacts/[id]/edit` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/contact-actions.test.ts` — `updateContact` + `updateContactMetadata` both tested; workspace scoping enforced. |
-| crm-12 | `/contacts/[id]` (legacy outside `/crm`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `app/contacts/[id]/page.tsx` already redirects to `/crm/contacts/${id}`. |
+| crm-12 | `/contacts/[id]` (legacy outside `/crm`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/contacts/[id]` → `/crm/contacts/${id}` asserted with dynamic param. |
 | crm-13 | Contact filter chip — "Service Due" | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
 | crm-14 | Contact filter chip — "Last Job" | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Not built (UC9/15). |
 | crm-15 | Contact merge prompt on dedup | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/contact-actions.test.ts` — "merges into an existing matching-name contact instead of creating a duplicate"; P2002 dedup path covered. No UI merge-prompt assertion (unit only). |
