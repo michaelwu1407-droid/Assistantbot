@@ -1094,13 +1094,14 @@ export function TraceyOnboarding({ isResuming = false }: { isResuming?: boolean 
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> Phone</Label>
+                        <Label className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> Your Mobile</Label>
                         <Input
                           placeholder="04XX XXX XXX"
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
                           onBlur={() => setPhone(formatAuPhone(phone))}
                         />
+                        <p className="text-xs text-muted-foreground">Used to set up your Tracey number — not shown to customers.</p>
                       </div>
                       <div className="space-y-1.5">
                         <Label className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" /> Email</Label>
@@ -1288,12 +1289,13 @@ export function TraceyOnboarding({ isResuming = false }: { isResuming?: boolean 
                           </Select>
                         </div>
                         <div className="space-y-1.5">
-                          <Label>Public Phone</Label>
+                          <Label>Business Phone (shown to customers)</Label>
                           <Input
                             placeholder="Business phone number"
                             value={publicPhone}
                             onChange={(e) => setPublicPhone(e.target.value)}
                           />
+                          <p className="text-xs text-muted-foreground">This is different from your Tracey number — it&apos;s for your website and business card.</p>
                         </div>
                         <div className="space-y-1.5">
                           <Label>Public Email</Label>
@@ -1362,9 +1364,9 @@ export function TraceyOnboarding({ isResuming = false }: { isResuming?: boolean 
                       <div className="flex items-center justify-between rounded-lg border p-4">
                         <div>
                           <p className="font-medium text-sm flex items-center gap-1.5">
-                            <Shield className="h-4 w-4 text-amber-500" /> Emergency hours
+                            <Shield className="h-4 w-4 text-amber-500" /> After-hours & emergency callouts
                           </p>
-                          <p className="text-xs text-muted-foreground">Allow Tracey to handle emergency callouts. She will notify you for approval and not accept without your permission.</p>
+                          <p className="text-xs text-muted-foreground">Take emergency calls outside business hours. Tracey will alert you before accepting — you always have the final say.</p>
                         </div>
                         <Switch checked={emergencyService} onCheckedChange={setEmergencyService} />
                       </div>
@@ -1425,10 +1427,11 @@ export function TraceyOnboarding({ isResuming = false }: { isResuming?: boolean 
                     <div className="space-y-3 border rounded-lg p-4 bg-muted/30 dark:bg-slate-900">
                       <Label className="flex items-center gap-2">
                         <FileIcon className="h-4 w-4 text-emerald-500" />
-                        Upload Documents (optional)
+                        Upload Documents
+                        <span className="text-xs font-normal text-muted-foreground ml-1">— skip for now, add later in Settings</span>
                       </Label>
                       <p className="text-xs text-muted-foreground">
-                        Upload price lists, insurance forms, or any documents Tracey should reference.
+                        Got a price list or insurance cert? Tracey can reference it during calls. Not required to get started.
                       </p>
                       
                       {/* File upload input */}
