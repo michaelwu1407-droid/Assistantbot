@@ -32,7 +32,7 @@ export function ReminderSettings() {
         });
       }
     } catch (error) {
-      toast.error("Failed to load settings");
+      toast.error("Couldn't load settings — please refresh.");
     } finally {
       setLoading(false);
     }
@@ -52,7 +52,7 @@ export function ReminderSettings() {
       });
       toast.success("Settings saved successfully");
     } catch (error) {
-      toast.error("Failed to save settings");
+      toast.error("Couldn't save settings — please try again.");
     } finally {
       setSaving(false);
     }

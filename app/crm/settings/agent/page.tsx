@@ -63,7 +63,7 @@ export default function AgentSettingsPage() {
           .filter(Boolean)
         setLearningRules(parsedRules)
       })
-      .catch(() => toast.error("Failed to load AI Assistant settings"))
+      .catch(() => toast.error("Couldn't load AI Assistant settings — please refresh."))
       .finally(() => setLoading(false))
   }, [])
 

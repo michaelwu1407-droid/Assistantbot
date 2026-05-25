@@ -57,9 +57,7 @@ export function PipelineHealthForm({ workspaceId, initialSettings }: PipelineHea
       })
       router.refresh()
     } catch {
-      toast.error("Failed to save", {
-        description: "Please try again.",
-      })
+      toast.error("Couldn't save pipeline settings — please try again.")
     }
   }
 

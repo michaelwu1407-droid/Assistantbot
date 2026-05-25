@@ -43,7 +43,7 @@ export function DeleteWorkspaceButton({ userId, scheduledForDeletionAt }: Props)
       setOpen(false);
       setConfirmation("");
     } catch {
-      toast.error("Failed to schedule deletion. Please contact support.");
+      toast.error("Couldn't schedule deletion — please contact support.");
     } finally {
       setLoading(false);
     }
@@ -59,7 +59,7 @@ export function DeleteWorkspaceButton({ userId, scheduledForDeletionAt }: Props)
       }
       toast.success("Workspace deletion cancelled.");
     } catch {
-      toast.error("Failed to cancel. Please contact support.");
+      toast.error("Couldn't cancel — please contact support.");
     } finally {
       setLoading(false);
     }

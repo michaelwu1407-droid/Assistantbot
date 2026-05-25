@@ -58,7 +58,7 @@ export default function NotificationsSettingsPage() {
       toast.success("Notification preferences saved")
     } catch {
       setPrefs(previous)
-      toast.error("Failed to save preferences")
+      toast.error("Couldn't save preferences — please try again.")
     } finally {
       setSaving(false)
     }
@@ -70,7 +70,7 @@ export default function NotificationsSettingsPage() {
       await sendTestNotification()
       toast.success("Test notification sent")
     } catch {
-      toast.error("Failed to send test notification")
+      toast.error("Couldn't send the test notification — please try again.")
     } finally {
       setSendingTest(false)
     }

@@ -39,11 +39,11 @@ export function JobStatusBar({ dealId, currentStatus, contactName, safetyCheckCo
                 }
                 router.refresh();
             } else {
-                toast.error("Failed to update status");
+                toast.error("Couldn't update the status — please try again.");
             }
         } catch (error) {
             console.error(error);
-            toast.error("An error occurred");
+            toast.error("Couldn't update the status — please try again.");
         } finally {
             setLoading(false);
         }

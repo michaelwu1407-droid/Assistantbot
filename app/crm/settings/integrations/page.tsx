@@ -119,7 +119,7 @@ export default function IntegrationsPage() {
             setCalendarIntegration(status.calendarIntegration)
             setReadiness(nextReadiness)
         } catch {
-            toast.error("Failed to load integration status")
+            toast.error("Couldn't load integration status — please refresh.")
         } finally {
             setLoadingIntegrations(false)
         }
@@ -137,9 +137,9 @@ export default function IntegrationsPage() {
                 window.location.href = result.url
                 return
             }
-            toast.error("Failed to start Google Calendar connection")
+            toast.error("Couldn't start Google Calendar connection — please try again.")
         } catch {
-            toast.error("Failed to start Google Calendar connection")
+            toast.error("Couldn't start Google Calendar connection — please try again.")
         } finally {
             setCalendarLoading(false)
         }
@@ -158,7 +158,7 @@ export default function IntegrationsPage() {
             })
             toast.success("Google Calendar disconnected")
         } catch {
-            toast.error("Failed to disconnect Google Calendar")
+            toast.error("Couldn't disconnect Google Calendar — please try again.")
         } finally {
             setCalendarLoading(false)
         }
@@ -176,10 +176,10 @@ export default function IntegrationsPage() {
             if (data.authUrl) {
                 window.location.href = data.authUrl
             } else {
-                toast.error(data.error || "Failed to generate authorization URL")
+                toast.error(data.error || "Couldn't start the connection — please try again.")
             }
         } catch {
-            toast.error("Failed to start email connection")
+            toast.error("Couldn't start the email connection — please try again.")
         }
     }
 
@@ -189,7 +189,7 @@ export default function IntegrationsPage() {
             toast.success("Email integration disconnected")
             setEmailIntegrations(prev => prev.filter(i => i.id !== integrationId))
         } catch {
-            toast.error("Failed to disconnect email")
+            toast.error("Couldn't disconnect that email — please try again.")
         }
     }
 
@@ -204,11 +204,11 @@ export default function IntegrationsPage() {
             if (result.url) {
                 window.location.href = result.url
             } else {
-                toast.error("Failed to generate Xero authorization URL")
+                toast.error("Couldn't generate Xero authorization URL — please try again.")
                 setXeroStatus("idle")
             }
         } catch {
-            toast.error("Failed to start Xero connection")
+            toast.error("Couldn't start Xero connection — please try again.")
             setXeroStatus("idle")
         }
     }

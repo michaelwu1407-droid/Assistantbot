@@ -47,7 +47,7 @@ export function AutomationList({ initialAutomations, workspaceId }: AutomationLi
             toast.success(current ? "Automation paused" : "Automation enabled")
         } catch {
             setAutomations(prev => prev.map(a => a.id === id ? { ...a, enabled: current } : a)) // Revert
-            toast.error("Failed to update status")
+            toast.error("Couldn't update the automation — please try again.")
         }
     }
 
