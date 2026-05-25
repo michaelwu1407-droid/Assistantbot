@@ -119,9 +119,9 @@ critical here.
 | auth-03 | `/auth/google-done` post-OAuth landing | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | 🟡 | watch | Copy generic; no E2E. |
 | auth-04 | `/auth/auth-code-error` recovery | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `__tests__/auth-code-error-page.test.tsx`: "Try again" calls `signOut()` before `router.push("/auth")`; navigates even when signOut throws (stale session). |
 | auth-05 | `/(auth)/login` Clerk-style page | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/(auth)/login` → `/auth` redirect asserted. See auth-meta. |
-| auth-06 | `/(auth)/login/google` OAuth init | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
+| auth-06 | `/(auth)/login/google` OAuth init | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/(auth)/login/google` → `/auth` redirect. `__tests__/google-signin-route.test.ts` — OAuth URL generation. |
 | auth-07 | `/(auth)/signup` page | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/(auth)/signup` → `/auth` redirect asserted. See auth-meta. |
-| auth-08 | `/(auth)/signup/google` OAuth signup | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
+| auth-08 | `/(auth)/signup/google` OAuth signup | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/(auth)/signup/google` → `/auth` redirect. Backend callback covered by `google-signin-callback-route.test.ts`. |
 | auth-09 | `/(auth)/forgot-password` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/auth-forgot-password.spec.ts` — form render + success message. Email delivery unverifiable in test environment (Supabase auth, no hook). |
 | auth-10 | `/invite/join` teammate accept | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/team-member.spec.ts`. |
 | auth-11 | `/api/auth/send-sms` OTP request | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/sms-auth-routes.test.ts` — unconfigured provider 500, sends OTP + stores code, provider failure 500. |
@@ -281,7 +281,7 @@ base (viewport-relative width + `max-h-[90vh]`) and a per-modal
 | comm-14 | Quote/invoice email send via Resend | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Partial. |
 | comm-15 | Bounce/complaint webhook (`/api/webhooks/resend`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/resend-route.test.ts` — rejects invalid signature; skips unsupported events; records open events + notifies owner. |
 | comm-16 | `/api/twilio/webhook` SMS receive idempotency | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/twilio-sms-webhook.test.ts`. |
-| comm-17 | Booking-confirmation auto-SMS on Scheduled stage | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `messaging-actions.ts` records `booking_confirmation.sent` / `.failed` WebhookEvents; `feature-verification.ts` queries last success for ops. No cross-workspace synthetic canary yet. |
+| comm-17 | Booking-confirmation auto-SMS on Scheduled stage | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/deal-actions.test.ts` — booking confirmation fired on create-in-scheduled, `updateDealStage`, and `updateDeal`→scheduled (3 cases). No cross-workspace synthetic canary yet — runtime monitoring gap only. |
 | comm-18 | Customer SMS "CONFIRM" flips pending deal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/twilio-sms-webhook.test.ts`. |
 | comm-19 | Customer SMS "STOP" honoured | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24** — `__tests__/twilio-sms-stop-handling.test.ts`: STOP/UNSUBSCRIBE/CANCEL → smsOptedOut=true, confirmation SMS sent, no AI reply, no ghost contact for unknown senders. |
 | comm-20 | Inbound WhatsApp (`/api/webhooks/whatsapp`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Workspace user → AI assistant in WhatsApp. JOURNEY_ACCEPTANCE journey 1 — needs delivery monitor + synthetic round-trip. |
@@ -331,11 +331,11 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 
 | ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
 |----|---------|---|---|---|---|---|---|---|---|--------|-------|
-| job-01 | Open Job Mode from `/crm/schedule` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 👁 | watch | Round 3 walkthrough. |
-| job-02 | Start travel → ETA broadcast to customer | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 👁 | watch | Manual only. |
+| job-01 | Open Job Mode from `/crm/schedule` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/job-bottom-sheet.test.tsx` — Parts shortcut, scheduled time header, missing-phone routing, invoice routing, photo tile routing. |
+| job-02 | Start travel → ETA broadcast to customer | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/job-bottom-sheet.test.tsx` covers the start-travel quick-action path. ETA broadcast SMS is unit-tested via messaging-actions. |
 | job-03 | Mark on site → customer SMS | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/tradie-actions.test.ts` — `sendOnMyWaySMS()` (TRAVELING trigger) sends "I'm on my way" SMS; asserts content + no auto-send on status-only. ON_SITE status has no customer SMS — tradie manually calls sendOnMyWaySMS. |
-| job-04 | Complete job → invoice + photos prompt | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 👁 | watch | Manual only. |
-| job-05 | Add job photos | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 👁 | watch | Upload works; thumbnail rendering unverified. |
+| job-04 | Complete job → invoice + photos prompt | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/job-detail-view.test.tsx` — completion modal opened for on-site jobs; billing panel routing; invoice routing. |
+| job-05 | Add job photos | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/deal-photos-upload.test.tsx` — upload success clears note + refresh; backend error surfaced. Thumbnail rendering is browser-only. |
 | job-06 | Digital handover deliverables | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Out of scope (real-estate arm). |
 | job-07 | Uber-style customer arrival page | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Depends on job-02 broadcast. |
 | job-08 | Post-job feedback request SMS | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/post-job-followups.test.ts` — idempotent send, dedup skip, sendSMS failure guard, scan cap. |
@@ -391,7 +391,7 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 
 | ID | Subroute | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
 |----|----------|---|---|---|---|---|---|---|---|--------|-------|
-| set-01 | `/crm/settings` index | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | 🟡 | watch | 22 subroutes — IA risk (CC-1). Group + label review pending. |
+| set-01 | `/crm/settings` index | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | ✅ | verified | `__tests__/settings-core-page-access.test.tsx` — account/automations/my-business rendering. `__tests__/settings-layout.test.tsx` — team-member hidden links, manager/owner visible links. 22-subroute IA grouping is a design-review item, not a test gap. |
 | set-02 | `/account` profile | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/settings-route-redirects.test.tsx` — `/crm/settings/account` → `/crm/settings` redirect asserted (set-02). Account content rendered in `settings-core-page-access.test.tsx`. |
 | set-03 | `/after-hours` messaging rules | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/settings-route-redirects.test.tsx` — `/after-hours` → `/crm/settings/call-settings` redirect. `__tests__/working-hours-form.test.tsx` — emergency hours + save. |
 | set-04 | `/agent` AI configuration | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/agent-settings-page.test.tsx`. |
@@ -419,7 +419,7 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 | ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
 |----|---------|---|---|---|---|---|---|---|---|--------|-------|
 | ai-01 | Sidebar chat send | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/chat-actions.test.ts`. |
-| ai-02 | AI creates job from natural language | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 👁 | watch | Round 5 walkthrough confirmed Frank fixture. |
+| ai-02 | AI creates job from natural language | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/chat-agent-crm-mutation-flow.test.ts` — "Create a new blocked drain job for Acme Plumbing for $420" → contact + deal via tool flow. |
 | ai-03 | AI books appointment | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | watch | Partial. |
 | ai-04 | AI lookup tool (`/api/chat`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/agent-tools.test.ts`. |
 | ai-05 | AI handles ambiguous request | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24** — `listDeals` tool accepts keyword filter. `__tests__/chat-actions.test.ts` asserts keyword filter narrows results by title, contactName, address. |

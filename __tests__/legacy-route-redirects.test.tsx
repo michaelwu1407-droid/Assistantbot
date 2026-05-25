@@ -15,6 +15,8 @@ import SignUpPage from "@/app/(auth)/signup/[[...rest]]/page";
 import LegacyInboxPage from "@/app/inbox/page";
 import LegacyHubPage from "@/app/crm/hub/page";
 import LegacyDealCardsPage from "@/app/crm/design/deal-cards/page";
+import GoogleSigninPage from "@/app/(auth)/login/google/page";
+import GoogleSignupPage from "@/app/(auth)/signup/google/page";
 
 describe("legacy route redirects", () => {
   beforeEach(() => {
@@ -49,5 +51,13 @@ describe("legacy route redirects", () => {
 
   it("/crm/design/deal-cards redirects to /crm/dashboard (crm-40)", () => {
     expect(() => LegacyDealCardsPage()).toThrow("REDIRECT:/crm/dashboard");
+  });
+
+  it("/(auth)/login/google redirects to /auth (auth-06)", () => {
+    expect(() => GoogleSigninPage()).toThrow("REDIRECT:/auth");
+  });
+
+  it("/(auth)/signup/google redirects to /auth (auth-08)", () => {
+    expect(() => GoogleSignupPage()).toThrow("REDIRECT:/auth");
   });
 });
