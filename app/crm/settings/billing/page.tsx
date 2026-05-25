@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import { db } from "@/lib/db";
 import { ManageSubscriptionButton } from "@/components/billing/manage-subscription-button";
+import { CancelSubscriptionButton } from "@/components/billing/cancel-subscription-button";
 import { getBillingIntervalForPriceId, getPlanLabelForPriceId } from "@/lib/billing-plan";
 import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
 import { formatDate } from "@/lib/format";
@@ -97,7 +98,10 @@ export default async function BillingSettingsPage() {
                     </div>
                 </div>
 
-                <ManageSubscriptionButton workspaceId={workspace.id} />
+                <div className="flex items-center gap-2">
+                  <ManageSubscriptionButton workspaceId={workspace.id} />
+                  {!isCanceled && <CancelSubscriptionButton workspaceId={workspace.id} />}
+                </div>
             </div>
         </div>
     );
