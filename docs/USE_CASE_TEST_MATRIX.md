@@ -101,7 +101,7 @@ pass on mobile (CC-4) and warm-cream palette (CLAUDE.md homepage rule).
 | acq-13 | `/(legal)/terms` reachable | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | acq-14 | `/(legal)/cookies` reachable | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | No automated link assertion. |
 | acq-15 | `/offline` PWA fallback page | 🟡 | ➖ | ✅ | ✅ | 🟡 | 🟡 | ✅ | ⛔ | watch | Reachable only when SW intercepts; copy unverified. |
-| acq-16 | Custom 404 (`app/not-found.tsx`) | ✅ | ➖ | ✅ | ✅ | ✅ | 🟡 | ✅ | 🟡 | watch | Friendly text + link home, no E2E. |
+| acq-16 | Custom 404 (`app/not-found.tsx`) | ✅ | ➖ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | verified | `__tests__/not-found-page.test.tsx` — "Page Not Found" heading + "Return to Dashboard" link renders correctly. |
 | acq-17 | Demo voice call (`/api/demo-call`) | 🟡 | ➖ | 🟡 | 🟡 | ✅ | 🟡 | 🟡 | 🟡 | gap | `missing_features.md` "real voice signoff" — still needs live handset proof. |
 | acq-18 | Public preview embed `/portal-preview` | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/public-preview.spec.ts`. |
 
@@ -116,7 +116,7 @@ critical here.
 | auth-meta | Two auth entry-point trees exist (`/auth/*` AND `/(auth)/login`, `/(auth)/signup`, `/(auth)/forgot-password`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/(auth)/login` → `/auth` and `/(auth)/signup` → `/auth` both asserted. `/forgot-password` is a separate password-reset flow. |
 | auth-01 | `/auth` magic-link request | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/auth-lib.test.ts` + `auth-next-page.test.tsx`. |
 | auth-02 | Magic-link land on `/auth/next` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
-| auth-03 | `/auth/google-done` post-OAuth landing | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | 🟡 | watch | Copy generic; no E2E. |
+| auth-03 | `/auth/google-done` post-OAuth landing | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | ✅ | verified | `__tests__/auth-google-done-page.test.tsx` — missing-token redirect, success→/auth/next, error→/auth?error=. |
 | auth-04 | `/auth/auth-code-error` recovery | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `__tests__/auth-code-error-page.test.tsx`: "Try again" calls `signOut()` before `router.push("/auth")`; navigates even when signOut throws (stale session). |
 | auth-05 | `/(auth)/login` Clerk-style page | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/(auth)/login` → `/auth` redirect asserted. See auth-meta. |
 | auth-06 | `/(auth)/login/google` OAuth init | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/(auth)/login/google` → `/auth` redirect. `__tests__/google-signin-route.test.ts` — OAuth URL generation. |
@@ -557,7 +557,7 @@ technically work but mislead the user. Per `JOURNEY_ACCEPTANCE.md` gate
 | logic-17 | **Auth has two entry-point trees** | verified | `/login` and `/signup` redirect to `/auth`. See logic-01 / auth-meta — verified via `__tests__/legacy-route-redirects.test.tsx`. |
 | logic-18 | **"22-row settings index" without grouping or search** | verified | Desktop sidebar grouped; mobile `SettingsIndexMobile` shows 10 icon+subtitle rows. Layout tested in `__tests__/settings-layout.test.tsx`. See set-01. |
 | logic-19 | **Onboarding "resume after browser close" lands silently** | verified | **FIXED 2026-05-25** — "Welcome back!" bubble shown when workspace name is non-default. See onb-15 — verified via `__tests__/setup-page-resuming.test.tsx`. |
-| logic-20 | **Loading states without reassurance copy** | watch | Existing `loading.tsx` files all include "Loading your pipeline…" / contacts / jobs copy. Specific voice-call states not separately audited. |
+| logic-20 | **Loading states without reassurance copy** | verified | `__tests__/crm-loading-pages.test.tsx` — deals/contacts/jobs loading pages all render reassurance copy ("Loading your pipeline…" etc). Voice-call-specific loading is browser/device-only. |
 
 ## W. Mobile-fit pass (`mob`)
 
