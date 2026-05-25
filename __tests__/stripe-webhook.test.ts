@@ -261,6 +261,43 @@ describe("POST /api/webhooks/stripe", () => {
     );
   });
 
+  it("customer.subscription.updated persists new price and period end on plan change (bill-05)", async () => {
+    hoisted.constructEvent.mockReturnValue({
+      id: "evt_plan_change",
+      type: "customer.subscription.updated",
+      data: {
+        object: {
+          customer: "cus_upgrade",
+          status: "active",
+          current_period_end: 1_800_000_000,
+          items: { data: [{ price: { id: "price_yearly" } }] },
+        },
+      },
+    });
+    hoisted.db.workspace.findUnique.mockResolvedValue({
+      id: "ws_upgrade",
+      name: "Upgraded Co",
+      ownerId: "user_u",
+    });
+
+    const response = await POST(
+      new Request("https://app.example.com/api/webhooks/stripe", {
+        method: "POST",
+        body: "{}",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(hoisted.db.workspace.update).toHaveBeenCalledWith({
+      where: { id: "ws_upgrade" },
+      data: expect.objectContaining({
+        subscriptionStatus: "active",
+        stripePriceId: "price_yearly",
+        stripeCurrentPeriodEnd: expect.any(Date),
+      }),
+    });
+  });
+
   it("customer.subscription.updated flips workspace to past_due when payment fails (bill-06)", async () => {
     hoisted.constructEvent.mockReturnValue({
       id: "evt_sub_updated",
