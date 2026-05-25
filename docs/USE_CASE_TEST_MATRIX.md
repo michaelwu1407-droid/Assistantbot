@@ -171,7 +171,7 @@ bill-10 (no grace period).
 | bill-01 | `/crm/settings/billing` page | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
 | bill-02 | "Manage" → Stripe portal | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | ✅ | watch | No in-app confirmation before bouncing off-app. |
 | bill-03 | Webhook `checkout.session.completed` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/stripe-webhook.test.ts`. |
-| bill-04 | Webhook `customer.subscription.deleted` releases Twilio | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — Twilio number released on deletion. Stub spec remains; needs live proof. |
+| bill-04 | Webhook `customer.subscription.deleted` releases Twilio | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24/25** — `__tests__/stripe-webhook.test.ts`: `customer.subscription.deleted` calls Twilio `remove()` and nulls all workspace phone fields. |
 | bill-05 | Webhook `customer.subscription.updated` (plan change) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Only happy-path tested. |
 | bill-06 | Webhook `invoice.payment_failed` (dunning) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `customer.subscription.updated` handler persists `past_due` status; CRM layout blocks access (non-active + not in grace period). `__tests__/stripe-webhook.test.ts` asserts `past_due` DB write. In-app dunning banner not yet implemented. |
 | bill-07 | Webhook signature invalid → 401 | ➖ | ✅ | ✅ | ➖ | ✅ | ➖ | ✅ | ✅ | verified | `__tests__/stripe-webhook.test.ts`. |
@@ -497,7 +497,7 @@ Legal-exposure cluster. These are the audit's top fix items.
 | ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
 |----|---------|---|---|---|---|---|---|---|---|--------|-------|
 | cpl-01 | Customer SMS STOP / UNSUBSCRIBE / CANCEL honoured | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — full opt-out + confirmation + block. E2E stub remains for live proof. |
-| cpl-02 | Subscription cancel releases Twilio number | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — releases on deletion event. E2E stub remains. |
+| cpl-02 | Subscription cancel releases Twilio number | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24/25** — `__tests__/stripe-webhook.test.ts` asserts Twilio `remove()` called and workspace phone fields nulled. See bill-04. |
 | cpl-03 | Email "Deal updates" pref enforced E2E | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — shouldSendNotificationEmail gating. E2E stub remains. |
 | cpl-04 | Email "New contacts" pref enforced E2E | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `shouldSendNotificationEmail(workspaceId, "emailNewContacts")` gates send in `contact-actions.ts`. E2E stub remains. |
 | cpl-05 | Email "Weekly summary" pref enforced E2E | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `shouldSendNotificationEmail(workspaceId, "emailWeeklySummary")` gates cron digest. E2E stub remains. |
