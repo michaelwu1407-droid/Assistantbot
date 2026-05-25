@@ -87,7 +87,7 @@ pass on mobile (CC-4) and warm-cream palette (CLAUDE.md homepage rule).
 | ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
 |----|---------|---|---|---|---|---|---|---|---|--------|-------|
 | acq-01 | `/` homepage load | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/homepage-journeys.spec.ts`; warm-cream tokens (`bg-paper`/`bg-cream`) enforced. |
-| acq-02 | `/` hero "Interview Tracey" callback form | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | watch | Callback timeout copy missing E2E (CRITICAL_USER_JOURNEYS §1). |
+| acq-02 | `/` hero "Interview Tracey" callback form | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | verified | `__tests__/home-demo-form.test.tsx` — form submits all fields, success heading shown, deprecated timeout copy NOT shown. No browser E2E. |
 | acq-03 | `/features` page | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | No E2E spec; manual only. |
 | acq-04 | `/pricing` plan cards + checkout CTA | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/homepage-journeys.spec.ts`. |
 | acq-05 | `/pricing` enquiry → callback (with phone) | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | UI explicitly states callback before submit; `callPlaced` reflected. |
@@ -127,7 +127,7 @@ critical here.
 | auth-11 | `/api/auth/send-sms` OTP request | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/sms-auth-routes.test.ts` — unconfigured provider 500, sends OTP + stores code, provider failure 500. |
 | auth-12 | `/api/auth/verify-sms` OTP verify | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same file — rejects invalid/expired codes; verifies valid code + removes after use. |
 | auth-13 | Session refresh on protected page | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/middleware.test.ts` — `updateSession` is called for every protected page navigation. Mid-session action-layer refresh unverified (E2E gap only). |
-| auth-14 | Expired session mid-action recovery | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⛔ | watch | **FIXED 2026-05-25** — CRM layout now redirects to `/auth?next=<path>` (middleware sets `x-pathname` header); `UnifiedAuth` redirects to `next` after login when user is already set up. |
+| auth-14 | Expired session mid-action recovery | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/middleware.test.ts` — `x-pathname` header set on every request. `__tests__/dashboard-layout.test.tsx` — unauthenticated visit with `x-pathname=/crm/deals` → `REDIRECT:/auth?next=%2Fcrm%2Fdeals` (auth-14). |
 | auth-15 | Sign out | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/middleware.test.ts`. |
 | auth-16 | Two-tab different workspaces | ➖ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | gap | No coverage. |
 | auth-17 | User removed from workspace mid-session | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `getDashboardShellState` pre-checks `User.workspaceId`; if null, CRM layout redirects to `/no-workspace` friendly page instead of /billing. `__tests__/dashboard-layout.test.tsx` — `{ noWorkspace: true }` → `REDIRECT:/no-workspace`. |
@@ -144,7 +144,7 @@ resume mid-flow) are scored individually.
 | ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
 |----|---------|---|---|---|---|---|---|---|---|--------|-------|
 | onb-01 | Email sign-up creates workspace | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/admin.spec.ts` setup uses this. |
-| onb-02 | Google OAuth sign-up | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Unit only. |
+| onb-02 | Google OAuth sign-up | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/google-signin-callback-route.test.ts` — error/missing-code/token-fail redirects, token handoff success. `__tests__/google-signin-route.test.ts` — OAuth init URL. Unit only (no browser E2E). |
 | onb-03 | Redirect post-signup → `/billing` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/billing-activation-flow.test.ts`. |
 | onb-04 | `/billing` plan select → Stripe checkout | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/billing-actions.test.ts`. |
 | onb-05 | `/billing/success` explicit success UI | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | CRITICAL_USER_JOURNEYS §3 finding 3 resolved. |
@@ -168,8 +168,8 @@ bill-10 (no grace period).
 
 | ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
 |----|---------|---|---|---|---|---|---|---|---|--------|-------|
-| bill-01 | `/crm/settings/billing` page | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
-| bill-02 | "Manage" → Stripe portal | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | ✅ | watch | No in-app confirmation before bouncing off-app. |
+| bill-01 | `/crm/settings/billing` page | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/billing-settings-page.test.tsx` — grace-period banner + active-subscription state. `__tests__/settings-route-redirects.test.tsx` — RBAC (team member blocked). |
+| bill-02 | "Manage" → Stripe portal | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | ✅ | verified | `__tests__/billing-actions.test.ts` — owner portal open + redirect, non-owner workspace reject, team member reject. No in-app confirmation step — portal is direct. |
 | bill-03 | Webhook `checkout.session.completed` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/stripe-webhook.test.ts`. |
 | bill-04 | Webhook `customer.subscription.deleted` releases Twilio | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24/25** — `__tests__/stripe-webhook.test.ts`: `customer.subscription.deleted` calls Twilio `remove()` and nulls all workspace phone fields. |
 | bill-05 | Webhook `customer.subscription.updated` (plan change) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/stripe-webhook.test.ts` — plan-change (active→yearly price) persists new price + period; bill-06 covers past_due path. |
@@ -183,7 +183,7 @@ bill-10 (no grace period).
 | bill-13 | Plan upgrade (monthly→yearly) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Portal-driven: `__tests__/billing-actions.test.ts` asserts portal session creation; `__tests__/stripe-webhook.test.ts` (bill-05) asserts `customer.subscription.updated` persists new price + period end. |
 | bill-14 | Plan downgrade | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Portal-driven: same coverage as bill-13 — portal session creation + webhook handler. |
 | bill-15 | Referral discount applied to checkout | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/billing-actions.test.ts` asserts `referral_code` in checkout session metadata; `__tests__/stripe-webhook.test.ts` asserts `processReferralConversionForCheckout` called on `checkout.session.completed`. (Note: referral is attribution tracking, not a Stripe coupon.) |
-| bill-16 | Re-subscribe after cancellation | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
+| bill-16 | Re-subscribe after cancellation | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Re-subscribe routes through Stripe portal (covered by bill-02 / `billing-actions.test.ts`). `__tests__/billing-activation-flow.test.ts` covers the checkout→active provisioning path. |
 | bill-17 | TEAM_MEMBER blocked from `/crm/settings/billing` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/team-member.spec.ts`. |
 | bill-18 | `/api/webhooks/twilio-usage` cost-ceiling | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/cost-ceiling.test.ts`. |
 

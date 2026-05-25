@@ -78,6 +78,11 @@ vi.mock("@/lib/auth", () => ({
   getAuthUser,
 }));
 
+const { nextHeaders } = vi.hoisted(() => ({
+  nextHeaders: vi.fn().mockResolvedValue({ get: (_k: string) => null }),
+}));
+vi.mock("next/headers", () => ({ headers: nextHeaders }));
+
 vi.mock("@/lib/db", () => ({
   db: {
     user: {
@@ -221,5 +226,14 @@ describe("DashboardLayout", () => {
     await expect(
       DashboardLayout({ children: <div>dashboard page</div> }),
     ).rejects.toThrow("REDIRECT:/no-workspace");
+  });
+
+  it("includes ?next= in the /auth redirect when x-pathname header is set (auth-14)", async () => {
+    getDashboardShellState.mockResolvedValue(null);
+    nextHeaders.mockResolvedValue({ get: (k: string) => k === "x-pathname" ? "/crm/deals" : null });
+
+    await expect(
+      DashboardLayout({ children: <div>dashboard page</div> }),
+    ).rejects.toThrow("REDIRECT:/auth?next=%2Fcrm%2Fdeals");
   });
 });
