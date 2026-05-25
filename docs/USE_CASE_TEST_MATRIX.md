@@ -149,7 +149,7 @@ resume mid-flow) are scored individually.
 | onb-04 | `/billing` plan select → Stripe checkout | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/billing-actions.test.ts`. |
 | onb-05 | `/billing/success` explicit success UI | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | CRITICAL_USER_JOURNEYS §3 finding 3 resolved. |
 | onb-06 | `/onboarding` start screen | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/onboarding-save.test.ts` — validates input, requires auth, persists business/pricing/onboarding state in transaction. No browser E2E (unit only). |
-| onb-07 | `/setup` trade-type + pricing wizard | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Step validation tested at action layer only. |
+| onb-07 | `/setup` trade-type + pricing wizard | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/onboarding-save.test.ts` — validates input, requires auth, persists business/pricing state. No browser E2E (unit only). |
 | onb-08 | Twilio number provisioned during onboarding | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/comms-provision.test.ts`. |
 | onb-09 | Onboarding completion: number provisioned copy | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | CRITICAL_USER_JOURNEYS §3 finding 4 resolved. |
 | onb-10 | Onboarding completion: no-number-requested copy | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
