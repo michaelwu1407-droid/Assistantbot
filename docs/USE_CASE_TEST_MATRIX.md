@@ -126,7 +126,7 @@ critical here.
 | auth-10 | `/invite/join` teammate accept | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/team-member.spec.ts`. |
 | auth-11 | `/api/auth/send-sms` OTP request | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Rate-limit verified; copy unverified. |
 | auth-12 | `/api/auth/verify-sms` OTP verify | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Same. |
-| auth-13 | Session refresh on protected page | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | watch | Mid-action refresh unverified. |
+| auth-13 | Session refresh on protected page | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/middleware.test.ts` — `updateSession` is called for every protected page navigation. Mid-session action-layer refresh unverified (E2E gap). |
 | auth-14 | Expired session mid-action recovery | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⛔ | watch | **FIXED 2026-05-25** — CRM layout now redirects to `/auth?next=<path>` (middleware sets `x-pathname` header); `UnifiedAuth` redirects to `next` after login when user is already set up. |
 | auth-15 | Sign out | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/middleware.test.ts`. |
 | auth-16 | Two-tab different workspaces | ➖ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | gap | No coverage. |
@@ -422,8 +422,8 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 | ai-02 | AI creates job from natural language | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 👁 | watch | Round 5 walkthrough confirmed Frank fixture. |
 | ai-03 | AI books appointment | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | watch | Partial. |
 | ai-04 | AI lookup tool (`/api/chat`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/agent-tools.test.ts`. |
-| ai-05 | AI handles ambiguous request | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | watch | **FIXED 2026-05-24** — `listDeals` tool accepts keyword filter. |
-| ai-06 | AI tool-call error recovery | ➖ | ✅ | 🟡 | ✅ | ✅ | ✅ | 🟡 | 🟡 | watch | Partial. |
+| ai-05 | AI handles ambiguous request | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — `listDeals` tool accepts keyword filter. `__tests__/chat-actions.test.ts` asserts keyword filter narrows results by title, contactName, address. |
+| ai-06 | AI tool-call error recovery | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/tracey-prompt-contract.test.ts` — system prompt asserts `success=false` reporting. Live tool-error scenario (DB failure mid-tool) not E2E tested. |
 | ai-07 | AI feedback recognition (UC: "the chatbot recognizes feedback") | ✅ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | gap | JOURNEY_ACCEPTANCE journey 2 — no end-to-end synthetic. |
 
 ## P. Team & workspace (`team`)
