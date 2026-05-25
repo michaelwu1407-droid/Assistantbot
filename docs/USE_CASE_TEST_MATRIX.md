@@ -300,7 +300,7 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 | voice-05 | Auto-call blocked outside hours | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | voice-06 | Auto-call blocked on triage HOLD_REVIEW | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/triage.test.ts`. |
 | voice-07 | Auto-call blocked on inbound-lead-guard | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/inbound-lead-guard.test.ts`. |
-| voice-08 | Tracey replies in caller's language (multilingual) | ➖ | ✅ | 🟡 | 🟡 | ✅ | 🟡 | 🟡 | ⬜ | gap | JOURNEY_ACCEPTANCE journey 5 — onboarding toggle behaves like preference capture, not strict runtime switch. No multilingual synthetic canary. |
+| voice-08 | Tracey replies in caller's language (multilingual) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | ⬜ | watch | **FIXED 2026-05-25** — `agentLanguage` added to `WorkspaceVoiceGrounding`; `setReplyLanguage()` called at call start in `livekit-agent/agent.ts`. No multilingual synthetic canary yet. |
 | voice-09 | Demo voice call from homepage (`/api/demo-call`) | ✅ | ➖ | 🟡 | 🟡 | ✅ | 🟡 | 🟡 | ⬜ | gap | `missing_features.md` — real handset signoff still outstanding. |
 | voice-10 | Retell webhook integration (`/api/retell/webhook`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Unit only. |
 | voice-11 | Outbound call queue (`/api/internal/voice-outbound-queue`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Internal; covered by scheduled-calls cron. |
@@ -371,7 +371,7 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 |----|---------|---|---|---|---|---|---|---|---|--------|-------|
 | notif-01 | Toggle "Email deal updates" enforced | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — `shouldSendNotificationEmail` gating in `updateDealStage`. |
 | notif-02 | Toggle "Email new contacts" enforced | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — `shouldSendNotificationEmail` gating in `createContact`. |
-| notif-03 | Toggle "Email weekly summary" enforced | ✅ | ✅ | 🟡 | 🟡 | ✅ | 🟡 | 🟡 | ⛔ | watch | Toggle disabled "(coming soon)"; cron not yet implemented. |
+| notif-03 | Toggle "Email weekly summary" enforced | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — toggle live; `GET /api/cron/weekly-summary` gated by `shouldSendNotificationEmail`. |
 | notif-04 | Toggle "Task reminders" enforced | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `ensureDailyNotifications` reads pref. |
 | notif-05 | Toggle "Stale deal alerts" enforced | ✅ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | watch | Saves; consumer unasserted. |
 | notif-06 | Push subscribe via VAPID | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/push-subscribe-routes.test.ts`. |
@@ -443,7 +443,7 @@ These are URLs a customer (not the tradie) will hit.
 
 | ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
 |----|---------|---|---|---|---|---|---|---|---|--------|-------|
-| pub-01 | `/portal/[token]` public job portal | ✅ | ✅ | 🟡 | 🟡 | ✅ | 🟡 | 🟡 | ⛔ | gap | JOURNEY_ACCEPTANCE journey 4 — no portal-open audit trail, no E2E for token→render→status. |
+| pub-01 | `/portal/[token]` public job portal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Audit trail exists: Activity "Job portal viewed" + `portal.opened` webhook (deduped 1 h). No E2E for token→render→status yet. |
 | pub-02 | `/portal-preview` | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/public-preview.spec.ts`. |
 | pub-03 | `/feedback/[token]` customer review submit | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/public-feedback-route.test.ts`. |
 | pub-04 | `/kiosk/open-house` open-house lead capture | 🟡 | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | ⬜ | watch | Tablet/kiosk discoverability + offline behaviour unverified. |
@@ -555,7 +555,7 @@ technically work but mislead the user. Per `JOURNEY_ACCEPTANCE.md` gate
 | logic-15 | **AI fails open-ended request without graceful "I can't do that yet"** | gap | UC2 "find me indoor work" — user can't tell if the AI is broken or just refusing. See ai-05. |
 | logic-16 | **Multilingual onboarding toggle reads like preference but is a runtime switch** | gap | If a caller speaks another language, the toggle must be strict at runtime. See voice-08. |
 | logic-17 | **Auth has two entry-point trees** | gap | See logic-01 / auth-meta. |
-| logic-18 | **"22-row settings index" without grouping or search** | gap | At 22 subroutes the index page violates CC-1 (cognitive load). Group by domain: Account / Comms / AI / Billing / Workspace / Data & Privacy / Help. See set-01. |
+| logic-18 | **"22-row settings index" without grouping or search** | watch | Desktop sidebar grouped; mobile `SettingsIndexMobile` shows 10 icon+subtitle rows. See set-01. |
 | logic-19 | **Onboarding "resume after browser close" lands silently** | gap | No "Welcome back, here's where you were" copy. See onb-15. |
 | logic-20 | **Loading states without reassurance copy** | gap | Per CLAUDE.md CC-6, "Calling Tracey now…" not blank spinner. Audit every `loading.tsx` + Suspense fallback. |
 
@@ -574,7 +574,7 @@ have been driven on mobile.
 | mob-05 | `/crm/deals` kanban | 🟡 | 🟡 | Kanban broken on desktop (crm-19); mobile usability not separately tested. |
 | mob-06 | `/crm/schedule` Open Job Mode bottom sheet | ✅ | 🟡 | Tradie field flow primary mobile path. |
 | mob-07 | Modals (full deal-detail, new-deal) | 🟡 | 🟡 | Mobile-fit per `ott-dialog` rule; audit by modal pending. |
-| mob-08 | Settings index + 22 subroutes | 🔴 | 🟡 | CC-4 risk — 22 subroutes without grouping is bad on mobile. See logic-18. |
+| mob-08 | Settings index + 22 subroutes | ✅ | 🟡 | `SettingsIndexMobile` renders 10 icon+subtitle rows; desktop sidebar already grouped. See logic-18. |
 
 ## X. Action items (rollup of every 🔴 / ⬜)
 
