@@ -66,7 +66,7 @@ export function JobNotes({ dealId, isPastJob = false }: JobNotesProps) {
         toast.error(result.error);
       }
     } catch {
-      toast.error("Failed to add note");
+      toast.error("Couldn't save that note — please try again.");
     } finally {
       setSaving(false);
     }
@@ -84,7 +84,7 @@ export function JobNotes({ dealId, isPastJob = false }: JobNotesProps) {
         toast.error(result.error);
       }
     } catch {
-      toast.error("Failed to update note");
+      toast.error("Couldn't update that note — please try again.");
     } finally {
       setSaving(false);
     }
@@ -100,7 +100,7 @@ export function JobNotes({ dealId, isPastJob = false }: JobNotesProps) {
         toast.error(result.error);
       }
     } catch {
-      toast.error("Failed to delete note");
+      toast.error("Couldn't delete that note — please try again.");
     }
   };
 
