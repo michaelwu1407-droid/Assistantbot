@@ -82,7 +82,7 @@ function LineItemEditor({
                 </Button>
                 <div className="flex-1" />
                 <Button variant="ghost" size="sm" className="text-xs h-7" onClick={onCancel} disabled={saving}>Cancel</Button>
-                <Button size="sm" className="text-xs h-7 bg-muted-foreground hover:bg-slate-800" disabled={saving || !items.some(i => i.desc.trim())} onClick={() => onSave(items)}>
+                <Button size="sm" className="text-xs h-7" disabled={saving || !items.some(i => i.desc.trim())} onClick={() => onSave(items)}>
                     {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3 mr-1" />}
                     Save
                 </Button>
@@ -104,6 +104,7 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
     const [variationDesc, setVariationDesc] = useState("")
     const [variationPrice, setVariationPrice] = useState("")
     const [creating, setCreating] = useState(false)
+    const [sending, setSending] = useState(false)
     const [busyId, setBusyId] = useState<string | null>(null)
     const [priceError, setPriceError] = useState<string | null>(null)
     const [editingId, setEditingId] = useState<string | null>(null)
@@ -121,9 +122,8 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                 if (status) syncResults[inv.id] = { synced: status.synced, provider: status.provider }
             }))
             setSyncCache(syncResults)
-        } catch (error) {
-            console.error(error)
-            toast.error("Failed to load invoices")
+        } catch {
+            toast.error("Couldn't load invoices — please refresh.")
         } finally {
             setLoading(false)
         }
@@ -131,27 +131,63 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
 
     useEffect(() => { fetchInvoices() }, [fetchInvoices])
 
-    const handleCreateInvoice = async () => {
+    const validateQuoteInputs = () => {
         const price = Number(variationPrice)
-        if (!variationDesc.trim()) { toast.error("Enter an item description"); return }
-        if (!variationPrice || price <= 0) { setPriceError("Price must be greater than $0"); return }
+        if (!variationDesc.trim()) { toast.error("Enter an item description"); return null }
+        if (!variationPrice || price <= 0) { setPriceError("Price must be greater than $0"); return null }
         setPriceError(null)
+        return { desc: variationDesc, price }
+    }
+
+    const handleCreateInvoice = async () => {
+        const item = validateQuoteInputs()
+        if (!item) return
         setCreating(true)
         try {
-            const result = await generateQuote(dealId, [{ desc: variationDesc, price }])
+            const result = await generateQuote(dealId, [item])
             if (result.success === false) {
-                toast.error(result.error ?? "Failed to create invoice")
+                toast.error(result.error ?? "Couldn't create the invoice — please try again.")
                 return
             }
             toast.success("Draft invoice created")
             setVariationDesc("")
             setVariationPrice("")
             await fetchInvoices()
-        } catch (error) {
-            console.error(error)
-            toast.error("Failed to create invoice")
+        } catch {
+            toast.error("Couldn't create the invoice — please try again.")
         } finally {
             setCreating(false)
+        }
+    }
+
+    const handleSendQuote = async () => {
+        const item = validateQuoteInputs()
+        if (!item) return
+        setSending(true)
+        try {
+            const result = await generateQuote(dealId, [item])
+            if (result.success === false) {
+                toast.error(result.error ?? "Couldn't create the quote — please try again.")
+                return
+            }
+            // Fetch to get the newly-created invoice id
+            const fresh = await getDealInvoices(dealId)
+            const newest = fresh[0]
+            if (!newest) { toast.error("Couldn't send the quote — please try again."); return }
+            const emailResult = await emailInvoice(newest.id)
+            if (emailResult.success === false) {
+                toast.error(emailResult.error ?? "Quote saved — but couldn't send the email. Use 'Email quote' below.")
+                setInvoices(fresh)
+                return
+            }
+            toast.success("Quote sent to contact")
+            setVariationDesc("")
+            setVariationPrice("")
+            setInvoices(fresh)
+        } catch {
+            toast.error("Couldn't send the quote — please try again.")
+        } finally {
+            setSending(false)
         }
     }
 
@@ -162,42 +198,42 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
 
     const handleIssue = (id: string) => withBusy(id, async () => {
         const res = await issueInvoice(id)
-        if (res?.success === false) { toast.error(res.error ?? "Failed"); return }
+        if (res?.success === false) { toast.error(res.error ?? "Couldn't mark as issued — please try again."); return }
         toast.success("Invoice issued")
         fetchInvoices()
     })
 
     const handlePay = (id: string) => withBusy(id, async () => {
         const res = await markInvoicePaid(id)
-        if (res?.success === false) { toast.error(res.error ?? "Failed"); return }
+        if (res?.success === false) { toast.error(res.error ?? "Couldn't mark as paid — please try again."); return }
         toast.success("Marked as paid")
         fetchInvoices()
     })
 
     const handleVoid = (id: string) => withBusy(id, async () => {
         const res = await voidInvoice(id)
-        if (res?.success === false) { toast.error(res.error ?? "Failed"); return }
+        if (res?.success === false) { toast.error(res.error ?? "Couldn't void the invoice — please try again."); return }
         toast.success("Invoice voided")
         fetchInvoices()
     })
 
     const handleReverse = (id: string, target: "DRAFT" | "ISSUED") => withBusy(id, async () => {
         const res = await reverseInvoiceStatus(id, target)
-        if (res?.success === false) { toast.error(res.error ?? "Failed"); return }
+        if (res?.success === false) { toast.error(res.error ?? "Couldn't reverse the status — please try again."); return }
         toast.success(`Reversed to ${target}`)
         fetchInvoices()
     })
 
     const handleEmail = (id: string) => withBusy(id, async () => {
         const res = await emailInvoice(id)
-        if (res?.success === false) { toast.error(res.error ?? "Failed"); return }
-        toast.success("Invoice emailed to contact")
+        if (res?.success === false) { toast.error(res.error ?? "Couldn't send the email — please try again."); return }
+        toast.success("Sent to contact")
         fetchInvoices()
     })
 
     const handleSaveLineItems = (id: string, items: LineItem[]) => withBusy(id, async () => {
         const res = await updateInvoiceLineItems(id, items)
-        if (res?.success === false) { toast.error(res.error ?? "Failed"); return }
+        if (res?.success === false) { toast.error(res.error ?? "Couldn't save line items — please try again."); return }
         toast.success("Line items updated")
         setEditingId(null)
         fetchInvoices()
@@ -230,13 +266,17 @@ export function JobBillingTab({ dealId }: JobBillingTabProps) {
                             />
                         </div>
                     </div>
-                    {priceError && <p className="text-xs text-destructive">{priceError}</p>}
-                    <Button onClick={handleCreateInvoice} disabled={creating || !variationDesc.trim()} className="w-full bg-muted-foreground hover:bg-slate-800">
+                    {priceError && <p className="ott-field-error-msg">{priceError}</p>}
+                    <Button onClick={handleSendQuote} disabled={sending || creating || !variationDesc.trim()} className="w-full">
+                        {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
+                        Send Quote
+                    </Button>
+                    <Button onClick={handleCreateInvoice} disabled={creating || sending || !variationDesc.trim()} variant="outline" className="w-full">
                         {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-                        Create Draft Invoice
+                        Save as Draft
                     </Button>
                     <p className="text-xs text-muted-foreground text-center">
-                        Creates a draft quote. Use <strong>Email quote</strong> to send an estimate, or <strong>Mark issued</strong> when it is ready to become an invoice.
+                        <strong>Send Quote</strong> emails the estimate straight away. <strong>Save as Draft</strong> lets you review first.
                     </p>
                 </CardContent>
             </Card>
