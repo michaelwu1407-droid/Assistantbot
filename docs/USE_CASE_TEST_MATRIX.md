@@ -401,8 +401,8 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 | set-08 | `/billing` | see Section D | – | – | – | – | – | – | – | – | – | Covered in `bill-*`. |
 | set-09 | `/call-settings` phone routing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/call-forwarding.test.ts`. |
 | set-10 | `/data-privacy` controls | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Export + delete both surfaced at `/crm/settings/privacy` (see cpl-06/07). No E2E spec; manual review confirms actions present. |
-| set-11 | `/display` preferences | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ | watch | No spec. |
-| set-12 | `/help` & docs | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ | watch | No spec; static content. |
+| set-11 | `/display` preferences | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/display-settings-client.test.tsx` — renders language/accessibility/mobile sections. localStorage font-scale unverified in jsdom. |
+| set-12 | `/help` & docs | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/settings-help-page.test.tsx` — contact support email + urgent-mark copy; no unverified phone number present. |
 | set-13 | `/integrations` (Google, Outlook, Xero, MYOB, Resend) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | watch | Several integrations partial. |
 | set-14 | `/knowledge` AI grounding | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/knowledge-actions.test.ts`. |
 | set-15 | `/my-business` profile + refusal rules | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/settings-actions.test.ts`. |
