@@ -300,7 +300,7 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 | voice-05 | Auto-call blocked outside hours | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | voice-06 | Auto-call blocked on triage HOLD_REVIEW | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/triage.test.ts`. |
 | voice-07 | Auto-call blocked on inbound-lead-guard | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/inbound-lead-guard.test.ts`. |
-| voice-08 | Tracey replies in caller's language (multilingual) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | ⬜ | watch | **FIXED 2026-05-25** — `agentLanguage` added to `WorkspaceVoiceGrounding`; `setReplyLanguage()` called at call start in `livekit-agent/agent.ts`. No multilingual synthetic canary yet. |
+| voice-08 | Tracey replies in caller's language (multilingual) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ | watch | **FIXED 2026-05-25** — `agentLanguage` added to `WorkspaceVoiceGrounding`; `setReplyLanguage()` called at call start in `livekit-agent/agent.ts`. `__tests__/voice-grounding-language.test.ts` asserts `voiceLanguage→agentLanguage` flow. Live canary outstanding. |
 | voice-09 | Demo voice call from homepage (`/api/demo-call`) | ✅ | ➖ | 🟡 | 🟡 | ✅ | 🟡 | 🟡 | ⬜ | gap | `missing_features.md` — real handset signoff still outstanding. |
 | voice-10 | Retell webhook integration (`/api/retell/webhook`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Unit only. |
 | voice-11 | Outbound call queue (`/api/internal/voice-outbound-queue`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Internal; covered by scheduled-calls cron. |
@@ -520,7 +520,7 @@ the tradie see a sensible message and can ops see the failure?
 | res-02 | Stripe webhook delayed/missed (worker outage) | ➖ | ➖ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | watch | No backfill job documented. |
 | res-03 | Twilio voice API rate-limit (429) | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Cost-ceiling + retry/backoff. |
 | res-04 | Twilio SMS API down | ➖ | ➖ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | watch | Outbound queued? Unverified. |
-| res-05 | Gemini/LLM timeout | ➖ | ➖ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | watch | Tool-call error recovery partial (ai-06). |
+| res-05 | Gemini/LLM timeout | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ⛔ | watch | `__tests__/ai-agent.test.ts` — `generateText` rejection returns graceful user-friendly message. |
 | res-06 | LiveKit SIP setup fails on inbound call | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Voice fallback (voice-03). |
 | res-07 | DB connection saturation | ➖ | ➖ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | watch | No degradation strategy verified. |
 | res-08 | Inngest worker queue stuck | ➖ | ➖ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | watch | Cron heartbeats catch it; no auto-alert? |
@@ -604,11 +604,11 @@ would have caught it (rule below).
 
 ### Reliability / observability (do alongside)
 
-16. 🟡 **voice-08** — Multilingual runtime switch done; synthetic canary outstanding.
+16. 🟡 **voice-08** — Unit test added (`__tests__/voice-grounding-language.test.ts`); live canary outstanding.
 17. ✅ **pub-01 / pub-06** — Portal audit trail exists; portal-link in SMS confirmed.
 18. ✅ **comm-17** — Booking-confirmation WebhookEvents recorded; ops queried via feature-verification.ts.
-19. ⬜ **comm-20** — WhatsApp round-trip synthetic — outstanding.
-20. ⬜ **res-01, res-02, res-04, res-05, res-07, res-08** — Failure-mode coverage outstanding.
+19. 🟡 **comm-20** — WhatsApp route well-tested (4 scenarios in `__tests__/whatsapp-route.test.ts`); live round-trip synthetic outstanding.
+20. 🟡 **res-05** — LLM timeout/error covered by `__tests__/ai-agent.test.ts`. res-01, res-02, res-04, res-07, res-08 (infra failure modes) outstanding.
 
 ### Cleanup / UX polish
 
