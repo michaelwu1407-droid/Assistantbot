@@ -278,7 +278,7 @@ base (viewport-relative width + `max-h-[90vh]`) and a per-modal
 | comm-11 | Bulk "rainy day blast" from chat ("find me indoor work") | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24/25** — `listDeals` AI tool accepts keyword filter; `__tests__/chat-actions.test.ts` asserts filter narrows by title/contactName/address. |
 | comm-12 | Outbound SMS blocked to opted-out contact | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24** — Contact.smsOptedOut checked before AI reply in webhook handler. `__tests__/twilio-sms-stop-handling.test.ts` — STOP sets flag; AI not called on opted-out numbers. |
 | comm-13 | SMS delivery status reflects via Twilio status webhook | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | 🟡 | watch | Partial; "failed" red badge unverified. |
-| comm-14 | Quote/invoice email send via Resend | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Partial. |
+| comm-14 | Quote/invoice email send via Resend | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/tradie-actions.test.ts` — `emailInvoice` boundary cases: invoice-not-found returns error; contact with no email returns friendly error without calling PDF generator. |
 | comm-15 | Bounce/complaint webhook (`/api/webhooks/resend`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/resend-route.test.ts` — rejects invalid signature; skips unsupported events; records open events + notifies owner. |
 | comm-16 | `/api/twilio/webhook` SMS receive idempotency | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/twilio-sms-webhook.test.ts`. |
 | comm-17 | Booking-confirmation auto-SMS on Scheduled stage | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/deal-actions.test.ts` — booking confirmation fired on create-in-scheduled, `updateDealStage`, and `updateDeal`→scheduled (3 cases). No cross-workspace synthetic canary yet — runtime monitoring gap only. |
@@ -348,7 +348,7 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 | quote-01 | Create quote from deal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/tradie-actions.test.ts`. |
 | quote-02 | GST 10% calculation | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | quote-03 | Invoice numbering sequential & unique | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/invoice-number.test.ts`. |
-| quote-04 | Send quote via email | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Partial. |
+| quote-04 | Send quote via email | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/tradie-actions.test.ts` — `emailInvoice` boundary cases: invoice-not-found returns error; contact with no email returns friendly error without calling PDF generator. |
 | quote-05 | Quote accepted by customer | ✅ | ✅ | 🟡 | 🟡 | ✅ | 🟡 | ✅ | ⬜ | watch | `invoice.paid` Stripe webhook handler is a no-op (`break`). Manual marking via `markInvoicePaid` in tradie-actions. No Stripe→CRM paid auto-sync yet. |
 | quote-06 | Stripe-hosted payment link on invoice | ✅ | ✅ | 🟡 | 🟡 | ✅ | ✅ | ✅ | 🟡 | watch | Same as quote-05 — `invoice.paid` handler is stub. Manual mark-paid via `/crm/tradie` flow. |
 | quote-07 | Xero/MYOB push (`/crm/settings/integrations`) | ✅ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | watch | Draft invoice creation works; later lifecycle steps incomplete (`missing_features.md`). |
