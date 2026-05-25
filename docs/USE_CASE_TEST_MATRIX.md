@@ -182,7 +182,7 @@ bill-10 (no grace period).
 | bill-12 | Pre-cancel data export | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — GET /api/export/workspace-data; button in Settings → Privacy. |
 | bill-13 | Plan upgrade (monthly→yearly) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Portal-driven; partial test. |
 | bill-14 | Plan downgrade | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Same. |
-| bill-15 | Referral discount applied to checkout | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/referral-actions.test.ts` covers application. |
+| bill-15 | Referral discount applied to checkout | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/billing-actions.test.ts` asserts `referral_code` in checkout session metadata; `__tests__/stripe-webhook.test.ts` asserts `processReferralConversionForCheckout` called on `checkout.session.completed`. (Note: referral is attribution tracking, not a Stripe coupon.) |
 | bill-16 | Re-subscribe after cancellation | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
 | bill-17 | TEAM_MEMBER blocked from `/crm/settings/billing` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/team-member.spec.ts`. |
 | bill-18 | `/api/webhooks/twilio-usage` cost-ceiling | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/cost-ceiling.test.ts`. |
@@ -205,7 +205,7 @@ Tracey button (CC-4).
 | crm-08 | `/crm/contacts` list | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/contact-journeys.spec.ts` — title, stage, balance, quick actions. |
 | crm-09 | `/crm/contacts/new` create form | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Validation only at action layer. |
 | crm-10 | `/crm/contacts/[id]` detail with tabs (overview/deals/properties/activity) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/contact-journeys.spec.ts`. |
-| crm-11 | `/crm/contacts/[id]/edit` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/contact-actions.test.ts`; no UI test. |
+| crm-11 | `/crm/contacts/[id]/edit` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/contact-actions.test.ts` — `updateContact` + `updateContactMetadata` both tested; workspace scoping enforced. |
 | crm-12 | `/contacts/[id]` (legacy outside `/crm`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `app/contacts/[id]/page.tsx` already redirects to `/crm/contacts/${id}`. |
 | crm-13 | Contact filter chip — "Service Due" | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
 | crm-14 | Contact filter chip — "Last Job" | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Not built (UC9/15). |
@@ -219,7 +219,7 @@ Tracey button (CC-4).
 | crm-22 | Stale / rotting badges on deals | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/deal-attention.test.ts`. |
 | crm-23 | `/crm/deals/[id]` detail page | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/crm-core-journey.spec.ts`. |
 | crm-24 | `/crm/deals/[id]/edit` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | No UI test. |
-| crm-25 | `/crm/deals/new` standalone create | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/deal-actions.test.ts`. |
+| crm-25 | `/crm/deals/new` standalone create | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/deal-actions.test.ts` — `createDeal` tested: happy path, blocked without assignee (scheduled), blocked without date, booking-confirmation fired on SCHEDULED stage. |
 | crm-26 | `/crm/jobs/[id]` job detail | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Round 5 manual confirmed; no E2E. |
 | crm-27 | `/crm/inbox` thread list | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/crm-communication-modes.spec.ts`. |
 | crm-28 | `/crm/inbox/[contactId]` deep link | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
@@ -231,7 +231,7 @@ Tracey button (CC-4).
 | crm-34 | `/crm/estimator` quote estimator | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | 🟡 | watch | Manual only. |
 | crm-35 | `/crm/hub` hub page | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `app/crm/hub/page.tsx` redirects to `/crm/dashboard`. |
 | crm-36 | `/crm/team` team management | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/team-member.spec.ts`. |
-| crm-37 | `/crm/agent` Tracey agent surface | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/agent-page.test.tsx`. |
+| crm-37 | `/crm/agent` Tracey agent surface | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/agent-page.test.tsx` — renders legacy dashboard message with CRM path; redirects unauthenticated users. |
 | crm-38 | `/crm/tradie` tradie field view | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Round 3 manual. |
 | crm-39 | Ctrl+K global search (`/api/search/global`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — root cause was cmdk client-side filter discarding all server results; fixed via `shouldFilter={false}` on `CommandPrimitive`. |
 | crm-40 | `/crm/design/*` design sandbox pages | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Both sandbox pages redirect to `/crm/dashboard`; no live UI exposed to users. |
@@ -273,8 +273,8 @@ base (viewport-relative width + `max-h-[90vh]`) and a per-modal
 | comm-06 | Email-only contact: Direct SMS disabled + CTA | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | comm-07 | Phone-only contact: email unavailable + CTA | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | comm-08 | Deal page with no phone: "Add phone in CRM" recovery | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
-| comm-09 | Template picker insert with variable merge | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/template-actions.test.ts` (lib only). |
-| comm-10 | WhatsApp send via composer | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/messaging-actions.test.ts`. Provider-blocked per `missing_features.md`. |
+| comm-09 | Template picker insert with variable merge | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/template-actions.test.ts` — `renderTemplate` asserts `{{contactName}}`, `{{dealTitle}}`, `{{amount}}` substitution; CRUD + JSON-encoded variables. |
+| comm-10 | WhatsApp send via composer | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/messaging-actions.test.ts` — audit-trail write, email fallback for no-phone contacts. Provider-blocked per `missing_features.md` (Meta approval pending). |
 | comm-11 | Bulk "rainy day blast" from chat ("find me indoor work") | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24/25** — `listDeals` AI tool accepts keyword filter; `__tests__/chat-actions.test.ts` asserts filter narrows by title/contactName/address. |
 | comm-12 | Outbound SMS blocked to opted-out contact | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — Contact.smsOptedOut checked before AI reply in webhook handler. |
 | comm-13 | SMS delivery status reflects via Twilio status webhook | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | 🟡 | watch | Partial; "failed" red badge unverified. |
@@ -316,7 +316,7 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 | lead-02 | SMS inbound from existing contact appends activity | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | lead-03 | SMS classified as spam → activity logged, no reply | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/spam-classifier.test.ts`. |
 | lead-04 | Voice inbound → contact + transcript | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | See voice-01. |
-| lead-05 | Email inbound — hipages/airtasker/oneflare (`/api/webhooks/email`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/email-filters.test.ts`. |
+| lead-05 | Email inbound — hipages/airtasker/oneflare (`/api/webhooks/email`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/email-received-route.test.ts` — includes hipages provider test (subject "New hipages job request", from `notifications@hipages.com.au`). |
 | lead-06 | Email inbound — Gmail PubSub (`/api/webhooks/email-received`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Partial. |
 | lead-07 | Email inbound — Resend-forwarded (`/api/webhooks/inbound-email`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Svix signature path verified; AI-parse end-to-end manual. |
 | lead-08 | Embeddable webform (`/api/webhooks/webform`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Partial. |
@@ -339,7 +339,7 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 | job-06 | Digital handover deliverables | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Out of scope (real-estate arm). |
 | job-07 | Uber-style customer arrival page | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Depends on job-02 broadcast. |
 | job-08 | Post-job feedback request SMS | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
-| job-09 | Customer review page (`/feedback/[token]`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/public-feedback-route.test.ts`. |
+| job-09 | Customer review page (`/feedback/[token]`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/public-feedback-route.test.ts` — rejects invalid payload; delegates to `submitFeedbackFromPublicToken` on valid submission. |
 
 ## K. Quotes, invoices, accounting (`quote`)
 
@@ -397,14 +397,14 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 | set-04 | `/agent` AI configuration | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/agent-settings-page.test.tsx`. |
 | set-05 | `/ai-voice` voice synthesis + LLM | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/voice-fleet.test.ts`. |
 | set-06 | `/appearance` theme | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `/appearance` redirects to `/display`; `settings-route-redirects.test.tsx` asserts redirect. |
-| set-07 | `/automations` workflow rules | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/automation-actions.test.ts`. |
+| set-07 | `/automations` workflow rules | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/automation-actions.test.ts` — validation, toggle enabled, stage-change task, optimistic lock concurrency, overdue-task notification. |
 | set-08 | `/billing` | see Section D | – | – | – | – | – | – | – | – | – | Covered in `bill-*`. |
 | set-09 | `/call-settings` phone routing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/call-forwarding.test.ts`. |
 | set-10 | `/data-privacy` controls | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Export + delete both surfaced at `/crm/settings/privacy` (see cpl-06/07). No E2E spec; manual review confirms actions present. |
 | set-11 | `/display` preferences | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/display-settings-client.test.tsx` — renders language/accessibility/mobile sections. localStorage font-scale unverified in jsdom. |
-| set-12 | `/help` & docs | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/settings-help-page.test.tsx` — contact support email + urgent-mark copy; no unverified phone number present. |
+| set-12 | `/help` & docs | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/settings-help-page.test.tsx` — contact support email + urgent-mark copy; no unverified phone number present. |
 | set-13 | `/integrations` (Google, Outlook, Xero, MYOB, Resend) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | watch | Several integrations partial. |
-| set-14 | `/knowledge` AI grounding | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/knowledge-actions.test.ts`. |
+| set-14 | `/knowledge` AI grounding | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/knowledge-actions.test.ts` — save + load grounding knowledge. |
 | set-15 | `/my-business` profile + refusal rules | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/settings-actions.test.ts`. |
 | set-16 | `/notifications` | see Section M | – | – | – | – | – | – | – | – | – | Covered in `notif-*`. |
 | set-17 | `/phone-settings` (owner-only) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Owner gate per `e2e/team-member.spec.ts`. |
@@ -443,7 +443,7 @@ These are URLs a customer (not the tradie) will hit.
 
 | ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
 |----|---------|---|---|---|---|---|---|---|---|--------|-------|
-| pub-01 | `/portal/[token]` public job portal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Audit trail exists: Activity "Job portal viewed" + `portal.opened` webhook (deduped 1 h). No E2E for token→render→status yet. |
+| pub-01 | `/portal/[token]` public job portal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/job-portal-page.test.tsx` — renders SCHEDULED job for valid token; calls `notFound()` for invalid token. Audit trail: Activity "Job portal viewed" + `portal.opened` webhook (deduped 1 h). |
 | pub-02 | `/portal-preview` | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/public-preview.spec.ts`. |
 | pub-03 | `/feedback/[token]` customer review submit | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/public-feedback-route.test.ts`. |
 | pub-04 | `/kiosk/open-house` open-house lead capture | 🟡 | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | ⬜ | watch | Tablet/kiosk discoverability + offline behaviour unverified. |
