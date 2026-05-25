@@ -94,7 +94,7 @@ pass on mobile (CC-4) and warm-cream palette (CLAUDE.md homepage rule).
 | acq-06 | `/pricing` enquiry → message only (no phone) | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same spec covers both branches. |
 | acq-07 | `/contact` callback flow | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same as acq-05. |
 | acq-08 | `/contact` message-only flow | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same as acq-06. |
-| acq-09 | `/contact` department selection | ✅ | ➖ | ✅ | ✅ | 🟡 | ✅ | ✅ | 🟡 | watch | CRITICAL_USER_JOURNEYS §2 — feels decorative; routing per dept not verified. |
+| acq-09 | `/contact` department selection | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/contact-route.test.ts` — `subject: "[Contact – sales] Need a demo"` asserts department appears as email subject prefix. No separate inbox routing (acceptable MVP per logic-13). |
 | acq-10 | `/solutions` index | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
 | acq-11 | `/solutions/[slug]` (per-trade landing) | 🟡 | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Discoverable only via direct links; slugs unverified at scale. |
 | acq-12 | `/(legal)/privacy` reachable from footer | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Visual spec covers footer link. |
@@ -448,7 +448,7 @@ These are URLs a customer (not the tradie) will hit.
 | pub-03 | `/feedback/[token]` customer review submit | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/public-feedback-route.test.ts`. |
 | pub-04 | `/kiosk/open-house` open-house lead capture | 🟡 | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | ⬜ | watch | Tablet/kiosk discoverability + offline behaviour unverified. |
 | pub-05 | Customer ETA page (Uber-style) | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Not built; UC14. |
-| pub-06 | Outbound SMS contains a portal link where promised | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `lib/sms.ts` intro SMS always appends portal URL; `automated-message-actions.ts` appends portal URL to booking-confirmation SMS. No E2E assertion yet — see `__tests__/twilio-sms-webhook.test.ts` for partial coverage. |
+| pub-06 | Outbound SMS contains a portal link where promised | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `__tests__/sms-intro-portal-link.test.ts` asserts `buildPublicJobPortalUrl` is called with correct params, portal URL appears in SMS body, and activity is logged with "portal link" description. |
 
 ## R. Cron jobs & background work (`cron`)
 
@@ -550,7 +550,7 @@ technically work but mislead the user. Per `JOURNEY_ACCEPTANCE.md` gate
 | logic-10 | **Kanban drag does nothing** | watch | **FIXED 2026-05-25** — `dragStartColumnRef` set in `handleDragStart`; intra-column sort path now reached. See crm-19. |
 | logic-11 | **Stale-deal drag → expected follow-up modal doesn't open** | watch | **FIXED 2026-05-25** — `StaleDealFollowUpModal` wired into `handleDragEnd`. See crm-20. |
 | logic-12 | **Ctrl+K returns "No results" for known data** | watch | **FIXED 2026-05-25** — cmdk `shouldFilter={false}` fix. See crm-39. |
-| logic-13 | **Department selection on `/contact` is decorative** | watch | Department appears as `[Contact – sales]` email subject prefix; no separate inbox routing. Acceptable MVP behaviour. See acq-09. |
+| logic-13 | **Department selection on `/contact` is decorative** | watch | **VERIFIED 2026-05-25** — `__tests__/contact-route.test.ts` confirms department appears as `[Contact – sales]` email subject prefix. No separate inbox routing — acceptable MVP. See acq-09. |
 | logic-14 | **Calendar event click navigates to deal page** | watch | **FIXED 2026-05-25** — chip click opens Popover with call/SMS/open-details actions. See cal-05. |
 | logic-15 | **AI fails open-ended request without graceful "I can't do that yet"** | watch | **FIXED 2026-05-24** — `listDeals` keyword filter handles open-ended queries. See ai-05. |
 | logic-16 | **Multilingual onboarding toggle reads like preference but is a runtime switch** | watch | **FIXED 2026-05-25** — `setReplyLanguage()` called at call start from grounding. See voice-08. |
@@ -605,7 +605,7 @@ would have caught it (rule below).
 ### Reliability / observability (do alongside)
 
 16. 🟡 **voice-08** — Unit test added (`__tests__/voice-grounding-language.test.ts`); live canary outstanding.
-17. ✅ **pub-01 / pub-06** — Portal audit trail exists; portal-link in SMS confirmed.
+17. ✅ **pub-01 / pub-06** — Portal audit trail exists; **FIXED 2026-05-25** `__tests__/sms-intro-portal-link.test.ts` asserts portal URL in intro SMS body and activity log. acq-09 verified via `contact-route.test.ts`.
 18. ✅ **comm-17** — Booking-confirmation WebhookEvents recorded; ops queried via feature-verification.ts.
 19. 🟡 **comm-20** — WhatsApp route well-tested (4 scenarios in `__tests__/whatsapp-route.test.ts`); live round-trip synthetic outstanding.
 20. ✅ **res-01, res-02, res-04, res-05** — FIXED 2026-05-25: Stripe timeout (billing-actions test), Stripe retry idempotency (stripe-webhook test), Twilio retryWithBackoff, LLM error fallback (ai-agent test). res-07 (DB pool) and res-08 (cron watchdog) noted as infrastructure gaps.
@@ -642,6 +642,9 @@ matrix is worth maintaining.
 
 ## Z. Change log
 
+- **2026-05-25 (continued)** — pub-06 verified: `__tests__/sms-intro-portal-link.test.ts`
+  asserts portal URL in intro SMS + activity log. acq-09 promoted to verified:
+  `contact-route.test.ts` already asserts `[Contact – sales]` email subject prefix.
 - **2026-05-24** — Audit: cpl-01 (STOP), cpl-02 (Twilio leak),
   notif-01..03 (decorative email prefs), bill-10 (no grace period),
   logic-01..20 (coherence problems). Three Playwright stubs added.
