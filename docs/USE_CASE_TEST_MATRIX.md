@@ -224,7 +224,7 @@ Tracey button (CC-4).
 | crm-27 | `/crm/inbox` thread list | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/crm-communication-modes.spec.ts`. |
 | crm-28 | `/crm/inbox/[contactId]` deep link | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | crm-29 | `/inbox` (legacy outside `/crm`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `app/inbox/page.tsx` already redirects to `/crm/inbox`. |
-| crm-30 | `/crm/calendar` Google calendar view | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | 🟡 | watch | UC5: missing visual confirmation status + popover. |
+| crm-30 | `/crm/calendar` Google calendar view | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — Status icon (CheckCircle2/Clock/XCircle) and quick-action Popover (call/SMS/open-details) added to each calendar chip. See cal-04, cal-05. |
 | crm-31 | `/crm/schedule` daily/weekly schedule | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Round 3 manual confirmed Open Job Mode. |
 | crm-32 | `/crm/map` map view | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | 🟡 | watch | Marker clustering + popup content unverified. |
 | crm-33 | `/crm/analytics` reports | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | 👁 | watch | Round 3 confirmed loads with mock data; real workspace charts unverified. |
@@ -371,7 +371,7 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 |----|---------|---|---|---|---|---|---|---|---|--------|-------|
 | notif-01 | Toggle "Email deal updates" enforced | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — `shouldSendNotificationEmail` gating in `updateDealStage`. |
 | notif-02 | Toggle "Email new contacts" enforced | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — `shouldSendNotificationEmail` gating in `createContact`. |
-| notif-03 | Toggle "Email weekly summary" enforced | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — toggle live; `GET /api/cron/weekly-summary` gated by `shouldSendNotificationEmail`. |
+| notif-03 | Toggle "Email weekly summary" enforced | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — toggle live; `GET /api/cron/weekly-summary` gated by `shouldSendNotificationEmail`. E2E test infra added: `GET /api/test/inspect/email-outbox` + `POST /api/test/trigger/weekly-digest`; "toggle survives reload" E2E test un-fixme'd. |
 | notif-04 | Toggle "Task reminders" enforced | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `ensureDailyNotifications` reads pref. |
 | notif-05 | Toggle "Stale deal alerts" enforced | ✅ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | watch | Saves; consumer unasserted. |
 | notif-06 | Push subscribe via VAPID | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/push-subscribe-routes.test.ts`. |
@@ -433,7 +433,7 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 | team-01 | Owner invites teammate | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/team-member.spec.ts`. |
 | team-02 | Teammate accepts invite | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | team-03 | Teammate sees CRM, not billing or phone | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
-| team-04 | Owner removes teammate | ✅ | ✅ | 🟡 | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | watch | Removal acts; friendly screen for removed user unverified. |
+| team-04 | Owner removes teammate | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — Removed user's `workspaceId` becomes null; CRM layout redirects to `/no-workspace` friendly page (sign-out + "you've been removed" copy). See auth-17. |
 | team-05 | Role change reflected live | ➖ | 🟡 | 🟡 | ✅ | 🟡 | 🟡 | 🟡 | ⛔ | gap | Same as auth-18. |
 | team-06 | User in multiple workspaces — switcher | ✅ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | gap | No coverage. |
 

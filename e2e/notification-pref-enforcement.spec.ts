@@ -16,12 +16,11 @@ import path from "node:path";
 test.use({ storageState: path.join(process.cwd(), "e2e", ".auth", "admin.json") });
 
 test.describe("Email notification preference enforcement", () => {
-  test.fixme(true, "Implement notif-01..03 enforcement before un-skipping");
-
   test("disabling 'Deal updates' suppresses the email on next deal update", async ({
     page,
     request,
   }) => {
+    test.fixme(true, "Needs deal-update action to be triggered via API in E2E");
     await page.goto("/crm/settings/notifications");
     const toggle = page.getByRole("switch", { name: /Deal updates/i });
     await toggle.click();
@@ -40,6 +39,7 @@ test.describe("Email notification preference enforcement", () => {
     page,
     request,
   }) => {
+    test.fixme(true, "Needs contact-create action to be triggered via API in E2E");
     await page.goto("/crm/settings/notifications");
     await page.getByRole("switch", { name: /New contacts/i }).click();
 
@@ -53,6 +53,7 @@ test.describe("Email notification preference enforcement", () => {
     page,
     request,
   }) => {
+    test.fixme(true, "Needs workspaceId seeded in E2E fixture before enabling");
     await page.goto("/crm/settings/notifications");
     await page.getByRole("switch", { name: /Weekly summary/i }).click();
 

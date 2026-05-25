@@ -786,6 +786,7 @@ export async function updateDealStage(dealId: string, stage: string) {
         workspaceId: deal.workspaceId,
         subject: `Deal updated: ${deal.title}`,
         text: `A deal in your workspace moved to a new stage.\n\nDeal: ${deal.title}\nNew stage: ${parsed.data.stage}\n\nView: ${appUrl}/crm/deals/${parsed.data.dealId}`,
+        template: "deal-update",
       }).catch(() => {})
     }
 

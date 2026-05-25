@@ -7,6 +7,7 @@ import { Resend } from "resend"
 import { db } from "@/lib/db"
 import { assertSafeRecipient } from "@/lib/messaging/safe-recipient"
 import { withCostCeiling } from "@/lib/cost-ceiling"
+import { addToTestOutbox } from "@/lib/email-test-outbox"
 
 const RESEND_EMAIL_COST_USD = 0.001
 
@@ -14,6 +15,7 @@ export async function sendOwnerNotificationEmail(params: {
   workspaceId: string
   subject: string
   text: string
+  template?: string
 }): Promise<void> {
   const resendKey = process.env.RESEND_API_KEY
   if (!resendKey) return
@@ -44,6 +46,13 @@ export async function sendOwnerNotificationEmail(params: {
 
   const resend = new Resend(resendKey)
   const fromAddress = process.env.RESEND_FROM_EMAIL || "noreply@earlymark.ai"
+
+  addToTestOutbox({
+    template: params.template ?? "notification",
+    to: safeEmail,
+    subject: params.subject,
+    workspaceId: params.workspaceId,
+  })
 
   await withCostCeiling("resend", RESEND_EMAIL_COST_USD, () =>
     resend.emails.send({

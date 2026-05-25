@@ -409,6 +409,7 @@ export async function createContact(input: z.infer<typeof CreateContactSchema>) 
       workspaceId: parsed.data.workspaceId,
       subject: `New contact: ${contact.name}`,
       text: `A new contact was added to your Earlymark workspace.\n\nName: ${contact.name}\nPhone: ${contact.phone || "—"}\nEmail: ${contact.email || "—"}\n\nView in CRM: ${process.env.NEXT_PUBLIC_APP_URL || "https://app.earlymark.ai"}/crm/contacts/${contact.id}`,
+      template: "contact-created",
     }).catch(() => {})
   }
 

@@ -76,6 +76,7 @@ export async function GET(req: NextRequest) {
         workspaceId: workspace.id,
         subject: `Your week at a glance — ${workspace.name}`,
         text,
+        template: "weekly-digest",
       });
 
       sent++;
