@@ -461,7 +461,7 @@ GitHub Actions; each must emit a heartbeat the ops page can read.
 | cron-02 | `/api/cron/followup-reminders` | hourly @0 | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same family. |
 | cron-03 | `/api/cron/job-reminders` | hourly | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Partial. |
 | cron-04 | `/api/cron/task-overdue` | hourly | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Partial. |
-| cron-05 | `/api/cron/recurring-jobs` | daily | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | watch | Idempotency under failure-restart unverified. |
+| cron-05 | `/api/cron/recurring-jobs` | daily | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `__tests__/recurring-jobs-route.test.ts`: auth check, clone happy path (sets `recurrenceLastClonedAt`), idempotency (skips if `recurrenceLastClonedAt` not yet elapsed), end-date skip, DB error logged without crash. |
 | cron-06 | `/api/cron/scheduled-calls` | every 5m | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/lead-callback.test.ts`. |
 | cron-07 | `/api/cron/voice-agent-health` | 30m | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/voice-fleet-health-route.test.ts`. |
 | cron-08 | `/api/cron/voice-monitor-watchdog` | 30m | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Watchdog over cron-07. |
