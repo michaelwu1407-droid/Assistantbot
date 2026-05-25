@@ -35,7 +35,7 @@ interface AuthState {
 
 const supabase = getSupabaseClient();
 
-export function UnifiedAuth({ connectionError = false }: { connectionError?: boolean }) {
+export function UnifiedAuth({ connectionError = false, next }: { connectionError?: boolean; next?: string }) {
   const router = useRouter();
 
   const [state, setState] = useState<AuthState>({
@@ -68,7 +68,9 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
     MonitoringService.trackEvent("user_signed_in", { provider });
 
     const route = await checkUserRoute(user.id);
-    router.push(route);
+    // If the user is fully set up (no setup/onboarding needed) and we have a next URL, go there.
+    const destination = (route === "/crm/dashboard" && next) ? next : route;
+    router.push(destination);
   };
 
   useEffect(() => {
@@ -87,7 +89,8 @@ export function UnifiedAuth({ connectionError = false }: { connectionError?: boo
           action: "check_user_route"
         });
         const route = await checkUserRoute(user.id);
-        router.push(route);
+        const destination = (route === "/crm/dashboard" && next) ? next : route;
+        router.push(destination);
       } else {
         logger.authFlow("No existing user session found", { action: "show_auth_form" });
       }

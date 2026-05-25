@@ -127,7 +127,7 @@ critical here.
 | auth-11 | `/api/auth/send-sms` OTP request | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Rate-limit verified; copy unverified. |
 | auth-12 | `/api/auth/verify-sms` OTP verify | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Same. |
 | auth-13 | Session refresh on protected page | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | watch | Mid-action refresh unverified. |
-| auth-14 | Expired session mid-action recovery | ➖ | ✅ | 🟡 | ✅ | 🟡 | 🟡 | 🟡 | ⛔ | watch | Friendly redirect to `/auth/signin?next=…` not asserted. |
+| auth-14 | Expired session mid-action recovery | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⛔ | watch | **FIXED 2026-05-25** — CRM layout now redirects to `/auth?next=<path>` (middleware sets `x-pathname` header); `UnifiedAuth` redirects to `next` after login when user is already set up. |
 | auth-15 | Sign out | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/middleware.test.ts`. |
 | auth-16 | Two-tab different workspaces | ➖ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | gap | No coverage. |
 | auth-17 | User removed from workspace mid-session | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `getDashboardShellState` pre-checks `User.workspaceId`; if null, CRM layout redirects to `/no-workspace` friendly page instead of /billing. |

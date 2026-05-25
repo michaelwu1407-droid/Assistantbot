@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { DeferredChatInterface } from "@/components/chatbot/deferred-chat-interface";
 import { ShellInitializer } from "@/components/layout/shell-initializer";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { logger } from "@/lib/logging";
 import { getDashboardShellState } from "@/lib/dashboard-shell";
 import type { UserRole } from "@/lib/store";
@@ -90,7 +91,10 @@ export default async function DashboardLayout({
 
   // Redirect triggered outside the try/catch to avoid intercepting Next.js internal redirect throws
   if (shouldRedirectToAuth) {
-    redirect("/auth");
+    const headersList = await headers();
+    const pathname = headersList.get("x-pathname") ?? "";
+    const next = pathname && pathname !== "/auth" ? `?next=${encodeURIComponent(pathname)}` : "";
+    redirect(`/auth${next}`);
   }
 
   if (shouldRedirectToNoWorkspace) {
