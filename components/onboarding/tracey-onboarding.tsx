@@ -376,7 +376,7 @@ const STEPS = [
   { label: "Go live", icon: Send },
 ]
 
-export function TraceyOnboarding() {
+export function TraceyOnboarding({ isResuming = false }: { isResuming?: boolean }) {
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
@@ -1082,7 +1082,7 @@ export function TraceyOnboarding() {
                 {/* ──── STEP 1: Draft Contact Card ──── */}
                 {step === 0 && (
                   <div className="space-y-5">
-                    <TraceyBubble text="G'day! Let's get you set up. Fill in your details below and we'll get Tracey ready for your business." />
+                    <TraceyBubble text={isResuming ? "Welcome back! Let's finish setting up Tracey for your business. Fill in any missing details and keep going." : "G'day! Let's get you set up. Fill in your details below and we'll get Tracey ready for your business."} />
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1.5">

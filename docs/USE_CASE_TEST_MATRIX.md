@@ -157,7 +157,7 @@ resume mid-flow) are scored individually.
 | onb-12 | `/api/internal/provisioning-retry` manual retry | 🟡 | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | watch | Endpoint hit by retry CTA; no E2E. |
 | onb-13 | Tutorial overlay (`?tutorial=1`) dismiss | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ | watch | `tutorialComplete` flip not asserted in test. |
 | onb-14 | `/api/workspace/complete-tutorial` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
-| onb-15 | Resume onboarding mid-flow after browser close | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | 🟡 | ⛔ | gap | Lands on `/setup` or `/onboarding` correctly, but no specific "welcome back" copy. |
+| onb-15 | Resume onboarding mid-flow after browser close | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `setup/page.tsx` detects non-default workspace name → passes `isResuming`; `TraceyOnboarding` shows "Welcome back!" bubble copy. |
 | onb-16 | Full post-payment browser journey (signup → CRM ready) | ✅ | ✅ | 🟡 | ✅ | ✅ | ✅ | 🟡 | ⬜ | gap | CRITICAL_USER_JOURNEYS §3 "Next automation targets" — still outstanding. |
 | onb-17 | Teammate join via `/invite/join` skips onboarding | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/team-member.spec.ts`. |
 
@@ -234,7 +234,7 @@ Tracey button (CC-4).
 | crm-37 | `/crm/agent` Tracey agent surface | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/agent-page.test.tsx`. |
 | crm-38 | `/crm/tradie` tradie field view | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Round 3 manual. |
 | crm-39 | Ctrl+K global search (`/api/search/global`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — root cause was cmdk client-side filter discarding all server results; fixed via `shouldFilter={false}` on `CommandPrimitive`. |
-| crm-40 | `/crm/design/*` design sandbox pages | 🟡 | 🟡 | ✅ | ✅ | ✅ | ➖ | ✅ | ➖ | watch | **Internal-only** pages. Should be gated to staff, currently accessible to any signed-in user. |
+| crm-40 | `/crm/design/*` design sandbox pages | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Both sandbox pages redirect to `/crm/dashboard`; no live UI exposed to users. |
 
 ## F. Modals & dialogs (`modal`)
 
@@ -541,7 +541,7 @@ technically work but mislead the user. Per `JOURNEY_ACCEPTANCE.md` gate
 | logic-01 | **Duplicate route trees** for the same task (`/auth/*` vs `/(auth)/*`, `/crm/contacts/[id]` vs `/contacts/[id]`, `/crm/inbox` vs `/inbox`) | watch | All legacy routes now redirect to canonical `/auth`, `/crm/contacts/[id]`, `/crm/inbox`. See auth-meta, crm-12, crm-29. |
 | logic-02 | **`/crm/settings/privacy` vs `/crm/settings/data-privacy`** | watch | `/data-privacy` redirects to `/privacy`; canonical is `/crm/settings/privacy`. See set-18. |
 | logic-03 | **`/crm/hub` is a 404 but appears wired in nav** | watch | `app/crm/hub/page.tsx` redirects to `/crm/dashboard`. See crm-35. |
-| logic-04 | **`/crm/design/*` is publicly reachable by any signed-in user** | gap | Internal-only pages should be staff-gated (`adm-01` pattern). See crm-40. |
+| logic-04 | **`/crm/design/*` is publicly reachable by any signed-in user** | watch | Both pages redirect to `/crm/dashboard` — no live sandbox UI exposed. See crm-40. |
 | logic-05 | **Email pref toggles save but do nothing** | watch | **FIXED 2026-05-24** — emailDealUpdates + emailNewContacts now enforced. Weekly summary toggle disabled. |
 | logic-06 | **Customer STOP gets an AI reply** | watch | **FIXED 2026-05-24** — STOP exits early, no AI reply. See cpl-01. |
 | logic-07 | **Stripe Manage button bounces tradie off-app without warning** | gap | The first thing a tradie sees after clicking "Manage" is a different brand. No confirmation, no save-the-customer step. See bill-02, bill-09. |
