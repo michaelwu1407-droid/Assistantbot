@@ -252,14 +252,14 @@ base (viewport-relative width + `max-h-[90vh]`) and a per-modal
 | modal-06 | `job-completion-modal.tsx` (tradie variant) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Tradie variant not separately covered. |
 | modal-07 | `stale-job-reconciliation-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-stale-job-modal.test.tsx`. |
 | modal-08 | `stale-deal-follow-up-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-stale-deal-follow-up-modal.test.tsx` + `e2e/crm-follow-up-journey.spec.ts`. |
-| modal-09 | `loss-reason-modal.tsx` | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | ⬜ | watch | No a11y / unit test; reasons list unverified. |
+| modal-09 | `loss-reason-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/a11y-loss-reason-modal.test.tsx` added; fixed hardcoded `#F6F4EE` inline-style → `bg-muted/30 border-border`. |
 | modal-10 | `kanban-automation-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-kanban-automation-modal.test.tsx`. |
-| modal-11 | `activity-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | No dedicated a11y spec. |
+| modal-11 | `activity-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/a11y-activity-modal.test.tsx` added; fixed `style={{ borderColor: "#E6E2D7" }}` → `border-border` and `bg-paper` → `bg-muted/20`. |
 | modal-12 | `search-dialog.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `CommandDialog` replaced with `Dialog + CommandPrimitive shouldFilter={false}`; cmdk no longer double-filters server results (crm-39). |
 | modal-13 | `personal-phone-dialog.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-personal-phone-dialog.test.tsx`. |
 | modal-14 | `onboarding-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Covered indirectly; no dedicated spec. |
 | modal-15 | `referral-success-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ | watch | No spec. |
-| modal-16 | `safety-modal.tsx` | 🟡 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ | watch | When does it fire? Trigger conditions undocumented. |
+| modal-16 | `safety-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/a11y-safety-modal.test.tsx` added. Fires in `/crm/tradie` field view when tradie taps "Start Work" on a scheduled job. |
 
 ## G. Inbox & communications (`comm`)
 
