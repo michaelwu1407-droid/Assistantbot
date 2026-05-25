@@ -124,8 +124,8 @@ critical here.
 | auth-08 | `/(auth)/signup/google` OAuth signup | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
 | auth-09 | `/(auth)/forgot-password` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `e2e/auth-forgot-password.spec.ts` — form render + success message. Email delivery unverifiable in test environment (Supabase auth, no hook). |
 | auth-10 | `/invite/join` teammate accept | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/team-member.spec.ts`. |
-| auth-11 | `/api/auth/send-sms` OTP request | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Rate-limit verified; copy unverified. |
-| auth-12 | `/api/auth/verify-sms` OTP verify | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Same. |
+| auth-11 | `/api/auth/send-sms` OTP request | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/sms-auth-routes.test.ts` — unconfigured provider 500, sends OTP + stores code, provider failure 500. |
+| auth-12 | `/api/auth/verify-sms` OTP verify | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same file — rejects invalid/expired codes; verifies valid code + removes after use. |
 | auth-13 | Session refresh on protected page | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/middleware.test.ts` — `updateSession` is called for every protected page navigation. Mid-session action-layer refresh unverified (E2E gap). |
 | auth-14 | Expired session mid-action recovery | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⛔ | watch | **FIXED 2026-05-25** — CRM layout now redirects to `/auth?next=<path>` (middleware sets `x-pathname` header); `UnifiedAuth` redirects to `next` after login when user is already set up. |
 | auth-15 | Sign out | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/middleware.test.ts`. |
@@ -155,7 +155,7 @@ resume mid-flow) are scored individually.
 | onb-10 | Onboarding completion: no-number-requested copy | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | onb-11 | Onboarding completion: provisioning failure retry copy | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | CTA explicitly tells user to fix number setup. |
 | onb-12 | `/api/internal/provisioning-retry` manual retry | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `__tests__/provisioning-retry-route.test.ts`: asserts 400 on missing workspaceId, 404 on unknown workspace, 200 + correct `ensureWorkspaceProvisioned` call on happy path, null ownerPhone when owner has no phone. |
-| onb-13 | Tutorial overlay (`?tutorial=1`) dismiss | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `workspace-actions.test.ts` now asserts `tutorialComplete: true` DB write via `completeTutorial(workspaceId)`. |
+| onb-13 | Tutorial overlay (`?tutorial=1`) dismiss | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/workspace-actions.test.ts` — `completeTutorial` asserts `{ data: { tutorialComplete: true } }` DB write. |
 | onb-14 | `/api/workspace/complete-tutorial` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
 | onb-15 | Resume onboarding mid-flow after browser close | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `setup/page.tsx` detects non-default workspace name → passes `isResuming`; `TraceyOnboarding` shows "Welcome back!" bubble copy. |
 | onb-16 | Full post-payment browser journey (signup → CRM ready) | ✅ | ✅ | 🟡 | ✅ | ✅ | ✅ | 🟡 | ⬜ | gap | CRITICAL_USER_JOURNEYS §3 "Next automation targets" — still outstanding. |
@@ -179,7 +179,7 @@ bill-10 (no grace period).
 | bill-09 | In-app "Cancel subscription" button | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `CancelSubscriptionButton` added to billing page; dialog explains Tracey number release + data export; calls `cancelSubscriptionAtPeriodEnd`. |
 | bill-10 | Cancellation grace period through `current_period_end` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — CRM layout honours grace period. |
 | bill-11 | Post-cancel banner ("ends on DD MMM") | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — Amber banner with exact date + export link on billing settings page. |
-| bill-12 | Pre-cancel data export | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — GET /api/export/workspace-data; button in Settings → Privacy. |
+| bill-12 | Pre-cancel data export | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24/25** — `__tests__/workspace-data-export-route.test.ts`: 401 unauth, 403 TEAM_MEMBER, JSON attachment with contacts + deals scoped to workspace, DELETED deals excluded. |
 | bill-13 | Plan upgrade (monthly→yearly) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Portal-driven; partial test. |
 | bill-14 | Plan downgrade | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Same. |
 | bill-15 | Referral discount applied to checkout | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/billing-actions.test.ts` asserts `referral_code` in checkout session metadata; `__tests__/stripe-webhook.test.ts` asserts `processReferralConversionForCheckout` called on `checkout.session.completed`. (Note: referral is attribution tracking, not a Stripe coupon.) |
@@ -501,7 +501,7 @@ Legal-exposure cluster. These are the audit's top fix items.
 | cpl-03 | Email "Deal updates" pref enforced E2E | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — shouldSendNotificationEmail gating. E2E stub remains. |
 | cpl-04 | Email "New contacts" pref enforced E2E | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `shouldSendNotificationEmail(workspaceId, "emailNewContacts")` gates send in `contact-actions.ts`. E2E stub remains. |
 | cpl-05 | Email "Weekly summary" pref enforced E2E | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `shouldSendNotificationEmail(workspaceId, "emailWeeklySummary")` gates cron digest. E2E stub remains. |
-| cpl-06 | Customer data export (one-click) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | "Download my workspace data" button in `/crm/settings/privacy` → `GET /api/export/workspace-data` (contacts + deals JSON). |
+| cpl-06 | Customer data export (one-click) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/workspace-data-export-route.test.ts` — owner only, JSON attachment (contacts + deals), workspace-scoped, DELETED deals excluded. See bill-12. |
 | cpl-07 | Workspace deletion (hard) with cooling-off | ✅ | ✅ | 🟡 | 🟡 | ✅ | ✅ | ✅ | 🟡 | watch | `DeleteWorkspaceButton` added to `/crm/settings/privacy` (owner-only, type-to-confirm). No scheduled cooling-off period yet — immediate hard delete. |
 | cpl-08 | Outbound customer email has unsubscribe footer | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — HMAC token footer appended; /api/unsubscribe/email sets emailOptedOut. |
 | cpl-09 | `/(legal)/privacy` accessible app-wide | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Footer link. |
