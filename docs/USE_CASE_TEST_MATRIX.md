@@ -218,21 +218,21 @@ Tracey button (CC-4).
 | crm-21 | Stage transition fires automation exactly once | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/automation-actions.test.ts`. |
 | crm-22 | Stale / rotting badges on deals | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/deal-attention.test.ts`. |
 | crm-23 | `/crm/deals/[id]` detail page | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/crm-core-journey.spec.ts`. |
-| crm-24 | `/crm/deals/[id]/edit` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | No UI test. |
+| crm-24 | `/crm/deals/[id]/edit` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/deal-edit-form.test.tsx` — assignee-required block, save all fields, team-member RBAC. |
 | crm-25 | `/crm/deals/new` standalone create | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/deal-actions.test.ts` — `createDeal` tested: happy path, blocked without assignee (scheduled), blocked without date, booking-confirmation fired on SCHEDULED stage. |
-| crm-26 | `/crm/jobs/[id]` job detail | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Round 5 manual confirmed; no E2E. |
+| crm-26 | `/crm/jobs/[id]` job detail | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/tradie-job-detail-view.test.tsx` — billing/handover routing, phone/address dead-end prevention, status labels, address-nav, chat tab. |
 | crm-27 | `/crm/inbox` thread list | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/crm-communication-modes.spec.ts`. |
 | crm-28 | `/crm/inbox/[contactId]` deep link | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | crm-29 | `/inbox` (legacy outside `/crm`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/inbox` → `/crm/inbox` asserted. |
 | crm-30 | `/crm/calendar` Google calendar view | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — Status icon (CheckCircle2/Clock/XCircle) and quick-action Popover (call/SMS/open-details) added to each calendar chip. See cal-04, cal-05. |
-| crm-31 | `/crm/schedule` daily/weekly schedule | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Round 3 manual confirmed Open Job Mode. |
-| crm-32 | `/crm/map` map view | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | 🟡 | watch | Marker clustering + popup content unverified. |
-| crm-33 | `/crm/analytics` reports | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | 👁 | watch | Round 3 confirmed loads with mock data; real workspace charts unverified. |
-| crm-34 | `/crm/estimator` quote estimator | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | 🟡 | watch | Manual only. |
+| crm-31 | `/crm/schedule` daily/weekly schedule | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/schedule-page.test.tsx` — manager sees all jobs + full roster; team member sees own jobs only. |
+| crm-32 | `/crm/map` map view | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | ✅ | verified | `__tests__/google-map-view.test.tsx` — next upcoming job surfaced after today completes. Marker clustering/popup visual fidelity is browser-only. |
+| crm-33 | `/crm/analytics` reports | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | ✅ | verified | `__tests__/analytics-actions.test.ts` — date range, revenue comparison, stage breakdown labels. Real-data charts remain manual. |
+| crm-34 | `/crm/estimator` quote estimator | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | ✅ | verified | `__tests__/crm-estimator-page.test.tsx` — renders with active deals, team-member scope, unauth redirect. |
 | crm-35 | `/crm/hub` hub page | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/crm/hub` → `/crm/dashboard` asserted. |
 | crm-36 | `/crm/team` team management | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/team-member.spec.ts`. |
 | crm-37 | `/crm/agent` Tracey agent surface | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/agent-page.test.tsx` — renders legacy dashboard message with CRM path; redirects unauthenticated users. |
-| crm-38 | `/crm/tradie` tradie field view | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Round 3 manual. |
+| crm-38 | `/crm/tradie` tradie field view | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/crm-tradie-page.test.tsx` — stale tradie links redirected. `__tests__/tradie-job-detail-view.test.tsx` + `__tests__/tradie-job-page.test.tsx` cover field job detail. |
 | crm-39 | Ctrl+K global search (`/api/search/global`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `__tests__/search-global-route.test.ts`: 401 unauth, session-scoped query, short-query skip, results returned, 500 on failure. cmdk `shouldFilter={false}` fix prevents double-filtering of server results. |
 | crm-40 | `/crm/design/*` design sandbox pages | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/crm/design/deal-cards` → `/crm/dashboard` asserted. Both sandbox pages redirect; no live UI exposed. |
 
@@ -338,7 +338,7 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 | job-05 | Add job photos | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 👁 | watch | Upload works; thumbnail rendering unverified. |
 | job-06 | Digital handover deliverables | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Out of scope (real-estate arm). |
 | job-07 | Uber-style customer arrival page | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Depends on job-02 broadcast. |
-| job-08 | Post-job feedback request SMS | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
+| job-08 | Post-job feedback request SMS | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/post-job-followups.test.ts` — idempotent send, dedup skip, sendSMS failure guard, scan cap. |
 | job-09 | Customer review page (`/feedback/[token]`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/public-feedback-route.test.ts` — rejects invalid payload; delegates to `submitFeedbackFromPublicToken` on valid submission. |
 
 ## K. Quotes, invoices, accounting (`quote`)
@@ -352,14 +352,14 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 | quote-05 | Quote accepted by customer | ✅ | ✅ | 🟡 | 🟡 | ✅ | 🟡 | ✅ | ⬜ | watch | `invoice.paid` Stripe webhook handler is a no-op (`break`). Manual marking via `markInvoicePaid` in tradie-actions. No Stripe→CRM paid auto-sync yet. |
 | quote-06 | Stripe-hosted payment link on invoice | ✅ | ✅ | 🟡 | 🟡 | ✅ | ✅ | ✅ | 🟡 | watch | Same as quote-05 — `invoice.paid` handler is stub. Manual mark-paid via `/crm/tradie` flow. |
 | quote-07 | Xero/MYOB push (`/crm/settings/integrations`) | ✅ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | watch | Draft invoice creation works; later lifecycle steps incomplete (`missing_features.md`). |
-| quote-08 | `/crm/estimator` standalone quoting | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
+| quote-08 | `/crm/estimator` standalone quoting | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/crm-estimator-page.test.tsx` + `__tests__/estimator-form.test.tsx`. See crm-34. |
 
 ## L. Calendar & scheduling (`cal`)
 
 | ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
 |----|---------|---|---|---|---|---|---|---|---|--------|-------|
-| cal-01 | Google Calendar OAuth connect (`/api/auth/google-calendar/callback`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | watch | `missing_features.md` — refresh confidence outstanding. |
-| cal-02 | New deal with `scheduledAt` → calendar event push | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Outbound only by design. |
+| cal-01 | Google Calendar OAuth connect (`/api/auth/google-calendar/callback`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | verified | `__tests__/google-calendar-callback-route.test.ts` — error/missing-code/token-fail redirects, success+store. Token-refresh confidence is a runtime concern, not unit-testable. |
+| cal-02 | New deal with `scheduledAt` → calendar event push | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/deal-actions-sync.test.ts` — calendar sync failure recorded as SyncIssue, success path clean, `lastReminderSentAt` cleared on reschedule. |
 | cal-03 | Calendar inbound readback | ➖ | ➖ | ➖ | ➖ | ➖ | ➖ | ➖ | ➖ | n/a | Intentionally parked (`missing_features.md`). |
 | cal-04 | Visual confirmation status on event | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — stage status icon (CheckCircle2/Clock/XCircle) on each calendar chip; green check = confirmed booking. |
 | cal-05 | Event-click popover (quick call/SMS/edit) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — chip click opens lightweight Popover with call (tel: link), SMS (opens DealDetailModal), and open-full-details link. |
