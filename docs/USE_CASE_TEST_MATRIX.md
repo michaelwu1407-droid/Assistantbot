@@ -281,7 +281,7 @@ base (viewport-relative width + `max-h-[90vh]`) and a per-modal
 | comm-14 | Quote/invoice email send via Resend | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Partial. |
 | comm-15 | Bounce/complaint webhook (`/api/webhooks/resend`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Svix signature handling unit-tested only. |
 | comm-16 | `/api/twilio/webhook` SMS receive idempotency | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/twilio-sms-webhook.test.ts`. |
-| comm-17 | Booking-confirmation auto-SMS on Scheduled stage | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | watch | JOURNEY_ACCEPTANCE journey 3 — needs delivery monitor + dedicated last-success/failure. |
+| comm-17 | Booking-confirmation auto-SMS on Scheduled stage | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `messaging-actions.ts` records `booking_confirmation.sent` / `.failed` WebhookEvents; `feature-verification.ts` queries last success for ops. No cross-workspace synthetic canary yet. |
 | comm-18 | Customer SMS "CONFIRM" flips pending deal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/twilio-sms-webhook.test.ts`. |
 | comm-19 | Customer SMS "STOP" honoured | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — STOP exits early, confirmation SMS sent, smsOptedOut=true set. |
 | comm-20 | Inbound WhatsApp (`/api/webhooks/whatsapp`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Workspace user → AI assistant in WhatsApp. JOURNEY_ACCEPTANCE journey 1 — needs delivery monitor + synthetic round-trip. |
@@ -349,7 +349,7 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 | quote-02 | GST 10% calculation | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | quote-03 | Invoice numbering sequential & unique | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/invoice-number.test.ts`. |
 | quote-04 | Send quote via email | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Partial. |
-| quote-05 | Quote accepted by customer | ✅ | ✅ | 🟡 | 🟡 | ✅ | 🟡 | ✅ | ⬜ | watch | Acceptance route exists; E2E missing. |
+| quote-05 | Quote accepted by customer | ✅ | ✅ | 🟡 | 🟡 | ✅ | 🟡 | ✅ | ⬜ | watch | Acceptance via Stripe payment webhook (`invoice.payment_succeeded`) — no dedicated in-app "Accept quote" route yet. E2E of full accept-to-paid flow missing. |
 | quote-06 | Stripe-hosted payment link on invoice | ✅ | ✅ | 🟡 | 🟡 | ✅ | ✅ | ✅ | 🟡 | watch | Webhook marks paid; full E2E missing. |
 | quote-07 | Xero/MYOB push (`/crm/settings/integrations`) | ✅ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | watch | Draft invoice creation works; later lifecycle steps incomplete (`missing_features.md`). |
 | quote-08 | `/crm/estimator` standalone quoting | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
