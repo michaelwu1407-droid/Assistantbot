@@ -292,11 +292,11 @@ export default function AgentSettingsPage() {
             <MessageSquare className="h-5 w-5 text-green-500" />
             <CardTitle>WhatsApp Assistant</CardTitle>
           </div>
-          <CardDescription>Beta. Lets workspace users control the CRM assistant from WhatsApp.</CardDescription>
+          <CardDescription>Beta. Lets your team control the CRM assistant from WhatsApp.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-100">
-            Workspace users can message this number from the personal mobile saved on their Earlymark user account. End customers are not authorized on this channel.
+            Your team can message this number from the mobile saved on their Earlymark account. Customer-facing numbers are not authorised on this channel.
           </div>
           <div className="relative overflow-hidden rounded-md border border-border bg-muted/30 p-4 dark:border-slate-700 dark:bg-slate-900">
             <div className="pointer-events-none absolute inset-0 bg-card/58 backdrop-blur-[1px] dark:bg-slate-950/48" />

@@ -1156,7 +1156,7 @@ export function KanbanBoard({
                                         )
                                         toast.success(userId ? `Assigned to ${name}` : "Unassigned")
                                       } else {
-                                        toast.error(result.error ?? "Failed to assign")
+                                        toast.error(result.error ?? "Couldn't assign that job — please try again.")
                                       }
                                     }
                                   : undefined
@@ -1194,7 +1194,7 @@ export function KanbanBoard({
                             onClick={() => openNewDealModalForColumn(col.id)}
                           >
                             <Plus className="h-3.5 w-3.5" />
-                            {col.id === "new_request" ? "Add your first deal" : "Add Card"}
+                            {col.id === "new_request" ? "Add your first job" : "Add job"}
                           </button>
                         )}
                       </DroppableColumn>

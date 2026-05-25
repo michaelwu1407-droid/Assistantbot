@@ -65,7 +65,7 @@ export default async function BillingSettingsPage() {
                     <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
                     <div className="space-y-1">
                         <p className="font-medium">Your subscription has been cancelled</p>
-                        <p>You still have full access until <strong>{formatDate(periodEnd)}</strong>. After that your workspace will be locked.</p>
+                        <p>You still have full access until <strong>{formatDate(periodEnd)}</strong>. After that your account will be locked.</p>
                         <p>Want to keep your data? <a href="/crm/settings/data-privacy" className="underline font-medium">Export your data</a> before access ends.</p>
                     </div>
                 </div>

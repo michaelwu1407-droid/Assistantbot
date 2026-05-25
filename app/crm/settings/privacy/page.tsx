@@ -343,7 +343,7 @@ export default async function PrivacySettingsPage() {
             <Button asChild variant="outline" size="sm" className="gap-2">
               <a href="/api/export/workspace-data" download>
                 <Download className="h-4 w-4" />
-                Download my workspace data
+                Download my business data
               </a>
             </Button>
             <p className="mt-2 text-xs text-muted-foreground">Downloads contacts and deals as a JSON file. Does not include voice recordings or message logs.</p>
@@ -351,8 +351,8 @@ export default async function PrivacySettingsPage() {
           {isOwner && (
             <div className="pt-2 border-t border-border mt-2">
               <p className="text-sm text-muted-foreground mb-3">
-                To permanently remove your workspace and all associated data, use the button below.
-                This action cannot be undone — download your data first.
+                To permanently remove your account and all associated data, use the button below.
+                This cannot be undone — download your data first.
               </p>
               <DeleteWorkspaceButton
                 userId={actor.id}
