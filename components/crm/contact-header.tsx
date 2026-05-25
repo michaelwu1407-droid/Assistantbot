@@ -27,14 +27,14 @@ export function ContactHeader({ contact }: ContactHeaderProps) {
     try {
       const result = await sendSMS(contact.id, smsMessage)
       if (result.success) {
-        toast.success("SMS sent via Twilio")
+        toast.success("SMS sent.")
         setSmsMessage("")
         setSmsOpen(false)
       } else {
-        toast.error(result.error || "Failed to send SMS")
+        toast.error(result.error || "Couldn't send the SMS — please try again.")
       }
     } catch {
-      toast.error("Failed to send SMS")
+      toast.error("Couldn't send the SMS — check your connection and try again.")
     } finally {
       setSending(false)
     }

@@ -134,12 +134,20 @@ export default async function DealDetailPage({ params, searchParams }: PageProps
             </p>
           </div>
         </div>
-        <Button variant="secondary" size="sm" asChild>
-          <Link href={`/crm/deals/${id}/edit`}>
-            <Edit className="w-4 h-4 mr-2" />
-            Edit
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/crm/deals/${id}?tab=billing#billing`}>
+              <FileText className="w-4 h-4 mr-2" />
+              Quote / Invoice
+            </Link>
+          </Button>
+          <Button variant="secondary" size="sm" asChild>
+            <Link href={`/crm/deals/${id}/edit`}>
+              <Edit className="w-4 h-4 mr-2" />
+              Edit
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Main: LHS (contact + job) | RHS (history + notes) */}
@@ -154,7 +162,7 @@ export default async function DealDetailPage({ params, searchParams }: PageProps
                 Contact details
               </h3>
               {contact && (
-                <Button variant="outline" size="sm" asChild className="h-8 text-xs">
+                <Button variant="outline" size="sm" asChild className="text-xs">
                   <Link href={`/crm/contacts/${contact.id}/edit`}>
                     <Edit className="w-3.5 h-3.5 mr-1" />
                     Edit contact
@@ -414,7 +422,7 @@ export default async function DealDetailPage({ params, searchParams }: PageProps
       </div>
 
       {/* Billing + Photos as tabs */}
-      <div className="shrink-0">
+      <div id="billing" className="shrink-0">
         <Tabs defaultValue={defaultBottomTab} className="w-full">
           <TabsList className="h-9">
             <TabsTrigger value="billing" className="gap-2 text-xs">

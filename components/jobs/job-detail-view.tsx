@@ -62,7 +62,7 @@ export default function JobDetailView({ job }: JobDetailViewProps) {
                 router.refresh()
             }
         } catch {
-            toast.error("Failed to update status")
+            toast.error("Couldn't update the job status — please try again.")
         } finally {
             setIsUpdating(false)
         }

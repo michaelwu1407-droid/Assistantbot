@@ -66,7 +66,7 @@ export function JobPhotos({ dealId, isPastJob = false }: JobPhotosProps) {
         toast.error(result.error);
       }
     } catch {
-      toast.error("Failed to upload photo");
+      toast.error("Couldn't upload that photo — check your connection and try again.");
     } finally {
       setUploading(false);
     }
@@ -82,7 +82,7 @@ export function JobPhotos({ dealId, isPastJob = false }: JobPhotosProps) {
         toast.error(result.error);
       }
     } catch {
-      toast.error("Failed to delete photo");
+      toast.error("Couldn't delete that photo — please try again.");
     }
   };
 

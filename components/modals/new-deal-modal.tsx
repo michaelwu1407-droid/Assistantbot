@@ -148,7 +148,7 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                 })
 
                 if (!contactResult.success) {
-                    toast.error("Failed to create contact: " + contactResult.error)
+                    toast.error("Couldn't add that contact — " + (contactResult.error ?? "please try again."))
                     setIsLoading(false)
                     return
                 }
@@ -194,11 +194,11 @@ export function NewDealModal({ isOpen, onClose, workspaceId, teamMembers = [], i
                 router.refresh()
             } else {
                 console.error(result.error)
-                toast.error("Failed to create job: " + result.error)
+                toast.error("Couldn't create that job — " + (result.error ?? "please try again."))
             }
         } catch (error) {
             console.error(error)
-            toast.error("An unexpected error occurred.")
+            toast.error("Something went wrong — please try again or contact support.")
         } finally {
             setIsLoading(false)
         }
