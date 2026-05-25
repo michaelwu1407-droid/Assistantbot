@@ -257,7 +257,7 @@ base (viewport-relative width + `max-h-[90vh]`) and a per-modal
 | modal-11 | `activity-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/a11y-activity-modal.test.tsx` added; fixed `style={{ borderColor: "#E6E2D7" }}` → `border-border` and `bg-paper` → `bg-muted/20`. |
 | modal-12 | `search-dialog.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `CommandDialog` replaced with `Dialog + CommandPrimitive shouldFilter={false}`; cmdk no longer double-filters server results (crm-39). |
 | modal-13 | `personal-phone-dialog.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-personal-phone-dialog.test.tsx`. |
-| modal-14 | `onboarding-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Covered indirectly; no dedicated spec. |
+| modal-14 | `onboarding-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/a11y-onboarding-modal.test.tsx` added. |
 | modal-15 | `referral-success-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/a11y-referral-success-modal.test.tsx` added; fixed missing `aria-label="Close"` on close button (a11y violation). |
 | modal-16 | `safety-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/a11y-safety-modal.test.tsx` added. Fires in `/crm/tradie` field view when tradie taps "Start Work" on a scheduled job. |
 
@@ -583,38 +583,38 @@ would have caught it (rule below).
 
 ### Compliance & money (do first)
 
-1. **cpl-01 / comm-19** — SMS STOP. Implement opt-out flag + short-circuit + confirmation SMS + outbound block. ~30 lines in webhook + `Contact.smsOptedOut` migration + send-side guard. Tests: `e2e/sms-stop-opt-out.spec.ts` (existing stubs).
-2. **cpl-02 / bill-04** — Twilio release on subscription cancel. Schedule release job for `stripeCurrentPeriodEnd`. Tests: `e2e/subscription-cancellation.spec.ts`.
-3. **cpl-03..05 / notif-01..03** — Wire `shouldSendEmail(workspaceId, prefKey)` into every email sender. Tests: `e2e/notification-pref-enforcement.spec.ts`.
-4. **bill-10** — Grace period through `current_period_end`. ~5 lines in `app/crm/layout.tsx`.
-5. **bill-09 / bill-11 / bill-12** — In-app cancel UI: confirmation dialog, post-cancel banner, data-export offer.
-6. **cpl-06 / cpl-07** — Customer data export + workspace deletion UX.
-7. **cpl-08** — Outbound customer-email unsubscribe footer.
+1. ✅ **cpl-01 / comm-19** — SMS STOP. FIXED 2026-05-24.
+2. ✅ **cpl-02 / bill-04** — Twilio release on subscription cancel. FIXED 2026-05-24.
+3. ✅ **cpl-03..05 / notif-01..03** — Email pref enforcement + test outbox infra. FIXED 2026-05-25.
+4. ✅ **bill-10** — Grace period through `current_period_end`. FIXED 2026-05-24.
+5. ✅ **bill-09 / bill-11 / bill-12** — In-app cancel UI + banner + export. FIXED 2026-05-24/25.
+6. ✅ **cpl-06 / cpl-07** — Data export + workspace deletion UX. FIXED 2026-05-24/25.
+7. ✅ **cpl-08** — Outbound customer-email unsubscribe footer. FIXED 2026-05-24.
 
 ### Coherence (do next — these are user-trust bombs)
 
-8. **logic-01 / auth-meta / crm-12 / crm-29** — Collapse duplicate route trees.
-9. **logic-02 / set-10 / set-18** — Pick one privacy settings page.
-10. **logic-03 / crm-35** — `/crm/hub` build or remove.
-11. **logic-04 / crm-40** — Staff-gate `/crm/design/*`.
-12. **logic-18 / set-01** — Group the 22 settings subroutes.
-13. **logic-10 / crm-19, crm-20** — Fix kanban drag + stale-deal drag follow-up.
-14. **logic-12 / crm-39 / modal-12** — Fix Ctrl+K search.
-15. **logic-15 / ai-05 / comm-11** — AI graceful fallback for ambiguous requests.
+8. ✅ **logic-01 / auth-meta / crm-12 / crm-29** — Duplicate route trees collapsed. FIXED 2026-05-25.
+9. ✅ **logic-02 / set-10 / set-18** — Privacy page canonical. FIXED 2026-05-25.
+10. ✅ **logic-03 / crm-35** — `/crm/hub` redirects. FIXED 2026-05-25.
+11. ✅ **logic-04 / crm-40** — `/crm/design/*` redirects. FIXED 2026-05-25.
+12. ✅ **logic-18 / set-01** — Settings grouping. FIXED 2026-05-25.
+13. ✅ **logic-10 / crm-19, crm-20** — Kanban drag + stale-deal follow-up. FIXED 2026-05-25.
+14. ✅ **logic-12 / crm-39 / modal-12** — Ctrl+K search. FIXED 2026-05-25.
+15. ✅ **logic-15 / ai-05 / comm-11** — AI graceful fallback. FIXED 2026-05-24.
 
 ### Reliability / observability (do alongside)
 
-16. **voice-08** — Multilingual runtime switch + synthetic canary.
-17. **pub-01 / pub-06** — Portal-open audit trail + portal-link presence audit.
-18. **comm-17** — Booking-confirmation last-success/failure ops row.
-19. **comm-20** — WhatsApp round-trip synthetic.
-20. **res-01, res-02, res-04, res-05, res-07, res-08** — Failure-mode coverage.
+16. 🟡 **voice-08** — Multilingual runtime switch done; synthetic canary outstanding.
+17. ✅ **pub-01 / pub-06** — Portal audit trail exists; portal-link in SMS confirmed.
+18. ✅ **comm-17** — Booking-confirmation WebhookEvents recorded; ops queried via feature-verification.ts.
+19. ⬜ **comm-20** — WhatsApp round-trip synthetic — outstanding.
+20. ⬜ **res-01, res-02, res-04, res-05, res-07, res-08** — Failure-mode coverage outstanding.
 
 ### Cleanup / UX polish
 
-21. **set-** rows marked watch — add at least one assertion per subroute.
-22. **modal-09, modal-11, modal-14, modal-15, modal-16** — A11y / unit specs.
-23. **logic-20** — Audit every `loading.tsx` + Suspense fallback for CC-6 reassurance copy.
+21. ✅ **set-** rows — all settings subroutes now have at least one assertion.
+22. ✅ **modal-09, modal-11, modal-14, modal-15, modal-16** — A11y specs added 2026-05-25.
+23. ✅ **logic-20** — `loading.tsx` audited; missing `return` fixed in `crm/loading.tsx`.
 
 ## Y. Execution rules (do not skip)
 
