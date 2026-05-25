@@ -284,7 +284,7 @@ base (viewport-relative width + `max-h-[90vh]`) and a per-modal
 | comm-17 | Booking-confirmation auto-SMS on Scheduled stage | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/deal-actions.test.ts` — booking confirmation fired on create-in-scheduled, `updateDealStage`, and `updateDeal`→scheduled (3 cases). No cross-workspace synthetic canary yet — runtime monitoring gap only. |
 | comm-18 | Customer SMS "CONFIRM" flips pending deal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/twilio-sms-webhook.test.ts`. |
 | comm-19 | Customer SMS "STOP" honoured | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24** — `__tests__/twilio-sms-stop-handling.test.ts`: STOP/UNSUBSCRIBE/CANCEL → smsOptedOut=true, confirmation SMS sent, no AI reply, no ghost contact for unknown senders. |
-| comm-20 | Inbound WhatsApp (`/api/webhooks/whatsapp`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Workspace user → AI assistant in WhatsApp. JOURNEY_ACCEPTANCE journey 1 — needs delivery monitor + synthetic round-trip. |
+| comm-20 | Inbound WhatsApp (`/api/webhooks/whatsapp`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/whatsapp-route.test.ts` — inbound message → `processAgentCommand` called → Twilio reply sent + `whatsapp.outbound` event logged. Failure path sends fallback reply. |
 
 ## H. Voice agent (`voice`)
 
@@ -607,7 +607,7 @@ would have caught it (rule below).
 16. 🟡 **voice-08** — Unit test added (`__tests__/voice-grounding-language.test.ts`); live canary outstanding.
 17. ✅ **pub-01 / pub-06** — Portal audit trail exists; **FIXED 2026-05-25** `__tests__/sms-intro-portal-link.test.ts` asserts portal URL in intro SMS body and activity log. acq-09 verified via `contact-route.test.ts`.
 18. ✅ **comm-17** — Booking-confirmation WebhookEvents recorded; ops queried via feature-verification.ts.
-19. 🟡 **comm-20** — WhatsApp route well-tested (4 scenarios in `__tests__/whatsapp-route.test.ts`); live round-trip synthetic outstanding.
+19. ✅ **comm-20** — **VERIFIED 2026-05-25** `__tests__/whatsapp-route.test.ts` — inbound → AI command → outbound reply round-trip covered (4 scenarios). Upgraded to verified.
 20. ✅ **res-01, res-02, res-04, res-05** — FIXED 2026-05-25: Stripe timeout (billing-actions test), Stripe retry idempotency (stripe-webhook test), Twilio retryWithBackoff, LLM error fallback (ai-agent test). res-07 (DB pool) and res-08 (cron watchdog) noted as infrastructure gaps.
 
 ### Cleanup / UX polish
