@@ -239,10 +239,10 @@ export function DealCard({
         onDecisionApplied?.({ type: "approve_completion" })
         router.refresh()
       } else {
-        toast.error(result.error ?? "Failed to approve")
+        toast.error(result.error ?? "Couldn't approve that job — please try again.")
       }
     } catch {
-      toast.error("Failed to approve")
+      toast.error("Couldn't approve that job — please try again.")
     } finally {
       setApprovalBusy(false)
     }
@@ -259,10 +259,10 @@ export function DealCard({
         onDecisionApplied?.({ type: "approve_draft" })
         router.refresh()
       } else {
-        toast.error(result.error ?? "Failed to approve draft")
+        toast.error(result.error ?? "Couldn't approve that draft — please try again.")
       }
     } catch {
-      toast.error("Failed to approve draft")
+      toast.error("Couldn't approve that draft — please try again.")
     } finally {
       setApprovalBusy(false)
     }
@@ -285,10 +285,10 @@ export function DealCard({
         )
         router.refresh()
       } else {
-        toast.error(result.error ?? "Failed to reject")
+        toast.error(result.error ?? "Couldn't reject that — please try again.")
       }
     } catch {
-      toast.error("Failed to reject")
+      toast.error("Couldn't reject that — please try again.")
     } finally {
       setApprovalBusy(false)
     }
