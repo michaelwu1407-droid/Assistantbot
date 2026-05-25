@@ -28,6 +28,7 @@ import { DealCard, type DealCardDecision } from "./deal-card"
 import { HoverScrollName } from "@/components/ui/hover-scroll-name"
 import { DealDetailModal } from "./deal-detail-modal"
 import { DealEditModal } from "./deal-edit-modal"
+import { StaleDealFollowUpModal } from "./stale-deal-follow-up-modal"
 import { Plus, Trash2, UserPlus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -360,6 +361,7 @@ export function KanbanBoard({
   const [pendingScheduleDate, setPendingScheduleDate] = useState<{ dealId: string; dealTitle: string } | null>(null)
   const [editModalDealId, setEditModalDealId] = useState<string | null>(null)
   const [editModalOpen, setEditModalOpen] = useState(false)
+  const [staleFollowUpDeal, setStaleFollowUpDeal] = useState<DealView | null>(null)
   const [assignModalUserId, setAssignModalUserId] = useState<string>("")
   const [assignModalSubmitting, setAssignModalSubmitting] = useState(false)
   const hasDragged = useRef(false)
@@ -897,6 +899,10 @@ export function KanbanBoard({
         const colTitle = COLUMNS.find((c) => c.id === targetColumn)?.title ?? targetColumn
         toast.success(`Moved to ${colTitle}`)
         setLiveMessage(`Moved to ${colTitle}.`)
+        // Dragging a stale deal back to Quote Sent triggers the follow-up modal
+        if (draggedDeal.isStale && targetColumn === "quote_sent") {
+          setStaleFollowUpDeal(draggedDeal)
+        }
       } else {
         if (handleStageConflict(result)) return
         throw new Error(result.error)
@@ -1353,6 +1359,24 @@ export function KanbanBoard({
         onDealUpdated={() => setDeals(initialDeals)}
         currentUserRole={currentUserRole}
       />
+
+      {staleFollowUpDeal && (
+        <StaleDealFollowUpModal
+          open={Boolean(staleFollowUpDeal)}
+          onOpenChange={(open) => { if (!open) setStaleFollowUpDeal(null) }}
+          deal={{
+            id: staleFollowUpDeal.id,
+            title: staleFollowUpDeal.title,
+            contactId: staleFollowUpDeal.contactId,
+            contactName: staleFollowUpDeal.contactName,
+            contactPhone: staleFollowUpDeal.contactPhone,
+            lastActivity: staleFollowUpDeal.lastActivityDate,
+            value: staleFollowUpDeal.value,
+            stage: staleFollowUpDeal.stage,
+          }}
+          onFollowUpSent={() => setStaleFollowUpDeal(null)}
+        />
+      )}
     </DndContext>
   )
 }
