@@ -74,7 +74,7 @@ export function ReminderMonitor() {
         setRecentTripSms(result.details.recentTripSms);
         setUpcomingJobs(result.details.upcomingJobs);
       } else {
-        toast.error("Failed to load stats");
+        toast.error("Couldn't load stats — please refresh.");
       }
     } catch {
       toast.error("Error loading stats");
@@ -99,7 +99,7 @@ export function ReminderMonitor() {
         toast.error(result.error);
       }
     } catch {
-      toast.error("Failed to send reminder");
+      toast.error("Couldn't send that reminder — please try again.");
     }
   };
 
@@ -119,7 +119,7 @@ export function ReminderMonitor() {
         toast.error(result.error);
       }
     } catch {
-      toast.error("Failed to send trip SMS");
+      toast.error("Couldn't send the trip SMS — please try again.");
     }
   };
 

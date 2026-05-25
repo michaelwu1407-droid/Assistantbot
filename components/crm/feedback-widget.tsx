@@ -61,10 +61,10 @@ function FeedbackCard({ item }: { item: FeedbackItem }) {
                 setIsResolved(true);
                 setResolving(false);
             } else {
-                toast.error(result.error || "Failed to resolve");
+                toast.error(result.error || "Couldn't mark as resolved — please try again.");
             }
         } catch {
-            toast.error("An error occurred");
+            toast.error("Couldn't mark as resolved — please try again.");
         } finally {
             setLoading(false);
         }
