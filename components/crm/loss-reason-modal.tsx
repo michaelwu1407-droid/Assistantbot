@@ -34,8 +34,8 @@ export function LossReasonModal({ open, onOpenChange, deal, onConfirm }: LossRea
       await onConfirm(reason)
       setReason("")
       onOpenChange(false)
-    } catch (error) {
-      toast.error("Failed to update deal")
+    } catch {
+      toast.error("Couldn't mark as lost — please try again.")
     } finally {
       setIsSubmitting(false)
     }

@@ -834,7 +834,7 @@ export function KanbanBoard({
           const result = await updateDealStage(gid, targetColumn)
           if (!result.success) {
             if (handleStageConflict(result)) return
-            throw new Error(result.error ?? "Failed to save")
+            throw new Error(result.error ?? "Couldn't move those jobs — please try again.")
           }
         }
         const colTitle = COLUMNS.find((c) => c.id === targetColumn)?.title ?? targetColumn
@@ -842,7 +842,7 @@ export function KanbanBoard({
         setLiveMessage(`Moved ${groupIds.length} jobs to ${colTitle}.`)
       } catch (err) {
         console.error("Failed to update stage:", err)
-        toast.error(err instanceof Error ? err.message : "Failed to save changes")
+        toast.error(err instanceof Error ? err.message : "Couldn't move those jobs — please try again.")
         setLiveMessage("Could not move selected jobs.")
         restoreGroup()
       }
@@ -861,7 +861,7 @@ export function KanbanBoard({
         .map((d) => d.id)
       if (orderedIds.length > 0) {
         void persistKanbanColumnOrder(targetColumn, orderedIds).then((res) => {
-          if (!res.success) toast.error(res.error ?? "Failed to save card order")
+          if (!res.success) toast.error(res.error ?? "Couldn't save the new order — please try again.")
         })
       }
       setTimeout(() => {
@@ -909,7 +909,7 @@ export function KanbanBoard({
       }
     } catch (err) {
       console.error("Failed to update stage:", err)
-      toast.error(err instanceof Error ? err.message : "Failed to save changes")
+      toast.error(err instanceof Error ? err.message : "Couldn't update the stage — please try again.")
       setLiveMessage("Could not update stage.")
       setDeals(initialDeals)
     }
@@ -926,7 +926,7 @@ export function KanbanBoard({
         const result = await updateDealStage(id, "deleted")
         if (!result.success) {
           if (handleStageConflict(result)) return
-          throw new Error(result.error ?? "Failed to move")
+          throw new Error(result.error ?? "Couldn't move that job — please try again.")
         }
       }
       setDeals((prev) =>
@@ -942,7 +942,7 @@ export function KanbanBoard({
       setPendingDeleteMode(null)
     } catch (err) {
       console.error(err)
-      toast.error(err instanceof Error ? err.message : "Failed to delete")
+      toast.error(err instanceof Error ? err.message : "Couldn't move that job — please try again.")
       setDeals(initialDeals)
     }
   }
@@ -954,7 +954,7 @@ export function KanbanBoard({
       for (const id of idsToDelete) {
         const result = await deleteDeal(id)
         if (!result.success) {
-          throw new Error(result.error ?? "Failed to permanently delete")
+          throw new Error(result.error ?? "Couldn't delete that job — please try again.")
         }
       }
       setDeals((prev) => prev.filter((deal) => !idsToDelete.includes(deal.id)))
@@ -968,7 +968,7 @@ export function KanbanBoard({
       setPendingDeleteMode(null)
     } catch (err) {
       console.error(err)
-      toast.error(err instanceof Error ? err.message : "Failed to permanently delete")
+      toast.error(err instanceof Error ? err.message : "Couldn't delete that job — please try again.")
       setDeals(initialDeals)
     }
   }
@@ -996,7 +996,7 @@ export function KanbanBoard({
     try {
       const assignRes = await updateDealAssignedTo(pendingMoveToScheduled.dealId, assignModalUserId)
       if (!assignRes.success) {
-        toast.error(assignRes.error ?? "Failed to assign")
+        toast.error(assignRes.error ?? "Couldn't assign that job — please try again.")
         setAssignModalSubmitting(false)
         return
       }
@@ -1017,7 +1017,7 @@ export function KanbanBoard({
           setPendingMoveToScheduled(null)
           return
         }
-        toast.error(stageRes.error ?? "Failed to move")
+        toast.error(stageRes.error ?? "Couldn't move that job — please try again.")
       }
     } catch (err) {
       toast.error("Something went wrong")
@@ -1179,10 +1179,10 @@ export function KanbanBoard({
                                     toast.success("Moved to Deleted")
                                   } else {
                                     if (handleStageConflict(result)) return
-                                    toast.error(result.error ?? "Failed to move")
+                                    toast.error(result.error ?? "Couldn't move that job — please try again.")
                                   }
                                 } catch (err) {
-                                  toast.error(err instanceof Error ? err.message : "Failed to move")
+                                  toast.error(err instanceof Error ? err.message : "Couldn't move that job — please try again.")
                                 }
                               }}
                             />

@@ -202,14 +202,14 @@ function ContactsClientDesktop({ contacts, pagination }: ContactsClientProps) {
     try {
       const result = await deleteContacts(Array.from(selected))
       if (result?.success === false) {
-        throw new Error(result.error || "Failed to delete contacts")
+        throw new Error(result.error || "Couldn't delete those contacts — please try again.")
       }
       toast.success(`Deleted ${selectedCount} contact${selectedCount === 1 ? "" : "s"}`)
       setSelected(new Set())
       setDeleteDialogOpen(false)
       router.refresh()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to delete contacts")
+      toast.error(error instanceof Error ? error.message : "Couldn't delete those contacts — please try again.")
     } finally {
       setSending(false)
     }

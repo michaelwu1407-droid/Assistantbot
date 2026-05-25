@@ -428,7 +428,7 @@ function InboxViewDesktop({
           toast.success("SMS sent")
           setMessageDrafts((current) => ({ ...current, direct: "" }))
         } else {
-          toast.error(result.error || "Failed to send")
+          toast.error(result.error || "Couldn't send that message — please try again.")
         }
       } else {
         // Ask Tracey - route through chatbot API (requires workspaceId)
@@ -480,7 +480,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
         }
       }
     } catch {
-      toast.error("Failed to send message")
+      toast.error("Couldn't send that message — please try again.")
     } finally {
       setSending(false)
     }
