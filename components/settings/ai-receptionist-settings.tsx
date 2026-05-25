@@ -33,7 +33,7 @@ export function AIReceptionistSettings() {
         });
       })
       .catch((err) => {
-        if (!cancelled) setError(err?.message ?? "Failed to load phone settings");
+        if (!cancelled) setError(err?.message ?? "Couldn't load phone settings — please refresh.");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

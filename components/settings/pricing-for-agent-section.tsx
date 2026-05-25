@@ -61,7 +61,7 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
         setServices(serviceRules)
         setRefusalRules(negativeScopeRules)
       })
-      .catch(() => toast.error("Failed to load pricing information"))
+      .catch(() => toast.error("Couldn't load pricing information — please refresh."))
       .finally(() => setLoading(false))
   }, [])
 
@@ -70,7 +70,7 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
     try {
       const currentSettings = await getWorkspaceSettings()
       if (!currentSettings) {
-        toast.error("Failed to get current settings")
+        toast.error("Couldn't load current settings — please refresh.")
         return
       }
 
@@ -85,7 +85,7 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
 
       toast.success("Call-out fee saved")
     } catch {
-      toast.error("Failed to save call-out fee")
+      toast.error("Couldn't save the call-out fee — please try again.")
     } finally {
       setSavingCallOutFee(false)
     }
@@ -105,7 +105,7 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
 
     const result = await addKnowledgeRule("SERVICE", name, metadata)
     if (!result.success) {
-      toast.error(result.error || "Failed to add service")
+      toast.error(result.error || "Couldn't add that service — please try again.")
       return
     }
 
@@ -129,7 +129,7 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
 
     const result = await updateKnowledgeRule(service.id, draft.name.trim(), metadata)
     if (!result.success) {
-      toast.error(result.error || "Failed to update service")
+      toast.error(result.error || "Couldn't update that service — please try again.")
       return
     }
     const updated = await getKnowledgeRules("SERVICE")
@@ -140,7 +140,7 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
   const removeService = async (id: string) => {
     const result = await deleteKnowledgeRule(id)
     if (!result.success) {
-      toast.error(result.error || "Failed to remove service")
+      toast.error(result.error || "Couldn't remove that service — please try again.")
       return
     }
     setServices((prev) => prev.filter((rule) => rule.id !== id))
@@ -152,7 +152,7 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
     if (!text) return
     const result = await addKnowledgeRule("NEGATIVE_SCOPE", text)
     if (!result.success) {
-      toast.error(result.error || "Failed to add refusal rule")
+      toast.error(result.error || "Couldn't add that rule — please try again.")
       return
     }
     const updated = await getKnowledgeRules("NEGATIVE_SCOPE")
@@ -164,7 +164,7 @@ export function PricingForAgentSection({ initialCallOutFee }: PricingForAgentSec
   const removeRefusalRule = async (id: string) => {
     const result = await deleteKnowledgeRule(id)
     if (!result.success) {
-      toast.error(result.error || "Failed to remove refusal rule")
+      toast.error(result.error || "Couldn't remove that rule — please try again.")
       return
     }
     setRefusalRules((prev) => prev.filter((rule) => rule.id !== id))

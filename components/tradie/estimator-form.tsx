@@ -64,11 +64,11 @@ export function EstimatorForm({ deals = [], workspaceId }: EstimatorFormProps) {
                     invoiceNumber: result.invoiceNumber
                 })
             } else {
-                toast.error(result.error || "Failed to generate quote")
+                toast.error(result.error || "Couldn't generate the quote — please try again.")
             }
         } catch (error) {
             console.error("Failed to generate quote", error)
-            toast.error("Failed to generate quote")
+            toast.error("Couldn't generate the quote — please try again.")
         } finally {
             setLoading(false)
         }

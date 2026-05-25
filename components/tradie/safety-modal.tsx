@@ -41,10 +41,10 @@ export function SafetyModal({ open, onOpenChange, onConfirm, dealId }: SafetyMod
                 toast.success("Safety check logged");
                 onConfirm();
             } else {
-                toast.error("Failed to log safety check");
+                toast.error("Couldn't log the safety check — please try again.");
             }
         } catch (error) {
-            toast.error("Error logging safety check");
+            toast.error("Couldn't log the safety check — please try again.");
         } finally {
             setLoading(false);
         }

@@ -1618,8 +1618,8 @@ export function TraceyOnboarding({ isResuming = false }: { isResuming?: boolean 
                                 const res = await fetch("/api/auth/email-provider?provider=gmail")
                                 const data = await res.json()
                                 if (data.authUrl) window.open(data.authUrl, "_blank", "width=600,height=700")
-                                else toast.error("Failed to start Gmail connection")
-                              } catch { toast.error("Failed to connect Gmail") }
+                                else toast.error("Couldn't start Gmail connection — please try again.")
+                              } catch { toast.error("Couldn't connect Gmail — please try again.") }
                             }}
                           >
                             <Mail className="h-4 w-4" />
@@ -1634,8 +1634,8 @@ export function TraceyOnboarding({ isResuming = false }: { isResuming?: boolean 
                                 const res = await fetch("/api/auth/email-provider?provider=outlook")
                                 const data = await res.json()
                                 if (data.authUrl) window.open(data.authUrl, "_blank", "width=600,height=700")
-                                else toast.error("Failed to start Outlook connection")
-                              } catch { toast.error("Failed to connect Outlook") }
+                                else toast.error("Couldn't start Outlook connection — please try again.")
+                              } catch { toast.error("Couldn't connect Outlook — please try again.") }
                             }}
                           >
                             <Mail className="h-4 w-4" />

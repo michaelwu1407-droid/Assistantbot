@@ -65,7 +65,7 @@ export function InboxThreadMobile({
       }
       setOptimistic((prev) => [...prev, temp])
       const result = await sendSMS(contactId, body)
-      if (!result.success) toast.error(result.error || "Failed to send")
+      if (!result.success) toast.error(result.error || "Couldn't send that message — please try again.")
     } else {
       const temp: ActivityView = {
         id: `temp-${Date.now()}`,

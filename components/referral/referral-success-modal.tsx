@@ -70,7 +70,7 @@ export function ReferralSuccessModal({ isOpen, onClose, trigger, userId }: Refer
       
       setTimeout(() => store.set({ isCopied: false }), 2000)
     } catch {
-      toast.error("Failed to copy link")
+      toast.error("Couldn't copy the link — try selecting it manually.")
     }
   }
 

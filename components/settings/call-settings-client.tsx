@@ -164,7 +164,7 @@ export function CallSettingsClient() {
         } else {
           setRules([])
           setRulesError("Automated text messages are unavailable right now. Try again in a moment.")
-          toast.error("Failed to load automated text messages")
+          toast.error("Couldn't load automated messages — please refresh.")
         }
       })
       .finally(() => setLoading(false))
@@ -188,7 +188,7 @@ export function CallSettingsClient() {
       setSettings(next)
       toast.success("Settings saved")
     } catch {
-      toast.error("Failed to save settings")
+      toast.error("Couldn't save settings — please try again.")
     } finally {
       setSaving(false)
     }
@@ -206,7 +206,7 @@ export function CallSettingsClient() {
         hoursOffset: normalizedHoursOffset,
       })
       if (!result.success) {
-        throw new Error(result.error || "Failed to update template")
+        throw new Error(result.error || "Couldn't update that message — please try again.")
       }
 
       setRules((prev) =>
@@ -218,7 +218,7 @@ export function CallSettingsClient() {
       )
       toast.success("Automated text message saved")
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update template")
+      toast.error(error instanceof Error ? error.message : "Couldn't update that message — please try again.")
     } finally {
       setSavingRuleId(null)
     }

@@ -106,7 +106,7 @@ export function PersonalPhoneDialog({
       setStep("verify")
       setSuccess(`We sent a 6-digit code to ${newPhoneNumber.trim()}.`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send the verification code.")
+      setError(err instanceof Error ? err.message : "Couldn't send the verification code — please try again.")
     } finally {
       setSendingCode(false)
     }
@@ -133,7 +133,7 @@ export function PersonalPhoneDialog({
       setSuccess(`Saved. Your personal mobile is now ${result.phoneNumber}.`)
       handleClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update your phone number.")
+      setError(err instanceof Error ? err.message : "Couldn't update your phone number — please try again.")
     } finally {
       setUpdating(false)
     }
