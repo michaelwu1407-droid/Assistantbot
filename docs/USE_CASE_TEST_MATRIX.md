@@ -408,7 +408,7 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 | set-15 | `/my-business` profile + refusal rules | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/settings-actions.test.ts`. |
 | set-16 | `/notifications` | see Section M | – | – | – | – | – | – | – | – | – | Covered in `notif-*`. |
 | set-17 | `/phone-settings` (owner-only) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Owner gate per `e2e/team-member.spec.ts`. |
-| set-18 | `/privacy` (legacy?) | 🔴 | ✅ | 🟡 | 🟡 | 🔴 | 🟡 | ✅ | ⛔ | gap | **Logic gap** — overlaps `/data-privacy`. Pick one. |
+| set-18 | `/privacy` (legacy?) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `/data-privacy` redirects to `/privacy`; canonical is `/crm/settings/privacy`. |
 | set-19 | `/sms-templates` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/sms-templates.test.ts`. |
 | set-20 | `/support` contact form | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Ticket → email path partial. |
 | set-21 | `/training` agent training | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | 🟡 | watch | Copy clarity TBD. |
@@ -499,10 +499,10 @@ Legal-exposure cluster. These are the audit's top fix items.
 | cpl-01 | Customer SMS STOP / UNSUBSCRIBE / CANCEL honoured | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — full opt-out + confirmation + block. E2E stub remains for live proof. |
 | cpl-02 | Subscription cancel releases Twilio number | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — releases on deletion event. E2E stub remains. |
 | cpl-03 | Email "Deal updates" pref enforced E2E | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — shouldSendNotificationEmail gating. E2E stub remains. |
-| cpl-04 | Email "New contacts" pref enforced E2E | ✅ | ✅ | 🔴 | 🔴 | 🔴 | 🔴 | 🟡 | ⛔ | gap | Same. |
-| cpl-05 | Email "Weekly summary" pref enforced E2E | ✅ | ✅ | 🔴 | 🔴 | 🔴 | 🔴 | 🟡 | ⛔ | gap | Same. |
-| cpl-06 | Customer data export (one-click) | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Not built. Required pre-cancel. |
-| cpl-07 | Workspace deletion (hard) with cooling-off | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | `/api/delete-user` exists but no UI workflow. |
+| cpl-04 | Email "New contacts" pref enforced E2E | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `shouldSendNotificationEmail(workspaceId, "emailNewContacts")` gates send in `contact-actions.ts`. E2E stub remains. |
+| cpl-05 | Email "Weekly summary" pref enforced E2E | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `shouldSendNotificationEmail(workspaceId, "emailWeeklySummary")` gates cron digest. E2E stub remains. |
+| cpl-06 | Customer data export (one-click) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | "Download my workspace data" button in `/crm/settings/privacy` → `GET /api/export/workspace-data` (contacts + deals JSON). |
+| cpl-07 | Workspace deletion (hard) with cooling-off | ✅ | ✅ | 🟡 | 🟡 | ✅ | ✅ | ✅ | 🟡 | watch | `DeleteWorkspaceButton` added to `/crm/settings/privacy` (owner-only, type-to-confirm). No scheduled cooling-off period yet — immediate hard delete. |
 | cpl-08 | Outbound customer email has unsubscribe footer | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-24** — HMAC token footer appended; /api/unsubscribe/email sets emailOptedOut. |
 | cpl-09 | `/(legal)/privacy` accessible app-wide | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Footer link. |
 | cpl-10 | `/(legal)/terms` accessible app-wide | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
@@ -538,17 +538,17 @@ technically work but mislead the user. Per `JOURNEY_ACCEPTANCE.md` gate
 
 | ID | Coherence concern | Status | Notes |
 |----|--------------------|--------|-------|
-| logic-01 | **Duplicate route trees** for the same task (`/auth/*` vs `/(auth)/*`, `/crm/contacts/[id]` vs `/contacts/[id]`, `/crm/inbox` vs `/inbox`) | gap | Tradie gets sent to one but bookmarks the other. Pick one canonical path per task and redirect the rest. See auth-meta, crm-12, crm-29. |
-| logic-02 | **`/crm/settings/privacy` vs `/crm/settings/data-privacy`** | gap | Two overlapping settings pages — which is canonical? Consolidate. See set-10 / set-18. |
-| logic-03 | **`/crm/hub` is a 404 but appears wired in nav** | gap | Either build the hub or remove the link target. See crm-35. |
+| logic-01 | **Duplicate route trees** for the same task (`/auth/*` vs `/(auth)/*`, `/crm/contacts/[id]` vs `/contacts/[id]`, `/crm/inbox` vs `/inbox`) | watch | All legacy routes now redirect to canonical `/auth`, `/crm/contacts/[id]`, `/crm/inbox`. See auth-meta, crm-12, crm-29. |
+| logic-02 | **`/crm/settings/privacy` vs `/crm/settings/data-privacy`** | watch | `/data-privacy` redirects to `/privacy`; canonical is `/crm/settings/privacy`. See set-18. |
+| logic-03 | **`/crm/hub` is a 404 but appears wired in nav** | watch | `app/crm/hub/page.tsx` redirects to `/crm/dashboard`. See crm-35. |
 | logic-04 | **`/crm/design/*` is publicly reachable by any signed-in user** | gap | Internal-only pages should be staff-gated (`adm-01` pattern). See crm-40. |
 | logic-05 | **Email pref toggles save but do nothing** | watch | **FIXED 2026-05-24** — emailDealUpdates + emailNewContacts now enforced. Weekly summary toggle disabled. |
 | logic-06 | **Customer STOP gets an AI reply** | watch | **FIXED 2026-05-24** — STOP exits early, no AI reply. See cpl-01. |
 | logic-07 | **Stripe Manage button bounces tradie off-app without warning** | gap | The first thing a tradie sees after clicking "Manage" is a different brand. No confirmation, no save-the-customer step. See bill-02, bill-09. |
 | logic-08 | **Immediate lockout on cancel even though they paid for the month** | watch | **FIXED 2026-05-24** — Grace period honoured in CRM layout. |
 | logic-09 | **Twilio number kept billable on cancelled workspaces** | watch | **FIXED 2026-05-24** — Number released on customer.subscription.deleted. |
-| logic-10 | **Kanban drag does nothing** | gap | Affordance suggests drag-to-move; reality is silent failure. See crm-19. |
-| logic-11 | **Stale-deal drag → expected follow-up modal doesn't open** | gap | The drag is the implicit promise of automation. See crm-20. |
+| logic-10 | **Kanban drag does nothing** | watch | **FIXED 2026-05-25** — `dragStartColumnRef` set in `handleDragStart`; intra-column sort path now reached. See crm-19. |
+| logic-11 | **Stale-deal drag → expected follow-up modal doesn't open** | watch | **FIXED 2026-05-25** — `StaleDealFollowUpModal` wired into `handleDragEnd`. See crm-20. |
 | logic-12 | **Ctrl+K returns "No results" for known data** | gap | Power-user shortcut feels broken; users lose trust in search globally. See crm-39. |
 | logic-13 | **Department selection on `/contact` is decorative** | gap | If routing isn't different per department, the field is a confidence-eroding ask. See acq-09. |
 | logic-14 | **Calendar event click navigates to deal page** | gap | User expected a popover; navigation kicks them out of their planning context. See cal-05. |
