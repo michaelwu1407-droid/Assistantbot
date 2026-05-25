@@ -209,7 +209,7 @@ Tracey button (CC-4).
 | crm-12 | `/contacts/[id]` (legacy outside `/crm`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `app/contacts/[id]/page.tsx` already redirects to `/crm/contacts/${id}`. |
 | crm-13 | Contact filter chip — "Service Due" | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
 | crm-14 | Contact filter chip — "Last Job" | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Not built (UC9/15). |
-| crm-15 | Contact merge prompt on dedup | ✅ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | watch | `__tests__/dedup-actions.test.ts`; no UI assertion. |
+| crm-15 | Contact merge prompt on dedup | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/contact-actions.test.ts` — "merges into an existing matching-name contact instead of creating a duplicate"; P2002 dedup path covered. No UI merge-prompt assertion. |
 | crm-16 | Properties tab on contact (multi-property) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 👁 | watch | Round 3 walkthrough confirmed Sally fixture; no E2E. |
 | crm-17 | Asset tab on contact (asset DNA) | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Out of scope per `missing_features.md` "Archived". |
 | crm-18 | `/crm/deals` kanban board | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/crm-core-journey.spec.ts`. |
@@ -349,8 +349,8 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 | quote-02 | GST 10% calculation | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | quote-03 | Invoice numbering sequential & unique | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/invoice-number.test.ts`. |
 | quote-04 | Send quote via email | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Partial. |
-| quote-05 | Quote accepted by customer | ✅ | ✅ | 🟡 | 🟡 | ✅ | 🟡 | ✅ | ⬜ | watch | Acceptance via Stripe payment webhook (`invoice.payment_succeeded`) — no dedicated in-app "Accept quote" route yet. E2E of full accept-to-paid flow missing. |
-| quote-06 | Stripe-hosted payment link on invoice | ✅ | ✅ | 🟡 | 🟡 | ✅ | ✅ | ✅ | 🟡 | watch | Webhook marks paid; full E2E missing. |
+| quote-05 | Quote accepted by customer | ✅ | ✅ | 🟡 | 🟡 | ✅ | 🟡 | ✅ | ⬜ | watch | `invoice.paid` Stripe webhook handler is a no-op (`break`). Manual marking via `markInvoicePaid` in tradie-actions. No Stripe→CRM paid auto-sync yet. |
+| quote-06 | Stripe-hosted payment link on invoice | ✅ | ✅ | 🟡 | 🟡 | ✅ | ✅ | ✅ | 🟡 | watch | Same as quote-05 — `invoice.paid` handler is stub. Manual mark-paid via `/crm/tradie` flow. |
 | quote-07 | Xero/MYOB push (`/crm/settings/integrations`) | ✅ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | watch | Draft invoice creation works; later lifecycle steps incomplete (`missing_features.md`). |
 | quote-08 | `/crm/estimator` standalone quoting | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
 
