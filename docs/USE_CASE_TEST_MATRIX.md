@@ -459,8 +459,8 @@ GitHub Actions; each must emit a heartbeat the ops page can read.
 |----|-----------|---------|---|---|---|---|---|---|---|---|--------|-------|
 | cron-01 | `/api/cron/booking-reminders` | hourly @0 | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/reminders-actions.test.ts`. |
 | cron-02 | `/api/cron/followup-reminders` | hourly @0 | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same family. |
-| cron-03 | `/api/cron/job-reminders` | hourly | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Partial. |
-| cron-04 | `/api/cron/task-overdue` | hourly | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Partial. |
+| cron-03 | `/api/cron/job-reminders` | hourly | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/job-reminders-route.test.ts` — auth check, summary response, 500 on error. |
+| cron-04 | `/api/cron/task-overdue` | hourly | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `__tests__/task-overdue-route.test.ts`: auth check, one `evaluateAutomations` call per workspace (groups tasks), zero count when no overdue tasks, 500 on DB failure. |
 | cron-05 | `/api/cron/recurring-jobs` | daily | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `__tests__/recurring-jobs-route.test.ts`: auth check, clone happy path (sets `recurrenceLastClonedAt`), idempotency (skips if `recurrenceLastClonedAt` not yet elapsed), end-date skip, DB error logged without crash. |
 | cron-06 | `/api/cron/scheduled-calls` | every 5m | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/lead-callback.test.ts`. |
 | cron-07 | `/api/cron/voice-agent-health` | 30m | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/voice-fleet-health-route.test.ts`. |
