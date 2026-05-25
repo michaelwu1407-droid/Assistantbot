@@ -121,9 +121,62 @@ export async function completeUserOnboarding(userId: string) {
   }
 }
 
+const DELETION_COOLING_OFF_DAYS = 30;
+
 /**
- * Delete user account and log reason.
- * Manually cleans up ALL dependent records before deleting the user.
+ * Schedule workspace deletion 30 days from now.
+ * The actual hard-delete runs via the process-deletions cron job.
+ */
+export async function scheduleWorkspaceDeletion(userId: string, reason: string) {
+  try {
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { workspaceId: true },
+    });
+    if (!user) return { success: false, error: "User not found." };
+
+    const scheduledForDeletionAt = new Date(
+      Date.now() + DELETION_COOLING_OFF_DAYS * 24 * 60 * 60 * 1000
+    );
+    await db.workspace.update({
+      where: { id: user.workspaceId },
+      data: { scheduledForDeletionAt },
+    });
+    console.log(`[ACCOUNT DELETION] Workspace ${user.workspaceId} scheduled for deletion on ${scheduledForDeletionAt.toISOString()}. Reason: ${reason}`);
+    revalidatePath("/crm/settings/privacy");
+    return { success: true, scheduledForDeletionAt };
+  } catch (error: any) {
+    console.error("Failed to schedule workspace deletion:", error?.message || error);
+    return { success: false, error: "Failed to schedule deletion. Please contact support." };
+  }
+}
+
+/**
+ * Cancel a pending workspace deletion within the cooling-off window.
+ */
+export async function cancelWorkspaceDeletion(userId: string) {
+  try {
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { workspaceId: true },
+    });
+    if (!user) return { success: false, error: "User not found." };
+
+    await db.workspace.update({
+      where: { id: user.workspaceId },
+      data: { scheduledForDeletionAt: null },
+    });
+    revalidatePath("/crm/settings/privacy");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Failed to cancel workspace deletion:", error?.message || error);
+    return { success: false, error: "Failed to cancel deletion. Please contact support." };
+  }
+}
+
+/**
+ * Hard-delete a workspace and all its data. Called by the process-deletions cron.
+ * Also called by deleteUserAccount for immediate same-user deletion.
  */
 export async function deleteUserAccount(userId: string, reason: string) {
   console.log(`[ACCOUNT DELETION] User ${userId} requested deletion. Reason: ${reason}`);

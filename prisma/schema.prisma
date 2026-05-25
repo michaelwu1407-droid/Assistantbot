@@ -146,6 +146,8 @@ model Workspace {
   // Seconds to wait after a lead arrives before the voice agent dials. Defaults to 0 (immediate); tradies can pick from plain-English presets (Immediate / 1 min / 5 min / 15 min) in settings.
   autoCallDelaySec  Int      @default(0)
 
+  scheduledForDeletionAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

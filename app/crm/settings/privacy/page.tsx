@@ -33,7 +33,7 @@ export default async function PrivacySettingsPage() {
 
   const workspace = await db.workspace.findUnique({
     where: { id: actor.workspaceId },
-    select: { ownerId: true },
+    select: { ownerId: true, scheduledForDeletionAt: true },
   });
   const isOwner = workspace?.ownerId === actor.id;
 
@@ -354,7 +354,10 @@ export default async function PrivacySettingsPage() {
                 To permanently remove your workspace and all associated data, use the button below.
                 This action cannot be undone — download your data first.
               </p>
-              <DeleteWorkspaceButton userId={actor.id} />
+              <DeleteWorkspaceButton
+                userId={actor.id}
+                scheduledForDeletionAt={workspace?.scheduledForDeletionAt ?? null}
+              />
             </div>
           )}
           <p className="text-sm text-muted-foreground dark:text-muted-foreground">

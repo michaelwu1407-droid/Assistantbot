@@ -1,0 +1,42 @@
+name: Process Scheduled Deletions
+
+on:
+  schedule:
+    # Run daily at 3:00 AM UTC
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  process-deletions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hard-delete workspaces past their cooling-off date
+        env:
+          APP_BASE_URL: ${{ secrets.APP_URL || secrets.NEXT_PUBLIC_APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          OPS_KEY: ${{ secrets.TELEMETRY_ADMIN_KEY || secrets.CRON_SECRET }}
+        run: |
+          set -eu
+          if [ -z "${APP_BASE_URL:-}" ]; then
+            echo "APP_URL or NEXT_PUBLIC_APP_URL secret is missing."
+            exit 1
+          fi
+          APP_BASE_URL="${APP_BASE_URL%/}"
+          if [ "${APP_BASE_URL}" = "https://earlymark.ai" ]; then
+            APP_BASE_URL="https://www.earlymark.ai"
+          fi
+          response_file="$(mktemp)"
+          http_status="$(
+            curl --location --show-error --silent \
+              --output "$response_file" \
+              --write-out "%{http_code}" \
+              -H "Authorization: Bearer ${CRON_SECRET}" \
+              -H "x-ops-key: ${OPS_KEY}" \
+              "${APP_BASE_URL%/}/api/cron/process-deletions"
+          )"
+          cat "$response_file"
+          echo
+          echo "HTTP ${http_status}"
+          if [ "${http_status}" -ge 400 ]; then
+            exit 1
+          fi
