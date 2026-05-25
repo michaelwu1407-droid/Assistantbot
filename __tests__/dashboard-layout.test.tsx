@@ -214,4 +214,12 @@ describe("DashboardLayout", () => {
       DashboardLayout({ children: <div>dashboard page</div> }),
     ).rejects.toThrow("REDIRECT:/billing");
   });
+
+  it("redirects to /no-workspace when user has been removed from a workspace (auth-17)", async () => {
+    getDashboardShellState.mockResolvedValue({ noWorkspace: true });
+
+    await expect(
+      DashboardLayout({ children: <div>dashboard page</div> }),
+    ).rejects.toThrow("REDIRECT:/no-workspace");
+  });
 });

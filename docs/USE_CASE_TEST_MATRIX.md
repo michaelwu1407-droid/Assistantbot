@@ -130,9 +130,9 @@ critical here.
 | auth-14 | Expired session mid-action recovery | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⛔ | watch | **FIXED 2026-05-25** — CRM layout now redirects to `/auth?next=<path>` (middleware sets `x-pathname` header); `UnifiedAuth` redirects to `next` after login when user is already set up. |
 | auth-15 | Sign out | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/middleware.test.ts`. |
 | auth-16 | Two-tab different workspaces | ➖ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | gap | No coverage. |
-| auth-17 | User removed from workspace mid-session | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `getDashboardShellState` pre-checks `User.workspaceId`; if null, CRM layout redirects to `/no-workspace` friendly page instead of /billing. |
+| auth-17 | User removed from workspace mid-session | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `getDashboardShellState` pre-checks `User.workspaceId`; if null, CRM layout redirects to `/no-workspace` friendly page instead of /billing. `__tests__/dashboard-layout.test.tsx` — `{ noWorkspace: true }` → `REDIRECT:/no-workspace`. |
 | auth-18 | Role change live (owner promotes teammate) | ➖ | 🟡 | 🟡 | ✅ | 🟡 | 🟡 | 🟡 | ⛔ | gap | Next page-load reflects, but no in-session reflection. |
-| auth-19 | `/api/delete-user` account deletion | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `DeleteWorkspaceButton` added to `/crm/settings/privacy`; type-to-confirm dialog, owner-only gate, signs out on success. |
+| auth-19 | `/api/delete-user` account deletion | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/delete-user-route.test.ts` — blocked in prod when flag off, requires userId, deletes Supabase auth user, 500 on failure. `DeleteWorkspaceButton` in `/crm/settings/privacy` gates UI. |
 
 ## C. Onboarding & first-run (`onb`)
 
