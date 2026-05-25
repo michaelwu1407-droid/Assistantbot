@@ -27,7 +27,7 @@ export function DeleteWorkspaceButton({ userId, scheduledForDeletionAt }: Props)
   const [confirmation, setConfirmation] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const canDelete = confirmation === "DELETE";
+  const canDelete = confirmation.toUpperCase() === "DELETE";
 
   const handleSchedule = async () => {
     if (!canDelete) return;

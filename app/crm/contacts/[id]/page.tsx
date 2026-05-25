@@ -162,19 +162,19 @@ export default async function ContactDetailPage({ params }: PageProps) {
                   <p className="text-muted-foreground text-xs">Company</p>
                   {contact.company
                     ? <p className="font-medium text-foreground dark:text-foreground">{contact.company}</p>
-                    : <Link href={`/crm/contacts/${id}/edit`} className="text-xs text-blue-500 hover:underline">+ Add company</Link>}
+                    : <Link href={`/crm/contacts/${id}/edit`} className="text-sm text-blue-500 hover:underline py-1 inline-block">+ Add company</Link>}
                 </div>
                 <div>
                   <p className="text-muted-foreground text-xs">Phone</p>
                   {contact.phone
                     ? <p className="font-medium text-foreground dark:text-foreground">{contact.phone}</p>
-                    : <Link href={`/crm/contacts/${id}/edit`} className="text-xs text-blue-500 hover:underline">+ Add phone</Link>}
+                    : <Link href={`/crm/contacts/${id}/edit`} className="text-sm text-blue-500 hover:underline py-1 inline-block">+ Add phone</Link>}
                 </div>
                 <div>
                   <p className="text-muted-foreground text-xs">Email</p>
                   {contact.email
                     ? <p className="font-medium text-foreground dark:text-foreground">{contact.email}</p>
-                    : <Link href={`/crm/contacts/${id}/edit`} className="text-xs text-blue-500 hover:underline">+ Add email</Link>}
+                    : <Link href={`/crm/contacts/${id}/edit`} className="text-sm text-blue-500 hover:underline py-1 inline-block">+ Add email</Link>}
                 </div>
                 <div className="flex items-start gap-1.5">
                   <MapPin className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
@@ -182,7 +182,7 @@ export default async function ContactDetailPage({ params }: PageProps) {
                     <p className="text-muted-foreground text-xs">Address</p>
                     {contact.address
                       ? <p className="font-medium text-foreground dark:text-foreground">{contact.address}</p>
-                      : <Link href={`/crm/contacts/${id}/edit`} className="text-xs text-blue-500 hover:underline">+ Add address</Link>}
+                      : <Link href={`/crm/contacts/${id}/edit`} className="text-sm text-blue-500 hover:underline py-1 inline-block">+ Add address</Link>}
                   </div>
                 </div>
               </div>
@@ -202,19 +202,19 @@ export default async function ContactDetailPage({ params }: PageProps) {
                   <p className="text-muted-foreground text-xs">Company</p>
                   {contact.company
                     ? <p className="font-medium text-foreground dark:text-foreground">{contact.company}</p>
-                    : <Link href={`/crm/contacts/${id}/edit`} className="text-xs text-blue-500 hover:underline">+ Add company</Link>}
+                    : <Link href={`/crm/contacts/${id}/edit`} className="text-sm text-blue-500 hover:underline py-1 inline-block">+ Add company</Link>}
                 </div>
                 <div>
                   <p className="text-muted-foreground text-xs">Phone</p>
                   {contact.phone
                     ? <p className="font-medium text-foreground dark:text-foreground">{contact.phone}</p>
-                    : <Link href={`/crm/contacts/${id}/edit`} className="text-xs text-blue-500 hover:underline">+ Add phone</Link>}
+                    : <Link href={`/crm/contacts/${id}/edit`} className="text-sm text-blue-500 hover:underline py-1 inline-block">+ Add phone</Link>}
                 </div>
                 <div>
                   <p className="text-muted-foreground text-xs">Email</p>
                   {contact.email
                     ? <p className="font-medium text-foreground dark:text-foreground">{contact.email}</p>
-                    : <Link href={`/crm/contacts/${id}/edit`} className="text-xs text-blue-500 hover:underline">+ Add email</Link>}
+                    : <Link href={`/crm/contacts/${id}/edit`} className="text-sm text-blue-500 hover:underline py-1 inline-block">+ Add email</Link>}
                 </div>
                 <div className="flex items-start gap-1.5">
                   <MapPin className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
@@ -222,7 +222,7 @@ export default async function ContactDetailPage({ params }: PageProps) {
                     <p className="text-muted-foreground text-xs">Address</p>
                     {contact.address
                       ? <p className="font-medium text-foreground dark:text-foreground">{contact.address}</p>
-                      : <Link href={`/crm/contacts/${id}/edit`} className="text-xs text-blue-500 hover:underline">+ Add address</Link>}
+                      : <Link href={`/crm/contacts/${id}/edit`} className="text-sm text-blue-500 hover:underline py-1 inline-block">+ Add address</Link>}
                   </div>
                 </div>
               </div>

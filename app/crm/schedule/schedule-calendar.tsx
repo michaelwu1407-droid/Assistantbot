@@ -229,19 +229,19 @@ function ScheduleCalendarDesktop({ deals, teamMembers, workspaceTimezone, initia
           )}
           <div className="flex gap-1.5 pt-0.5">
             {deal.contactPhone && (
-              <Button asChild variant="outline" size="sm" className="h-7 flex-1 px-2 text-xs">
+              <Button asChild variant="outline" size="sm" className="flex-1 px-2 text-xs">
                 <a href={`tel:${deal.contactPhone}`}><Phone className="mr-1 h-3 w-3" />Call</a>
               </Button>
             )}
             <Button
               variant="outline"
               size="sm"
-              className="h-7 flex-1 px-2 text-xs"
+              className="flex-1 px-2 text-xs"
               onClick={() => { setOpenPopoverDealId(null); setSelectedDealId(deal.id) }}
             >
               <MessageSquare className="mr-1 h-3 w-3" />SMS
             </Button>
-            <Button asChild variant="outline" size="sm" className="h-7 px-2 text-xs">
+            <Button asChild variant="outline" size="sm" className="px-2 text-xs">
               <Link href={`/crm/deals/${deal.id}`}><ArrowUpRight className="h-3 w-3" /></Link>
             </Button>
           </div>
@@ -541,14 +541,14 @@ function ScheduleCalendarDesktop({ deals, teamMembers, workspaceTimezone, initia
     <div className="h-full flex flex-col bg-card rounded-lg border shadow-sm overflow-hidden" style={{ borderColor: "#E6E2D7" }}>
       <div className="flex items-center justify-between p-3.5 border-b shrink-0" style={{ borderColor: "#E6E2D7", background: "#F6F4EE" }}>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => nav(-1)} className="rounded-md h-8 w-8 hover:bg-card shadow-sm">
+          <Button variant="outline" size="icon" onClick={() => nav(-1)} className="rounded-md hover:bg-card shadow-sm">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setCurrent(new Date())} className="h-8 hover:bg-card shadow-sm font-medium">
+          <Button variant="outline" size="sm" onClick={() => setCurrent(new Date())} className="hover:bg-card shadow-sm font-medium">
             Today
           </Button>
           <h2 className="app-panel-title min-w-[150px] text-center">{headerLabel()}</h2>
-          <Button variant="outline" size="icon" onClick={() => nav(1)} className="rounded-md h-8 w-8 hover:bg-card shadow-sm">
+          <Button variant="outline" size="icon" onClick={() => nav(1)} className="rounded-md hover:bg-card shadow-sm">
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>

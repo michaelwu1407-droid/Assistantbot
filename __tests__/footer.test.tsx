@@ -14,7 +14,7 @@ describe("Footer (cpl-11, acq-14)", () => {
   it("renders a link to /cookies so the cookie policy is reachable app-wide", () => {
     render(<Footer />);
 
-    const cookieLink = screen.getByRole("link", { name: /website tech/i });
+    const cookieLink = screen.getByRole("link", { name: /cookies/i });
     expect(cookieLink).toBeTruthy();
     expect(cookieLink.getAttribute("href")).toBe("/cookies");
   });
