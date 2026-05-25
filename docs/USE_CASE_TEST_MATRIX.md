@@ -517,7 +517,7 @@ the tradie see a sensible message and can ops see the failure?
 | ID | Failure mode | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
 |----|--------------|---|---|---|---|---|---|---|---|--------|-------|
 | res-01 | Stripe API down during checkout | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ⛔ | watch | `__tests__/billing-actions.test.ts` — Stripe ETIMEDOUT propagates as thrown error; `UpgradeButton` catches it and shows toast "Could not start checkout — please try again in a moment." No retry backoff. |
-| res-02 | Stripe webhook delayed/missed (worker outage) | ➖ | ➖ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | watch | No backfill job documented. |
+| res-02 | Stripe webhook delayed/missed (worker outage) | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ⛔ | watch | `runIdempotent(event.id)` ensures Stripe retries (up to 3 days, per Stripe policy) are safe. `__tests__/stripe-webhook.test.ts` asserts 200 on duplicate. No manual backfill script. |
 | res-03 | Twilio voice API rate-limit (429) | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Cost-ceiling + retry/backoff. |
 | res-04 | Twilio SMS API down | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ⛔ | watch | `retryWithBackoff()` in `automated-message-actions.ts` retries transient errors up to 3× with exponential backoff; 4xx errors are NOT retried (correct). Email fallback path in same function. |
 | res-05 | Gemini/LLM timeout | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ⛔ | watch | `__tests__/ai-agent.test.ts` — `generateText` rejection returns graceful user-friendly message. |
@@ -526,7 +526,7 @@ the tradie see a sensible message and can ops see the failure?
 | res-08 | Cron worker queue stuck | ➖ | ➖ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | watch | `voice-monitor-watchdog` cron catches voice-worker gaps; other crons monitored via GitHub Actions only (no in-app auto-alert if cron misses). |
 | res-09 | Push send to expired endpoint | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Auto-remove on 410. |
 | res-10 | Outbound email bounce | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Resend webhook handles; CRM badge unverified. |
-| res-11 | Resume-after-crash on partial provision | ➖ | ➖ | 🟡 | ✅ | ✅ | 🟡 | 🟡 | 🟡 | watch | `provisioning-retry` route exists. |
+| res-11 | Resume-after-crash on partial provision | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/onboarding-provision.test.ts` — lock-based dedup; `short-circuits when a workspace already has a provisioned number`; bails on concurrent lock. `/api/internal/provisioning-retry` manual retry route. |
 | res-12 | Cost-ceiling triggers ($50) | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Voice disabled, banner shown. |
 
 ## V. Logic & intuitiveness review (`logic`)
