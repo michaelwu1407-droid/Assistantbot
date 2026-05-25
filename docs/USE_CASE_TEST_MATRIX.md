@@ -333,7 +333,7 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 |----|---------|---|---|---|---|---|---|---|---|--------|-------|
 | job-01 | Open Job Mode from `/crm/schedule` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 👁 | watch | Round 3 walkthrough. |
 | job-02 | Start travel → ETA broadcast to customer | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 👁 | watch | Manual only. |
-| job-03 | Mark on site → customer SMS | ✅ | ✅ | 🟡 | 🟡 | ✅ | ✅ | 🟡 | ⛔ | watch | Not asserted; SMS path not tested. |
+| job-03 | Mark on site → customer SMS | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `sendOnMyWaySMS()` (TRAVELING trigger, not ON_SITE) sends "I'm on my way" SMS. `__tests__/tradie-actions.test.ts` asserts SMS content + no auto-send on status-only. ON_SITE status has no customer SMS — tradie manually calls sendOnMyWaySMS. |
 | job-04 | Complete job → invoice + photos prompt | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 👁 | watch | Manual only. |
 | job-05 | Add job photos | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 👁 | watch | Upload works; thumbnail rendering unverified. |
 | job-06 | Digital handover deliverables | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Out of scope (real-estate arm). |
@@ -608,7 +608,7 @@ would have caught it (rule below).
 17. ✅ **pub-01 / pub-06** — Portal audit trail exists; portal-link in SMS confirmed.
 18. ✅ **comm-17** — Booking-confirmation WebhookEvents recorded; ops queried via feature-verification.ts.
 19. 🟡 **comm-20** — WhatsApp route well-tested (4 scenarios in `__tests__/whatsapp-route.test.ts`); live round-trip synthetic outstanding.
-20. 🟡 **res-05** — LLM timeout/error covered by `__tests__/ai-agent.test.ts`. res-01, res-02, res-04, res-07, res-08 (infra failure modes) outstanding.
+20. ✅ **res-01, res-02, res-04, res-05** — FIXED 2026-05-25: Stripe timeout (billing-actions test), Stripe retry idempotency (stripe-webhook test), Twilio retryWithBackoff, LLM error fallback (ai-agent test). res-07 (DB pool) and res-08 (cron watchdog) noted as infrastructure gaps.
 
 ### Cleanup / UX polish
 
