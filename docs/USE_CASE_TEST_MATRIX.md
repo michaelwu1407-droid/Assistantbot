@@ -99,7 +99,7 @@ pass on mobile (CC-4) and warm-cream palette (CLAUDE.md homepage rule).
 | acq-11 | `/solutions/[slug]` (per-trade landing) | 🟡 | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Discoverable only via direct links; slugs unverified at scale. |
 | acq-12 | `/(legal)/privacy` reachable from footer | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Visual spec covers footer link. |
 | acq-13 | `/(legal)/terms` reachable | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
-| acq-14 | `/(legal)/cookies` reachable | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | No automated link assertion. |
+| acq-14 | `/(legal)/cookies` reachable | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/footer.test.tsx` — Footer renders `/cookies` link confirming the page is reachable from every surface. |
 | acq-15 | `/offline` PWA fallback page | 🟡 | ➖ | ✅ | ✅ | 🟡 | 🟡 | ✅ | ⛔ | watch | Reachable only when SW intercepts; copy unverified. |
 | acq-16 | Custom 404 (`app/not-found.tsx`) | ✅ | ➖ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | verified | `__tests__/not-found-page.test.tsx` — "Page Not Found" heading + "Return to Dashboard" link renders correctly. |
 | acq-17 | Demo voice call (`/api/demo-call`) | 🟡 | ➖ | 🟡 | 🟡 | ✅ | 🟡 | 🟡 | 🟡 | gap | `missing_features.md` "real voice signoff" — still needs live handset proof. |
@@ -420,7 +420,7 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 |----|---------|---|---|---|---|---|---|---|---|--------|-------|
 | ai-01 | Sidebar chat send | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/chat-actions.test.ts`. |
 | ai-02 | AI creates job from natural language | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/chat-agent-crm-mutation-flow.test.ts` — "Create a new blocked drain job for Acme Plumbing for $420" → contact + deal via tool flow. |
-| ai-03 | AI books appointment | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | watch | Partial. |
+| ai-03 | AI books appointment | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/chat-actions.test.ts` — `runUpdateDealFields` schedule path: natural-language schedule converts to ISO and calls `updateDeal`; deal-not-found returns error. |
 | ai-04 | AI lookup tool (`/api/chat`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/agent-tools.test.ts`. |
 | ai-05 | AI handles ambiguous request | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24** — `listDeals` tool accepts keyword filter. `__tests__/chat-actions.test.ts` asserts keyword filter narrows results by title, contactName, address. |
 | ai-06 | AI tool-call error recovery | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/tracey-prompt-contract.test.ts` — system prompt asserts `success=false` reporting. Live tool-error scenario (DB failure mid-tool) not E2E tested (acceptable). |
@@ -506,7 +506,7 @@ Legal-exposure cluster. These are the audit's top fix items.
 | cpl-08 | Outbound customer email has unsubscribe footer | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24** — HMAC token footer appended. `__tests__/email-unsubscribe-route.test.ts`: valid token → emailOptedOut=true; invalid token → 400; no enumeration on missing contact. |
 | cpl-09 | `/(legal)/privacy` accessible app-wide | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Footer link. |
 | cpl-10 | `/(legal)/terms` accessible app-wide | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
-| cpl-11 | `/(legal)/cookies` accessible app-wide | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Footer link assertion missing. |
+| cpl-11 | `/(legal)/cookies` accessible app-wide | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/footer.test.tsx` — Footer renders link to `/cookies` ("Website tech") confirming policy is reachable app-wide. |
 | cpl-12 | Cookie banner / consent | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | AU is moving on this; verify legal stance. |
 
 ## U. Resilience & failure modes (`res`)
