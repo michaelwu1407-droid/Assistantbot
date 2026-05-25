@@ -325,7 +325,7 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 | lead-11 | Lead triage HOLD_REVIEW path | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/triage.test.ts`. |
 | lead-12 | Inbound-lead-guard duplicate phone | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/inbound-lead-guard.test.ts`. |
 | lead-13 | Auto-call eligibility chain (mode, voice, number, window) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/auto-call-eligibility.test.ts`. |
-| lead-14 | Lead source attribution carries through to deal source | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Per-channel manual spot-check. |
+| lead-14 | Lead source attribution carries through to deal source | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/twilio-sms-webhook.test.ts` — `source: "sms"` + `metadata.leadSource: "sms"` on SMS deals. `__tests__/analytics-actions.test.ts` — `metadata.leadSource: "hipages"` fixture. |
 
 ## J. Tradie field workflow (`job`)
 
@@ -538,25 +538,25 @@ technically work but mislead the user. Per `JOURNEY_ACCEPTANCE.md` gate
 
 | ID | Coherence concern | Status | Notes |
 |----|--------------------|--------|-------|
-| logic-01 | **Duplicate route trees** for the same task (`/auth/*` vs `/(auth)/*`, `/crm/contacts/[id]` vs `/contacts/[id]`, `/crm/inbox` vs `/inbox`) | watch | All legacy routes now redirect to canonical `/auth`, `/crm/contacts/[id]`, `/crm/inbox`. See auth-meta, crm-12, crm-29. |
-| logic-02 | **`/crm/settings/privacy` vs `/crm/settings/data-privacy`** | watch | `/data-privacy` redirects to `/privacy`; canonical is `/crm/settings/privacy`. See set-18. |
-| logic-03 | **`/crm/hub` is a 404 but appears wired in nav** | watch | `app/crm/hub/page.tsx` redirects to `/crm/dashboard`. See crm-35. |
-| logic-04 | **`/crm/design/*` is publicly reachable by any signed-in user** | watch | Both pages redirect to `/crm/dashboard` — no live sandbox UI exposed. See crm-40. |
-| logic-05 | **Email pref toggles save but do nothing** | watch | **FIXED 2026-05-24** — emailDealUpdates + emailNewContacts now enforced. Weekly summary toggle disabled. |
-| logic-06 | **Customer STOP gets an AI reply** | watch | **FIXED 2026-05-24** — STOP exits early, no AI reply. See cpl-01. |
-| logic-07 | **Stripe Manage button bounces tradie off-app without warning** | watch | `CancelSubscriptionButton` now provides in-app cancel dialog (save-the-customer). "Manage" still opens Stripe portal — cross-brand UX is an acknowledged trade-off. See bill-09. |
-| logic-08 | **Immediate lockout on cancel even though they paid for the month** | watch | **FIXED 2026-05-24** — Grace period honoured in CRM layout. |
-| logic-09 | **Twilio number kept billable on cancelled workspaces** | watch | **FIXED 2026-05-24** — Number released on customer.subscription.deleted. |
+| logic-01 | **Duplicate route trees** for the same task (`/auth/*` vs `/(auth)/*`, `/crm/contacts/[id]` vs `/contacts/[id]`, `/crm/inbox` vs `/inbox`) | verified | All legacy routes redirect to canonical destinations. See auth-meta, crm-12, crm-29 — all verified via `__tests__/legacy-route-redirects.test.tsx`. |
+| logic-02 | **`/crm/settings/privacy` vs `/crm/settings/data-privacy`** | verified | `/data-privacy` redirects to `/privacy`. See set-18 — verified via `__tests__/settings-route-redirects.test.tsx`. |
+| logic-03 | **`/crm/hub` is a 404 but appears wired in nav** | verified | `app/crm/hub/page.tsx` redirects to `/crm/dashboard`. See crm-35 — verified via `__tests__/legacy-route-redirects.test.tsx`. |
+| logic-04 | **`/crm/design/*` is publicly reachable by any signed-in user** | verified | Both pages redirect to `/crm/dashboard`. See crm-40 — verified via `__tests__/legacy-route-redirects.test.tsx`. |
+| logic-05 | **Email pref toggles save but do nothing** | verified | **FIXED 2026-05-24** — emailDealUpdates + emailNewContacts now enforced. See notif-01/02/03 — verified via `__tests__/notification-pref-gating.test.ts`. |
+| logic-06 | **Customer STOP gets an AI reply** | verified | **FIXED 2026-05-24** — STOP exits early, no AI reply. See cpl-01 — verified via `__tests__/twilio-sms-stop-handling.test.ts`. |
+| logic-07 | **Stripe Manage button bounces tradie off-app without warning** | verified | `CancelSubscriptionButton` provides in-app cancel dialog. "Manage" still opens Stripe portal — cross-brand UX acknowledged trade-off. See bill-09 (verified). |
+| logic-08 | **Immediate lockout on cancel even though they paid for the month** | verified | **FIXED 2026-05-24** — Grace period honoured in CRM layout. See bill-10 — verified via `__tests__/dashboard-layout.test.tsx`. |
+| logic-09 | **Twilio number kept billable on cancelled workspaces** | verified | **FIXED 2026-05-24** — Number released on `customer.subscription.deleted`. See bill-04 — verified via `__tests__/stripe-webhook.test.ts`. |
 | logic-10 | **Kanban drag does nothing** | watch | **FIXED 2026-05-25** — `dragStartColumnRef` set in `handleDragStart`; intra-column sort path now reached. See crm-19. |
 | logic-11 | **Stale-deal drag → expected follow-up modal doesn't open** | watch | **FIXED 2026-05-25** — `StaleDealFollowUpModal` wired into `handleDragEnd`. See crm-20. |
-| logic-12 | **Ctrl+K returns "No results" for known data** | watch | **FIXED 2026-05-25** — cmdk `shouldFilter={false}` fix. See crm-39. |
-| logic-13 | **Department selection on `/contact` is decorative** | watch | **VERIFIED 2026-05-25** — `__tests__/contact-route.test.ts` confirms department appears as `[Contact – sales]` email subject prefix. No separate inbox routing — acceptable MVP. See acq-09. |
+| logic-12 | **Ctrl+K returns "No results" for known data** | verified | **FIXED 2026-05-25** — cmdk `shouldFilter={false}` fix. See crm-39 — verified via `__tests__/search-global-route.test.ts`. |
+| logic-13 | **Department selection on `/contact` is decorative** | verified | **VERIFIED 2026-05-25** — `__tests__/contact-route.test.ts` confirms department appears as `[Contact – sales]` email subject prefix. No separate inbox routing — acceptable MVP. See acq-09. |
 | logic-14 | **Calendar event click navigates to deal page** | watch | **FIXED 2026-05-25** — chip click opens Popover with call/SMS/open-details actions. See cal-05. |
-| logic-15 | **AI fails open-ended request without graceful "I can't do that yet"** | watch | **FIXED 2026-05-24** — `listDeals` keyword filter handles open-ended queries. See ai-05. |
-| logic-16 | **Multilingual onboarding toggle reads like preference but is a runtime switch** | watch | **FIXED 2026-05-25** — `setReplyLanguage()` called at call start from grounding. See voice-08. |
-| logic-17 | **Auth has two entry-point trees** | watch | `/login` and `/signup` redirect to `/auth`. See logic-01 / auth-meta. |
+| logic-15 | **AI fails open-ended request without graceful "I can't do that yet"** | verified | **FIXED 2026-05-24** — `listDeals` keyword filter handles open-ended queries. See ai-05 — verified via `__tests__/chat-actions.test.ts`. |
+| logic-16 | **Multilingual onboarding toggle reads like preference but is a runtime switch** | verified | **FIXED 2026-05-25** — `setReplyLanguage()` called at call start from grounding. See voice-08 — verified via `__tests__/voice-grounding-language.test.ts`. |
+| logic-17 | **Auth has two entry-point trees** | verified | `/login` and `/signup` redirect to `/auth`. See logic-01 / auth-meta — verified via `__tests__/legacy-route-redirects.test.tsx`. |
 | logic-18 | **"22-row settings index" without grouping or search** | watch | Desktop sidebar grouped; mobile `SettingsIndexMobile` shows 10 icon+subtitle rows. See set-01. |
-| logic-19 | **Onboarding "resume after browser close" lands silently** | watch | **FIXED 2026-05-25** — "Welcome back!" bubble shown when workspace name is non-default. See onb-15. |
+| logic-19 | **Onboarding "resume after browser close" lands silently** | verified | **FIXED 2026-05-25** — "Welcome back!" bubble shown when workspace name is non-default. See onb-15 — verified via `__tests__/setup-page-resuming.test.tsx`. |
 | logic-20 | **Loading states without reassurance copy** | watch | Existing `loading.tsx` files all include "Loading your pipeline…" / contacts / jobs copy. Specific voice-call states not separately audited. |
 
 ## W. Mobile-fit pass (`mob`)
