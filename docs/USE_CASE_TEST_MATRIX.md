@@ -155,7 +155,7 @@ resume mid-flow) are scored individually.
 | onb-10 | Onboarding completion: no-number-requested copy | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | onb-11 | Onboarding completion: provisioning failure retry copy | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | CTA explicitly tells user to fix number setup. |
 | onb-12 | `/api/internal/provisioning-retry` manual retry | 🟡 | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | watch | Endpoint hit by retry CTA; no E2E. |
-| onb-13 | Tutorial overlay (`?tutorial=1`) dismiss | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ | watch | `tutorialComplete` flip not asserted in test. |
+| onb-13 | Tutorial overlay (`?tutorial=1`) dismiss | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `workspace-actions.test.ts` now asserts `tutorialComplete: true` DB write via `completeTutorial(workspaceId)`. |
 | onb-14 | `/api/workspace/complete-tutorial` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
 | onb-15 | Resume onboarding mid-flow after browser close | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `setup/page.tsx` detects non-default workspace name → passes `isResuming`; `TraceyOnboarding` shows "Welcome back!" bubble copy. |
 | onb-16 | Full post-payment browser journey (signup → CRM ready) | ✅ | ✅ | 🟡 | ✅ | ✅ | ✅ | 🟡 | ⬜ | gap | CRITICAL_USER_JOURNEYS §3 "Next automation targets" — still outstanding. |

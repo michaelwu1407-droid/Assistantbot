@@ -35,6 +35,7 @@ vi.mock("@/lib/timezone", () => ({ inferTimezoneFromAddress }));
 
 import {
   checkUserRoute,
+  completeTutorial,
   ensureWorkspaceUserForAuth,
   getOrCreateWorkspace,
   updateWorkspacePipelineSettings,
@@ -226,6 +227,19 @@ describe("workspace-actions", () => {
       stripePriceId: null,
       subscriptionStatus: null,
       settings: {},
+    });
+  });
+
+  describe("completeTutorial", () => {
+    it("flips tutorialComplete to true for the workspace", async () => {
+      db.workspace.update.mockResolvedValue({});
+
+      await completeTutorial("ws_1");
+
+      expect(db.workspace.update).toHaveBeenCalledWith({
+        where: { id: "ws_1" },
+        data: { tutorialComplete: true },
+      });
     });
   });
 });
