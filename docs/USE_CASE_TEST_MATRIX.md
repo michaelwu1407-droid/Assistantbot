@@ -400,7 +400,7 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 | set-07 | `/automations` workflow rules | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/automation-actions.test.ts`. |
 | set-08 | `/billing` | see Section D | – | – | – | – | – | – | – | – | – | Covered in `bill-*`. |
 | set-09 | `/call-settings` phone routing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/call-forwarding.test.ts`. |
-| set-10 | `/data-privacy` controls | 🟡 | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | ✅ | ⛔ | watch | Page exists; export/delete actions not surfaced (see cpl-06/07). |
+| set-10 | `/data-privacy` controls | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Export + delete both surfaced at `/crm/settings/privacy` (see cpl-06/07). No E2E spec; manual review confirms actions present. |
 | set-11 | `/display` preferences | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ | watch | No spec. |
 | set-12 | `/help` & docs | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ | watch | No spec; static content. |
 | set-13 | `/integrations` (Google, Outlook, Xero, MYOB, Resend) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | watch | Several integrations partial. |
@@ -448,7 +448,7 @@ These are URLs a customer (not the tradie) will hit.
 | pub-03 | `/feedback/[token]` customer review submit | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/public-feedback-route.test.ts`. |
 | pub-04 | `/kiosk/open-house` open-house lead capture | 🟡 | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | ⬜ | watch | Tablet/kiosk discoverability + offline behaviour unverified. |
 | pub-05 | Customer ETA page (Uber-style) | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Not built; UC14. |
-| pub-06 | Outbound SMS contains a portal link where promised | ➖ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | ⬜ | watch | JOURNEY_ACCEPTANCE journey 4 — link presence audit not implemented. |
+| pub-06 | Outbound SMS contains a portal link where promised | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `lib/sms.ts` intro SMS always appends portal URL; `automated-message-actions.ts` appends portal URL to booking-confirmation SMS. No E2E assertion yet — see `__tests__/twilio-sms-webhook.test.ts` for partial coverage. |
 
 ## R. Cron jobs & background work (`cron`)
 
