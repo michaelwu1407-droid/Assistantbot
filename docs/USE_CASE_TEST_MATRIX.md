@@ -203,7 +203,7 @@ Tracey button (CC-4).
 | crm-06 | Sidebar nav renders + active state | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Visual specs. |
 | crm-07 | Mobile bottom-nav single Tracey entry | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Visual mobile spec; per `CLAUDE.md` CC-4. |
 | crm-08 | `/crm/contacts` list | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/contact-journeys.spec.ts` — title, stage, balance, quick actions. |
-| crm-09 | `/crm/contacts/new` create form | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Validation only at action layer. |
+| crm-09 | `/crm/contacts/new` create form | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/contact-form.test.tsx` (create + update UI) + `__tests__/contact-actions.test.ts` (dedup, enrichment, RBAC, validation). |
 | crm-10 | `/crm/contacts/[id]` detail with tabs (overview/deals/properties/activity) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/contact-journeys.spec.ts`. |
 | crm-11 | `/crm/contacts/[id]/edit` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/contact-actions.test.ts` — `updateContact` + `updateContactMetadata` both tested; workspace scoping enforced. |
 | crm-12 | `/contacts/[id]` (legacy outside `/crm`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/contacts/[id]` → `/crm/contacts/${id}` asserted with dynamic param. |
@@ -247,9 +247,9 @@ base (viewport-relative width + `max-h-[90vh]`) and a per-modal
 | modal-01 | `deal-detail-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-deal-edit-modal.test.tsx` covers detail too. |
 | modal-02 | `deal-edit-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | modal-03 | `new-deal-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-new-deal-modal.test.tsx`. |
-| modal-04 | `new-deal-modal-standalone.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Same component reused; no separate spec. |
+| modal-04 | `new-deal-modal-standalone.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/new-deal-modal-standalone.test.tsx` — existing contact, new business, email validation, address-coord reset (4 cases). |
 | modal-05 | `job-completion-modal.tsx` (crm) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-job-completion-modal.test.tsx`. |
-| modal-06 | `job-completion-modal.tsx` (tradie variant) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Tradie variant not separately covered. |
+| modal-06 | `job-completion-modal.tsx` (tradie variant) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/tradie-job-completion-modal.test.tsx` — photo-follow-up routing, completion copy, Xero-skip on PDF failure. |
 | modal-07 | `stale-job-reconciliation-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-stale-job-modal.test.tsx`. |
 | modal-08 | `stale-deal-follow-up-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-stale-deal-follow-up-modal.test.tsx` + `e2e/crm-follow-up-journey.spec.ts`. |
 | modal-09 | `loss-reason-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-loss-reason-modal.test.tsx` — renders + a11y; fixed hardcoded `#F6F4EE` inline-style → `bg-muted/30 border-border`. |
@@ -317,9 +317,9 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 | lead-03 | SMS classified as spam → activity logged, no reply | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/spam-classifier.test.ts`. |
 | lead-04 | Voice inbound → contact + transcript | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | See voice-01. |
 | lead-05 | Email inbound — hipages/airtasker/oneflare (`/api/webhooks/email`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/email-received-route.test.ts` — includes hipages provider test (subject "New hipages job request", from `notifications@hipages.com.au`). |
-| lead-06 | Email inbound — Gmail PubSub (`/api/webhooks/email-received`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Partial. |
+| lead-06 | Email inbound — Gmail PubSub (`/api/webhooks/email-received`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/email-received-route.test.ts` — PubSub validation, no-inbox 404, full lead→CRM + intro-SMS happy path. |
 | lead-07 | Email inbound — Resend-forwarded (`/api/webhooks/inbound-email`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/inbound-email-route.test.ts` — signature, hipages/Google LSA/Meta lead capture, triage flags, voice-agent callback, normal email → AI agent. |
-| lead-08 | Embeddable webform (`/api/webhooks/webform`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Partial. |
+| lead-08 | Embeddable webform (`/api/webhooks/webform`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/webform-route.test.ts` — honeypot, secret auth, full contact+deal+notification happy path, auto-call trigger/skip (445 lines). |
 | lead-09 | Lead capture email alias (`/crm/settings/integrations`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/lead-capture-email.test.ts`. |
 | lead-10 | Manual contact + deal create from CRM | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/crm-core-journey.spec.ts`. |
 | lead-11 | Lead triage HOLD_REVIEW path | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/triage.test.ts`. |
@@ -476,19 +476,19 @@ Internal-only. Should be 404 in prod for non-staff (CC-1, CC-2).
 | ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
 |----|---------|---|---|---|---|---|---|---|---|--------|-------|
 | adm-01 | `/admin/diagnostics` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/admin-internal-route-redirects.test.ts`. |
-| adm-02 | `/admin/ops-status` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Page exists; ops dashboard quality not asserted. |
-| adm-03 | `/admin/customer-usage` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | This IS the live ops verification table per FEATURE_VERIFICATION.md. |
-| adm-04 | `/api/internal/voice-agent-status` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Internal. |
+| adm-02 | `/admin/ops-status` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/admin-internal-route-redirects.test.ts` confirms redirect to unified ops tab. |
+| adm-03 | `/admin/customer-usage` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/customer-usage-metrics.test.ts` — filters, cost-per-won, margin gap, inactive workspace exclusion logic (144 lines). |
+| adm-04 | `/api/internal/voice-agent-status` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/voice-agent-status-route.test.ts` (144 lines). |
 | adm-05 | `/api/internal/voice-fleet-health` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/voice-fleet-health-route.test.ts`. |
 | adm-06 | `/api/internal/launch-readiness` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/launch-readiness.test.ts`. |
 | adm-07 | `/api/health` external health | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/health-route.test.ts`. |
-| adm-08 | `/api/check-env` env audit | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Internal. |
-| adm-09 | `/api/log-crash` client crash log | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Sentry / log destination unverified. |
-| adm-10 | `/api/internal/telemetry/client` + `/latency` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual review. |
+| adm-08 | `/api/check-env` env audit | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/check-env-route.test.ts` (129 lines). |
+| adm-09 | `/api/log-crash` client crash log | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/log-crash-route.test.ts` — auth-gated, logs crash, 200 on success (83 lines). |
+| adm-10 | `/api/internal/telemetry/client` + `/latency` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/telemetry-client-route.test.ts` + `__tests__/telemetry-latency-route.test.ts`. |
 | adm-11 | `/api/internal/customer-agent-drift` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Cron-10 consumer. |
-| adm-12 | `/api/sync/replay` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Internal recovery tool. |
+| adm-12 | `/api/sync/replay` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/sync-replay-route.test.ts` — auth, deal ownership, replay logic (137 lines). |
 | adm-13 | `/api/stale-jobs/sync` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/stale-job-actions.test.ts`. |
-| adm-14 | `/api/extension/import` | 🟡 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Browser-extension import flow. |
+| adm-14 | `/api/extension/import` | 🟡 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/extension-import-route.test.ts` — auth, contact creation, dedup (112 lines). Note: browser-extension discoverability not tested (first-party install). |
 
 ## T. Compliance, opt-out, data rights (`cpl`)
 
@@ -525,7 +525,7 @@ the tradie see a sensible message and can ops see the failure?
 | res-07 | DB connection saturation | ➖ | ➖ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | watch | Prisma pool (default 10) implicit; no explicit pool-saturation guard or degraded-mode path. |
 | res-08 | Cron worker queue stuck | ➖ | ➖ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | watch | `voice-monitor-watchdog` cron catches voice-worker gaps; other crons monitored via GitHub Actions only (no in-app auto-alert if cron misses). |
 | res-09 | Push send to expired endpoint | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Auto-remove on 410. |
-| res-10 | Outbound email bounce | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Resend webhook handles; CRM badge unverified. |
+| res-10 | Outbound email bounce | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/resend-route.test.ts` — `email.bounced` → activity stamped "Bounced at …"; no spurious owner notification (res-10). |
 | res-11 | Resume-after-crash on partial provision | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/onboarding-provision.test.ts` — lock-based dedup; short-circuits when workspace already has number; bails on concurrent lock. `__tests__/provisioning-retry-route.test.ts` — manual retry route 400/404/200 paths. |
 | res-12 | Cost-ceiling triggers ($50) | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Voice disabled, banner shown. |
 

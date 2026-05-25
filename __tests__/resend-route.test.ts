@@ -176,4 +176,30 @@ describe("POST /api/webhooks/resend", () => {
       },
     });
   });
+
+  it("records bounce events and stamps the activity description with Bounced (res-10)", async () => {
+    vi.stubEnv("RESEND_WEBHOOK_SECRET", "whsec_dGVzdC1zZWNyZXQ=");
+    hoisted.db.contact.findFirst.mockResolvedValue({
+      id: "contact_2",
+      name: "Sam",
+      workspaceId: "ws_1",
+    });
+    hoisted.db.activity.findFirst.mockResolvedValue({ id: "activity_2" });
+
+    const payload = JSON.stringify({
+      type: "email.bounced",
+      data: { to: ["sam@example.com"], email_id: "email_456" },
+    });
+
+    const response = await POST(buildSignedRequest(payload, "dGVzdC1zZWNyZXQ="));
+
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.status).toBe("Bounced");
+    expect(hoisted.db.activity.update).toHaveBeenCalledWith({
+      where: { id: "activity_2" },
+      data: { description: expect.stringContaining("Bounced at ") },
+    });
+    expect(hoisted.db.notification.create).not.toHaveBeenCalled();
+  });
 });
