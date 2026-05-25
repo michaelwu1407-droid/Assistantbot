@@ -154,7 +154,7 @@ resume mid-flow) are scored individually.
 | onb-09 | Onboarding completion: number provisioned copy | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | CRITICAL_USER_JOURNEYS §3 finding 4 resolved. |
 | onb-10 | Onboarding completion: no-number-requested copy | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | onb-11 | Onboarding completion: provisioning failure retry copy | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | CTA explicitly tells user to fix number setup. |
-| onb-12 | `/api/internal/provisioning-retry` manual retry | 🟡 | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | watch | Endpoint hit by retry CTA; no E2E. |
+| onb-12 | `/api/internal/provisioning-retry` manual retry | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `__tests__/provisioning-retry-route.test.ts`: asserts 400 on missing workspaceId, 404 on unknown workspace, 200 + correct `ensureWorkspaceProvisioned` call on happy path, null ownerPhone when owner has no phone. |
 | onb-13 | Tutorial overlay (`?tutorial=1`) dismiss | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `workspace-actions.test.ts` now asserts `tutorialComplete: true` DB write via `completeTutorial(workspaceId)`. |
 | onb-14 | `/api/workspace/complete-tutorial` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
 | onb-15 | Resume onboarding mid-flow after browser close | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `setup/page.tsx` detects non-default workspace name → passes `isResuming`; `TraceyOnboarding` shows "Welcome back!" bubble copy. |
