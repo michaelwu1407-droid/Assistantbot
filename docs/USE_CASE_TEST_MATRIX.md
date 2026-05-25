@@ -361,8 +361,8 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 | cal-01 | Google Calendar OAuth connect (`/api/auth/google-calendar/callback`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | watch | `missing_features.md` — refresh confidence outstanding. |
 | cal-02 | New deal with `scheduledAt` → calendar event push | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Outbound only by design. |
 | cal-03 | Calendar inbound readback | ➖ | ➖ | ➖ | ➖ | ➖ | ➖ | ➖ | ➖ | n/a | Intentionally parked (`missing_features.md`). |
-| cal-04 | Visual confirmation status on event | ✅ | ✅ | 🔴 | 🔴 | 🔴 | 🔴 | 🟡 | ⛔ | gap | UC5. |
-| cal-05 | Event-click popover (quick call/SMS/edit) | ✅ | ✅ | 🔴 | 🔴 | 🔴 | 🔴 | 🟡 | ⛔ | gap | UC5 — navigates to deal instead. |
+| cal-04 | Visual confirmation status on event | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — stage status icon (CheckCircle2/Clock/XCircle) on each calendar chip; green check = confirmed booking. |
+| cal-05 | Event-click popover (quick call/SMS/edit) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — chip click opens lightweight Popover with call (tel: link), SMS (opens DealDetailModal), and open-full-details link. |
 | cal-06 | Business hours / call-window enforcement | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/call-window.test.ts`. |
 
 ## M. Notifications (`notif`)
