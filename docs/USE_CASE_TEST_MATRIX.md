@@ -258,7 +258,7 @@ base (viewport-relative width + `max-h-[90vh]`) and a per-modal
 | modal-12 | `search-dialog.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | **FIXED 2026-05-25** — `CommandDialog` replaced with `Dialog + CommandPrimitive shouldFilter={false}`; cmdk no longer double-filters server results (crm-39). |
 | modal-13 | `personal-phone-dialog.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-personal-phone-dialog.test.tsx`. |
 | modal-14 | `onboarding-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Covered indirectly; no dedicated spec. |
-| modal-15 | `referral-success-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⬜ | watch | No spec. |
+| modal-15 | `referral-success-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/a11y-referral-success-modal.test.tsx` added; fixed missing `aria-label="Close"` on close button (a11y violation). |
 | modal-16 | `safety-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | `__tests__/a11y-safety-modal.test.tsx` added. Fires in `/crm/tradie` field view when tradie taps "Start Work" on a scheduled job. |
 
 ## G. Inbox & communications (`comm`)

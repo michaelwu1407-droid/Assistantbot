@@ -124,9 +124,10 @@ export function ReferralSuccessModal({ isOpen, onClose, trigger, userId }: Refer
         <CardHeader className="relative">
           <button
             onClick={onClose}
+            aria-label="Close"
             className="absolute right-4 top-4 p-1 rounded-full hover:bg-muted transition-colors"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" aria-hidden="true" />
           </button>
           <CardTitle className="text-center">Share Earlymark & Earn Rewards</CardTitle>
         </CardHeader>
