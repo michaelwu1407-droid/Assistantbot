@@ -14,6 +14,9 @@ export type JobPortalStatus = {
   isComplete: boolean
   isCancelled: boolean
   feedbackUrl: string | null
+  isQuote: boolean
+  quoteAccepted: boolean
+  quoteValue: number | null
 }
 
 /**
@@ -30,10 +33,13 @@ export async function getJobPortalStatus(token: string): Promise<JobPortalStatus
     select: {
       id: true,
       title: true,
+      stage: true,
       jobStatus: true,
       scheduledAt: true,
       contactId: true,
       workspaceId: true,
+      value: true,
+      metadata: true,
       workspace: {
         select: {
           name: true,
@@ -98,6 +104,10 @@ export async function getJobPortalStatus(token: string): Promise<JobPortalStatus
     ? formatDateTimeInTimezone(deal.scheduledAt, deal.workspace.workspaceTimezone || DEFAULT_WORKSPACE_TIMEZONE)
     : null
 
+  const isQuote = deal.stage === "CONTACTED"
+  const meta = (deal.metadata ?? {}) as Record<string, unknown>
+  const quoteAccepted = Boolean(meta.quoteAcceptedAt)
+
   return {
     jobStatus: deal.jobStatus ?? null,
     scheduledAt,
@@ -107,5 +117,61 @@ export async function getJobPortalStatus(token: string): Promise<JobPortalStatus
     isComplete,
     isCancelled,
     feedbackUrl,
+    isQuote,
+    quoteAccepted,
+    quoteValue: deal.value ? Number(deal.value) : null,
   }
+}
+
+export async function acceptQuote(
+  token: string,
+): Promise<{ success: boolean; error?: string }> {
+  const payload = verifyPublicJobPortalToken(token)
+  if (!payload) return { success: false, error: "Invalid or expired link" }
+
+  const deal = await db.deal.findUnique({
+    where: { id: payload.dealId },
+    select: { id: true, stage: true, contactId: true, workspaceId: true, title: true, metadata: true },
+  })
+
+  if (!deal || deal.contactId !== payload.contactId || deal.workspaceId !== payload.workspaceId) {
+    return { success: false, error: "Not found" }
+  }
+  if (deal.stage !== "CONTACTED") {
+    return { success: false, error: "This quote is no longer pending" }
+  }
+
+  const meta = ((deal.metadata ?? {}) as Record<string, unknown>)
+  await db.deal.update({
+    where: { id: deal.id },
+    data: { metadata: { ...meta, quoteAcceptedAt: new Date().toISOString() } },
+  })
+
+  await db.activity.create({
+    data: {
+      type: "NOTE",
+      title: "Quote accepted by customer",
+      content: "The customer clicked 'Accept Quote' on the portal.",
+      dealId: deal.id,
+      contactId: deal.contactId,
+    },
+  })
+
+  const workspaceOwner = await db.user.findFirst({
+    where: { workspaceId: deal.workspaceId },
+    select: { id: true },
+  })
+  if (workspaceOwner) {
+    await db.notification.create({
+      data: {
+        userId: workspaceOwner.id,
+        title: "Quote accepted",
+        message: `A customer accepted your quote for "${deal.title}". Time to book them in!`,
+        type: "SUCCESS",
+        link: `/crm/dashboard`,
+      },
+    })
+  }
+
+  return { success: true }
 }
