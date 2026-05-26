@@ -264,6 +264,14 @@ export function CallForwardingCard() {
                 <p className="text-xs text-muted-foreground">
                   Give this to customers. Every call is answered, qualified and booked by Tracey.
                 </p>
+                {traceyPhone && (
+                  <a
+                    href={`tel:${traceyPhone}`}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-primary underline-offset-2 hover:underline"
+                  >
+                    📞 Test it — call your number now
+                  </a>
+                )}
                 {!traceyPhone && status?.isOwner && (
                   <>
                   <Button
