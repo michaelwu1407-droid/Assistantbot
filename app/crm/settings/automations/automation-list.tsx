@@ -90,7 +90,7 @@ export function AutomationList({ initialAutomations, workspaceId }: AutomationLi
                 setActionType("notify")
                 setMessage("")
             } else {
-                toast.error(res.error || "Failed to create")
+                toast.error(res.error || "Couldn't create that automation — please try again.")
             }
         } catch (e) {
             console.error(e)

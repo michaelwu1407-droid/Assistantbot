@@ -63,7 +63,7 @@ export function SmsTemplatesForm({ initialTemplates }: SmsTemplatesFormProps) {
     if (result.success) {
       toast.success("Template saved");
     } else {
-      toast.error(result.error || "Failed to save");
+      toast.error(result.error || "Couldn't save that template — please try again.");
     }
     setSaving(null);
   };

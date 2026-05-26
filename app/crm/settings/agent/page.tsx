@@ -74,7 +74,7 @@ export default function AgentSettingsPage() {
       await updateWorkspaceSettings({ ...settings, aiPreferences: nextPreferences })
       toast.success("AI Assistant settings saved")
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save AI Assistant settings")
+      toast.error(error instanceof Error ? error.message : "Couldn't save AI settings — please try again.")
     } finally {
       setSaving(false)
     }
@@ -123,7 +123,7 @@ export default function AgentSettingsPage() {
       })
       toast.success("Board attention settings saved")
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save board attention settings")
+      toast.error(error instanceof Error ? error.message : "Couldn't save attention settings — please try again.")
     } finally {
       setSavingBoardAttention(false)
     }

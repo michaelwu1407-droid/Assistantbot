@@ -111,8 +111,8 @@ export default function TeamPage() {
             const newInvites = await getWorkspaceInvites()
             setInvites(newInvites as Invite[])
         } else {
-            setInviteError(result.error || "Failed to create invite")
-            toast.error(result.error || "Failed to create invite")
+            setInviteError(result.error || "Couldn't create invite — please try again.")
+            toast.error(result.error || "Couldn't create invite — please try again.")
         }
         setCreating(false)
     }
@@ -136,8 +136,8 @@ export default function TeamPage() {
             const newInvites = await getWorkspaceInvites()
             setInvites(newInvites as Invite[])
         } else {
-            setInviteError(result.error || "Failed to create invite")
-            toast.error(result.error || "Failed to create invite")
+            setInviteError(result.error || "Couldn't create invite — please try again.")
+            toast.error(result.error || "Couldn't create invite — please try again.")
         }
         setCreating(false)
     }
@@ -153,7 +153,7 @@ export default function TeamPage() {
             setInvites((prev) => prev.filter((i) => i.id !== inviteId))
             toast.success("Invite revoked")
         } else {
-            toast.error(result.error || "Failed to revoke invite")
+            toast.error(result.error || "Couldn't revoke invite — please try again.")
         }
     }
 
@@ -163,7 +163,7 @@ export default function TeamPage() {
             setMembers((prev) => prev.filter((m) => m.id !== memberId))
             toast.success("Member removed")
         } else {
-            toast.error(result.error || "Failed to remove member")
+            toast.error(result.error || "Couldn't remove member — please try again.")
         }
     }
 
@@ -173,7 +173,7 @@ export default function TeamPage() {
             setMembers(prev => prev.map(m => m.id === memberId ? { ...m, role: newRole } : m))
             toast.success("Role updated")
         } else {
-            toast.error(result.error || "Failed to update role")
+            toast.error(result.error || "Couldn't update role — please try again.")
         }
     }
 

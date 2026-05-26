@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { getDealHealth } from "@/lib/pipeline";
+import { formatCurrency } from "@/lib/format";
 import type { Prisma } from "@prisma/client";
 
 /**
@@ -64,7 +65,7 @@ export async function generateMorningDigest(
         type: "rotting_deal",
         priority: 1,
         title: `${dealRaw.title} is rotting (${health.daysSinceActivity}d)`,
-        description: `$${dealRaw.value?.toLocaleString() ?? 0} deal with ${contactName} - no activity in ${health.daysSinceActivity} days.`,
+        description: `${formatCurrency(Number(dealRaw.value ?? 0))} deal with ${contactName} - no activity in ${health.daysSinceActivity} days.`,
         dealId: dealRaw.id,
         contactId: contactId,
         value: Number(dealRaw.value),
@@ -74,7 +75,7 @@ export async function generateMorningDigest(
         type: "stale_deal",
         priority: 2,
         title: `${dealRaw.title} is going stale (${health.daysSinceActivity}d)`,
-        description: `$${dealRaw.value?.toLocaleString() ?? 0} deal with ${contactName} needs attention.`,
+        description: `${formatCurrency(Number(dealRaw.value ?? 0))} deal with ${contactName} needs attention.`,
         dealId: dealRaw.id,
         contactId: contactId,
         value: Number(dealRaw.value),
