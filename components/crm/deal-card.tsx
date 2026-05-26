@@ -79,7 +79,8 @@ function statusPillStyle(label: string, severity?: "critical" | "warning" | "mil
     case "Draft":         return { background: "#ECE6FA", color: "#8B6FE0" }
     case "Pending approval": return { background: "#FBEFD8", color: "#E89A2B" }
     case "Urgent":
-    case "Rejected":      return { background: "#FBDDD9", color: "#DC4A4A" }
+    case "Rejected":
+    case "Respond now":   return { background: "#FBDDD9", color: "#DC4A4A" }
     case "Follow up":     return { background: "#FBEFD8", color: "#E89A2B" }
     case "Needs review":  return { background: "#FEF0E6", color: "#D97706" }
     default:              return { background: "#F0EFED", color: "#6B7773" }
@@ -188,6 +189,14 @@ export function DealCard({
     const isRejected = !!(metadata.completionRejectedAt || metadata.completionRejectionReason)
     if (isRejected && statusLabel === "") {
       statusLabel = "Rejected"
+    }
+
+    // SLA: new lead with no action taken > 15 min
+    if (deal.stage === "new_request" && deal.createdAt && statusLabel === "") {
+      const ageMs = Date.now() - new Date(deal.createdAt).getTime()
+      if (ageMs > 15 * 60 * 1000) {
+        statusLabel = "Respond now"
+      }
     }
   }
 
