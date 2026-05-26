@@ -407,12 +407,11 @@ export async function ensureDailyNotifications(workspaceId: string) {
         }
       });
 
-      let message = "Your day is wrapping up. Don't forget to review draft jobs and finalize your invoices.";
-      let link = "/crm/inbox";
+      let message = "Your day is wrapping up. Check tonight's wrap for jobs done, outstanding invoices, and quotes to chase.";
+      let link = "/crm/wrap-up";
 
       if (todayDeviations > 0) {
-        message += ` Note: I noticed you accepted ${todayDeviations} job(s) today that deviate from your core rules. Please review these so I can learn your latest preferences!`;
-        link = "/crm/settings/my-business"; // Review refusal rules in My business
+        message += ` Also: I noticed you accepted ${todayDeviations} job(s) today that deviate from your core rules — review them when you get a chance.`;
       }
 
       await createNotification({
