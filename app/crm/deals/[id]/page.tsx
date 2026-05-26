@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DealNotes } from "@/components/crm/deal-notes"
+import { RunningLateInline } from "@/components/crm/running-late-inline"
 import { DealPhotosUpload } from "@/components/crm/deal-photos-upload"
 import { JobBillingTab } from "@/components/tradie/job-billing-tab"
 import { ActivityFeed } from "@/components/crm/activity-feed"
@@ -263,6 +264,11 @@ export default async function DealDetailPage({ params, searchParams }: PageProps
                 <p className="font-medium text-foreground">
                   {deal.scheduledAt ? formatDateTimeInTimezone(deal.scheduledAt, workspaceTimezone) : "Not scheduled"}
                 </p>
+                {deal.stage === "SCHEDULED" && deal.contactId && (
+                  <div className="mt-2">
+                    <RunningLateInline dealId={id} />
+                  </div>
+                )}
               </div>
               {deal.address || (typeof metadata.address === "string" && metadata.address) ? (
                 <div>
