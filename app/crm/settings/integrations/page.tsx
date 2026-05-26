@@ -101,7 +101,7 @@ export default function IntegrationsPage() {
             toast.warning(`Connected, but background automation still needs attention: ${warning.replace(/_/g, " ")}`)
         }
         if (error) {
-            toast.error(`Connection failed: ${error.replace(/_/g, " ")}`)
+            toast.error(`Couldn't connect — ${error.replace(/_/g, " ")}. Please try again.`)
         }
         router.replace("/crm/settings/integrations")
     }, [searchParams, router])

@@ -700,7 +700,7 @@ function DealDetailContent({
                           toast.success("Follow-up marked complete")
                           onDealUpdated?.()
                         } else {
-                          toast.error(result.error || "Failed")
+                          toast.error(result.error || "Couldn't mark follow-up complete — please try again.")
                         }
                         setSavingFollowUp(false)
                       }}
