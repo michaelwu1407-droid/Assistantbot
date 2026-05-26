@@ -55,53 +55,41 @@ Living document — update as items ship.
 ## Top-priority gaps — the real "best app ever" list
 
 ### P0 — daily-use friction (every job, every day)
-1. **"Running late" one-tap button on Today's job card.**
-   Customer gets `"Sorry mate, running ~20 min late. New ETA 10:50am."` Tradie
-   picks delay from presets (10 / 20 / 30 / 60 min). No typing.
+1. ✅ **"Running late" one-tap button on Today's job card.**
+   `actions/running-late-actions.ts` + `run-sheet-client.tsx`. Preset picker
+   (10/20/30/60 min) texts the customer a new ETA automatically. No typing.
 2. **Materials pre-flight prompt before leaving for a job.**
    "Plumbing call-out — usual kit: PVC fittings, sealant, wrench set. All loaded?"
    Suggestions derived from job type + previous similar jobs.
-3. **Today's Run Sheet screen** (replaces the schedule view as the morning-briefing
-   destination): jobs in time order, route map, expected revenue, pre-job notes,
-   deposit status flag, weather strip. One scroll = full day at a glance.
+3. ✅ **Today's Run Sheet screen** — `/crm/run-sheet` shows jobs in time order,
+   directions button, expected revenue, running-late button on each card.
 
 ### P1 — cashflow / chasing (weekly value)
 4. **Automatic payment reminders.** Invoice unpaid at 3 / 7 / 14 days → Tracey
    drafts and sends a polite reminder text. Today the tradie has to manually
    ask the chatbot for each one.
-5. **Cashflow widget on dashboard.** "$3,200 invoiced, unpaid · $1,400 expected
-   this week." Today only monthly *won* revenue is shown — no forward view.
-6. **Customer-facing "Accept Quote" link.** Quote PDF is sent as an attachment;
-   the customer has no one-click accept. Add a hosted accept page (`/q/[token]`)
-   that flips the deal to ACCEPTED and notifies the tradie.
+5. ✅ **Cashflow widget on dashboard.** Green-stripe banner below KPI cards shows
+   unpaid invoiced total + expected-this-week total. Hidden when both are zero.
+6. ✅ **Customer-facing "Accept Quote" button** on existing job portal
+   (`/portal/[token]`). Shown when deal is in quote stage → marks `quoteAcceptedAt`
+   in metadata → fires in-app tradie notification "Time to book them in!"
 
 ### P2 — end-of-day clarity
-7. **Wrap-Up Screen.** The evening notification fires but lands in `/crm/inbox`.
-   Build a single-screen "Today: 3 jobs done, $1,200 collected, $800 outstanding,
-   2 quotes need chasing tomorrow." Doubles as a satisfying end-of-day moment.
-8. **Lead response SLA alert.** New lead unactioned > 15 min → escalate / show
-   on dashboard as red. Tracey auto-call covers calls; web-form leads still slip.
+7. ✅ **Wrap-Up Screen** at `/crm/wrap-up` — jobs done today (+ collected total),
+   unpaid invoices, stale quote count. Evening notification now links here.
+8. ✅ **Lead response SLA alert.** Deals still in `new_request` after 15 min
+   show a red "Respond now" badge on kanban cards; counted in Attention Required KPI.
 
 ### P3 — onboarding / first-day value
-9. **Twilio number provisioning visibility.** New owner signs up — make it
-   immediately obvious "This is your business number now" with a try-it-yourself
-   prompt to call/text it from their own phone.
-10. **Pricing-for-agent must default to non-zero.** If a tradie sets up Tracey
-    without entering a base hourly rate, the AI quotes look wrong. Either block
-    "go live" until pricing is set, or use industry-default fallbacks per trade.
+9. ✅ **Business number "Test it" link.** When provisioned, call-forwarding card
+   shows a `tel:` link "Test it — call your number now".
+10. ✅ **Pricing setup step.** Setup checklist shows "Add pricing so Tracey quotes
+    correctly" until ≥1 service item has priceMin/priceMax > 0.
 
 ### P4 — known product-principle violations still live in code
-- `enableTripSms` toggles work but the surrounding copy still references
-  "Twilio phone number" in some panels — strip every customer-facing mention.
-- `reminder-settings.tsx` "Beta" badge — decide if it's still beta and remove
-  or move to a Labs section.
+- ✅ Customer-facing "Twilio" references stripped — now says "business number".
+- ✅ `reminder-settings.tsx` "Beta" badge removed.
 
-## Decision needed from the customer / product
-
-- Of P0/P1, what's the top 3 to ship next? My recommendation: 1 → 4 → 3.
-  Running-late button is the fastest win; auto payment reminders are the
-  highest-revenue-impact win; Today's Run Sheet is the highest-perception win.
-- Run Sheet vs Wrap-Up — both eventually, Run Sheet first (mornings drive
-  the day; evenings are recap).
-- Accept-Quote hosted page — needs a public token route + minimal landing
-  page; 1-day spike.
+## Still open
+- P0 #2: Materials pre-flight prompt (needs job-type → typical-kit ML inference)
+- P1 #4: Automatic payment reminders at 3/7/14 days post-invoice
