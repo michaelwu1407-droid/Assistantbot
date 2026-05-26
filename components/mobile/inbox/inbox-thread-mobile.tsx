@@ -11,6 +11,20 @@ import { toast } from "sonner"
 
 type MessageMode = "direct" | "tracey"
 
+const DIRECT_SUGGESTIONS = [
+  "On my way 👍",
+  "Running ~20 min late — sorry about that.",
+  "Job's done — invoice coming through shortly.",
+  "Got it, will be in touch shortly.",
+]
+
+const TRACEY_SUGGESTIONS = [
+  "Send them a quote",
+  "Book them in",
+  "Send a payment reminder",
+  "Reply saying I'll call back tomorrow",
+]
+
 interface InboxThreadMobileProps {
   contactId: string
   contactName: string
@@ -154,17 +168,31 @@ export function InboxThreadMobile({
               )}
             >
               {m === "direct" ? <MessageSquare className="h-3 w-3" /> : <Bot className="h-3 w-3" />}
-              {m === "direct" ? "Direct" : "Tell Tracey"}
+              {m === "direct" ? "I'll reply" : "Let Tracey reply"}
             </button>
           ))}
         </div>
+        {!text.trim() && (
+          <div className="-mx-3 px-3 mb-2 flex gap-2 overflow-x-auto scrollbar-hide">
+            {(mode === "direct" ? DIRECT_SUGGESTIONS : TRACEY_SUGGESTIONS).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setText(s)}
+                className="shrink-0 rounded-full border border-border bg-muted/30 px-3 py-1.5 text-[12px] text-foreground hover:bg-muted"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="flex items-end gap-2">
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend() } }}
             rows={1}
-            placeholder={mode === "direct" ? "Send a message…" : "Ask Tracey to do something…"}
+            placeholder={mode === "direct" ? "Type a reply…" : "Tell Tracey what to do — e.g. \"send a quote for $350\""}
             className="flex-1 resize-none rounded-2xl border border-border bg-muted/30 px-4 py-2.5 text-[15px] focus-visible:outline-none"
           />
           <button

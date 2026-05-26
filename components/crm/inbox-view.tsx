@@ -19,6 +19,8 @@ import {
   SlidersHorizontal,
   ArrowDownAZ,
   Settings,
+  FileText,
+  Calendar,
 } from "lucide-react"
 /** Direct file import avoids Turbopack HMR stale `bot.js` chunk after swapping Bot -> Sparkles on the barrel import. */
 import Sparkles from "lucide-react/dist/esm/icons/sparkles"
@@ -784,6 +786,63 @@ If the request is to contact the customer, use the appropriate customer-contact 
                 </div>
               </div>
 
+
+              {/* New-lead triage strip — show when no outbound activity yet */}
+              {selectedContact && !selectedContact.interactions.some(isOutbound) && detailTab === "conversations" && (
+                <div className="px-4 pt-3 pb-3 border-b" style={{ background: "#FFF9E6", borderColor: "#F4E2A3" }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="h-3.5 w-3.5 text-amber-700" />
+                    <p className="app-field-label text-amber-900">New lead — pick your next move</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 gap-1.5 bg-card"
+                      onClick={() => setMessageMode("direct")}
+                    >
+                      <MessageSquare className="h-3.5 w-3.5" />
+                      I&apos;ll reply
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 gap-1.5 bg-card"
+                      onClick={() => {
+                        setMessageMode("tracey")
+                        setMessageDrafts((p) => ({ ...p, tracey: `Reply to ${selectedContact.name} on my behalf — thank them and ask any clarifying questions.` }))
+                      }}
+                    >
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Let Tracey reply
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 gap-1.5 bg-card"
+                      onClick={() => {
+                        setMessageMode("tracey")
+                        setMessageDrafts((p) => ({ ...p, tracey: `Draft a quote for ${selectedContact.name}` }))
+                      }}
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      Send a quote
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 gap-1.5 bg-card"
+                      onClick={() => {
+                        setMessageMode("tracey")
+                        setMessageDrafts((p) => ({ ...p, tracey: `Book ${selectedContact.name} in for an appointment — propose the next available slot.` }))
+                      }}
+                    >
+                      <Calendar className="h-3.5 w-3.5" />
+                      Book them in
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {/* Interactions list */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3">

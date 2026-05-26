@@ -26,6 +26,21 @@ Living document — update as items ship.
 - ✅ **Follow-up cadence UI** — `FollowUpCadenceCard` in Notifications settings lets the
   tradie choose when Tracey chases quotes (3/5/7/14 days) and invoices (1/2/3/4 weeks)
   using plain-English preset buttons — no raw number input
+- ✅ **Chat quick-action defaults rewritten** — replaced vague placeholder prompts
+  ("Help me schedule a job") with high-value defaults that work on first tap:
+  "What's on today?", "Chase stale quotes", "Chase unpaid invoices", "What needs attention?"
+- ✅ **Mobile inbox-thread suggested replies** — chips above the textarea show contextual
+  prompts based on mode: Direct mode shows ready-to-send replies (On my way, Running late,
+  Job's done); Tracey mode shows action prompts (Send a quote, Book them in, Send a payment
+  reminder, Reply saying I'll call back). Mode labels also de-jargonised ("Direct" →
+  "I'll reply", "Tell Tracey" → "Let Tracey reply"). Placeholder text now guides
+  what to type instead of saying "Ask Tracey to do something…"
+- ✅ **Inbox new-lead triage strip (desktop)** — when a contact is selected and has no
+  outbound activity yet, a prominent amber strip appears above the message timeline with
+  four next-move buttons: "I'll reply" (sets direct mode), "Let Tracey reply",
+  "Send a quote" (pre-fills the Tracey draft), "Book them in" (pre-fills). Promotes
+  the buried mode selector to the top of the panel so the user knows what to do
+  with a fresh lead.
 
 ## Confirmed already present (not gaps — common misconception)
 
