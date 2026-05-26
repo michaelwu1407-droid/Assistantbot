@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { sendPushToUser } from "@/lib/push-notifications";
 import { runIdempotent } from "@/lib/idempotency";
 import { dispatchWhatsAppForNotification } from "@/lib/notifications/whatsapp-dispatch";
+import { ensureAutoPaymentReminders } from "@/actions/auto-payment-reminders";
 
 export interface NotificationView {
   id: string;
@@ -433,6 +434,9 @@ export async function ensureDailyNotifications(workspaceId: string) {
 
   // ── Follow-up chase reminders (stale quotes + unpaid invoices) ──────────────
   await ensureFollowUpReminders(workspaceId, dbUser.id, settings, startOfDay);
+
+  // ── Auto payment reminders (3/7/14 day milestones, EXECUTION mode only) ─────
+  await ensureAutoPaymentReminders(workspaceId);
 }
 
 /**
