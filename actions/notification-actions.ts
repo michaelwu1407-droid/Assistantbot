@@ -347,13 +347,13 @@ export async function ensureDailyNotifications(workspaceId: string) {
     });
     if (!existing) {
       const morningMessage =
-        "Good morning! Check your daily briefing for job preparations — verify addresses, materials, and confirmations before heading out.";
+        "Good morning! Here are your jobs for today — confirm addresses and make sure you have everything before heading out.";
       await createNotification({
         userId: dbUser.id,
         title: "☀️ Morning Briefing",
         message: morningMessage,
         type: "INFO",
-        link: "/crm/dashboard",
+        link: "/crm/schedule",
         actionType: "CONFIRM_JOB",
         actionPayload: { trigger: "morning_briefing" },
       });
