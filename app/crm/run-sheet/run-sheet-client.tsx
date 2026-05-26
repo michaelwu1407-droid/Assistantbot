@@ -1,11 +1,14 @@
 "use client"
 
+import { useState } from "react"
 import { DealView } from "@/actions/deal-actions"
 import { formatCurrency, formatTime } from "@/lib/format"
-import { MapPin, Clock, CheckCircle2, Navigation } from "lucide-react"
+import { MapPin, Clock, CheckCircle2, Navigation, Timer } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { sendRunningLateMessage } from "@/actions/running-late-actions"
+import { toast } from "sonner"
 
 interface RunSheetClientProps {
   jobs: DealView[]
@@ -69,18 +72,30 @@ export function RunSheetClient({ jobs, timezone }: RunSheetClientProps) {
   )
 }
 
+const LATE_PRESETS = [10, 20, 30, 60]
+
 function JobCard({ job, index, total }: { job: DealView; index: number; total: number }) {
+  const [showLatePicker, setShowLatePicker] = useState(false)
+  const [sending, setSending] = useState(false)
+
   const mapsUrl = job.address
     ? `https://maps.google.com/?q=${encodeURIComponent(job.address)}`
     : null
+
+  const handleRunningLate = async (minutes: number) => {
+    setSending(true)
+    setShowLatePicker(false)
+    const result = await sendRunningLateMessage(job.id, minutes)
+    if (result.success) toast.success("Running-late message sent")
+    else toast.error(result.error ?? "Couldn't send that message — please try again.")
+    setSending(false)
+  }
 
   return (
     <div className="rounded-md border border-border bg-card p-4 space-y-3">
       <div className="flex items-start gap-3">
         <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-          <span className="text-xs font-bold text-muted-foreground">
-            {index}/{total}
-          </span>
+          <span className="text-xs font-bold text-muted-foreground">{index}/{total}</span>
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -100,18 +115,44 @@ function JobCard({ job, index, total }: { job: DealView; index: number; total: n
             </p>
           )}
         </div>
-        <span className="font-bold text-foreground shrink-0">
-          {formatCurrency(job.value)}
-        </span>
+        <span className="font-bold text-foreground shrink-0">{formatCurrency(job.value)}</span>
       </div>
 
-      {mapsUrl && (
-        <Button asChild variant="outline" size="sm" className="w-full gap-2">
-          <a href={mapsUrl} target="_blank" rel="noopener noreferrer">
-            <Navigation className="h-4 w-4" />
-            Get directions
-          </a>
-        </Button>
+      <div className="flex gap-2">
+        {mapsUrl && (
+          <Button asChild variant="outline" size="sm" className="flex-1 gap-2">
+            <a href={mapsUrl} target="_blank" rel="noopener noreferrer">
+              <Navigation className="h-4 w-4" />
+              Directions
+            </a>
+          </Button>
+        )}
+        {job.contactId && (
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn("gap-2", mapsUrl ? "flex-1" : "w-full")}
+            onClick={() => setShowLatePicker((v) => !v)}
+            disabled={sending}
+          >
+            <Timer className="h-4 w-4" />
+            Running late
+          </Button>
+        )}
+      </div>
+
+      {showLatePicker && (
+        <div className="rounded-md bg-amber-50 border border-amber-200 p-3 space-y-2">
+          <p className="text-xs font-medium text-amber-900">How late? We&apos;ll text the customer a new ETA.</p>
+          <div className="flex gap-2 flex-wrap">
+            {LATE_PRESETS.map((m) => (
+              <Button key={m} size="sm" variant="outline" onClick={() => handleRunningLate(m)} disabled={sending}
+                className="border-amber-300 text-amber-900 hover:bg-amber-100">
+                ~{m} min
+              </Button>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   )
