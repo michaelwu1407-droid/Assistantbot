@@ -3,7 +3,7 @@
 Tradie-grounded gaps in the app, prioritised by how much daily-use pain they remove.
 Living document — update as items ship.
 
-## Shipped (this session)
+## Shipped (this session + continuation)
 
 - ✅ Cooling-off period for workspace deletion (30 days, cancellable)
 - ✅ Quote flow simplified — single "Send Quote" button + "Save as Draft"
@@ -14,8 +14,18 @@ Living document — update as items ship.
   preset buttons ("2 hours before / The day before / Two days before / A week before")
 - ✅ Fixed silent bug where saving reminder settings overwrote working hours and
   agentMode (was hardcoding defaults instead of patching)
-- ✅ Morning briefing notification now links to `/crm/schedule` (today's jobs in order)
+- ✅ Morning briefing notification now links to `/crm/run-sheet` (today's jobs in order)
   rather than `/crm/dashboard` (pipeline kanban)
+- ✅ **Run sheet page** — `/crm/run-sheet` shows today's scheduled jobs in time order with
+  directions button, expected revenue total, and empty state if no jobs
+- ✅ **Morning chat message** enhanced to be an actual run-sheet summary: job times,
+  client names, values, and expected daily revenue — posted as a Tracey chat message
+- ✅ **Follow-up reminders wired** — `ensureFollowUpReminders` fires daily and posts a
+  Tracey chat message listing stale quotes (past `softChase.triggerDays`) and unpaid
+  invoices (past `invoiceFollowUp.triggerDays`) with "want me to chase any of these?"
+- ✅ **Follow-up cadence UI** — `FollowUpCadenceCard` in Notifications settings lets the
+  tradie choose when Tracey chases quotes (3/5/7/14 days) and invoices (1/2/3/4 weeks)
+  using plain-English preset buttons — no raw number input
 
 ## Confirmed already present (not gaps — common misconception)
 

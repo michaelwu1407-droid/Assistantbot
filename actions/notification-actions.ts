@@ -346,24 +346,45 @@ export async function ensureDailyNotifications(workspaceId: string) {
       where: { userId: dbUser.id, title: { contains: "Morning Briefing" }, createdAt: { gte: startOfDay } }
     });
     if (!existing) {
-      const morningMessage =
-        "Good morning! Here are your jobs for today — confirm addresses and make sure you have everything before heading out.";
+      // Fetch today's scheduled jobs for the run-sheet summary
+      const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date(todayStart.getTime() + 86_400_000);
+      const todayJobs = await db.deal.findMany({
+        where: {
+          workspaceId,
+          stage: "scheduled",
+          scheduledAt: { gte: todayStart, lt: todayEnd },
+        },
+        select: { title: true, scheduledAt: true, value: true, contact: { select: { name: true } } },
+        orderBy: { scheduledAt: "asc" },
+      });
+
+      let runSheetLines = "";
+      if (todayJobs.length > 0) {
+        const total = todayJobs.reduce((s, j) => s + (Number(j.value) || 0), 0);
+        const lines = todayJobs.map((j) => {
+          const t = j.scheduledAt
+            ? new Date(j.scheduledAt).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true })
+            : "TBC";
+          return `• ${t} — ${j.title}${j.contact?.name ? ` (${j.contact.name})` : ""} · $${Number(j.value || 0).toFixed(0)}`;
+        });
+        runSheetLines = `\n\n${lines.join("\n")}\n\nExpected today: $${total.toFixed(0)}`;
+      } else {
+        runSheetLines = "\n\nNo jobs scheduled yet — check the pipeline for quotes to chase.";
+      }
+
+      const morningMessage = `Good morning! Here${todayJobs.length > 0 ? ` are your ${todayJobs.length} job${todayJobs.length > 1 ? "s" : ""} today` : "'s your morning briefing"}:${runSheetLines}`;
       await createNotification({
         userId: dbUser.id,
         title: "☀️ Morning Briefing",
-        message: morningMessage,
+        message: `${todayJobs.length > 0 ? `${todayJobs.length} job${todayJobs.length > 1 ? "s" : ""} today` : "No jobs today"} — tap to see your run sheet.`,
         type: "INFO",
-        link: "/crm/schedule",
+        link: "/crm/run-sheet",
         actionType: "CONFIRM_JOB",
         actionPayload: { trigger: "morning_briefing" },
       });
-      // Also drop a message into the assistant chat so it shows up in the chatbox.
       await db.chatMessage.create({
-        data: {
-          role: "assistant",
-          content: `☀️ Morning Briefing: ${morningMessage}`,
-          workspaceId,
-        },
+        data: { role: "assistant", content: `☀️ Morning Briefing\n${morningMessage}`, workspaceId },
       });
     }
   }
@@ -401,7 +422,6 @@ export async function ensureDailyNotifications(workspaceId: string) {
         type: "SUCCESS",
         link
       });
-      // Mirror the wrap-up into the assistant chat.
       await db.chatMessage.create({
         data: {
           role: "assistant",
@@ -411,4 +431,76 @@ export async function ensureDailyNotifications(workspaceId: string) {
       });
     }
   }
+
+  // ── Follow-up chase reminders (stale quotes + unpaid invoices) ──────────────
+  await ensureFollowUpReminders(workspaceId, dbUser.id, settings, startOfDay);
+}
+
+/**
+ * Creates a daily Tracey chat message when there are stale quotes or unpaid invoices
+ * that have exceeded the workspace-configured cadence (softChase / invoiceFollowUp).
+ */
+async function ensureFollowUpReminders(
+  workspaceId: string,
+  userId: string,
+  settings: Record<string, unknown>,
+  startOfDay: Date,
+) {
+  const softChase = (settings.softChase as { triggerDays?: number } | undefined) ?? {};
+  const invoiceFollowUp = (settings.invoiceFollowUp as { triggerDays?: number } | undefined) ?? {};
+  const quoteStaleDays = softChase.triggerDays ?? 3;
+  const invoiceStaleDays = invoiceFollowUp.triggerDays ?? 7;
+
+  // Idempotency: only fire once per day
+  const existingChase = await db.notification.findFirst({
+    where: { userId, title: { contains: "Follow-Up Reminders" }, createdAt: { gte: startOfDay } },
+  });
+  if (existingChase) return;
+
+  const quoteThreshold = new Date(Date.now() - quoteStaleDays * 86_400_000);
+  const invoiceThreshold = new Date(Date.now() - invoiceStaleDays * 86_400_000);
+
+  const [staleQuotes, unpaidInvoices] = await Promise.all([
+    db.deal.findMany({
+      where: { workspaceId, stage: "quote_sent", stageChangedAt: { lte: quoteThreshold } },
+      select: { id: true, title: true, contact: { select: { name: true } }, value: true },
+      take: 5,
+    }),
+    db.invoice.findMany({
+      where: { deal: { workspaceId }, status: "ISSUED", issuedAt: { lte: invoiceThreshold } },
+      select: { number: true, total: true, deal: { select: { contact: { select: { name: true } } } } },
+      take: 5,
+    }),
+  ]);
+
+  if (staleQuotes.length === 0 && unpaidInvoices.length === 0) return;
+
+  const lines: string[] = [];
+  if (staleQuotes.length > 0) {
+    lines.push(`**Quotes with no reply (${quoteStaleDays}+ days):**`);
+    staleQuotes.forEach((q) =>
+      lines.push(`• ${q.title}${q.contact?.name ? ` — ${q.contact.name}` : ""} · $${Number(q.value || 0).toFixed(0)}`)
+    );
+  }
+  if (unpaidInvoices.length > 0) {
+    if (lines.length) lines.push("");
+    lines.push(`**Unpaid invoices (${invoiceStaleDays}+ days):**`);
+    unpaidInvoices.forEach((inv) =>
+      lines.push(`• Invoice #${inv.number}${inv.deal?.contact?.name ? ` — ${inv.deal.contact.name}` : ""} · $${Number(inv.total || 0).toFixed(0)}`)
+    );
+  }
+  lines.push("\nWant me to chase any of these? Just say the word.");
+
+  const content = `📋 Follow-Up Reminders\n\n${lines.join("\n")}`;
+
+  await Promise.all([
+    createNotification({
+      userId,
+      title: "📋 Follow-Up Reminders",
+      message: `${staleQuotes.length + unpaidInvoices.length} item${staleQuotes.length + unpaidInvoices.length > 1 ? "s" : ""} need chasing — tap to see details.`,
+      type: "WARNING",
+      link: "/crm/dashboard",
+    }),
+    db.chatMessage.create({ data: { role: "assistant", content, workspaceId } }),
+  ]);
 }

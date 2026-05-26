@@ -15,6 +15,7 @@ import {
 } from "@/actions/notification-actions"
 import { toast } from "sonner"
 import { WhatsAppNotificationToggles } from "@/components/settings/whatsapp-notification-toggles"
+import { FollowUpCadenceCard } from "@/components/settings/follow-up-cadence-card"
 
 function base64UrlToUint8Array(base64Url: string): Uint8Array {
   const padding = "=".repeat((4 - (base64Url.length % 4)) % 4)
@@ -246,6 +247,7 @@ export default function NotificationsSettingsPage() {
         </CardContent>
       </Card>
       <WhatsAppNotificationToggles />
+      <FollowUpCadenceCard />
     </div>
   )
 }
