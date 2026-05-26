@@ -152,17 +152,26 @@ export default function AgentSettingsPage() {
             onValueChange={(v) => setSettings((s) => ({ ...s, agentMode: v }))}
             className="flex flex-col space-y-3"
           >
-            <Label className="flex items-center gap-2 rounded-md border p-3 cursor-pointer">
-              <RadioGroupItem value="EXECUTION" id="agent-mode-execute" />
-              <span>Execution</span>
+            <Label className="flex items-start gap-3 rounded-md border p-3 cursor-pointer">
+              <RadioGroupItem value="EXECUTION" id="agent-mode-execute" className="mt-0.5" />
+              <div>
+                <p className="font-medium">Execution — Tracey acts</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Sends payment reminders, chases quotes, and handles routine follow-ups automatically. You stay informed, not in the loop.</p>
+              </div>
             </Label>
-            <Label className="flex items-center gap-2 rounded-md border p-3 cursor-pointer">
-              <RadioGroupItem value="DRAFT" id="agent-mode-organize" />
-              <span>Review &amp; approve</span>
+            <Label className="flex items-start gap-3 rounded-md border p-3 cursor-pointer">
+              <RadioGroupItem value="DRAFT" id="agent-mode-organize" className="mt-0.5" />
+              <div>
+                <p className="font-medium">Review &amp; approve — Tracey drafts</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Tracey prepares messages and actions for you to review before anything is sent. Nothing goes out without your say-so.</p>
+              </div>
             </Label>
-            <Label className="flex items-center gap-2 rounded-md border p-3 cursor-pointer">
-              <RadioGroupItem value="INFO_ONLY" id="agent-mode-filter" />
-              <span>Info only</span>
+            <Label className="flex items-start gap-3 rounded-md border p-3 cursor-pointer">
+              <RadioGroupItem value="INFO_ONLY" id="agent-mode-filter" className="mt-0.5" />
+              <div>
+                <p className="font-medium">Info only — Tracey advises</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Tracey surfaces insights and flags issues but never drafts or sends anything. You do all the work.</p>
+              </div>
             </Label>
           </RadioGroup>
         </CardContent>
