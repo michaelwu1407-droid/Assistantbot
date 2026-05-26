@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Inbox, CalendarDays, MoreHorizontal } from "lucide-react"
+import { LayoutDashboard, Inbox, ClipboardList, MoreHorizontal } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type TabItem = {
@@ -26,10 +26,10 @@ const TABS: TabItem[] = [
     match: (p) => p.startsWith("/crm/inbox"),
   },
   {
-    href: "/crm/schedule",
-    label: "Schedule",
-    icon: CalendarDays,
-    match: (p) => p.startsWith("/crm/schedule"),
+    href: "/crm/run-sheet",
+    label: "Today",
+    icon: ClipboardList,
+    match: (p) => p.startsWith("/crm/run-sheet") || p.startsWith("/crm/schedule"),
   },
 ]
 
