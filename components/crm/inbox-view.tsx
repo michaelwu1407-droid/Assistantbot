@@ -1072,7 +1072,7 @@ If the request is to contact the customer, use the appropriate customer-contact 
                     <span
                       className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide"
                       title={messageMode === "direct"
-                        ? "Sends directly from your Twilio number — exactly what you type, nothing more."
+                        ? "Sends directly from your business number — exactly what you type, nothing more."
                         : "Tracey reads your instruction and decides how to reply, update the CRM, or both."}
                       style={
                         messageMode === "direct"

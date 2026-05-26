@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getWorkspaceSettings, updateWorkspaceSettings } from "@/actions/settings-actions";
@@ -75,7 +74,6 @@ export function ReminderSettings() {
         <CardTitle className="flex items-center gap-2">
           <Clock className="h-5 w-5" />
           Job Reminders
-          <Badge variant="outline">Beta</Badge>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
