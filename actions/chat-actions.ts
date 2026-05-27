@@ -13,6 +13,7 @@ import { appendTicketNote, logActivity } from "./activity-actions";
 import { createContact, searchContacts } from "./contact-actions";
 import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
 import { signUnsubscribeToken } from "@/lib/email-unsubscribe-token";
+import { buildPublicJobPortalUrl } from "@/lib/public-job-portal";
 import { withCostCeiling } from "@/lib/cost-ceiling";
 
 const TWILIO_SMS_COST_USD = 0.05;
@@ -2786,11 +2787,24 @@ export async function runSendSms(
     }
     const safeSmsTo = assertSafeRecipient("sms", contact.phone);
     const fromNumber = workspace.twilioPhoneNumber;
+
+    // Auto-append accept link when contact has an open quote (CONTACTED stage)
+    let finalBody = params.message;
+    const openQuote = await db.deal.findFirst({
+      where: { workspaceId, contactId: contact.id, stage: "CONTACTED" },
+      select: { id: true },
+      orderBy: { updatedAt: "desc" },
+    });
+    if (openQuote) {
+      const acceptUrl = buildPublicJobPortalUrl({ dealId: openQuote.id, contactId: contact.id, workspaceId });
+      finalBody = `${params.message}\n\nAccept this quote: ${acceptUrl}`;
+    }
+
     await withCostCeiling("twilio", TWILIO_SMS_COST_USD, () =>
       twilioClient.messages.create({
         to: safeSmsTo,
         from: fromNumber,
-        body: params.message,
+        body: finalBody,
       }),
     );
 
@@ -2798,7 +2812,7 @@ export async function runSendSms(
     await db.chatMessage.create({
       data: {
         role: "assistant",
-        content: params.message,
+        content: finalBody,
         workspaceId,
         metadata: { contactId: contact.id, channel: "sms", direction: "outbound" },
       },
@@ -2806,11 +2820,11 @@ export async function runSendSms(
     await logActivity({
       type: "NOTE",
       title: `SMS sent to ${contact.name}`,
-      content: params.message,
+      content: finalBody,
       contactId: contact.id,
     });
 
-    return `SMS sent to ${contact.name} (${contact.phone}): "${params.message}"`;
+    return `SMS sent to ${contact.name} (${contact.phone}): "${finalBody}"`;
   } catch (err) {
     return `Error sending SMS: ${err instanceof Error ? err.message : String(err)}`;
   }
