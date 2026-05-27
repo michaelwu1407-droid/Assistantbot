@@ -72,7 +72,7 @@ export function FollowUpCadenceCard() {
           Tracey follow-up reminders
         </CardTitle>
         <CardDescription>
-          Tracey will remind you in the app when quotes or invoices have been waiting too long.
+          Tracey will remind you in the app when quotes or invoices have been waiting too long. In Execution mode, Tracey also auto-texts the customer for you.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -103,7 +103,7 @@ export function FollowUpCadenceCard() {
         <div className="space-y-2">
           <p className="app-body-primary font-medium">Chase unpaid invoices after</p>
           <p className="app-body-secondary">
-            If an invoice hasn&apos;t been paid, Tracey will remind you to send a follow-up.
+            In Execution mode, Tracey auto-texts the customer at this interval. In other modes, you&apos;ll get an in-app reminder instead.
           </p>
           <div className="grid grid-cols-4 gap-2">
             {INVOICE_PRESETS.map((p) => (

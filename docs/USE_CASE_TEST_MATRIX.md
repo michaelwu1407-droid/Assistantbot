@@ -216,7 +216,7 @@ Tracey button (CC-4).
 | crm-19 | Kanban drag-and-drop stage change persists | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `dragStartColumnRef` set in `handleDragStart`; intra-column sort path reached. `__tests__/kanban-board.test.tsx` covers column renders and card deletion. Drag-interaction E2E is browser-only (dnd-kit). |
 | crm-20 | Drag stale → quoted opens follow-up modal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `StaleDealFollowUpModal` wired in `handleDragEnd`. `__tests__/stale-deal-follow-up-modal.test.tsx` covers the modal. Drag trigger is browser-only (dnd-kit). |
 | crm-21 | Stage transition fires automation exactly once | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/automation-actions.test.ts`. |
-| crm-22 | Stale / rotting badges on deals | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/deal-attention.test.ts`. |
+| crm-22 | Stale / rotting badges on deals | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/deal-attention.test.ts` — stale, rotting, overdue, rejected, parked signals. **UPDATED 2026-05-27** — new_lead_sla signal (15-min SLA on new_request stage) covered: fires when >15 min old, silent when fresh, absent for non-new_request, absent when createdAt missing. |
 | crm-23 | `/crm/deals/[id]` detail page | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/crm-core-journey.spec.ts`. |
 | crm-24 | `/crm/deals/[id]/edit` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/deal-edit-form.test.tsx` — assignee-required block, save all fields, team-member RBAC. |
 | crm-25 | `/crm/deals/new` standalone create | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/deal-actions.test.ts` — `createDeal` tested: happy path, blocked without assignee (scheduled), blocked without date, booking-confirmation fired on SCHEDULED stage. |
@@ -340,6 +340,7 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 | job-07 | Uber-style customer arrival page | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Depends on job-02 broadcast. |
 | job-08 | Post-job feedback request SMS | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/post-job-followups.test.ts` — idempotent send, dedup skip, sendSMS failure guard, scan cap. |
 | job-09 | Customer review page (`/feedback/[token]`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/public-feedback-route.test.ts` — rejects invalid payload; delegates to `submitFeedbackFromPublicToken` on valid submission. |
+| job-10 | "Running late" SMS to customer | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **ADDED 2026-05-27** — `__tests__/running-late-actions.test.ts` — happy path (delay message with first name, ETA), deal-not-found, wrong-workspace, no-phone, SMS failure propagation, null scheduledAt fallback. |
 
 ## K. Quotes, invoices, accounting (`quote`)
 
@@ -353,6 +354,7 @@ Inbound + outbound + reliability. Cron heartbeat coverage in
 | quote-06 | Stripe-hosted payment link on invoice | ✅ | ✅ | 🟡 | 🟡 | ✅ | ✅ | ✅ | 🟡 | watch | Same as quote-05 — `invoice.paid` handler is stub. Manual mark-paid via `/crm/tradie` flow. |
 | quote-07 | Xero/MYOB push (`/crm/settings/integrations`) | ✅ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | watch | Draft invoice creation works; later lifecycle steps incomplete (`missing_features.md`). |
 | quote-08 | `/crm/estimator` standalone quoting | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/crm-estimator-page.test.tsx` + `__tests__/estimator-form.test.tsx`. See crm-34. |
+| quote-09 | Auto payment reminder SMS at 3/7/14-day milestones (Execution mode) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **ADDED 2026-05-27** — `__tests__/auto-payment-reminders.test.ts` — EXECUTION-only gate, 3/7-day milestone send, idempotency (skips already-sent), no-phone skip, SMS failure = no activity log, one milestone per invoice per day. |
 
 ## L. Calendar & scheduling (`cal`)
 
@@ -642,6 +644,7 @@ matrix is worth maintaining.
 
 ## Z. Change log
 
+- **2026-05-27** — new_lead_sla signal added to crm-22 (`__tests__/deal-attention.test.ts`). New rows job-10 (running-late SMS, `__tests__/running-late-actions.test.ts`) and quote-09 (auto payment reminders, `__tests__/auto-payment-reminders.test.ts`) added as verified. FollowUpCadenceCard description updated to surface Execution-mode auto-send behaviour.
 - **2026-05-25 (continued)** — pub-06 verified: `__tests__/sms-intro-portal-link.test.ts`
   asserts portal URL in intro SMS + activity log. acq-09 promoted to verified:
   `contact-route.test.ts` already asserts `[Contact – sales]` email subject prefix.

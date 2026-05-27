@@ -111,6 +111,37 @@ describe("getAttentionSignalsForDeal", () => {
     expect(signals.map(s => s.key)).not.toContain("rejected");
     expect(signals.map(s => s.key)).not.toContain("parked");
   });
+
+  it("returns new_lead_sla signal for new_request stage older than 15 min", () => {
+    const old = new Date(Date.now() - 16 * 60 * 1000);
+    const signals = getAttentionSignalsForDeal(
+      makeHealthy({ stage: "new_request", createdAt: old })
+    );
+    expect(signals).toContainEqual({ key: "new_lead_sla", label: "New lead — no reply yet" });
+  });
+
+  it("does NOT return new_lead_sla for new_request stage younger than 15 min", () => {
+    const fresh = new Date(Date.now() - 5 * 60 * 1000);
+    const signals = getAttentionSignalsForDeal(
+      makeHealthy({ stage: "new_request", createdAt: fresh })
+    );
+    expect(signals.map(s => s.key)).not.toContain("new_lead_sla");
+  });
+
+  it("does NOT return new_lead_sla for non-new_request stages even if old", () => {
+    const old = new Date(Date.now() - 60 * 60 * 1000);
+    const signals = getAttentionSignalsForDeal(
+      makeHealthy({ stage: "SCHEDULED", createdAt: old })
+    );
+    expect(signals.map(s => s.key)).not.toContain("new_lead_sla");
+  });
+
+  it("does NOT return new_lead_sla when createdAt is missing", () => {
+    const signals = getAttentionSignalsForDeal(
+      makeHealthy({ stage: "new_request", createdAt: undefined })
+    );
+    expect(signals.map(s => s.key)).not.toContain("new_lead_sla");
+  });
 });
 
 describe("countAttentionRequiredDeals", () => {
