@@ -450,7 +450,6 @@ These are URLs a customer (not the tradie) will hit.
 | pub-01 | `/portal/[token]` public job portal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/job-portal-page.test.tsx` — renders SCHEDULED job for valid token; calls `notFound()` for invalid token. Audit trail: Activity "Job portal viewed" + `portal.opened` webhook (deduped 1 h). |
 | pub-02 | `/portal-preview` | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/public-preview.spec.ts`. |
 | pub-03 | `/feedback/[token]` customer review submit | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/public-feedback-route.test.ts`. |
-| pub-04 | `/kiosk/open-house` open-house lead capture | 🟡 | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | ⬜ | watch | Tablet/kiosk discoverability + offline behaviour unverified. |
 | pub-05 | Customer ETA page (Uber-style) | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Not built; UC14. |
 | pub-06 | Outbound SMS contains a portal link where promised | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `__tests__/sms-intro-portal-link.test.ts` asserts `buildPublicJobPortalUrl` is called with correct params, portal URL appears in SMS body, and activity is logged with "portal link" description. |
 
@@ -646,6 +645,7 @@ matrix is worth maintaining.
 
 ## Z. Change log
 
+- **2026-05-28 (continued)** — pub-04 (open-house kiosk) removed: real-estate feature, out of scope for current tradie product. cashflow-widget design tokens fixed (border-border, bg-emerald-600). follow-up-cadence-card quote description updated to reflect Execution mode behaviour. crm-14 confirmed not built.
 - **2026-05-28** — quote-05/06 verified: `confirmPayment(token)` portal action built; customer portal "Yes, I've paid" button marks invoice PAID and deal WON. comm-13 fixed and verified: `/api/webhooks/twilio-sms-status` built; `sendViaTwilio` passes StatusCallback; `Activity.description` stores MessageSid for lookup; failed delivery creates Activity + owner Notification. `__tests__/twilio-sms-status-webhook.test.ts` added.
 - **2026-05-27** — new_lead_sla signal added to crm-22. job-10 (running-late SMS), quote-09 (auto payment reminders), crm-05b (cashflow widget), crm-05c (wrap-up page) added as verified. res-04 upgraded to verified (`lib/retry.ts` + `__tests__/retry.test.ts`). `acceptQuote` server action covered in `__tests__/job-portal-actions.test.ts`. comm-13 demoted to gap (no Twilio delivery-status webhook route exists). Auto-payment reminders now respect `invoiceFollowUp.triggerDays` workspace setting (first milestone) instead of hardcoded 3-day default.
 - **2026-05-25 (continued)** — pub-06 verified: `__tests__/sms-intro-portal-link.test.ts`

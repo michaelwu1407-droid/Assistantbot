@@ -79,7 +79,7 @@ export function FollowUpCadenceCard() {
         <div className="space-y-2">
           <p className="app-body-primary font-medium">Chase unanswered quotes after</p>
           <p className="app-body-secondary">
-            If a customer hasn&apos;t replied to a quote, Tracey will nudge you to follow up.
+            In Execution mode, Tracey auto-chases the customer. In other modes, you&apos;ll get an in-app nudge instead.
           </p>
           <div className="grid grid-cols-4 gap-2">
             {QUOTE_PRESETS.map((p) => (

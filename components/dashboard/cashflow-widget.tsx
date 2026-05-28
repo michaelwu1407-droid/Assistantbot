@@ -32,11 +32,8 @@ export function CashflowWidget({ deals }: CashflowWidgetProps) {
   if (unpaidTotal === 0 && expectedThisWeek === 0) return null
 
   return (
-    <div
-      className="overflow-hidden rounded-md border bg-card shadow-sm"
-      style={{ borderColor: "#E6E2D7" }}
-    >
-      <div className="h-[3px] w-full bg-[#16A34A]" />
+    <div className="overflow-hidden rounded-md border border-border bg-card shadow-sm">
+      <div className="h-[3px] w-full bg-emerald-600" />
       <div className="flex min-w-0 flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
         <p className="app-micro-label font-bold tracking-widest shrink-0" style={{ color: "var(--color-ink2)" }}>
           Cashflow
