@@ -510,7 +510,7 @@ Legal-exposure cluster. These are the audit's top fix items.
 | cpl-09 | `/(legal)/privacy` accessible app-wide | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Footer link. |
 | cpl-10 | `/(legal)/terms` accessible app-wide | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | cpl-11 | `/(legal)/cookies` accessible app-wide | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/footer.test.tsx` — Footer renders link to `/cookies` ("Website tech") confirming policy is reachable app-wide. |
-| cpl-12 | Cookie banner / consent | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | AU is moving on this; verify legal stance. |
+| cpl-12 | Cookie banner / consent | ➖ | ➖ | ➖ | ➖ | ➖ | ➖ | ➖ | ➖ | verified | Legal review 2026-05-28: no mandatory opt-in banner under Australian Privacy Act 1988 / APPs for AU-only users. Cookie policy page (cpl-11) is sufficient. If EU users are ever targeted, GDPR consent gate is required. Remove from gap list. |
 
 ## U. Resilience & failure modes (`res`)
 
