@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useTransition } from "react"
-import { getJobPortalStatus, acceptQuote, type JobPortalStatus } from "@/actions/job-portal-actions"
+import { getJobPortalStatus, acceptQuote, confirmPayment, type JobPortalStatus } from "@/actions/job-portal-actions"
 import { formatCurrency } from "@/lib/format"
 
 const STATUS_STEPS = [
@@ -30,7 +30,22 @@ export function JobStatusDisplay({
   const [accepting, setAccepting] = useState(false)
   const [accepted, setAccepted] = useState(initial.quoteAccepted)
   const [acceptError, setAcceptError] = useState<string | null>(null)
+  const [confirming, setConfirming] = useState(false)
+  const [paymentConfirmed, setPaymentConfirmed] = useState(initial.invoicePaid)
+  const [paymentError, setPaymentError] = useState<string | null>(null)
   const [, startTransition] = useTransition()
+
+  const handleConfirmPayment = async () => {
+    setConfirming(true)
+    setPaymentError(null)
+    const result = await confirmPayment(token)
+    if (result.success) {
+      setPaymentConfirmed(true)
+    } else {
+      setPaymentError(result.error ?? "Couldn't confirm payment — please try again.")
+    }
+    setConfirming(false)
+  }
 
   const handleAccept = async () => {
     setAccepting(true)
@@ -170,6 +185,33 @@ export function JobStatusDisplay({
           })}
         </ol>
       </div>
+
+      {/* Payment confirmation panel */}
+      {data.isInvoiced && (
+        <div className={[
+          "rounded-xl border p-5 text-center shadow-sm",
+          paymentConfirmed ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50",
+        ].join(" ")}>
+          {paymentConfirmed ? (
+            <p className="text-sm font-semibold text-emerald-800">Payment confirmed — thank you!</p>
+          ) : (
+            <>
+              {data.invoiceTotal && (
+                <p className="mb-1 text-lg font-semibold text-foreground">{formatCurrency(data.invoiceTotal)} due</p>
+              )}
+              <p className="mb-3 text-sm text-amber-900">Have you already paid this invoice?</p>
+              {paymentError && <p className="mb-2 text-xs text-red-600">{paymentError}</p>}
+              <button
+                onClick={handleConfirmPayment}
+                disabled={confirming}
+                className="rounded-lg bg-amber-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-50"
+              >
+                {confirming ? "Confirming…" : "Yes, I've paid"}
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Feedback prompt when complete */}
       {data.isComplete && data.feedbackUrl && (

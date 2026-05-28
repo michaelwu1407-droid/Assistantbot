@@ -7,6 +7,7 @@ const hoisted = vi.hoisted(() => ({
     user: { findFirst: vi.fn() },
     notification: { create: vi.fn() },
     webhookEvent: { create: vi.fn() },
+    invoice: { findFirst: vi.fn(), update: vi.fn() },
   },
   verifyPublicJobPortalToken: vi.fn(),
   buildPublicFeedbackUrl: vi.fn(),
@@ -20,7 +21,7 @@ vi.mock("@/lib/public-feedback", () => ({
   buildPublicFeedbackUrl: hoisted.buildPublicFeedbackUrl,
 }));
 
-import { getJobPortalStatus, acceptQuote } from "@/actions/job-portal-actions";
+import { getJobPortalStatus, acceptQuote, confirmPayment } from "@/actions/job-portal-actions";
 
 const PAYLOAD = { dealId: "deal_1", contactId: "contact_1", workspaceId: "ws_1" };
 
@@ -191,6 +192,75 @@ describe("acceptQuote", () => {
     hoisted.db.user.findFirst.mockResolvedValue(null);
 
     const result = await acceptQuote("token_123");
+
+    expect(result).toEqual({ success: true });
+    expect(hoisted.db.notification.create).not.toHaveBeenCalled();
+  });
+});
+
+describe("confirmPayment", () => {
+  const INVOICE = {
+    id: "inv_1",
+    number: "INV-001",
+    total: 750,
+    dealId: "deal_1",
+    deal: { title: "Hot Water Fix", contactId: "contact_1", workspaceId: "ws_1" },
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    hoisted.verifyPublicJobPortalToken.mockReturnValue(PAYLOAD);
+    hoisted.db.deal.update.mockResolvedValue({});
+    hoisted.db.invoice.findFirst.mockResolvedValue(INVOICE);
+    hoisted.db.invoice.update.mockResolvedValue({});
+    hoisted.db.activity.create.mockResolvedValue({ id: "act_1" });
+    hoisted.db.user.findFirst.mockResolvedValue({ id: "user_1" });
+    hoisted.db.notification.create.mockResolvedValue({ id: "notif_1" });
+  });
+
+  it("marks invoice PAID, moves deal to WON, logs Activity, and notifies owner", async () => {
+    const result = await confirmPayment("token_123");
+
+    expect(result).toEqual({ success: true });
+    expect(hoisted.db.invoice.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "inv_1" },
+        data: expect.objectContaining({ status: "PAID" }),
+      })
+    );
+    expect(hoisted.db.deal.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { stage: "WON" } })
+    );
+    expect(hoisted.db.activity.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ title: "Customer confirmed payment" }),
+      })
+    );
+    expect(hoisted.db.notification.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ title: "Payment confirmed", type: "SUCCESS" }),
+      })
+    );
+  });
+
+  it("returns error for invalid token", async () => {
+    hoisted.verifyPublicJobPortalToken.mockReturnValue(null);
+    const result = await confirmPayment("bad_token");
+
+    expect(result).toEqual({ success: false, error: "Invalid or expired link" });
+  });
+
+  it("returns error when no ISSUED invoice found", async () => {
+    hoisted.db.invoice.findFirst.mockResolvedValue(null);
+    const result = await confirmPayment("token_123");
+
+    expect(result).toEqual({ success: false, error: "No outstanding invoice found" });
+    expect(hoisted.db.invoice.update).not.toHaveBeenCalled();
+  });
+
+  it("succeeds without notification when no workspace owner found", async () => {
+    hoisted.db.user.findFirst.mockResolvedValue(null);
+    const result = await confirmPayment("token_123");
 
     expect(result).toEqual({ success: true });
     expect(hoisted.db.notification.create).not.toHaveBeenCalled();

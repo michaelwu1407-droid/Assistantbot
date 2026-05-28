@@ -17,6 +17,10 @@ export type JobPortalStatus = {
   isQuote: boolean
   quoteAccepted: boolean
   quoteValue: number | null
+  isInvoiced: boolean
+  invoicePaid: boolean
+  invoiceTotal: number | null
+  invoiceId: string | null
 }
 
 /**
@@ -46,6 +50,12 @@ export async function getJobPortalStatus(token: string): Promise<JobPortalStatus
           twilioPhoneNumber: true,
           workspaceTimezone: true,
         },
+      },
+      invoices: {
+        where: { status: { in: ["ISSUED", "PAID"] } },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { id: true, status: true, total: true },
       },
     },
   })
@@ -120,6 +130,10 @@ export async function getJobPortalStatus(token: string): Promise<JobPortalStatus
     isQuote,
     quoteAccepted,
     quoteValue: deal.value ? Number(deal.value) : null,
+    isInvoiced: deal.invoices.length > 0,
+    invoicePaid: deal.invoices[0]?.status === "PAID",
+    invoiceTotal: deal.invoices[0]?.total ? Number(deal.invoices[0].total) : null,
+    invoiceId: deal.invoices[0]?.id ?? null,
   }
 }
 
@@ -169,6 +183,48 @@ export async function acceptQuote(
         message: `A customer accepted your quote for "${deal.title}". Time to book them in!`,
         type: "SUCCESS",
         link: `/crm/dashboard`,
+      },
+    })
+  }
+
+  return { success: true }
+}
+
+export async function confirmPayment(
+  token: string,
+): Promise<{ success: boolean; error?: string }> {
+  const payload = verifyPublicJobPortalToken(token)
+  if (!payload) return { success: false, error: "Invalid or expired link" }
+
+  const invoice = await db.invoice.findFirst({
+    where: { deal: { id: payload.dealId, workspaceId: payload.workspaceId }, status: "ISSUED" },
+    select: { id: true, number: true, total: true, dealId: true, deal: { select: { title: true, contactId: true, workspaceId: true } } },
+  })
+
+  if (!invoice) return { success: false, error: "No outstanding invoice found" }
+
+  await db.invoice.update({ where: { id: invoice.id }, data: { status: "PAID", paidAt: new Date() } })
+  await db.deal.update({ where: { id: invoice.dealId }, data: { stage: "WON" } })
+
+  await db.activity.create({
+    data: {
+      type: "NOTE",
+      title: "Customer confirmed payment",
+      content: `Customer confirmed payment for invoice #${invoice.number} via the job portal.`,
+      dealId: invoice.dealId,
+      contactId: invoice.deal.contactId,
+    },
+  })
+
+  const owner = await db.user.findFirst({ where: { workspaceId: invoice.deal.workspaceId }, select: { id: true } })
+  if (owner) {
+    await db.notification.create({
+      data: {
+        userId: owner.id,
+        title: "Payment confirmed",
+        message: `A customer confirmed payment for "${invoice.deal.title}". Invoice #${invoice.number} is now marked as paid.`,
+        type: "SUCCESS",
+        link: `/crm/deals/${invoice.dealId}`,
       },
     })
   }
