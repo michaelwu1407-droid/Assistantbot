@@ -200,6 +200,8 @@ Tracey button (CC-4).
 | crm-03 | `/crm/dashboard` advanced-mode toggle | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | crm-04 | `/crm/dashboard` KPI cards render | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
 | crm-05 | `/crm/dashboard` morning-briefing surfacing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `ensureDailyNotifications` covered. |
+| crm-05b | `/crm/dashboard` cashflow widget | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **ADDED 2026-05-27** — `__tests__/cashflow-widget.test.tsx`: hides when both totals zero, shows unpaid total (uses invoicedAmount over value), sums multiple deals, shows expected-this-week for deals within 7 days, excludes deals beyond 7 days or missing scheduledAt, shows both panels when both non-zero. |
+| crm-05c | `/crm/wrap-up` end-of-day summary | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **ADDED 2026-05-27** — `__tests__/wrap-up-client.test.tsx`: heading renders, quiet-day message when all empty, jobs-done count and collected total, invoicedAmount used over value, unpaid invoice count and outstanding total, stale quote count, action buttons shown/hidden correctly, no-jobs-completed copy. |
 | crm-06 | Sidebar nav renders + active state | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Visual specs. |
 | crm-07 | Mobile bottom-nav single Tracey entry | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Visual mobile spec; per `CLAUDE.md` CC-4. |
 | crm-08 | `/crm/contacts` list | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/contact-journeys.spec.ts` — title, stage, balance, quick actions. |
@@ -277,7 +279,7 @@ base (viewport-relative width + `max-h-[90vh]`) and a per-modal
 | comm-10 | WhatsApp send via composer | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/messaging-actions.test.ts` — audit-trail write, email fallback for no-phone contacts. Provider-blocked per `missing_features.md` (Meta approval pending). |
 | comm-11 | Bulk "rainy day blast" from chat ("find me indoor work") | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24/25** — `listDeals` AI tool accepts keyword filter; `__tests__/chat-actions.test.ts` asserts filter narrows by title/contactName/address. |
 | comm-12 | Outbound SMS blocked to opted-out contact | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24** — Contact.smsOptedOut checked before AI reply in webhook handler. `__tests__/twilio-sms-stop-handling.test.ts` — STOP sets flag; AI not called on opted-out numbers. |
-| comm-13 | SMS delivery status reflects via Twilio status webhook | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | 🟡 | watch | Partial; "failed" red badge unverified. |
+| comm-13 | SMS delivery status reflects via Twilio status webhook | ✅ | ✅ | ✅ | ✅ | 🟡 | ⬜ | ✅ | ⬜ | gap | No dedicated Twilio delivery-status callback route exists. The "failed" red badge is not implemented — Twilio status callbacks (MessageStatus=failed/undelivered) are silently dropped. Build `/api/webhooks/twilio-sms-status` to fix. |
 | comm-14 | Quote/invoice email send via Resend | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/tradie-actions.test.ts` — `emailInvoice` boundary cases: invoice-not-found returns error; contact with no email returns friendly error without calling PDF generator. |
 | comm-15 | Bounce/complaint webhook (`/api/webhooks/resend`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/resend-route.test.ts` — rejects invalid signature; skips unsupported events; records open events + notifies owner. |
 | comm-16 | `/api/twilio/webhook` SMS receive idempotency | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/twilio-sms-webhook.test.ts`. |
@@ -521,7 +523,7 @@ the tradie see a sensible message and can ops see the failure?
 | res-01 | Stripe API down during checkout | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/billing-actions.test.ts` — "propagates the error when Stripe API is unreachable during checkout (res-01)"; ETIMEDOUT thrown → `UpgradeButton` catches + toast. No retry backoff. |
 | res-02 | Stripe webhook delayed/missed (worker outage) | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/stripe-webhook.test.ts` — "returns 200 immediately for already-processed events"; `runIdempotent(event.id)` wraps all types (Stripe retries up to 3 days). No manual backfill script. |
 | res-03 | Twilio voice API rate-limit (429) | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Cost-ceiling + retry/backoff. |
-| res-04 | Twilio SMS API down | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ⛔ | watch | `retryWithBackoff()` in `automated-message-actions.ts` retries transient errors up to 3× with exponential backoff; 4xx errors are NOT retried (correct). Email fallback path in same function. |
+| res-04 | Twilio SMS API down | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-27** — `retryWithBackoff()` extracted to `lib/retry.ts`. `__tests__/retry.test.ts`: 5xx retries up to maxAttempts, 4xx not retried (immediate throw), 429 not retried, network errors retried, succeeds on last attempt, returns immediately on first success. |
 | res-05 | Gemini/LLM timeout | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/ai-agent.test.ts` — `generateText` rejection returns graceful user-friendly message. |
 | res-06 | LiveKit SIP setup fails on inbound call | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Voice fallback (voice-03). |
 | res-07 | DB connection saturation | ➖ | ➖ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | watch | Prisma pool (default 10) implicit; no explicit pool-saturation guard or degraded-mode path. |
@@ -644,7 +646,7 @@ matrix is worth maintaining.
 
 ## Z. Change log
 
-- **2026-05-27** — new_lead_sla signal added to crm-22 (`__tests__/deal-attention.test.ts`). New rows job-10 (running-late SMS, `__tests__/running-late-actions.test.ts`) and quote-09 (auto payment reminders, `__tests__/auto-payment-reminders.test.ts`) added as verified. FollowUpCadenceCard description updated to surface Execution-mode auto-send behaviour.
+- **2026-05-27** — new_lead_sla signal added to crm-22. job-10 (running-late SMS), quote-09 (auto payment reminders), crm-05b (cashflow widget), crm-05c (wrap-up page) added as verified. res-04 upgraded to verified (`lib/retry.ts` + `__tests__/retry.test.ts`). `acceptQuote` server action covered in `__tests__/job-portal-actions.test.ts`. comm-13 demoted to gap (no Twilio delivery-status webhook route exists). Auto-payment reminders now respect `invoiceFollowUp.triggerDays` workspace setting (first milestone) instead of hardcoded 3-day default.
 - **2026-05-25 (continued)** — pub-06 verified: `__tests__/sms-intro-portal-link.test.ts`
   asserts portal URL in intro SMS + activity log. acq-09 promoted to verified:
   `contact-route.test.ts` already asserts `[Contact – sales]` email subject prefix.

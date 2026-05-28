@@ -3,22 +3,19 @@
 import { db } from "@/lib/db"
 import { sendSMS } from "@/actions/messaging-actions"
 
-const MILESTONES_DAYS = [3, 7, 14]
-
-/**
- * Automatically sends payment reminder SMS at 3/7/14-day milestones
- * for ISSUED invoices. Fires only when workspace agentMode is EXECUTION
- * and the milestone has not already been sent (idempotent via Activity log).
- * Called from ensureDailyNotifications.
- */
 export async function ensureAutoPaymentReminders(workspaceId: string) {
   const workspace = await db.workspace.findUnique({
     where: { id: workspaceId },
-    select: { agentMode: true, name: true },
+    select: { agentMode: true, name: true, invoiceFollowUp: true },
   })
   if (!workspace || workspace.agentMode !== "EXECUTION") return
 
-  const maxThreshold = new Date(Date.now() - MILESTONES_DAYS[0] * 86_400_000)
+  const setting = workspace.invoiceFollowUp as { triggerDays?: number } | null
+  const firstMilestone = setting?.triggerDays ?? 7
+  // Send at the configured interval, then again 7 and 14 days later
+  const milestonesDays = [firstMilestone, firstMilestone + 7, firstMilestone + 14]
+
+  const maxThreshold = new Date(Date.now() - firstMilestone * 86_400_000)
 
   const invoices = await db.invoice.findMany({
     where: {
@@ -53,7 +50,7 @@ export async function ensureAutoPaymentReminders(workspaceId: string) {
     const ageMs = Date.now() - new Date(invoice.issuedAt).getTime()
     const ageDays = ageMs / 86_400_000
 
-    for (const milestone of MILESTONES_DAYS) {
+    for (const milestone of milestonesDays) {
       // Only fire if we're within a one-day window past the milestone
       if (ageDays < milestone || ageDays >= milestone + 1) continue
 
