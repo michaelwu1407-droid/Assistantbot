@@ -1,15 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { db, initiateOutboundCall, recordCallbackEvent, countRecentDispatchFailures } = vi.hoisted(() => ({
+const { db, initiateOutboundCall, recordCallbackEvent, handleCallbackDispatchFailure } = vi.hoisted(() => ({
   db: { task: { create: vi.fn() } },
   initiateOutboundCall: vi.fn(),
   recordCallbackEvent: vi.fn(),
-  countRecentDispatchFailures: vi.fn(),
+  handleCallbackDispatchFailure: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({ db }));
 vi.mock("@/lib/outbound-call", () => ({ initiateOutboundCall }));
-vi.mock("@/lib/callback-events", () => ({ recordCallbackEvent, countRecentDispatchFailures }));
+vi.mock("@/lib/callback-events", () => ({ recordCallbackEvent }));
+vi.mock("@/lib/callback-escalation", () => ({ handleCallbackDispatchFailure }));
 
 import { scheduleLeadCallback } from "@/lib/lead-callback";
 
@@ -23,7 +24,7 @@ describe("scheduleLeadCallback", () => {
       callerNumber: "+61411111111",
     });
     recordCallbackEvent.mockResolvedValue(undefined);
-    countRecentDispatchFailures.mockResolvedValue(0);
+    handleCallbackDispatchFailure.mockResolvedValue(undefined);
   });
 
   it("dispatches immediately when delaySec is 0", async () => {

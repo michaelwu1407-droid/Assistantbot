@@ -14,11 +14,11 @@
 import { db } from "@/lib/db";
 import { initiateOutboundCall } from "@/lib/outbound-call";
 import {
-  countRecentDispatchFailures,
   recordCallbackEvent,
   type CallbackDispatchMode,
   type CallbackKind,
 } from "@/lib/callback-events";
+import { handleCallbackDispatchFailure } from "@/lib/callback-escalation";
 
 export type ScheduleLeadCallbackInput = {
   workspaceId: string;
@@ -91,44 +91,17 @@ export async function scheduleLeadCallback(
       });
     }).catch(async (err) => {
       console.error("[lead-callback] Immediate dial failed:", err);
-      await recordCallbackEvent({
-        eventType: "callback_dispatch_failed",
-        status: "error",
-        error: err instanceof Error ? err.message : String(err),
-        payload: {
-          workspaceId: input.workspaceId,
-          contactId: input.contactId || null,
-          contactPhone: input.contactPhone,
-          contactName: input.contactName || null,
-          dealId: input.dealId,
-          reason: input.reason,
-          triggerSource: input.triggerSource || null,
-          callbackKind,
-          dispatchMode,
-          initiatedByUserId: input.initiatedByUserId || null,
-        },
-      });
-
-      const failures = await countRecentDispatchFailures({
+      await handleCallbackDispatchFailure({
         workspaceId: input.workspaceId,
-        contactId: input.contactId,
         dealId: input.dealId,
         contactPhone: input.contactPhone,
+        contactId: input.contactId,
+        contactName: input.contactName,
+        reason: input.reason,
+        triggerSource: input.triggerSource,
+        callbackKind,
+        error: err instanceof Error ? err.message : String(err),
       });
-
-      if (failures < 3) {
-        const retryDelaySec = failures === 1 ? 30 : 120;
-        const dueAt = new Date(Date.now() + retryDelaySec * 1000);
-        await db.task.create({
-          data: {
-            dealId: input.dealId,
-            title: `Scheduled call: auto-callback retry (${input.reason})`,
-            description: input.reason,
-            dueAt,
-            completed: false,
-          },
-        });
-      }
     });
     return { dispatched: "immediate" };
   }

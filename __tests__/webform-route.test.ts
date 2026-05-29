@@ -322,7 +322,7 @@ describe("POST /api/webhooks/webform", () => {
       contactName: "Alex",
       dealId: "deal_1",
       reason: "webform_lead:website",
-      delaySec: 30,
+      delaySec: 0,
       triggerSource: "webform",
       callbackKind: "automatic",
     });

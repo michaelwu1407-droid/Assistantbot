@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { initiateOutboundCall } from "@/lib/outbound-call";
 import { recordCallbackEvent } from "@/lib/callback-events";
+import { handleCallbackDispatchFailure } from "@/lib/callback-escalation";
 
 export const dynamic = "force-dynamic";
 
@@ -119,21 +120,22 @@ export async function GET(request: NextRequest) {
       } catch (error) {
         console.error(`[scheduled-calls] Failed to place call for task ${task.id}:`, error);
         if (autoCallbackTask) {
-          await recordCallbackEvent({
-            eventType: "callback_dispatch_failed",
-            status: "error",
+          // Mark this attempt done so the cron's stale-task sweep doesn't retry
+          // it every 5 min; the escalation handler owns retry cadence + fallback.
+          await db.task.update({
+            where: { id: task.id },
+            data: { completed: true, completedAt: new Date() },
+          }).catch(() => {});
+          await handleCallbackDispatchFailure({
+            workspaceId: task.deal.workspaceId,
+            dealId: task.deal.id,
+            contactPhone: task.deal.contact.phone,
+            contactId: task.deal.contact.id,
+            contactName: task.deal.contact.name || null,
+            reason: task.description || `Scheduled follow-up for ${task.deal.title}`,
+            triggerSource: "scheduled_calls_cron",
+            callbackKind: "automatic",
             error: error instanceof Error ? error.message : "Call placement failed",
-            payload: {
-              workspaceId: task.deal.workspaceId,
-              contactId: task.deal.contact.id,
-              contactPhone: task.deal.contact.phone,
-              contactName: task.deal.contact.name || null,
-              dealId: task.deal.id,
-              reason: task.description || `Scheduled follow-up for ${task.deal.title}`,
-              triggerSource: "scheduled_calls_cron",
-              callbackKind: "automatic",
-              dispatchMode: "scheduled",
-            },
           });
         }
         results.push({

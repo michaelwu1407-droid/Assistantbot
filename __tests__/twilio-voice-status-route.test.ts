@@ -126,7 +126,7 @@ describe("POST /api/webhooks/twilio-voice-status", () => {
       contactName: "Caller +61400000000",
       dealId: "deal_1",
       reason: "missed_call_callback:no-answer",
-      delaySec: 90,
+      delaySec: 0,
       triggerSource: "missed_call",
       callbackKind: "automatic",
     });

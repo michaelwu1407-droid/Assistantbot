@@ -357,7 +357,7 @@ describe("POST /api/webhooks/inbound-email", () => {
       contactName: "Jane Citizen",
       dealId: "deal_1",
       reason: "email_lead:HiPages",
-      delaySec: 45,
+      delaySec: 0,
       triggerSource: "inbound_email",
       callbackKind: "automatic",
     });

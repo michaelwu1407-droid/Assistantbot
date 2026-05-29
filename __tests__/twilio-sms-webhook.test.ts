@@ -367,7 +367,7 @@ describe("POST /api/twilio/webhook", () => {
       contactName: "Alex",
       dealId: "deal_1",
       reason: "sms_lead",
-      delaySec: 120,
+      delaySec: 0,
       triggerSource: "inbound_sms",
       callbackKind: "automatic",
     });
