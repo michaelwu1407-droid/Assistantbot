@@ -11,6 +11,7 @@ import { reconcileVoiceIncidents } from "@/lib/voice-incidents";
 import { findManagedTwilioNumberByPhone } from "@/lib/twilio-drift";
 import { findWorkspaceByTwilioNumber } from "@/lib/workspace-routing";
 import { getTwilioRequestPublicUrl, readTwilioFormParams, verifyTwilioSignature } from "@/lib/twilio/verify-signature";
+import { logger } from "@/lib/logging";
 
 export const dynamic = "force-dynamic";
 
@@ -374,9 +375,10 @@ export async function POST(req: NextRequest) {
 
     const fleet = await getVoiceFleetHealth();
     if (!isVoiceSurfaceRoutable(fleet, surface)) {
-      console.error("[voice-gateway] No routable workers are available for inbound surface.", {
-        callerNumber,
-        calledNumber,
+      logger.critical("Inbound call routed to voicemail — no healthy workers available", {
+        component: "twilio-voice-gateway",
+        action: "voicemail_capacity_fallback",
+        workspaceId: workspace?.id,
         surface,
         fleetSummary: fleet.summary,
       });

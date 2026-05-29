@@ -14,6 +14,7 @@
 import { db } from "@/lib/db";
 import { initiateOutboundCall } from "@/lib/outbound-call";
 import {
+  countRecentDispatchFailures,
   recordCallbackEvent,
   type CallbackDispatchMode,
   type CallbackKind,
@@ -88,9 +89,9 @@ export async function scheduleLeadCallback(
           callerNumber: result.callerNumber,
         },
       });
-    }).catch((err) => {
+    }).catch(async (err) => {
       console.error("[lead-callback] Immediate dial failed:", err);
-      return recordCallbackEvent({
+      await recordCallbackEvent({
         eventType: "callback_dispatch_failed",
         status: "error",
         error: err instanceof Error ? err.message : String(err),
@@ -107,6 +108,27 @@ export async function scheduleLeadCallback(
           initiatedByUserId: input.initiatedByUserId || null,
         },
       });
+
+      const failures = await countRecentDispatchFailures({
+        workspaceId: input.workspaceId,
+        contactId: input.contactId,
+        dealId: input.dealId,
+        contactPhone: input.contactPhone,
+      });
+
+      if (failures < 3) {
+        const retryDelaySec = failures === 1 ? 30 : 120;
+        const dueAt = new Date(Date.now() + retryDelaySec * 1000);
+        await db.task.create({
+          data: {
+            dealId: input.dealId,
+            title: `Scheduled call: auto-callback retry (${input.reason})`,
+            description: input.reason,
+            dueAt,
+            completed: false,
+          },
+        });
+      }
     });
     return { dispatched: "immediate" };
   }

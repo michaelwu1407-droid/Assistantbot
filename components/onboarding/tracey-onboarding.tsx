@@ -31,7 +31,7 @@ import {
   Loader2, Globe, User, Phone, Mail, Building2,
   Zap, FileEdit, Eye, ChevronRight, ChevronLeft,
   Plus, Trash2, CheckCircle2, MapPin, Clock, Shield,
-  MessageSquare, Sparkles, Info, Send,
+  MessageSquare, Sparkles, Info, Send, Volume2, VolumeX,
   File as FileIcon,
 } from "lucide-react"
 import { scrapeWebsite, type ScrapeResult } from "@/actions/scraper-actions"
@@ -1168,6 +1168,21 @@ export function TraceyOnboarding() {
                     <div className="border-t pt-4 space-y-4">
                       <TraceyBubble text="Here's a sneak peek at how I'll handle a real customer call in your selected mode." />
 
+                      <button
+                        type="button"
+                        onClick={() => playVoicePreview(TRACEY_VOICES[0].id)}
+                        className="flex items-center gap-2 mx-auto px-5 py-2.5 rounded-full bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-sm font-medium hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors"
+                      >
+                        {loadingVoiceId === TRACEY_VOICES[0].id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : playingVoiceId === TRACEY_VOICES[0].id ? (
+                          <VolumeX className="h-4 w-4" />
+                        ) : (
+                          <Volume2 className="h-4 w-4" />
+                        )}
+                        {playingVoiceId === TRACEY_VOICES[0].id ? "Stop" : "Hear Tracey"}
+                      </button>
+
                       <div className="flex gap-1 justify-center mb-2">
                         {SCENARIO_STEPS.map((label, i) => (
                           <button
@@ -1997,9 +2012,20 @@ export function TraceyOnboarding() {
                           </div>
                         )}
 
+                        {provisionResult.phoneNumber && (
+                          <a
+                            href={`tel:${provisionResult.phoneNumber}`}
+                            className="flex items-center justify-center gap-2 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-md h-11 text-base transition-colors"
+                          >
+                            <Phone className="h-4 w-4" />
+                            Call your number and talk to Tracey
+                          </a>
+                        )}
+
                         <Button
+                          variant={provisionResult.phoneNumber ? "outline" : "default"}
                           onClick={goToDashboard}
-                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white gap-2 h-11"
+                          className={`w-full gap-2 h-11 ${!provisionResult.phoneNumber ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}`}
                         >
                           Go to Dashboard <ChevronRight className="h-4 w-4" />
                         </Button>

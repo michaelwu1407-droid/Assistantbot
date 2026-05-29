@@ -516,7 +516,7 @@ export async function POST(req: NextRequest) {
           contactName: leadName,
           dealId: deal.id,
           reason: `email_lead:${platform}`,
-          delaySec: workspace!.autoCallDelaySec === 60 ? 0 : (workspace!.autoCallDelaySec ?? 0),
+          delaySec: 0,
           triggerSource: "inbound_email",
           callbackKind: "automatic",
         }).catch((err) => {

@@ -166,12 +166,13 @@ export async function hasRecentAutomaticCallbackAttempt(params: {
   const contactClauses = buildContactMatchFilters(params);
   if (contactClauses.length === 0) return false;
 
+  // Only count successful dispatches and finished calls — not failed attempts.
+  // A failed dispatch must not lock the lead out for 6 hours.
   const existing = await db.webhookEvent.findFirst({
     where: {
       provider: CALLBACK_EVENT_PROVIDER,
       eventType: {
         in: [
-          "callback_requested",
           "callback_dispatched",
           "callback_call_finished",
         ],
@@ -376,4 +377,28 @@ export function getCallbackEventCopy(row: CallbackEventRow) {
   }
 
   return null;
+}
+
+const DISPATCH_FAILURE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+
+export async function countRecentDispatchFailures(params: {
+  workspaceId: string;
+  contactId?: string | null;
+  dealId?: string | null;
+  contactPhone?: string | null;
+}): Promise<number> {
+  const contactClauses = buildContactMatchFilters(params);
+  if (contactClauses.length === 0) return 0;
+
+  return db.webhookEvent.count({
+    where: {
+      provider: CALLBACK_EVENT_PROVIDER,
+      eventType: "callback_dispatch_failed",
+      createdAt: { gt: new Date(Date.now() - DISPATCH_FAILURE_WINDOW_MS) },
+      AND: [
+        { payload: { path: ["workspaceId"], equals: params.workspaceId } },
+        { OR: contactClauses },
+      ],
+    },
+  }).catch(() => 0);
 }

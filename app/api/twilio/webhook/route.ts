@@ -427,7 +427,7 @@ export async function POST(req: NextRequest) {
                             contactName: contact.name || `SMS lead ${From}`,
                             dealId: activeDeal.id,
                             reason: "sms_lead",
-                            delaySec: workspace.autoCallDelaySec === 60 ? 0 : (workspace.autoCallDelaySec ?? 0),
+                            delaySec: 0,
                             triggerSource: "inbound_sms",
                             callbackKind: "automatic",
                         }).catch((err) => {
