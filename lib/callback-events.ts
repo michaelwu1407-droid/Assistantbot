@@ -379,26 +379,3 @@ export function getCallbackEventCopy(row: CallbackEventRow) {
   return null;
 }
 
-const DISPATCH_FAILURE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-
-export async function countRecentDispatchFailures(params: {
-  workspaceId: string;
-  contactId?: string | null;
-  dealId?: string | null;
-  contactPhone?: string | null;
-}): Promise<number> {
-  const contactClauses = buildContactMatchFilters(params);
-  if (contactClauses.length === 0) return 0;
-
-  return db.webhookEvent.count({
-    where: {
-      provider: CALLBACK_EVENT_PROVIDER,
-      eventType: "callback_dispatch_failed",
-      createdAt: { gt: new Date(Date.now() - DISPATCH_FAILURE_WINDOW_MS) },
-      AND: [
-        { payload: { path: ["workspaceId"], equals: params.workspaceId } },
-        { OR: contactClauses },
-      ],
-    },
-  }).catch(() => 0);
-}
