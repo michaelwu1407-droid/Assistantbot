@@ -6,6 +6,7 @@ import { Plus } from "lucide-react"
 import { DealView } from "@/actions/deal-actions"
 import { WorkspaceView } from "@/actions/workspace-actions"
 import { MobileHeader } from "@/components/mobile/_primitives/mobile-header"
+import { TodayDigest } from "@/components/mobile/today-digest"
 import { DashboardKpiCards } from "@/components/dashboard/dashboard-kpi-cards"
 import { PipelineStageChips, PIPELINE_STAGES } from "./pipeline-stage-chips"
 import { PipelineDealList } from "./pipeline-deal-list"
@@ -50,7 +51,9 @@ export function PipelineMobile({ workspace, deals, userName }: PipelineMobilePro
         workspaceInitial={workspace.name?.[0] ?? userName?.[0]}
       />
 
-      <div className="px-4 pt-4 pb-2">
+      <TodayDigest deals={deals} userName={userName} />
+
+      <div className="px-4 pb-2">
         <DashboardKpiCards deals={deals} />
       </div>
 
