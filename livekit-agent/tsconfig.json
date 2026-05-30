@@ -29,6 +29,7 @@
     "customer-contact-policy.ts",
     "outbound-call-control.ts",
     "room-routing.ts",
+    "stt-keyterms.ts",
     "livekit-sip-runtime.ts",
     "get-token.ts",
     "worker-entry.ts"
