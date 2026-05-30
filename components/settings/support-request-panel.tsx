@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { SupportTicketList } from "@/components/settings/support-ticket-list"
 
 export function SupportRequestPanel() {
   const [loading, setLoading] = useState(false)
@@ -67,6 +68,7 @@ export function SupportRequestPanel() {
 
   return (
     <div className="space-y-6">
+      <SupportTicketList />
       <Card id="support-request">
         <CardHeader>
           <CardTitle>Support request</CardTitle>

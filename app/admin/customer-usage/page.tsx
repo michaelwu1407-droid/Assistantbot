@@ -961,6 +961,12 @@ export default async function CustomerUsagePage({
             {label}
           </Link>
         ))}
+        <Link
+          href="/admin/support"
+          className="inline-flex h-10 items-center rounded-full px-4 text-sm font-medium border border-border text-foreground"
+        >
+          Support tickets
+        </Link>
       </div>
 
       {filters.tab === "overview" ? (
