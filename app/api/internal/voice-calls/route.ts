@@ -6,7 +6,7 @@ import { findContactByPhone, findWorkspaceByTwilioNumber } from "@/lib/workspace
 import { isVoiceAgentSecretAuthorized } from "@/lib/voice-agent-auth";
 import { syncVoiceCallToCRM } from "@/lib/post-call-sync";
 import { recordCallbackEvent } from "@/lib/callback-events";
-import { recordLatencyMetric } from "@/lib/telemetry/latency";
+import { VOICE_METRIC_KEYS, recordLatencyMetric } from "@/lib/telemetry/latency";
 import {
   isSipCallConnectedStatus,
   isSipCallTerminalFailureStatus,
@@ -20,20 +20,26 @@ function recordVoiceCallMetrics(latency: Record<string, unknown> | undefined) {
   if (!latency) return;
   const safe = (v: unknown) => (typeof v === "number" && v > 0 ? v : null);
   const byProvider = latency.llmByProvider as Record<string, Record<string, unknown>> | undefined;
-  for (const provider of ["groq", "deepinfra"] as const) {
+
+  const providerKeys = {
+    groq: { llm: VOICE_METRIC_KEYS.llmGroq, ttft: VOICE_METRIC_KEYS.llmGroqTtft },
+    deepinfra: { llm: VOICE_METRIC_KEYS.llmDeepinfra, ttft: VOICE_METRIC_KEYS.llmDeepinfraTtft },
+  } as const;
+  for (const [provider, keys] of Object.entries(providerKeys)) {
     const p = byProvider?.[provider];
     if (!p || (p.turns as number) === 0) continue;
     const llmAvg = safe(p.llmAvgMs);
     const ttftAvg = safe(p.llmTtftAvgMs);
-    if (llmAvg !== null) recordLatencyMetric(`voice.llm.${provider}_ms`, llmAvg);
-    if (ttftAvg !== null) recordLatencyMetric(`voice.llm.${provider}.ttft_ms`, ttftAvg);
+    if (llmAvg !== null) recordLatencyMetric(keys.llm, llmAvg);
+    if (ttftAvg !== null) recordLatencyMetric(keys.ttft, ttftAvg);
   }
+
   const stt = safe(latency.sttAvgMs);
   const tts = safe(latency.ttsAvgMs);
   const ttsTtfb = safe(latency.ttsTtfbAvgMs);
-  if (stt !== null) recordLatencyMetric("voice.stt_ms", stt);
-  if (tts !== null) recordLatencyMetric("voice.tts_ms", tts);
-  if (ttsTtfb !== null) recordLatencyMetric("voice.tts.ttfb_ms", ttsTtfb);
+  if (stt !== null) recordLatencyMetric(VOICE_METRIC_KEYS.stt, stt);
+  if (tts !== null) recordLatencyMetric(VOICE_METRIC_KEYS.tts, tts);
+  if (ttsTtfb !== null) recordLatencyMetric(VOICE_METRIC_KEYS.ttsTtfb, ttsTtfb);
 }
 
 const transcriptTurnSchema = z.object({

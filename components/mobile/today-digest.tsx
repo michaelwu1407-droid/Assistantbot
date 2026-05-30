@@ -2,6 +2,7 @@
 
 import { useMemo } from "react"
 import Link from "next/link"
+import type { LucideIcon } from "lucide-react"
 import { CalendarDays, PhoneIncoming, Sparkles } from "lucide-react"
 import type { DealView } from "@/actions/deal-actions"
 
@@ -16,6 +17,38 @@ function getGreeting(name: string) {
   if (hour < 12) return `Morning, ${first}`
   if (hour < 17) return `Afternoon, ${first}`
   return `Evening, ${first}`
+}
+
+function DigestCard({
+  href,
+  icon: Icon,
+  count,
+  singular,
+  plural,
+  iconColor,
+}: {
+  href?: string
+  icon: LucideIcon
+  count: number
+  singular: string
+  plural: string
+  iconColor: string
+}) {
+  const inner = (
+    <>
+      <Icon className={`h-4 w-4 ${iconColor}`} />
+      <span className="text-2xl font-bold tabular-nums text-foreground">{count}</span>
+      <span className="text-[11px] text-muted-foreground leading-tight">
+        {count === 1 ? singular : plural}
+      </span>
+    </>
+  )
+  const cls = "flex flex-col gap-1 rounded-md bg-card border border-border p-3"
+  return href ? (
+    <Link href={href} className={cls}>{inner}</Link>
+  ) : (
+    <div className={cls}>{inner}</div>
+  )
 }
 
 export function TodayDigest({ deals, userName }: TodayDigestProps) {
@@ -48,29 +81,9 @@ export function TodayDigest({ deals, userName }: TodayDigestProps) {
       <p className="text-lg font-semibold text-foreground">{getGreeting(userName)} 👋</p>
 
       <div className="grid grid-cols-3 gap-2">
-        <Link href="/crm/schedule" className="flex flex-col gap-1 rounded-md bg-card border border-border p-3">
-          <CalendarDays className="h-4 w-4 text-[#4A7CE6]" />
-          <span className="text-2xl font-bold tabular-nums text-foreground">{todayJobs.length}</span>
-          <span className="text-[11px] text-muted-foreground leading-tight">
-            {todayJobs.length === 1 ? "job today" : "jobs today"}
-          </span>
-        </Link>
-
-        <Link href="/crm/dashboard" className="flex flex-col gap-1 rounded-md bg-card border border-border p-3">
-          <Sparkles className="h-4 w-4 text-[#00D28B]" />
-          <span className="text-2xl font-bold tabular-nums text-foreground">{newToday.length}</span>
-          <span className="text-[11px] text-muted-foreground leading-tight">
-            {newToday.length === 1 ? "new lead" : "new leads"}
-          </span>
-        </Link>
-
-        <div className="flex flex-col gap-1 rounded-md bg-card border border-border p-3">
-          <PhoneIncoming className="h-4 w-4 text-[#E89A2B]" />
-          <span className="text-2xl font-bold tabular-nums text-foreground">{attentionCount}</span>
-          <span className="text-[11px] text-muted-foreground leading-tight">
-            {attentionCount === 1 ? "needs attention" : "need attention"}
-          </span>
-        </div>
+        <DigestCard href="/crm/schedule" icon={CalendarDays} count={todayJobs.length} singular="job today" plural="jobs today" iconColor="text-[#4A7CE6]" />
+        <DigestCard href="/crm/dashboard" icon={Sparkles} count={newToday.length} singular="new lead" plural="new leads" iconColor="text-[#00D28B]" />
+        <DigestCard icon={PhoneIncoming} count={attentionCount} singular="needs attention" plural="need attention" iconColor="text-[#E89A2B]" />
       </div>
     </div>
   )

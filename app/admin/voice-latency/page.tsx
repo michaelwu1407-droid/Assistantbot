@@ -1,5 +1,5 @@
 import { requireInternalAdminAccess } from "@/lib/internal-admin";
-import { getLatencySnapshot } from "@/lib/telemetry/latency";
+import { VOICE_METRIC_KEYS, getLatencySnapshot } from "@/lib/telemetry/latency";
 
 export const dynamic = "force-dynamic";
 
@@ -82,8 +82,8 @@ export default async function VoiceLatencyPage() {
   const snapshot = await getLatencySnapshot();
   const m = (key: string): Summary => (snapshot.metrics[key] as Summary) ?? EMPTY;
 
-  const groqLlm = m("voice.llm.groq_ms");
-  const deepinfraLlm = m("voice.llm.deepinfra_ms");
+  const groqLlm = m(VOICE_METRIC_KEYS.llmGroq);
+  const deepinfraLlm = m(VOICE_METRIC_KEYS.llmDeepinfra);
   const hasAny = groqLlm.count > 0 || deepinfraLlm.count > 0;
 
   return (
@@ -110,15 +110,15 @@ export default async function VoiceLatencyPage() {
       )}
 
       <div className="grid gap-3 md:grid-cols-2">
-        <ProviderCard label="Groq" llm={groqLlm} ttft={m("voice.llm.groq.ttft_ms")} />
-        <ProviderCard label="DeepInfra" llm={deepinfraLlm} ttft={m("voice.llm.deepinfra.ttft_ms")} />
+        <ProviderCard label="Groq" llm={groqLlm} ttft={m(VOICE_METRIC_KEYS.llmGroqTtft)} />
+        <ProviderCard label="DeepInfra" llm={deepinfraLlm} ttft={m(VOICE_METRIC_KEYS.llmDeepinfraTtft)} />
       </div>
 
       <div>
         <h2 className="app-section-title mb-2">Speech pipeline</h2>
         <div className="space-y-2">
-          <StageRow label="STT (Deepgram)" primary={m("voice.stt_ms")} secondary={EMPTY} />
-          <StageRow label="TTS (Cartesia)" primary={m("voice.tts_ms")} secondary={m("voice.tts.ttfb_ms")} />
+          <StageRow label="STT (Deepgram)" primary={m(VOICE_METRIC_KEYS.stt)} secondary={EMPTY} />
+          <StageRow label="TTS (Cartesia)" primary={m(VOICE_METRIC_KEYS.tts)} secondary={m(VOICE_METRIC_KEYS.ttsTtfb)} />
         </div>
       </div>
 

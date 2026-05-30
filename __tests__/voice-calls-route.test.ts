@@ -44,9 +44,10 @@ vi.mock("@/lib/post-call-sync", () => ({
 vi.mock("@/lib/callback-events", () => ({
   recordCallbackEvent: hoisted.recordCallbackEvent,
 }));
-vi.mock("@/lib/telemetry/latency", () => ({
-  recordLatencyMetric: hoisted.recordLatencyMetric,
-}));
+vi.mock("@/lib/telemetry/latency", async (importOriginal) => {
+  const real = await importOriginal<typeof import("@/lib/telemetry/latency")>();
+  return { ...real, recordLatencyMetric: hoisted.recordLatencyMetric };
+});
 
 import { POST } from "@/app/api/internal/voice-calls/route";
 

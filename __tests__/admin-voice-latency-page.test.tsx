@@ -11,9 +11,10 @@ vi.mock("@/lib/internal-admin", () => ({
   requireInternalAdminAccess,
 }));
 
-vi.mock("@/lib/telemetry/latency", () => ({
-  getLatencySnapshot,
-}));
+vi.mock("@/lib/telemetry/latency", async (importOriginal) => {
+  const real = await importOriginal<typeof import("@/lib/telemetry/latency")>();
+  return { ...real, getLatencySnapshot };
+});
 
 import VoiceLatencyPage from "@/app/admin/voice-latency/page";
 

@@ -27,7 +27,7 @@ export type CallbackJobPayload = {
 };
 
 export function isQStashConfigured(): boolean {
-  return Boolean(getQStashToken() && getAppBaseUrl());
+  return getClient() !== null && Boolean(getAppBaseUrl());
 }
 
 function getQStashToken(): string {
