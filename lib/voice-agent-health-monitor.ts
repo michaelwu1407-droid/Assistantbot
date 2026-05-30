@@ -2,7 +2,7 @@ import { auditTwilioVoiceRouting } from "@/lib/twilio-drift";
 import { getVoiceBusinessInvariantHealth } from "@/lib/voice-business-invariants";
 import { getVoiceFleetHealth, getVoiceSurfaceSaturationHealth, type RuntimeStatus } from "@/lib/voice-fleet";
 import { getTwilioVoiceCallHealth } from "@/lib/twilio-voice-call-health";
-import { getVoiceLatencyHealth } from "@/lib/voice-call-latency-health";
+import { getVoiceLatencyHealth, type VoiceLatencyHealth } from "@/lib/voice-call-latency-health";
 import { reconcileVoiceIncidents } from "@/lib/voice-incidents";
 import { getLivekitSipHealth } from "@/lib/livekit-sip-health";
 import { getDemoCallHealth } from "@/lib/demo-call-health";
@@ -19,6 +19,21 @@ import {
   buildSaturationIncidentObservations,
   combineVoiceStatuses,
 } from "@/lib/voice-monitoring";
+
+/**
+ * A latency degradation caused purely by no recent calls (sampleCount = 0) is a
+ * proof gap, not a performance problem. Treat it as healthy for rollup so the
+ * combined status stays green and CI doesn't fire false-alarm emails.
+ * The detailed latency object still shows degraded — this only affects the rollup.
+ */
+function resolveEffectiveLatencyStatus(latency: VoiceLatencyHealth): RuntimeStatus {
+  if (latency.status !== "degraded") return latency.status;
+  const degradedScopes = latency.scopes.filter((s) => s.status !== "healthy");
+  const allProofGap = degradedScopes.every(
+    (s) => s.sampleCount === 0 && s.syntheticProbeSampleCount === 0,
+  );
+  return allProofGap ? "healthy" : latency.status;
+}
 
 export type VoiceAgentHealthMonitorResult = {
   status: RuntimeStatus;
@@ -184,7 +199,7 @@ export async function runVoiceAgentHealthMonitor(
     outboundCalls.status,
     invariants.status,
     recentCalls.status,
-    latency.status,
+    resolveEffectiveLatencyStatus(latency),
   ]);
 
   return {

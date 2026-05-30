@@ -1,13 +1,11 @@
 import { generateText } from "ai";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { logicModel } from "@/lib/ai-models";
 import { db } from "@/lib/db";
 import { buildAgentContext, fetchMemoryContext } from "@/lib/ai/context";
 import { buildCrmChatSystemPrompt } from "@/lib/ai/prompt-contract";
 import { getAgentTools } from "@/lib/ai/tools";
 import { saveUserMessage } from "@/actions/chat-actions";
 import { instrumentToolsWithLatency, nowMs, recordLatencyMetric } from "@/lib/telemetry/latency";
-
-const CHAT_MODEL_ID = "gemini-2.0-flash-lite";
 
 function shouldIncludeHistoricalPricing(text: string): boolean {
   return /\b(price|pricing|quote|quoted|cost|how much|rate|fee|invoice)\b/i.test(text) || /\$/.test(text);
@@ -119,14 +117,6 @@ export async function processAgentCommand(userId: string, message: string): Prom
       roleGuardBlock: "OWNER and MANAGER users may confirm data changes through the existing confirmation flow. TEAM_MEMBER users cannot make restricted data changes and should be told to ask their manager.",
     });
 
-    const apiKey = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-    if (!apiKey) {
-      console.error("Missing Gemini API Key");
-      return "Internal Error: AI service configuration is missing.";
-    }
-
-    const google = createGoogleGenerativeAI({ apiKey });
-
     let toolCallsMs = 0;
     const tools = instrumentToolsWithLatency(
       getAgentTools(workspaceId, settings, userId),
@@ -137,7 +127,7 @@ export async function processAgentCommand(userId: string, message: string): Prom
     );
     const llmStartedAt = nowMs();
     const result = await generateText({
-      model: google(CHAT_MODEL_ID as "gemini-2.0-flash-lite"),
+      model: logicModel,
       system: systemPrompt,
       prompt: message,
       tools,

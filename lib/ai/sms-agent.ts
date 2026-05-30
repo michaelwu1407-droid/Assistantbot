@@ -1,5 +1,5 @@
 import { generateText } from "ai";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { logicModel } from "@/lib/ai-models";
 import { tool } from "ai";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -20,8 +20,6 @@ import {
     runCreateDeal,
     runAddAgentFlag,
 } from "@/actions/chat-actions";
-
-const CHAT_MODEL_ID = "gemini-2.0-flash-lite";
 
 export type GeneratedSmsResponse = {
     text: string;
@@ -165,19 +163,6 @@ export async function generateSMSResponse(
 ): Promise<GeneratedSmsResponse> {
     const requestStartedAt = nowMs();
 
-    const apiKey =
-        process.env.GEMINI_API_KEY ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-
-    if (!apiKey) {
-        console.error("Missing GEMINI_API_KEY for SMS agent");
-        const policyOutcome = enforceCustomerFacingResponsePolicy({
-            modeRaw: undefined,
-            text: "Thanks for your message! Someone will get back to you shortly.",
-            channel: "sms",
-        });
-        return { text: policyOutcome.finalText, policyOutcome };
-    }
-
     try {
         const preprocessingStartedAt = nowMs();
 
@@ -243,8 +228,6 @@ export async function generateSMSResponse(
             ],
         });
 
-        const google = createGoogleGenerativeAI({ apiKey });
-
         let toolCallsMs = 0;
         const tools = instrumentToolsWithLatency(
             getSmsCustomerTools(workspaceId, settings),
@@ -256,7 +239,7 @@ export async function generateSMSResponse(
 
         const llmStartedAt = nowMs();
         const result = await generateText({
-            model: google(CHAT_MODEL_ID as "gemini-2.0-flash-lite"),
+            model: logicModel,
             system: systemPrompt,
             messages: conversationHistory.length > 0
                 ? [...conversationHistory, { role: "user" as const, content: userMessage }]
