@@ -1,3 +1,18 @@
+## 2026-05-30 (Claude) - Flag stale planning/audit docs as outdated
+
+- Files changed:
+  - 19 stale docs (top-level + `docs/` + `plans/` + `.agent/`), e.g. `HANDOVER.md`, `IMPLEMENTATION_ROADMAP.md`, `ISSUE_TRACKER.md`, `BRANCH_NOTES.md`, `CRM_PAGE_AUDIT.md`, `LIVE_CRM_WORKFLOW_AUDIT.md`, `AI_DOCS_DEVIATION_REPORT.md`, `MEM0_VERIFICATION_PLAN.md`, `OTTORIZE_UI_WALKTHROUGH.md`, `ai-agent-fix-plan.md`, `docs/task.md`, `docs/implementation_plan.md`, `docs/agent_handoff_2026-04-05.md`, `docs/onboarding_hardening_plan.md`, `docs/live_chatbot_regression.md`, `docs/messaging-improvements.md`, `docs/use_case_walkthroughs.md`, `plans/ui-ux-improvements.md`, `.agent/workflows/post-change-docs.md`
+  - `APP_FEATURES.md`, `docs/agent_change_log.md`
+- Summary:
+  - Prepended a consistent "OUTDATED — historical reference only (as at 30 May 2026)" banner to one-off planning, audit, handoff and postmortem docs so future readers do not mistake superseded notes for current truth. No deletions; content retained for history.
+  - Deliberately left `FEATURE_VERIFICATION.md` and `JOURNEY_ACCEPTANCE.md` un-flagged because `APP_FEATURES.md` cites them as current product-truth surfaces.
+- Why:
+  - The repo had accumulated ~20 stale planning/audit artifacts that described already-shipped work as future/unresolved, creating navigation noise and risk of acting on outdated state.
+- Verified with:
+  - `npx tsc --noEmit`
+  - `npx eslint .`
+  - `npx vitest run` (266 files, 1234 tests passing)
+
 ## 2026-05-18 (Codex) - Log realtime voice architecture trial as future work
 
 - Files changed:

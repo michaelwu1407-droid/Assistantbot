@@ -1,3 +1,5 @@
+> **⚠️ OUTDATED — historical reference only (as at 30 May 2026).** For current truth see `AGENTS.md` and `docs/current_agent_handoff.md`.
+
 # Lead routing branch — `claude/review-lead-routing-EzRTr`
 
 End-to-end review and rebuild of how leads reach the CRM and the voice agent, plus the customer-facing UX that exposes it.

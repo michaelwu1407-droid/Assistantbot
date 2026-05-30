@@ -1,3 +1,5 @@
+> **⚠️ OUTDATED — historical reference only (as at 30 May 2026).** For current truth see `AGENTS.md` and `docs/current_agent_handoff.md`.
+
 # Documentation Deviations Report
 
 This table outlines every identified deviation where an "Other Doc" (which reads as if it is the current status quo) conflicts with the established reality in `APP_FEATURES.md` (and `AGENTS.md` for voice architecture).

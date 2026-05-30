@@ -1,3 +1,5 @@
+> **⚠️ OUTDATED — historical reference only (as at 30 May 2026).** For current truth see `AGENTS.md` and `docs/current_agent_handoff.md`.
+
 # Ottorize-Inspired UI Redesign - Walkthrough
 
 ## Overview
