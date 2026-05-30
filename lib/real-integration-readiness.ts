@@ -1,4 +1,4 @@
-export type IntegrationServiceName = "stripe" | "twilio" | "resend" | "livekit" | "auth";
+export type IntegrationServiceName = "stripe" | "twilio" | "resend" | "livekit" | "auth" | "qstash";
 
 export type EnvRequirement = {
   key: string;
@@ -61,6 +61,12 @@ const SERVICE_REQUIREMENTS: Record<IntegrationServiceName, EnvRequirement[]> = {
     { key: "NEXT_PUBLIC_APP_URL", required: true },
     { key: "GOOGLE_CLIENT_ID", required: false },
     { key: "GOOGLE_CLIENT_SECRET", required: false },
+  ],
+  qstash: [
+    { key: "QSTASH_TOKEN", required: true, note: "Publish delayed callback jobs" },
+    { key: "QSTASH_CURRENT_SIGNING_KEY", required: true, note: "Verify QStash callbacks" },
+    { key: "QSTASH_NEXT_SIGNING_KEY", required: true, note: "Verify QStash callbacks (key rotation)" },
+    { key: "NEXT_PUBLIC_APP_URL", required: true, note: "QStash callback target URL" },
   ],
 };
 

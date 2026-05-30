@@ -5,11 +5,11 @@ name: Scheduled Calls
 # autoCallDelaySec workspace setting actually fire — without this job
 # nothing scans the queue.
 #
-# GitHub Actions enforces a 5-minute minimum schedule, so the real-world
-# delay floor for auto-callbacks is ~5 minutes regardless of the per-
-# workspace autoCallDelaySec setting. For finer granularity, swap this
-# trigger for Vercel Cron, Upstash QStash, or a per-minute external
-# scheduler hitting the same endpoint.
+# GitHub Actions enforces a 5-minute minimum schedule. When Upstash QStash
+# is configured (QSTASH_TOKEN + signing keys), delayed callbacks are scheduled
+# to the second via /api/qstash/callback and this cron only acts as a safety-net
+# sweep for any Task that fell back to the queue. Without QStash, this cron is
+# the sole driver and the ~5-minute floor applies. See docs/QSTASH_SETUP.md.
 
 on:
   schedule:
