@@ -1,3 +1,5 @@
+> **⚠️ OUTDATED — historical reference only (as at 30 May 2026).** For current truth see `AGENTS.md` and `docs/current_agent_handoff.md`.
+
 # Use Case Walkthroughs (Round 2)
 
 This document records the step-by-step execution of user journeys after `git pull` (Feb 18).

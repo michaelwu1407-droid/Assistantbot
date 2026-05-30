@@ -1,3 +1,5 @@
+> **⚠️ OUTDATED — historical reference only (as at 30 May 2026).** For current truth see `AGENTS.md` and `docs/current_agent_handoff.md`.
+
 # AI Agent Fix Plan
 
 This document contains a comprehensive, granular plan for AI agents to fix the identified bugs and UX issues. 

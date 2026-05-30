@@ -1,3 +1,5 @@
+> **⚠️ OUTDATED — historical reference only (as at 30 May 2026).** For current truth see `AGENTS.md` and `docs/current_agent_handoff.md`.
+
 # Live Chatbot Regression
 
 This is the saved live regression harness for Tracey's CRM chat behavior.

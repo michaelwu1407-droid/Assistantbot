@@ -1,3 +1,5 @@
+> **⚠️ OUTDATED — historical reference only (as at 30 May 2026).** For current truth see `AGENTS.md` and `docs/current_agent_handoff.md`.
+
 # Agent Handoff - 2026-04-05
 
 This is the authoritative resume point for the next AI agent.

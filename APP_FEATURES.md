@@ -6,6 +6,8 @@
 >
 > Product-truth note: this file documents intended behavior. For current proof status on high-risk promises, cross-check `FEATURE_VERIFICATION.md` and the internal ops table at `/admin/customer-usage?tab=ops#feature-promises`.
 >
+> Docs-hygiene note (2026-05-30): stale one-off planning/audit/handoff docs now carry an "OUTDATED" banner; no feature behavior changed in that pass.
+>
 > ### Product Personas
 > 1. **The Tradie (User):** Logs into the dashboard to manage jobs. Uses the Internal Chatbot (Gemini) for data mutation and navigation.
 > 2. **Tracey Voice/SMS Agent:** The digital receptionist. Powered by LiveKit & Twilio. QUALIFIES leads and books jobs into the CRM.
