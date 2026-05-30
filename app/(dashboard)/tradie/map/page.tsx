@@ -2,6 +2,7 @@ import { getTradieJobs } from "@/actions/tradie-actions"
 import { getOrCreateWorkspace } from "@/actions/workspace-actions"
 import { getAuthUserId } from "@/lib/auth"
 import { MapPageClient } from "@/components/map/map-page-client"
+import { BetaGate } from "@/components/beta-gate"
 import { redirect } from "next/navigation"
 import type { Job } from "@/components/map/map-view"
 
@@ -38,8 +39,10 @@ export default async function TradieMapPage() {
     }
 
     return (
-        <div className="h-full w-full">
-            <MapPageClient jobs={jobs as Job[]} />
-        </div>
+        <BetaGate>
+            <div className="h-full w-full">
+                <MapPageClient jobs={jobs as Job[]} />
+            </div>
+        </BetaGate>
     )
 }

@@ -53,9 +53,11 @@ vi.mock("@/lib/store", () => ({
 import { TradieDashboardClient } from "@/components/tradie/tradie-dashboard-client";
 
 describe("TradieDashboardClient", () => {
-  it("keeps the empty-state navigation inside the tradie flow", () => {
+  // BETA_REMOVED: "Return to Map" link assertion removed — map is behind beta gate.
+  // To reinstate: expect(screen.getByRole("link", { name: /return to map/i })).toHaveAttribute("href", "/tradie/map")
+  it("shows the all-caught-up empty state when there are no jobs today", () => {
     render(<TradieDashboardClient todayJobs={[]} />);
 
-    expect(screen.getByRole("link", { name: /return to map/i })).toHaveAttribute("href", "/tradie/map");
+    expect(screen.getByText(/all caught up/i)).toBeInTheDocument();
   });
 });

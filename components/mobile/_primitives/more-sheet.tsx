@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import {
   Users,
   UsersRound,
-  Map as MapIcon,
   BarChart2,
   Settings2,
   LifeBuoy,
@@ -44,7 +43,7 @@ export function MoreSheet({ open, onOpenChange }: MoreSheetProps) {
   const items: MoreItem[] = [
     { href: "/crm/contacts", label: "Contacts", icon: Users, managerOnly: true },
     { href: "/crm/team", label: "Team", icon: UsersRound },
-    { href: "/crm/map", label: "Map", icon: MapIcon },
+    // BETA_REMOVED: Map entry. To reinstate: import Map as MapIcon from lucide-react, add { href: "/crm/map", label: "Map", icon: MapIcon } here
     { href: "/crm/analytics", label: "Analytics", icon: BarChart2, managerOnly: true },
     { href: "/crm/settings/account", label: "Settings", icon: Settings2 },
     { href: "/crm/settings/help", label: "Help & support", icon: LifeBuoy },

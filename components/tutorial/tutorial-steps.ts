@@ -137,13 +137,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
         ],
         actionLabel: "Next",
     },
-    {
-        id: "nav-map",
-        targetId: "map-link",
-        title: "🗺️ Interactive Route Map",
-        message: "All active jobs plotted on a live map with **color-coded pins**.\n\nOpen the **Today's Jobs** list to see your daily run — tap a job to jump to it on the map.",
-        actionLabel: "Next",
-    },
+    // BETA_REMOVED: nav-map tutorial step. To reinstate: add { id: "nav-map", targetId: "map-link", title: "🗺️ Interactive Route Map", message: "All active jobs plotted on a live map with **color-coded pins**.\n\nOpen the **Today's Jobs** list to see your daily run — tap a job to jump to it on the map.", actionLabel: "Next" } here
     {
         id: "nav-contacts",
         targetId: "contacts-link",

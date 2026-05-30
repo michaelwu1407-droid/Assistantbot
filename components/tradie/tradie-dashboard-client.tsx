@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { createQuoteVariation } from '@/actions/tradie-actions';
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Map, CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import JobMap from './job-map';
 import { JobBottomSheet } from './job-bottom-sheet';
 import { JobCompletionModal } from './job-completion-modal';
@@ -77,12 +77,7 @@ export function TradieDashboardClient({ initialJob, todayJobs = [], userName = "
         <div className="text-center p-6">
           <h2 className="text-xl font-bold mb-2">All Caught Up!</h2>
           <p className="text-muted-foreground mb-4">No scheduled jobs for today.</p>
-          <Button variant="outline" asChild className="mt-4">
-            <Link href="/tradie/map" className="gap-2">
-              <Map className="mr-2 h-4 w-4" />
-              Return to Map
-            </Link>
-          </Button>
+          {/* BETA_REMOVED: "Return to Map" button. To reinstate: import Map from lucide-react, add <Button variant="outline" asChild className="mt-4"><Link href="/tradie/map" className="gap-2"><Map className="mr-2 h-4 w-4" />Return to Map</Link></Button> */}
         </div>
       </div>
     );

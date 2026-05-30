@@ -34,6 +34,10 @@ vi.mock("@/components/map/map-page-client", () => ({
   }) => <div data-testid="map-jobs">{jobs.map((job) => job.id).join(",")}</div>,
 }));
 
+vi.mock("@/components/beta-gate", () => ({
+  BetaGate: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 import DashboardMapPage from "@/app/crm/map/page";
 
 describe("DashboardMapPage", () => {

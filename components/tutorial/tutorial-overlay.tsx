@@ -27,7 +27,7 @@ const BOTTOM_CARD_IDS = new Set([
     "dashboard-home",
     "nav-inbox",
     "nav-schedule",
-    "nav-map",
+    // BETA_REMOVED: "nav-map" — reinstate when map exits beta
     "nav-contacts",
     "nav-analytics",
     "nav-team",
@@ -65,7 +65,7 @@ export function TutorialOverlay({ onComplete }: TutorialOverlayProps) {
         const routes: Record<string, string> = {
             "nav-inbox": "/crm/inbox",
             "nav-schedule": "/crm/schedule",
-            "nav-map": "/crm/map",
+            // BETA_REMOVED: "nav-map": "/crm/map" — reinstate when map exits beta
             "nav-contacts": "/crm/contacts",
             "nav-analytics": "/crm/analytics",
             "nav-team": "/crm/team",
