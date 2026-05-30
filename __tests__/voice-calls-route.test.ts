@@ -20,6 +20,7 @@ const hoisted = vi.hoisted(() => ({
   syncVoiceCallToCRM: vi.fn(),
   recordCallbackEvent: vi.fn(),
   runIdempotent: vi.fn(),
+  recordLatencyMetric: vi.fn(),
 }));
 
 vi.mock("@/lib/idempotency", () => ({ runIdempotent: hoisted.runIdempotent }));
@@ -42,6 +43,9 @@ vi.mock("@/lib/post-call-sync", () => ({
 }));
 vi.mock("@/lib/callback-events", () => ({
   recordCallbackEvent: hoisted.recordCallbackEvent,
+}));
+vi.mock("@/lib/telemetry/latency", () => ({
+  recordLatencyMetric: hoisted.recordLatencyMetric,
 }));
 
 import { POST } from "@/app/api/internal/voice-calls/route";
@@ -292,5 +296,72 @@ describe("POST /api/internal/voice-calls", () => {
         providerCallSid: "CA123",
       }),
     });
+  });
+
+  it("records per-provider latency metrics when latency blob is present", async () => {
+    const latency = {
+      sttAvgMs: 120,
+      ttsAvgMs: 95,
+      ttsTtfbAvgMs: 55,
+      llmAvgMs: 310,
+      llmByProvider: {
+        groq: { turns: 3, llmAvgMs: 280, llmP95Ms: 350, llmTtftAvgMs: 130, llmTtftP95Ms: 190 },
+        deepinfra: { turns: 1, llmAvgMs: 410, llmP95Ms: 410, llmTtftAvgMs: 200, llmTtftP95Ms: 200 },
+      },
+    };
+
+    await POST(
+      new NextRequest("https://earlymark.ai/api/internal/voice-calls", {
+        method: "POST",
+        headers: { "x-voice-agent-secret": "secret" },
+        body: JSON.stringify(makePayload({ latency })),
+      }),
+    );
+
+    const calls = hoisted.recordLatencyMetric.mock.calls as [string, number][];
+    const recorded = Object.fromEntries(calls.map(([k, v]) => [k, v]));
+    expect(recorded["voice.stt_ms"]).toBe(120);
+    expect(recorded["voice.tts_ms"]).toBe(95);
+    expect(recorded["voice.tts.ttfb_ms"]).toBe(55);
+    expect(recorded["voice.llm.groq_ms"]).toBe(280);
+    expect(recorded["voice.llm.groq.ttft_ms"]).toBe(130);
+    expect(recorded["voice.llm.deepinfra_ms"]).toBe(410);
+    expect(recorded["voice.llm.deepinfra.ttft_ms"]).toBe(200);
+  });
+
+  it("skips latency recording when no latency blob is present", async () => {
+    await POST(
+      new NextRequest("https://earlymark.ai/api/internal/voice-calls", {
+        method: "POST",
+        headers: { "x-voice-agent-secret": "secret" },
+        body: JSON.stringify(makePayload()),
+      }),
+    );
+
+    expect(hoisted.recordLatencyMetric).not.toHaveBeenCalled();
+  });
+
+  it("skips provider metrics when a provider had zero turns", async () => {
+    const latency = {
+      sttAvgMs: 100,
+      llmByProvider: {
+        groq: { turns: 2, llmAvgMs: 250, llmTtftAvgMs: 110 },
+        deepinfra: { turns: 0, llmAvgMs: 0, llmTtftAvgMs: 0 },
+      },
+    };
+
+    await POST(
+      new NextRequest("https://earlymark.ai/api/internal/voice-calls", {
+        method: "POST",
+        headers: { "x-voice-agent-secret": "secret" },
+        body: JSON.stringify(makePayload({ latency })),
+      }),
+    );
+
+    const calls = hoisted.recordLatencyMetric.mock.calls as [string, number][];
+    const keys = calls.map(([k]) => k);
+    expect(keys).not.toContain("voice.llm.deepinfra_ms");
+    expect(keys).not.toContain("voice.llm.deepinfra.ttft_ms");
+    expect(keys).toContain("voice.llm.groq_ms");
   });
 });

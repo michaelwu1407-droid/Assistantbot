@@ -138,6 +138,13 @@ const WATERFALL_PHASES = [
   'chat.web.model_ms',
   'chat.web.total_ms',
   'chat.client.ttft_ms',
+  'voice.stt_ms',
+  'voice.llm.groq_ms',
+  'voice.llm.groq.ttft_ms',
+  'voice.llm.deepinfra_ms',
+  'voice.llm.deepinfra.ttft_ms',
+  'voice.tts_ms',
+  'voice.tts.ttfb_ms',
 ];
 
 export async function getLatencyWaterfall(topToolsCount = 10): Promise<LatencyWaterfall> {

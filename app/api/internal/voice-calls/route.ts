@@ -6,6 +6,7 @@ import { findContactByPhone, findWorkspaceByTwilioNumber } from "@/lib/workspace
 import { isVoiceAgentSecretAuthorized } from "@/lib/voice-agent-auth";
 import { syncVoiceCallToCRM } from "@/lib/post-call-sync";
 import { recordCallbackEvent } from "@/lib/callback-events";
+import { recordLatencyMetric } from "@/lib/telemetry/latency";
 import {
   isSipCallConnectedStatus,
   isSipCallTerminalFailureStatus,
@@ -14,6 +15,26 @@ import {
 } from "@/lib/sip-call-status";
 
 export const dynamic = "force-dynamic";
+
+function recordVoiceCallMetrics(latency: Record<string, unknown> | undefined) {
+  if (!latency) return;
+  const safe = (v: unknown) => (typeof v === "number" && v > 0 ? v : null);
+  const byProvider = latency.llmByProvider as Record<string, Record<string, unknown>> | undefined;
+  for (const provider of ["groq", "deepinfra"] as const) {
+    const p = byProvider?.[provider];
+    if (!p || (p.turns as number) === 0) continue;
+    const llmAvg = safe(p.llmAvgMs);
+    const ttftAvg = safe(p.llmTtftAvgMs);
+    if (llmAvg !== null) recordLatencyMetric(`voice.llm.${provider}_ms`, llmAvg);
+    if (ttftAvg !== null) recordLatencyMetric(`voice.llm.${provider}.ttft_ms`, ttftAvg);
+  }
+  const stt = safe(latency.sttAvgMs);
+  const tts = safe(latency.ttsAvgMs);
+  const ttsTtfb = safe(latency.ttsTtfbAvgMs);
+  if (stt !== null) recordLatencyMetric("voice.stt_ms", stt);
+  if (tts !== null) recordLatencyMetric("voice.tts_ms", tts);
+  if (ttsTtfb !== null) recordLatencyMetric("voice.tts.ttfb_ms", ttsTtfb);
+}
 
 const transcriptTurnSchema = z.object({
   role: z.enum(["user", "assistant"]),
@@ -255,6 +276,8 @@ export async function POST(req: NextRequest) {
         endedAt: payload.endedAt ? new Date(payload.endedAt) : new Date(),
       },
     });
+
+    recordVoiceCallMetrics(payload.latency);
 
     // ── Post-call side effects ─────────────────────────────────────────
     // Twilio/LiveKit retries (same callId) used to slip past the
