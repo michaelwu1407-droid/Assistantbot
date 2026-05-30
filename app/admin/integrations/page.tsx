@@ -76,6 +76,13 @@ export default async function IntegrationsPage() {
         See <code className="bg-muted px-1 py-0.5 rounded text-xs">docs/PENDING_MANUAL_STEPS.md</code> for
         the Upstash + Vercel steps needed to complete QStash setup.
       </p>
+
+      <p className="app-body-secondary text-xs">
+        Tuning voice routing?{" "}
+        <a href="/admin/voice-latency" className="underline">
+          Voice latency by provider →
+        </a>
+      </p>
     </div>
   );
 }
