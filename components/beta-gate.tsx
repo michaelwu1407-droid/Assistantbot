@@ -12,6 +12,10 @@ export function BetaGate({ children }: { children: ReactNode }) {
   const [error, setError] = useState(false)
 
   useEffect(() => {
+    // Hydrate the unlock flag from localStorage on client mount. Starting null
+    // (and rendering nothing) keeps server and first client render identical;
+    // the effect-driven update is the standard hydration-safe pattern here.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUnlocked(localStorage.getItem(STORAGE_KEY) === "1")
   }, [])
 

@@ -68,7 +68,7 @@ export function RecentCallsWidget({ workspaceId }: { workspaceId: string }) {
         <div className="ott-empty-state py-8">
           <div className="ott-empty-state-icon"><Phone className="h-5 w-5" /></div>
           <p className="ott-empty-state-title">No calls yet</p>
-          <p className="ott-empty-state-body">Tracey's calls will appear here once she starts handling leads.</p>
+          <p className="ott-empty-state-body">Tracey&apos;s calls will appear here once she starts handling leads.</p>
         </div>
       ) : (
         <ul className="divide-y" style={{ borderColor: "#E6E2D7" }}>

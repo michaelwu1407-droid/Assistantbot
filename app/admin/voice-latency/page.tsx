@@ -1,16 +1,12 @@
 import { requireInternalAdminAccess } from "@/lib/internal-admin";
 import { VOICE_METRIC_KEYS, getLatencySnapshot } from "@/lib/telemetry/latency";
+import { formatDateTime } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
 type Summary = { count: number; avgMs: number; minMs: number; maxMs: number; p50Ms: number; p95Ms: number };
 
 const EMPTY: Summary = { count: 0, avgMs: 0, minMs: 0, maxMs: 0, p50Ms: 0, p95Ms: 0 };
-
-const PROVIDERS = [
-  { key: "groq", label: "Groq" },
-  { key: "deepinfra", label: "DeepInfra" },
-] as const;
 
 function fmt(ms: number): string {
   return ms > 0 ? `${Math.round(ms)} ms` : "—";
@@ -123,8 +119,7 @@ export default async function VoiceLatencyPage() {
       </div>
 
       <p className="app-body-secondary text-xs">
-        Snapshot generated {new Date(snapshot.generatedAt).toLocaleString("en-AU")} · window{" "}
-        {snapshot.windowSize}.
+        Snapshot generated {formatDateTime(snapshot.generatedAt)} · window {snapshot.windowSize}.
       </p>
     </div>
   );
