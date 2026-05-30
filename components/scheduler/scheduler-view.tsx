@@ -175,7 +175,7 @@ export default function SchedulerView({ initialJobs = [] }: SchedulerViewProps) 
                 if (!result.success) throw new Error(result.error);
             } catch (error) {
                 console.error("Failed to update schedule", error);
-                toast.error("Failed to save schedule change");
+                toast.error("Couldn't save that schedule change — please try again.");
                 // Revert state (simplified: refresh page or complex rollback logic)
             }
         }

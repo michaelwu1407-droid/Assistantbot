@@ -376,7 +376,7 @@ const STEPS = [
   { label: "Go live", icon: Send },
 ]
 
-export function TraceyOnboarding() {
+export function TraceyOnboarding({ isResuming = false }: { isResuming?: boolean }) {
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [submitting, setSubmitting] = useState(false)
@@ -1082,7 +1082,7 @@ export function TraceyOnboarding() {
                 {/* ──── STEP 1: Draft Contact Card ──── */}
                 {step === 0 && (
                   <div className="space-y-5">
-                    <TraceyBubble text="G'day! Let's get you set up. Fill in your details below and we'll get Tracey ready for your business." />
+                    <TraceyBubble text={isResuming ? "Welcome back! Let's finish setting up Tracey for your business. Fill in any missing details and keep going." : "G'day! Let's get you set up. Fill in your details below and we'll get Tracey ready for your business."} />
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
@@ -1094,13 +1094,14 @@ export function TraceyOnboarding() {
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> Phone</Label>
+                        <Label className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" /> Your Mobile</Label>
                         <Input
                           placeholder="04XX XXX XXX"
                           value={phone}
                           onChange={(e) => setPhone(e.target.value)}
                           onBlur={() => setPhone(formatAuPhone(phone))}
                         />
+                        <p className="text-xs text-muted-foreground">Used to set up your Tracey number — not shown to customers.</p>
                       </div>
                       <div className="space-y-1.5">
                         <Label className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" /> Email</Label>
@@ -1288,12 +1289,13 @@ export function TraceyOnboarding() {
                           </Select>
                         </div>
                         <div className="space-y-1.5">
-                          <Label>Public Phone</Label>
+                          <Label>Business Phone (shown to customers)</Label>
                           <Input
                             placeholder="Business phone number"
                             value={publicPhone}
                             onChange={(e) => setPublicPhone(e.target.value)}
                           />
+                          <p className="text-xs text-muted-foreground">This is different from your Tracey number — it&apos;s for your website and business card.</p>
                         </div>
                         <div className="space-y-1.5">
                           <Label>Public Email</Label>
@@ -1362,9 +1364,9 @@ export function TraceyOnboarding() {
                       <div className="flex items-center justify-between rounded-lg border p-4">
                         <div>
                           <p className="font-medium text-sm flex items-center gap-1.5">
-                            <Shield className="h-4 w-4 text-amber-500" /> Emergency hours
+                            <Shield className="h-4 w-4 text-amber-500" /> After-hours & emergency callouts
                           </p>
-                          <p className="text-xs text-muted-foreground">Allow Tracey to handle emergency callouts. She will notify you for approval and not accept without your permission.</p>
+                          <p className="text-xs text-muted-foreground">Take emergency calls outside business hours. Tracey will alert you before accepting — you always have the final say.</p>
                         </div>
                         <Switch checked={emergencyService} onCheckedChange={setEmergencyService} />
                       </div>
@@ -1425,10 +1427,11 @@ export function TraceyOnboarding() {
                     <div className="space-y-3 border rounded-lg p-4 bg-muted/30 dark:bg-slate-900">
                       <Label className="flex items-center gap-2">
                         <FileIcon className="h-4 w-4 text-emerald-500" />
-                        Upload Documents (optional)
+                        Upload Documents
+                        <span className="text-xs font-normal text-muted-foreground ml-1">— skip for now, add later in Settings</span>
                       </Label>
                       <p className="text-xs text-muted-foreground">
-                        Upload price lists, insurance forms, or any documents Tracey should reference.
+                        Got a price list or insurance cert? Tracey can reference it during calls. Not required to get started.
                       </p>
                       
                       {/* File upload input */}
@@ -1615,8 +1618,8 @@ export function TraceyOnboarding() {
                                 const res = await fetch("/api/auth/email-provider?provider=gmail")
                                 const data = await res.json()
                                 if (data.authUrl) window.open(data.authUrl, "_blank", "width=600,height=700")
-                                else toast.error("Failed to start Gmail connection")
-                              } catch { toast.error("Failed to connect Gmail") }
+                                else toast.error("Couldn't start Gmail connection — please try again.")
+                              } catch { toast.error("Couldn't connect Gmail — please try again.") }
                             }}
                           >
                             <Mail className="h-4 w-4" />
@@ -1631,8 +1634,8 @@ export function TraceyOnboarding() {
                                 const res = await fetch("/api/auth/email-provider?provider=outlook")
                                 const data = await res.json()
                                 if (data.authUrl) window.open(data.authUrl, "_blank", "width=600,height=700")
-                                else toast.error("Failed to start Outlook connection")
-                              } catch { toast.error("Failed to connect Outlook") }
+                                else toast.error("Couldn't start Outlook connection — please try again.")
+                              } catch { toast.error("Couldn't connect Outlook — please try again.") }
                             }}
                           >
                             <Mail className="h-4 w-4" />

@@ -28,6 +28,9 @@ vi.mock("@/lib/db", () => ({
 vi.mock("@/components/billing/manage-subscription-button", () => ({
   ManageSubscriptionButton: ({ workspaceId }: { workspaceId: string }) => <div>Manage {workspaceId}</div>,
 }));
+vi.mock("@/components/billing/cancel-subscription-button", () => ({
+  CancelSubscriptionButton: ({ workspaceId }: { workspaceId: string }) => <div>Cancel {workspaceId}</div>,
+}));
 
 vi.mock("@/lib/billing-plan", () => ({
   getBillingIntervalForPriceId: vi.fn(() => "monthly"),
@@ -36,11 +39,13 @@ vi.mock("@/lib/billing-plan", () => ({
 
 import AIVoiceSettingsPage from "@/app/crm/settings/ai-voice/page";
 import AfterHoursSettingsPage from "@/app/crm/settings/after-hours/page";
+import AppearanceSettingsPage from "@/app/crm/settings/appearance/page";
 import BillingSettingsPage from "@/app/crm/settings/billing/page";
 import PhoneSettingsPage from "@/app/crm/settings/phone-settings/page";
 import SmsTemplatesPage from "@/app/crm/settings/sms-templates/page";
 import SupportPage from "@/app/crm/settings/support/page";
 import DataPrivacySettingsPage from "@/app/crm/settings/data-privacy/page";
+import AccountSettingsRedirectPage from "@/app/crm/settings/account/page";
 
 describe("settings route redirects", () => {
   beforeEach(() => {
@@ -54,6 +59,7 @@ describe("settings route redirects", () => {
       id: "ws_1",
       stripePriceId: "price_1",
       subscriptionStatus: "active",
+      stripeCurrentPeriodEnd: null,
     });
   });
 
@@ -64,6 +70,7 @@ describe("settings route redirects", () => {
     expect(() => SmsTemplatesPage()).toThrow("REDIRECT:/crm/settings/call-settings");
     expect(() => AIVoiceSettingsPage()).toThrow("REDIRECT:/crm/settings/call-settings");
     expect(() => AfterHoursSettingsPage()).toThrow("REDIRECT:/crm/settings/call-settings");
+    expect(() => AppearanceSettingsPage()).toThrow("REDIRECT:/crm/settings/display");
   });
 
   it("blocks team members from opening billing directly by URL", async () => {
@@ -88,7 +95,12 @@ describe("settings route redirects", () => {
         id: true,
         stripePriceId: true,
         subscriptionStatus: true,
+        stripeCurrentPeriodEnd: true,
       },
     });
+  });
+
+  it("redirects /crm/settings/account to the main settings index (set-02)", () => {
+    expect(() => AccountSettingsRedirectPage()).toThrow("REDIRECT:/crm/settings");
   });
 });

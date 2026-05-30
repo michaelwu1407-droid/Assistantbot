@@ -50,10 +50,10 @@ export function DealNotes({ dealId, initialNotes }: DealNotesProps) {
         setCurrentText("")
         setEditingId(null)
       } else {
-        toast.error(result.error ?? "Failed to save")
+        toast.error(result.error ?? "Couldn't save your notes — please try again.")
       }
     } catch {
-      toast.error("Failed to save notes")
+      toast.error("Couldn't save your notes — please try again.")
     } finally {
       setSaving(false)
     }

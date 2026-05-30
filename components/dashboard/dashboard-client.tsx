@@ -13,6 +13,7 @@ import { useDashboardHeaderExtraSetter } from "@/components/dashboard/dashboard-
 import { Filter, Save, X } from "lucide-react"
 import { SetupWidget } from "@/components/dashboard/setup-widget"
 import { RecentCallsWidget } from "@/components/dashboard/recent-calls-widget"
+import { CashflowWidget } from "@/components/dashboard/cashflow-widget"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -333,6 +334,9 @@ function DashboardClientDesktop({ workspace, deals, teamMembers, userName }: Das
                             )}
                         >
                             <DashboardKpiCards deals={deals} />
+                            <div className="mt-4">
+                              <CashflowWidget deals={deals} />
+                            </div>
                         </div>
 
                         <SetupWidget />

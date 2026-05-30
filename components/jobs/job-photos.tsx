@@ -66,7 +66,7 @@ export function JobPhotos({ dealId, isPastJob = false }: JobPhotosProps) {
         toast.error(result.error);
       }
     } catch {
-      toast.error("Failed to upload photo");
+      toast.error("Couldn't upload that photo — check your connection and try again.");
     } finally {
       setUploading(false);
     }
@@ -82,7 +82,7 @@ export function JobPhotos({ dealId, isPastJob = false }: JobPhotosProps) {
         toast.error(result.error);
       }
     } catch {
-      toast.error("Failed to delete photo");
+      toast.error("Couldn't delete that photo — please try again.");
     }
   };
 
@@ -169,9 +169,9 @@ export function JobPhotos({ dealId, isPastJob = false }: JobPhotosProps) {
                   )}
                   <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button
-                      size="sm"
+                      size="icon"
                       variant="secondary"
-                      className="h-8 w-8 p-0"
+                      className="h-10 w-10"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDelete(photo.id);

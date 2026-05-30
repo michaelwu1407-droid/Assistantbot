@@ -63,7 +63,7 @@ export function WebformEmbedSection({ workspaceId }: WebformEmbedSectionProps) {
       toast.success("Copied to clipboard");
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error("Failed to copy");
+      toast.error("Couldn't copy — try selecting the text manually.");
     }
   }
 

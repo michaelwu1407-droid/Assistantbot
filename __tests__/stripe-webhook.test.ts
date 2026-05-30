@@ -20,7 +20,9 @@ const hoisted = vi.hoisted(() => ({
   captureException: vi.fn(),
   processReferralConversionForCheckout: vi.fn(),
   loggerInfo: vi.fn(),
+  loggerError: vi.fn(),
   ensureWorkspaceProvisioned: vi.fn(),
+  twilioPhoneNumberRemove: vi.fn(),
 }));
 
 vi.mock("@/lib/stripe", () => ({
@@ -46,6 +48,14 @@ vi.mock("@/actions/referral-actions", () => ({
 vi.mock("@/lib/logging", () => ({
   logger: {
     info: hoisted.loggerInfo,
+    error: hoisted.loggerError,
+  },
+}));
+vi.mock("@/lib/twilio", () => ({
+  twilioMasterClient: {
+    incomingPhoneNumbers: vi.fn(() => ({
+      remove: hoisted.twilioPhoneNumberRemove,
+    })),
   },
 }));
 vi.mock("@/lib/onboarding-provision", () => ({
@@ -205,6 +215,122 @@ describe("POST /api/webhooks/stripe", () => {
           type: "checkout.session.completed",
         },
       },
+    });
+  });
+
+  it("customer.subscription.deleted releases Twilio number and nulls workspace phone fields (bill-04)", async () => {
+    hoisted.constructEvent.mockReturnValue({
+      id: "evt_sub_deleted",
+      type: "customer.subscription.deleted",
+      data: {
+        object: {
+          customer: "cus_deleted",
+          status: "canceled",
+          current_period_end: 1_800_000_000,
+          items: { data: [{ price: { id: "price_monthly" } }] },
+        },
+      },
+    });
+    hoisted.db.workspace.findUnique.mockResolvedValue({
+      id: "ws_cancel",
+      name: "Cancelling Co",
+      ownerId: "user_c",
+      twilioPhoneNumberSid: "PN_abc123",
+    });
+    hoisted.twilioPhoneNumberRemove.mockResolvedValue(undefined);
+
+    const response = await POST(
+      new Request("https://app.example.com/api/webhooks/stripe", {
+        method: "POST",
+        body: "{}",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(hoisted.twilioPhoneNumberRemove).toHaveBeenCalled();
+    expect(hoisted.db.workspace.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "ws_cancel" },
+        data: expect.objectContaining({
+          twilioPhoneNumber: null,
+          twilioPhoneNumberSid: null,
+          twilioSubaccountId: null,
+          twilioSubaccountAuthToken: null,
+        }),
+      }),
+    );
+  });
+
+  it("customer.subscription.updated persists new price and period end on plan change (bill-05)", async () => {
+    hoisted.constructEvent.mockReturnValue({
+      id: "evt_plan_change",
+      type: "customer.subscription.updated",
+      data: {
+        object: {
+          customer: "cus_upgrade",
+          status: "active",
+          current_period_end: 1_800_000_000,
+          items: { data: [{ price: { id: "price_yearly" } }] },
+        },
+      },
+    });
+    hoisted.db.workspace.findUnique.mockResolvedValue({
+      id: "ws_upgrade",
+      name: "Upgraded Co",
+      ownerId: "user_u",
+    });
+
+    const response = await POST(
+      new Request("https://app.example.com/api/webhooks/stripe", {
+        method: "POST",
+        body: "{}",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(hoisted.db.workspace.update).toHaveBeenCalledWith({
+      where: { id: "ws_upgrade" },
+      data: expect.objectContaining({
+        subscriptionStatus: "active",
+        stripePriceId: "price_yearly",
+        stripeCurrentPeriodEnd: expect.any(Date),
+      }),
+    });
+  });
+
+  it("customer.subscription.updated flips workspace to past_due when payment fails (bill-06)", async () => {
+    hoisted.constructEvent.mockReturnValue({
+      id: "evt_sub_updated",
+      type: "customer.subscription.updated",
+      data: {
+        object: {
+          customer: "cus_past_due",
+          status: "past_due",
+          current_period_end: 1_800_000_000,
+          items: { data: [{ price: { id: "price_monthly" } }] },
+        },
+      },
+    });
+    hoisted.db.workspace.findUnique.mockResolvedValue({
+      id: "ws_dunning",
+      name: "Dunning Corp",
+      ownerId: "user_d",
+    });
+
+    const response = await POST(
+      new Request("https://app.example.com/api/webhooks/stripe", {
+        method: "POST",
+        body: "{}",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(hoisted.db.workspace.update).toHaveBeenCalledWith({
+      where: { id: "ws_dunning" },
+      data: expect.objectContaining({
+        subscriptionStatus: "past_due",
+        stripeCurrentPeriodEnd: expect.any(Date),
+      }),
     });
   });
 });

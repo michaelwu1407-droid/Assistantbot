@@ -93,7 +93,7 @@ export function DealEditForm({
         scheduledAt: scheduledAt.trim() ? parseDateTimeLocalInTimezone(scheduledAt.trim(), resolvedTimezone) : null,
       })
       if (!res.success) {
-        toast.error(res.error ?? "Failed to update")
+        toast.error(res.error ?? "Couldn't update the job — please try again.")
         setSaving(false)
         return
       }

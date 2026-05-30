@@ -36,10 +36,10 @@ export function WorkingHoursForm({ initialData }: WorkingHoursFormProps) {
     try {
       const currentSettings = await getWorkspaceSettings()
       if (!currentSettings) {
-        toast.error("Failed to get current settings")
+        toast.error("Couldn't load current settings — please refresh.")
         return
       }
-      
+
       await updateWorkspaceSettings({
         agentMode: currentSettings.agentMode || "EXECUTION",
         workingHoursStart: start,
@@ -52,7 +52,7 @@ export function WorkingHoursForm({ initialData }: WorkingHoursFormProps) {
       })
       toast.success("Working hours saved")
     } catch {
-      toast.error("Failed to save")
+      toast.error("Couldn't save working hours — please try again.")
     } finally {
       setSaving(false)
     }

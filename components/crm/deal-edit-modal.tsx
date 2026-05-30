@@ -80,7 +80,7 @@ export function DealEditModal({ dealId, open, onOpenChange, onDealUpdated, curre
         setLoading(false)
       })
       .catch(() => {
-        if (!cancelled) { setError("Failed to load deal"); setLoading(false) }
+        if (!cancelled) { setError("Couldn't load this job — please close and try again."); setLoading(false) }
       })
 
     return () => { cancelled = true }

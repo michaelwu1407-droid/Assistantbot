@@ -98,7 +98,7 @@ export function CallForwardingCard() {
     setLoading(true)
     refreshStatus()
       .catch(() => {
-        toast.error("Failed to load phone settings")
+        toast.error("Couldn't load phone settings — please refresh.")
       })
       .finally(() => setLoading(false))
   }, [refreshStatus])
@@ -132,7 +132,7 @@ export function CallForwardingCard() {
       setDelaySec(nextDelaySec)
       toast.success(nextMode === "off" ? "Call forwarding preference updated" : "Call handling preference saved")
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save call handling")
+      toast.error(error instanceof Error ? error.message : "Couldn't save call handling — please try again.")
     } finally {
       setSaving(false)
     }
@@ -158,7 +158,7 @@ export function CallForwardingCard() {
       })
       toast.success("Setup text sent to your personal mobile")
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to send setup text")
+      toast.error(error instanceof Error ? error.message : "Couldn't send the setup text — please try again.")
     } finally {
       setSendingText(false)
     }
@@ -264,6 +264,14 @@ export function CallForwardingCard() {
                 <p className="text-xs text-muted-foreground">
                   Give this to customers. Every call is answered, qualified and booked by Tracey.
                 </p>
+                {traceyPhone && (
+                  <a
+                    href={`tel:${traceyPhone}`}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-primary underline-offset-2 hover:underline"
+                  >
+                    📞 Test it — call your number now
+                  </a>
+                )}
                 {!traceyPhone && status?.isOwner && (
                   <>
                   <Button

@@ -46,7 +46,7 @@ export function Footer() {
             href="/cookies"
             className="hover:text-foreground transition-colors"
           >
-            Website tech
+            Cookies
           </Link>
         </nav>
       </div>

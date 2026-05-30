@@ -37,7 +37,7 @@ export function ProfileForm({ userId, initialData }: ProfileFormProps) {
 
       toast.success("Profile updated successfully!");
     } catch {
-      toast.error("Failed to update profile. Please try again.");
+      toast.error("Couldn't update your profile — please try again.");
     } finally {
       setIsLoading(false);
     }

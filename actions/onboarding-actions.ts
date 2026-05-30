@@ -24,9 +24,10 @@ export async function getOnboardingProgress() {
         return { shouldShow: false, completed: 0, total: 0, steps: [] };
     }
 
-    const [businessProfile, services, templates, documents, workspaceMeta, inboxConnections] = await Promise.all([
+    const [businessProfile, services, pricedServices, templates, documents, workspaceMeta, inboxConnections] = await Promise.all([
         db.businessProfile.findUnique({ where: { userId } }),
         db.serviceItem.count({ where: { businessProfile: { userId } } }),
+        db.serviceItem.count({ where: { businessProfile: { userId }, OR: [{ priceMin: { gt: 0 } }, { priceMax: { gt: 0 } }] } }),
         db.smsTemplate.count({ where: { userId } }),
         db.businessDocument.count({ where: { workspaceId } }),
         db.workspace.findUnique({
@@ -100,6 +101,12 @@ export async function getOnboardingProgress() {
             id: "services",
             title: "List your Services",
             isComplete: services > 0,
+            href: "/crm/settings/my-business",
+        },
+        {
+            id: "pricing",
+            title: "Add pricing so Tracey quotes correctly",
+            isComplete: pricedServices > 0,
             href: "/crm/settings/my-business",
         },
         {

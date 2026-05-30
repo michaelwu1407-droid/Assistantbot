@@ -63,7 +63,7 @@ export default function AgentSettingsPage() {
           .filter(Boolean)
         setLearningRules(parsedRules)
       })
-      .catch(() => toast.error("Failed to load AI Assistant settings"))
+      .catch(() => toast.error("Couldn't load AI Assistant settings — please refresh."))
       .finally(() => setLoading(false))
   }, [])
 
@@ -74,7 +74,7 @@ export default function AgentSettingsPage() {
       await updateWorkspaceSettings({ ...settings, aiPreferences: nextPreferences })
       toast.success("AI Assistant settings saved")
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save AI Assistant settings")
+      toast.error(error instanceof Error ? error.message : "Couldn't save AI settings — please try again.")
     } finally {
       setSaving(false)
     }
@@ -123,7 +123,7 @@ export default function AgentSettingsPage() {
       })
       toast.success("Board attention settings saved")
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save board attention settings")
+      toast.error(error instanceof Error ? error.message : "Couldn't save attention settings — please try again.")
     } finally {
       setSavingBoardAttention(false)
     }
@@ -152,17 +152,26 @@ export default function AgentSettingsPage() {
             onValueChange={(v) => setSettings((s) => ({ ...s, agentMode: v }))}
             className="flex flex-col space-y-3"
           >
-            <Label className="flex items-center gap-2 rounded-md border p-3 cursor-pointer">
-              <RadioGroupItem value="EXECUTION" id="agent-mode-execute" />
-              <span>Execution</span>
+            <Label className="flex items-start gap-3 rounded-md border p-3 cursor-pointer">
+              <RadioGroupItem value="EXECUTION" id="agent-mode-execute" className="mt-0.5" />
+              <div>
+                <p className="font-medium">Execution — Tracey acts</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Sends payment reminders, chases quotes, and handles routine follow-ups automatically. You stay informed, not in the loop.</p>
+              </div>
             </Label>
-            <Label className="flex items-center gap-2 rounded-md border p-3 cursor-pointer">
-              <RadioGroupItem value="DRAFT" id="agent-mode-organize" />
-              <span>Review &amp; approve</span>
+            <Label className="flex items-start gap-3 rounded-md border p-3 cursor-pointer">
+              <RadioGroupItem value="DRAFT" id="agent-mode-organize" className="mt-0.5" />
+              <div>
+                <p className="font-medium">Review &amp; approve — Tracey drafts</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Tracey prepares messages and actions for you to review before anything is sent. Nothing goes out without your say-so.</p>
+              </div>
             </Label>
-            <Label className="flex items-center gap-2 rounded-md border p-3 cursor-pointer">
-              <RadioGroupItem value="INFO_ONLY" id="agent-mode-filter" />
-              <span>Info only</span>
+            <Label className="flex items-start gap-3 rounded-md border p-3 cursor-pointer">
+              <RadioGroupItem value="INFO_ONLY" id="agent-mode-filter" className="mt-0.5" />
+              <div>
+                <p className="font-medium">Info only — Tracey advises</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Tracey surfaces insights and flags issues but never drafts or sends anything. You do all the work.</p>
+              </div>
             </Label>
           </RadioGroup>
         </CardContent>
@@ -292,11 +301,11 @@ export default function AgentSettingsPage() {
             <MessageSquare className="h-5 w-5 text-green-500" />
             <CardTitle>WhatsApp Assistant</CardTitle>
           </div>
-          <CardDescription>Beta. Lets workspace users control the CRM assistant from WhatsApp.</CardDescription>
+          <CardDescription>Beta. Lets your team control the CRM assistant from WhatsApp.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-100">
-            Workspace users can message this number from the personal mobile saved on their Earlymark user account. End customers are not authorized on this channel.
+            Your team can message this number from the mobile saved on their Earlymark account. Customer-facing numbers are not authorised on this channel.
           </div>
           <div className="relative overflow-hidden rounded-md border border-border bg-muted/30 p-4 dark:border-slate-700 dark:bg-slate-900">
             <div className="pointer-events-none absolute inset-0 bg-card/58 backdrop-blur-[1px] dark:bg-slate-950/48" />

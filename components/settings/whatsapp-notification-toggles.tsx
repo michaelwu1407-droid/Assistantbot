@@ -32,7 +32,7 @@ export function WhatsAppNotificationToggles() {
         setToggles(toggles);
         setCatalog(catalog);
       })
-      .catch(() => toast.error("Failed to load WhatsApp preferences"))
+      .catch(() => toast.error("Couldn't load WhatsApp preferences — please refresh."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -45,7 +45,7 @@ export function WhatsAppNotificationToggles() {
       toast.success(enabled ? "WhatsApp notification enabled" : "WhatsApp notification disabled");
     } catch {
       setToggles((prev) => ({ ...prev, [key]: previous }));
-      toast.error("Failed to save preference");
+      toast.error("Couldn't save that preference — please try again.");
     } finally {
       setSaving(null);
     }

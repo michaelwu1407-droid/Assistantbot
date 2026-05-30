@@ -119,6 +119,12 @@ describe("middleware", () => {
     expect(response.headers.get("Content-Security-Policy")).toBeNull();
   });
 
+  it("sets x-pathname header so server components can read the current path (auth-14 ?next= support)", async () => {
+    const response = await middleware(new NextRequest("https://app.example.com/crm/dashboard"));
+
+    expect(response.headers.get("x-pathname")).toBe("/crm/dashboard");
+  });
+
   afterEach(() => {
     vi.unstubAllEnvs();
   });

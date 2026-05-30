@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const hoisted = vi.hoisted(() => ({
   stripeCheckoutCreate: vi.fn(),
   stripePortalCreate: vi.fn(),
+  stripeSubscriptionsUpdate: vi.fn(),
   requireCurrentWorkspaceAccess: vi.fn(),
   db: {
     workspace: {
@@ -30,6 +31,9 @@ vi.mock("@/lib/stripe", () => ({
         create: hoisted.stripePortalCreate,
       },
     },
+    subscriptions: {
+      update: hoisted.stripeSubscriptionsUpdate,
+    },
   },
 }));
 vi.mock("@/lib/workspace-access", () => ({
@@ -51,7 +55,7 @@ vi.mock("next/navigation", () => ({
   redirect: hoisted.redirect,
 }));
 
-import { createCheckoutSession, createCustomerPortalSession } from "@/actions/billing-actions";
+import { cancelSubscriptionAtPeriodEnd, createCheckoutSession, createCustomerPortalSession } from "@/actions/billing-actions";
 
 describe("billing-actions", () => {
   beforeEach(() => {
@@ -167,5 +171,63 @@ describe("billing-actions", () => {
 
     await expect(createCheckoutSession("ws_1", "monthly", false)).rejects.toThrow("Unauthorized");
     expect(hoisted.stripeCheckoutCreate).not.toHaveBeenCalled();
+  });
+
+  it("propagates the error when Stripe API is unreachable during checkout (res-01)", async () => {
+    hoisted.stripeCheckoutCreate.mockRejectedValue(
+      new Error("connect ETIMEDOUT api.stripe.com:443"),
+    );
+    hoisted.db.workspace.findUnique.mockResolvedValue({
+      id: "ws_1",
+      stripeCustomerId: null,
+    });
+
+    await expect(createCheckoutSession("ws_1", "monthly", false)).rejects.toThrow(
+      "connect ETIMEDOUT api.stripe.com:443",
+    );
+  });
+
+  it("cancels subscription at period end and sets status to canceling (bill-09)", async () => {
+    hoisted.db.workspace.findUnique.mockResolvedValue({
+      id: "ws_1",
+      stripeSubscriptionId: "sub_abc",
+    });
+    hoisted.stripeSubscriptionsUpdate.mockResolvedValue({});
+
+    const result = await cancelSubscriptionAtPeriodEnd("ws_1");
+
+    expect(result).toEqual({ success: true });
+    expect(hoisted.stripeSubscriptionsUpdate).toHaveBeenCalledWith("sub_abc", {
+      cancel_at_period_end: true,
+    });
+    expect(hoisted.db.workspace.update).toHaveBeenCalledWith({
+      where: { id: "ws_1" },
+      data: { subscriptionStatus: "canceling" },
+    });
+  });
+
+  it("rejects cancel request from team members (bill-09)", async () => {
+    hoisted.requireCurrentWorkspaceAccess.mockResolvedValue({
+      id: "user_tm",
+      role: "TEAM_MEMBER",
+      workspaceId: "ws_1",
+    });
+
+    const result = await cancelSubscriptionAtPeriodEnd("ws_1");
+
+    expect(result).toEqual({ success: false, error: "Unauthorized" });
+    expect(hoisted.stripeSubscriptionsUpdate).not.toHaveBeenCalled();
+  });
+
+  it("returns error when workspace has no active subscription to cancel (bill-09)", async () => {
+    hoisted.db.workspace.findUnique.mockResolvedValue({
+      id: "ws_1",
+      stripeSubscriptionId: null,
+    });
+
+    const result = await cancelSubscriptionAtPeriodEnd("ws_1");
+
+    expect(result).toEqual({ success: false, error: "No active subscription found" });
+    expect(hoisted.stripeSubscriptionsUpdate).not.toHaveBeenCalled();
   });
 });

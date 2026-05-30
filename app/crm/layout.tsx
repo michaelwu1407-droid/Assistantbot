@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { DeferredChatInterface } from "@/components/chatbot/deferred-chat-interface";
 import { ShellInitializer } from "@/components/layout/shell-initializer";
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { logger } from "@/lib/logging";
 import { getDashboardShellState } from "@/lib/dashboard-shell";
 import type { UserRole } from "@/lib/store";
@@ -28,6 +29,7 @@ export default async function DashboardLayout({
   let tutorialComplete = false;
   let shouldRedirectToBilling = false;
   let shouldRedirectToSetup = false;
+  let shouldRedirectToNoWorkspace = false;
 
   let shouldRedirectToAuth = false;
   let headerDisplayName = "";
@@ -38,6 +40,8 @@ export default async function DashboardLayout({
     if (!dashboardState) {
       logger.authFlow("No userId in dashboard layout, redirecting to /auth", { component: "DashboardLayout" });
       shouldRedirectToAuth = true;
+    } else if ('noWorkspace' in dashboardState && dashboardState.noWorkspace) {
+      shouldRedirectToNoWorkspace = true;
     } else {
       userId = dashboardState.userId;
       logger.authFlow("Getting workspace for dashboard layout", { userId, component: "DashboardLayout" });
@@ -54,8 +58,15 @@ export default async function DashboardLayout({
         tutorialComplete
       });
 
-      // Gating mechanism - explicitly mandate a paid Stripe tier
-      if (workspace.subscriptionStatus !== "active") {
+      // Gating mechanism - explicitly mandate a paid Stripe tier.
+      // Grace-period exception: a cancelled subscription still grants access
+      // until stripeCurrentPeriodEnd so the customer isn't locked out mid-period.
+      const isCancelledInGracePeriod =
+        workspace.subscriptionStatus === "canceled" &&
+        workspace.stripeCurrentPeriodEnd != null &&
+        workspace.stripeCurrentPeriodEnd > new Date();
+
+      if (workspace.subscriptionStatus !== "active" && !isCancelledInGracePeriod) {
         logger.authFlow("User subscription not active, redirecting to billing", {
           component: "DashboardLayout",
           workspaceId,
@@ -80,7 +91,14 @@ export default async function DashboardLayout({
 
   // Redirect triggered outside the try/catch to avoid intercepting Next.js internal redirect throws
   if (shouldRedirectToAuth) {
-    redirect("/auth");
+    const headersList = await headers();
+    const pathname = headersList.get("x-pathname") ?? "";
+    const next = pathname && pathname !== "/auth" ? `?next=${encodeURIComponent(pathname)}` : "";
+    redirect(`/auth${next}`);
+  }
+
+  if (shouldRedirectToNoWorkspace) {
+    redirect("/no-workspace");
   }
 
   if (shouldRedirectToBilling) {

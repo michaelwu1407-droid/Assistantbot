@@ -91,7 +91,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
             setCompleted(true);
             onSuccess();
         } catch {
-            toast.error("An error occurred saving the job.");
+            toast.error("Couldn't save the job — please try again.");
         } finally {
             setLoading(false);
         }
@@ -105,7 +105,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
             if (signature) {
                 const sigResult = await completeJob(dealId, signature);
                 if (!sigResult.success) {
-                    toast.error("Failed to capture signature");
+                    toast.error("Couldn't save the signature — please try again.");
                     setLoading(false);
                     return;
                 }
@@ -114,7 +114,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
             // 2. Finalize payment / notes
             const finalizeResult = await finalizeJobCompletion(dealId, { isPaid, notes });
             if (!finalizeResult.success) {
-                toast.error(finalizeResult.error || "Failed to finalize details");
+                toast.error(finalizeResult.error || "Couldn't finalise the job — please try again.");
                 setLoading(false);
                 return;
             }
@@ -124,7 +124,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
             if (lineItems.length > 0) {
                 const quoteResult = await generateQuote(dealId, lineItems);
                 if (!quoteResult.success) {
-                    toast.error(quoteResult.error || "Failed to create the local invoice");
+                    toast.error(quoteResult.error || "Couldn't generate the invoice — please try again.");
                     setLoading(false);
                     return;
                 }
@@ -145,7 +145,7 @@ export function JobCompletionModal({ open, onOpenChange, dealId, job, onSuccess 
             setCompleted(true);
             onSuccess();
         } catch {
-            toast.error("An error occurred");
+            toast.error("Something went wrong — please try again or contact support.");
         } finally {
             setLoading(false);
         }

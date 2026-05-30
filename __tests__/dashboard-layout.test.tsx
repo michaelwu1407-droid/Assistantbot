@@ -78,6 +78,11 @@ vi.mock("@/lib/auth", () => ({
   getAuthUser,
 }));
 
+const { nextHeaders } = vi.hoisted(() => ({
+  nextHeaders: vi.fn().mockResolvedValue({ get: (_k: string) => null }),
+}));
+vi.mock("next/headers", () => ({ headers: nextHeaders }));
+
 vi.mock("@/lib/db", () => ({
   db: {
     user: {
@@ -173,5 +178,62 @@ describe("DashboardLayout", () => {
         children: <div>dashboard page</div>,
       }),
     ).rejects.toThrow("REDIRECT:/setup");
+  });
+
+  it("allows access for canceled workspace still within grace period (bill-10)", async () => {
+    const futureDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    getDashboardShellState.mockResolvedValue({
+      userId: "user_123",
+      userRole: "OWNER",
+      workspace: {
+        id: "ws_123",
+        subscriptionStatus: "canceled",
+        stripeCurrentPeriodEnd: futureDate,
+        onboardingComplete: true,
+        tutorialComplete: true,
+      },
+    });
+
+    const layout = await DashboardLayout({ children: <div>dashboard page</div> });
+    render(layout);
+
+    expect(redirect).not.toHaveBeenCalled();
+    expect(screen.getByTestId("shell-children")).toBeInTheDocument();
+  });
+
+  it("redirects to billing for canceled workspace past grace period (bill-10)", async () => {
+    const pastDate = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    getDashboardShellState.mockResolvedValue({
+      userId: "user_123",
+      userRole: "OWNER",
+      workspace: {
+        id: "ws_123",
+        subscriptionStatus: "canceled",
+        stripeCurrentPeriodEnd: pastDate,
+        onboardingComplete: true,
+        tutorialComplete: true,
+      },
+    });
+
+    await expect(
+      DashboardLayout({ children: <div>dashboard page</div> }),
+    ).rejects.toThrow("REDIRECT:/billing");
+  });
+
+  it("redirects to /no-workspace when user has been removed from a workspace (auth-17)", async () => {
+    getDashboardShellState.mockResolvedValue({ noWorkspace: true });
+
+    await expect(
+      DashboardLayout({ children: <div>dashboard page</div> }),
+    ).rejects.toThrow("REDIRECT:/no-workspace");
+  });
+
+  it("includes ?next= in the /auth redirect when x-pathname header is set (auth-14)", async () => {
+    getDashboardShellState.mockResolvedValue(null);
+    nextHeaders.mockResolvedValue({ get: (k: string) => k === "x-pathname" ? "/crm/deals" : null });
+
+    await expect(
+      DashboardLayout({ children: <div>dashboard page</div> }),
+    ).rejects.toThrow("REDIRECT:/auth?next=%2Fcrm%2Fdeals");
   });
 });

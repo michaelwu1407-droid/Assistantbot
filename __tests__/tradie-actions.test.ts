@@ -80,7 +80,7 @@ vi.mock("@/lib/logging", () => ({
   },
 }));
 
-import { generateQuote, getJobDetails, getNextJob, getTodaySchedule, getTradieJobs, markInvoicePaid, sendOnMyWaySMS, updateJobStatus } from "@/actions/tradie-actions";
+import { emailInvoice, generateQuote, getJobDetails, getNextJob, getTodaySchedule, getTradieJobs, markInvoicePaid, sendOnMyWaySMS, updateJobStatus } from "@/actions/tradie-actions";
 
 describe("tradie-actions", () => {
   beforeEach(() => {
@@ -414,5 +414,33 @@ describe("tradie-actions", () => {
     expect(result).toEqual({ success: true, status: "TRAVELING" });
     expect(hoisted.sendSMS).not.toHaveBeenCalled();
     expect(hoisted.trackEvent).toHaveBeenCalledWith("workflow_start_travel", { jobId: "deal_1" });
+  });
+
+  describe("emailInvoice (comm-14, quote-04)", () => {
+    it("returns error when invoice does not exist", async () => {
+      hoisted.db.invoice.findUnique.mockResolvedValue(null);
+
+      const result = await emailInvoice("inv_missing");
+
+      expect(result).toEqual({ success: false, error: "Invoice not found" });
+      expect(hoisted.requireDealInCurrentWorkspace).not.toHaveBeenCalled();
+    });
+
+    it("returns error when contact has no email address", async () => {
+      hoisted.db.invoice.findUnique.mockResolvedValue({
+        id: "inv_1",
+        dealId: "deal_1",
+        number: "INV-001",
+        status: "DRAFT",
+        deal: {
+          contact: { id: "contact_1", name: "Jake", email: null },
+          workspace: { name: "Jake's Plumbing" },
+        },
+      });
+
+      const result = await emailInvoice("inv_1");
+
+      expect(result).toEqual({ success: false, error: "Jake has no email address on file" });
+    });
   });
 });

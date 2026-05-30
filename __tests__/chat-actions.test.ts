@@ -211,6 +211,7 @@ import {
   runSearchContacts,
   runUnassignDeal,
   runUndoLastAction,
+  runUpdateDealFields,
 } from "@/actions/chat-actions";
 
 describe("chat-actions", () => {
@@ -1339,6 +1340,20 @@ describe("chat-actions", () => {
     });
   });
 
+  it("listDeals filters by keyword matching title, contactName, or address (ai-05)", async () => {
+    hoisted.getDeals.mockResolvedValue([
+      { id: "deal_1", title: "Blocked Drain – indoor", stage: "new_request", value: 420, contactName: "Alex Harper", address: "12 Indoor Lane" },
+      { id: "deal_2", title: "Office Fitout", stage: "quote_sent", value: 2400, contactName: "Charlie Dental", address: null },
+      { id: "deal_3", title: "Roof Repair", stage: "scheduled", value: 1200, contactName: "Sam Indoor", address: null },
+    ]);
+
+    const result = await runListDeals("ws_1", "indoor");
+
+    expect(result.deals).toHaveLength(2);
+    expect(result.deals.map((d) => d.id)).toEqual(expect.arrayContaining(["deal_1", "deal_3"]));
+    expect(result.deals.map((d) => d.id)).not.toContain("deal_2");
+  });
+
   it("undoLastAction detects stage moves by activity title not description field", async () => {
     hoisted.db.activity.findFirst.mockResolvedValue({
       id: "activity_1",
@@ -1524,6 +1539,42 @@ describe("chat-actions", () => {
       const result = await runAddDealNote("ws_1", { dealTitle: "abc123", note: "Check" });
 
       expect(result.success).toBe(true);
+    });
+  });
+
+  describe("runUpdateDealFields — schedule path (ai-03)", () => {
+    it("converts natural-language schedule to ISO and updates the deal", async () => {
+      hoisted.getDeals.mockResolvedValue([
+        { id: "deal_1", title: "Hot Water Fix", assignedToId: "user_1", contactId: "contact_1" },
+      ]);
+      hoisted.db.workspace.findUnique.mockResolvedValue({ workspaceTimezone: "Australia/Sydney" });
+      hoisted.resolveSchedule.mockReturnValue({ iso: "2026-06-10T02:00:00.000Z" });
+      hoisted.fuzzyScore.mockReturnValue(1);
+      hoisted.updateDeal.mockResolvedValue({ success: true });
+
+      const result = await runUpdateDealFields("ws_1", {
+        dealTitle: "Hot Water Fix",
+        schedule: "Tuesday 12pm",
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.message).toContain("schedule updated");
+      expect(hoisted.updateDeal).toHaveBeenCalledWith(
+        "deal_1",
+        expect.objectContaining({ scheduledAt: "2026-06-10T02:00:00.000Z" }),
+      );
+    });
+
+    it("returns error when no deal matches the given title", async () => {
+      hoisted.getDeals.mockResolvedValue([]);
+
+      const result = await runUpdateDealFields("ws_1", {
+        dealTitle: "Nonexistent Job",
+        schedule: "tomorrow",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("Nonexistent Job");
     });
   });
 });

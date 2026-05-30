@@ -107,7 +107,7 @@ export function StaleDealFollowUpModal({
           onOpenChange(false)
           onFollowUpSent?.()
         } else {
-          toast.error(result.error || "Failed to schedule follow-up")
+          toast.error(result.error || "Couldn't schedule the follow-up — please try again.")
         }
       } else {
         toast.info("Add a date to schedule your call reminder, or use SMS/Email to send now.")
@@ -143,10 +143,10 @@ export function StaleDealFollowUpModal({
         setCustomMessage("")
         setSelectedChannel(hasPhone ? "sms" : hasEmail ? "email" : "phone")
       } else {
-        toast.error(result.error || "Failed to send follow-up")
+        toast.error(result.error || "Couldn't send the follow-up — please try again.")
       }
     } catch {
-      toast.error("Failed to send follow-up")
+      toast.error("Couldn't send the follow-up — please try again.")
     } finally {
       setIsSending(false)
     }

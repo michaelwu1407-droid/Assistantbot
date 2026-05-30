@@ -54,7 +54,7 @@ export function AccountForm({ userId, email }: AccountFormProps) {
       toast.success("Password updated successfully!");
       setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
     } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : "Failed to update password.");
+      toast.error(error instanceof Error ? error.message : "Couldn't update your password — please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -102,7 +102,7 @@ export function AccountForm({ userId, email }: AccountFormProps) {
             toast.error("Account deletion failed. Please contact support for assistance.");
           }
         } else {
-          toast.error(result.error || "Failed to delete account");
+          toast.error(result.error || "Couldn't delete your account — please try again or contact support.");
         }
       }
     } catch (error) {
@@ -194,7 +194,7 @@ export function AccountForm({ userId, email }: AccountFormProps) {
               toast.success("Confirmation email sent to your new address. Please check your inbox.");
               setNewEmail("");
             } catch (err: unknown) {
-              toast.error(err instanceof Error ? err.message : "Failed to update email.");
+              toast.error(err instanceof Error ? err.message : "Couldn't update your email — please try again.");
             } finally {
               setIsEmailLoading(false);
             }

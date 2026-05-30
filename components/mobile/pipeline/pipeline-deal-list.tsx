@@ -12,14 +12,20 @@ interface PipelineDealListProps {
 
 const STATUS_BADGES: Record<string, { label: string; className: string }> = {
   urgent: { label: "URGENT", className: "bg-destructive text-destructive-foreground" },
+  respond_now: { label: "RESPOND NOW", className: "bg-destructive text-destructive-foreground" },
   sent: { label: "SENT", className: "bg-amber-100 text-amber-800" },
   scheduled: { label: "BOOKED", className: "bg-emerald-100 text-emerald-800" },
   paid: { label: "PAID", className: "bg-emerald-600 text-white" },
 }
 
+const NEW_LEAD_SLA_MS = 15 * 60 * 1000
+
 function inferBadge(deal: DealView) {
   if (deal.agentFlags?.includes("urgent")) return STATUS_BADGES.urgent
   if (deal.health?.status === "ROTTING") return STATUS_BADGES.urgent
+  if (deal.stage === "new_request" && deal.createdAt && Date.now() - new Date(deal.createdAt).getTime() > NEW_LEAD_SLA_MS) {
+    return STATUS_BADGES.respond_now
+  }
   if (deal.stage === "quote_sent") return STATUS_BADGES.sent
   if (deal.stage === "scheduled") return STATUS_BADGES.scheduled
   if (deal.stage === "completed") return STATUS_BADGES.paid

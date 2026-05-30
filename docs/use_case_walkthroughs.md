@@ -1,19 +1,39 @@
 > **⚠️ OUTDATED — historical reference only (as at 30 May 2026).** For current truth see `AGENTS.md` and `docs/current_agent_handoff.md`.
 
-# Use Case Walkthroughs — historical record (SUPERSEDED)
+# Use Case Walkthroughs — historic walkthrough log
 
-> **Status: historical snapshot (Feb 2026). Do not use the old verdicts as current truth.**
-> The canonical, current testing guide is **`docs/APP_TESTING_PLAYBOOK.md`**. Run workflows
-> from there. This file is kept only as a record of the early manual passes and what they found.
+> **Status as of 2026-05-24:** this file is the **historic log** of
+> manual walkthrough rounds. It is preserved for evidence (screenshots,
+> fixture IDs, exact reproduction steps) but it is no longer the live
+> source of truth for which use cases work today.
+>
+> For the **current state** of every use case, including the originals
+> below (UC1..UC16), see `USE_CASE_TEST_MATRIX.md`. The mapping is:
+>
+> | Original UC | Now tracked in matrix as |
+> |-------------|---------------------------|
+> | UC1 Missed Call Rescue | `crm-27`, `voice-01..03` |
+> | UC2 Rainy Day Blast | `comm-11`, `ai-05`, `crm-35` (`/crm/hub` 404) |
+> | UC3 Tire Kicker Filter | `crm-18`, `crm-22` |
+> | UC4 Pre-Arrival Friction Reducer | `job-01..02`, `crm-38` |
+> | UC5 No-Show Prevention | `cal-04`, `cal-05` |
+> | UC6 Context King (search) | `crm-39`, `modal-12` |
+> | UC7 Ghosted Quote Resurrection | `crm-20` |
+> | UC8 Post-Job Reputation Building | `job-08`, `job-09` |
+> | UC9/15 CRM Filters | `crm-13`, `crm-14` |
+> | UC10 Digital Handover | `job-06` |
+> | UC11 After-Hours Gatekeeper | `set-03` |
+> | UC13 Multi-Property Nexus | `crm-16` |
+> | UC14 Uber-Style Arrival | `pub-05` |
+> | UC16 Asset DNA | `crm-17` |
+>
+> Do not update the per-round results below. Update the matrix row
+> instead, and link this file from the row's *Notes* column if the
+> historic evidence (screenshots, fixture IDs) is still useful.
 
-## Why this was superseded
+---
 
-The original batches recorded many ❌/⚠️ verdicts that **later rounds in this same document
-fixed**, and several used the stale `/dashboard/*` routes (live routes are `/crm/*`). Rather
-than keep contradictory verdicts scattered here, the live test plan now lives in one place
-(the playbook). Below is the reconciled outcome.
-
-## Reconciled status (corrected)
+# Use Case Walkthroughs (Round 2)
 
 Resolved since the early batches (confirmed by later rounds and current routes):
 

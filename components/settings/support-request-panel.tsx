@@ -53,13 +53,13 @@ export function SupportRequestPanel() {
       } else {
         setSubmissionState({
           type: "error",
-          message: result.error || "Failed to send support request",
+          message: result.error || "Couldn't send your request — please try again.",
         })
       }
     } catch {
       setSubmissionState({
         type: "error",
-        message: "Failed to send support request. Please try again.",
+        message: "Couldn't send your request — please try again.",
       })
     } finally {
       setLoading(false)

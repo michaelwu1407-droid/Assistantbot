@@ -113,6 +113,7 @@ export async function findContactByPhone(workspaceId: string, phone?: string) {
       id: true,
       name: true,
       phone: true,
+      smsOptedOut: true,
     },
   });
 

@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { sendPushToUser } from "@/lib/push-notifications";
 import { runIdempotent } from "@/lib/idempotency";
 import { dispatchWhatsAppForNotification } from "@/lib/notifications/whatsapp-dispatch";
+import { ensureAutoPaymentReminders } from "@/actions/auto-payment-reminders";
 
 export interface NotificationView {
   id: string;
@@ -114,6 +115,15 @@ export async function createNotification(data: {
 }) {
   const normalizedType = normalizeNotificationType(data.type);
 
+  if (data.notificationType === "stale_deal") {
+    const user = await db.user.findUnique({ where: { id: data.userId }, select: { workspaceId: true } });
+    if (user?.workspaceId) {
+      const ws = await db.workspace.findUnique({ where: { id: user.workspaceId }, select: { settings: true } });
+      const prefs = { ...DEFAULT_PREFS, ...((ws?.settings as Record<string, unknown>)?.notificationPreferences ?? {}) } as NotificationPreferences;
+      if (!prefs.inAppStaleDealAlerts) return { success: true };
+    }
+  }
+
   const bucketAt = new Date();
   const res = await runIdempotent<{ notificationId: string }>({
     actionType: "NOTIFICATION_CREATE",
@@ -220,6 +230,23 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
 }
 
 /**
+ * Returns true if the workspace has the given email notification pref enabled.
+ * Uses workspaceId directly so non-auth server code (webhooks, crons) can call it.
+ */
+export async function shouldSendNotificationEmail(
+  workspaceId: string,
+  key: keyof Pick<NotificationPreferences, "emailDealUpdates" | "emailNewContacts" | "emailWeeklySummary">
+): Promise<boolean> {
+  const workspace = await db.workspace.findUnique({
+    where: { id: workspaceId },
+    select: { settings: true },
+  })
+  const settings = (workspace?.settings as Record<string, unknown>) ?? {}
+  const prefs = (settings.notificationPreferences as Partial<NotificationPreferences>) ?? {}
+  return prefs[key] ?? DEFAULT_PREFS[key]
+}
+
+/**
  * Save notification preferences to workspace settings JSON.
  */
 export async function saveNotificationPreferences(prefs: NotificationPreferences) {
@@ -320,24 +347,45 @@ export async function ensureDailyNotifications(workspaceId: string) {
       where: { userId: dbUser.id, title: { contains: "Morning Briefing" }, createdAt: { gte: startOfDay } }
     });
     if (!existing) {
-      const morningMessage =
-        "Good morning! Check your daily briefing for job preparations — verify addresses, materials, and confirmations before heading out.";
+      // Fetch today's scheduled jobs for the run-sheet summary
+      const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date(todayStart.getTime() + 86_400_000);
+      const todayJobs = await db.deal.findMany({
+        where: {
+          workspaceId,
+          stage: "scheduled",
+          scheduledAt: { gte: todayStart, lt: todayEnd },
+        },
+        select: { title: true, scheduledAt: true, value: true, contact: { select: { name: true } } },
+        orderBy: { scheduledAt: "asc" },
+      });
+
+      let runSheetLines = "";
+      if (todayJobs.length > 0) {
+        const total = todayJobs.reduce((s, j) => s + (Number(j.value) || 0), 0);
+        const lines = todayJobs.map((j) => {
+          const t = j.scheduledAt
+            ? new Date(j.scheduledAt).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true })
+            : "TBC";
+          return `• ${t} — ${j.title}${j.contact?.name ? ` (${j.contact.name})` : ""} · $${Number(j.value || 0).toFixed(0)}`;
+        });
+        runSheetLines = `\n\n${lines.join("\n")}\n\nExpected today: $${total.toFixed(0)}`;
+      } else {
+        runSheetLines = "\n\nNo jobs scheduled yet — check the pipeline for quotes to chase.";
+      }
+
+      const morningMessage = `Good morning! Here${todayJobs.length > 0 ? ` are your ${todayJobs.length} job${todayJobs.length > 1 ? "s" : ""} today` : "'s your morning briefing"}:${runSheetLines}`;
       await createNotification({
         userId: dbUser.id,
         title: "☀️ Morning Briefing",
-        message: morningMessage,
+        message: `${todayJobs.length > 0 ? `${todayJobs.length} job${todayJobs.length > 1 ? "s" : ""} today` : "No jobs today"} — tap to see your run sheet.`,
         type: "INFO",
-        link: "/crm/dashboard",
+        link: "/crm/run-sheet",
         actionType: "CONFIRM_JOB",
         actionPayload: { trigger: "morning_briefing" },
       });
-      // Also drop a message into the assistant chat so it shows up in the chatbox.
       await db.chatMessage.create({
-        data: {
-          role: "assistant",
-          content: `☀️ Morning Briefing: ${morningMessage}`,
-          workspaceId,
-        },
+        data: { role: "assistant", content: `☀️ Morning Briefing\n${morningMessage}`, workspaceId },
       });
     }
   }
@@ -360,12 +408,11 @@ export async function ensureDailyNotifications(workspaceId: string) {
         }
       });
 
-      let message = "Your day is wrapping up. Don't forget to review draft jobs and finalize your invoices.";
-      let link = "/crm/inbox";
+      let message = "Your day is wrapping up. Check tonight's wrap for jobs done, outstanding invoices, and quotes to chase.";
+      let link = "/crm/wrap-up";
 
       if (todayDeviations > 0) {
-        message += ` Note: I noticed you accepted ${todayDeviations} job(s) today that deviate from your core rules. Please review these so I can learn your latest preferences!`;
-        link = "/crm/settings/my-business"; // Review refusal rules in My business
+        message += ` Also: I noticed you accepted ${todayDeviations} job(s) today that deviate from your core rules — review them when you get a chance.`;
       }
 
       await createNotification({
@@ -375,7 +422,6 @@ export async function ensureDailyNotifications(workspaceId: string) {
         type: "SUCCESS",
         link
       });
-      // Mirror the wrap-up into the assistant chat.
       await db.chatMessage.create({
         data: {
           role: "assistant",
@@ -385,4 +431,79 @@ export async function ensureDailyNotifications(workspaceId: string) {
       });
     }
   }
+
+  // ── Follow-up chase reminders (stale quotes + unpaid invoices) ──────────────
+  await ensureFollowUpReminders(workspaceId, dbUser.id, settings, startOfDay);
+
+  // ── Auto payment reminders (3/7/14 day milestones, EXECUTION mode only) ─────
+  await ensureAutoPaymentReminders(workspaceId);
+}
+
+/**
+ * Creates a daily Tracey chat message when there are stale quotes or unpaid invoices
+ * that have exceeded the workspace-configured cadence (softChase / invoiceFollowUp).
+ */
+async function ensureFollowUpReminders(
+  workspaceId: string,
+  userId: string,
+  settings: Record<string, unknown>,
+  startOfDay: Date,
+) {
+  const softChase = (settings.softChase as { triggerDays?: number } | undefined) ?? {};
+  const invoiceFollowUp = (settings.invoiceFollowUp as { triggerDays?: number } | undefined) ?? {};
+  const quoteStaleDays = softChase.triggerDays ?? 3;
+  const invoiceStaleDays = invoiceFollowUp.triggerDays ?? 7;
+
+  // Idempotency: only fire once per day
+  const existingChase = await db.notification.findFirst({
+    where: { userId, title: { contains: "Follow-Up Reminders" }, createdAt: { gte: startOfDay } },
+  });
+  if (existingChase) return;
+
+  const quoteThreshold = new Date(Date.now() - quoteStaleDays * 86_400_000);
+  const invoiceThreshold = new Date(Date.now() - invoiceStaleDays * 86_400_000);
+
+  const [staleQuotes, unpaidInvoices] = await Promise.all([
+    db.deal.findMany({
+      where: { workspaceId, stage: "quote_sent", stageChangedAt: { lte: quoteThreshold } },
+      select: { id: true, title: true, contact: { select: { name: true } }, value: true },
+      take: 5,
+    }),
+    db.invoice.findMany({
+      where: { deal: { workspaceId }, status: "ISSUED", issuedAt: { lte: invoiceThreshold } },
+      select: { number: true, total: true, deal: { select: { contact: { select: { name: true } } } } },
+      take: 5,
+    }),
+  ]);
+
+  if (staleQuotes.length === 0 && unpaidInvoices.length === 0) return;
+
+  const lines: string[] = [];
+  if (staleQuotes.length > 0) {
+    lines.push(`**Quotes with no reply (${quoteStaleDays}+ days):**`);
+    staleQuotes.forEach((q) =>
+      lines.push(`• ${q.title}${q.contact?.name ? ` — ${q.contact.name}` : ""} · $${Number(q.value || 0).toFixed(0)}`)
+    );
+  }
+  if (unpaidInvoices.length > 0) {
+    if (lines.length) lines.push("");
+    lines.push(`**Unpaid invoices (${invoiceStaleDays}+ days):**`);
+    unpaidInvoices.forEach((inv) =>
+      lines.push(`• Invoice #${inv.number}${inv.deal?.contact?.name ? ` — ${inv.deal.contact.name}` : ""} · $${Number(inv.total || 0).toFixed(0)}`)
+    );
+  }
+  lines.push("\nWant me to chase any of these? Just say the word.");
+
+  const content = `📋 Follow-Up Reminders\n\n${lines.join("\n")}`;
+
+  await Promise.all([
+    createNotification({
+      userId,
+      title: "📋 Follow-Up Reminders",
+      message: `${staleQuotes.length + unpaidInvoices.length} item${staleQuotes.length + unpaidInvoices.length > 1 ? "s" : ""} need chasing — tap to see details.`,
+      type: "WARNING",
+      link: "/crm/dashboard",
+    }),
+    db.chatMessage.create({ data: { role: "assistant", content, workspaceId } }),
+  ]);
 }

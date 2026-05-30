@@ -45,7 +45,7 @@ export function ReferralSettings({ userId }: { userId: string }) {
       toast.success("Referral link copied to clipboard!")
       setTimeout(() => setIsCopied(false), 2000)
     } catch {
-      toast.error("Failed to copy link")
+      toast.error("Couldn't copy the link — try selecting it manually.")
     }
   }
 

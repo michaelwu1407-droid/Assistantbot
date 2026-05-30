@@ -120,3 +120,30 @@ export async function createCustomerPortalSession(workspaceId: string) {
 
     redirect(session.url);
 }
+
+export async function cancelSubscriptionAtPeriodEnd(workspaceId: string): Promise<{ success: boolean; error?: string }> {
+    const actor = await requireCurrentWorkspaceAccess();
+    if (actor.workspaceId !== workspaceId || actor.role === "TEAM_MEMBER") {
+        return { success: false, error: "Unauthorized" };
+    }
+
+    const workspace = await db.workspace.findUnique({
+        where: { id: workspaceId },
+        select: { stripeSubscriptionId: true },
+    });
+
+    if (!workspace?.stripeSubscriptionId) {
+        return { success: false, error: "No active subscription found" };
+    }
+
+    await stripe.subscriptions.update(workspace.stripeSubscriptionId, {
+        cancel_at_period_end: true,
+    });
+
+    await db.workspace.update({
+        where: { id: workspaceId },
+        data: { subscriptionStatus: "canceling" },
+    });
+
+    return { success: true };
+}

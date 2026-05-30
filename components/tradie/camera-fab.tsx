@@ -50,7 +50,7 @@ export function CameraFAB({ dealId, onPhotoUploaded }: CameraFABProps) {
 
         } catch (err) {
             console.error(err)
-            toast.error("Failed to upload photo")
+            toast.error("Couldn't upload that photo — check your connection and try again.")
         } finally {
             setIsUploading(false)
             // Reset input

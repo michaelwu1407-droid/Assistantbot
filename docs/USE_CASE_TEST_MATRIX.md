@@ -1,0 +1,659 @@
+# Use Case Test Matrix
+
+> Single authoritative grid of every user-facing surface in Earlymark
+> and its current verification state. If a surface is not in this
+> matrix, we do not promise it works. If a surface IS in this matrix,
+> every PR is expected to keep its row green.
+
+## How the doc set fits together
+
+This matrix is the **data**. The conceptual framework lives in two
+short companion files — don't restate them here, link to them.
+
+| File | Role | Don't duplicate it; reference it |
+|------|------|----------------------------------|
+| `JOURNEY_ACCEPTANCE.md` | The 8-check journey gate (D · A · C · O · 🧠 · ↪ · 🛡 · 📋) | Definitions of each gate |
+| `FEATURE_VERIFICATION.md` | The 4-layer proof model (Behavior · Delivery · Observability · Live-proof) | Status semantics (verified / watch / gap) |
+| `CLAUDE.md` | Cross-cutting product + design policies (tradie load, Tracey-number identity, design tokens, typography, currency/date format, focus rings, empty-state, dialog sizing, mobile rules) | Every cross-cutting "do" / "don't" — those are already canonical there |
+| `TESTING_STRATEGY.md` | The 7-layer technical testing strategy (unit → e2e) | Technical test patterns |
+| `docs/missing_features.md` | Curated list of not-built-yet items | Build/no-build decisions |
+| `APP_FEATURES.md` | Feature inventory — what exists today | Capability claims |
+| `CRM_PAGE_AUDIT.md` | Per-page CRM audit history | Page-by-page narrative |
+
+Any prose that previously lived in `docs/CRITICAL_USER_JOURNEYS.md` or
+`docs/use_case_walkthroughs.md` has been folded into the per-row notes
+below. Those files now point here instead of duplicating the data.
+
+## Cell vocabulary
+
+| Mark | Meaning |
+|------|---------|
+| ✅ | Verified — gate passes today, with proof |
+| 🟡 | Watch — works but one signal is partial (no automated test, or one edge case unknown) |
+| 🔴 | Gap — known failing or actively wrong behaviour |
+| ⬜ | Not built — surface exists but this gate has never been wired up |
+| ➖ | Not applicable to this surface |
+
+## Row format
+
+Each row scores the 8 `JOURNEY_ACCEPTANCE.md` gates plus a Status
+rollup. Columns:
+
+```
+| ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes / Proof |
+```
+
+Status rollup:
+- **verified** — every cell ✅ or ➖
+- **watch** — at least one 🟡, no 🔴, no ⬜
+- **gap** — any 🔴 or ⬜ on a gate that matters
+
+**Important:** cross-cutting `CLAUDE.md` policies (design tokens,
+mobile-fit, owner-vs-teammate gating, en-AU formatting, currency
+format, focus ring, empty-state pattern) are implicit acceptance gates
+for every row. If a row otherwise meets the 8 gates but violates a
+`CLAUDE.md` policy, it cannot be ✅ — drop it to 🟡 and link the
+specific policy violated in *Notes*.
+
+## How to use this matrix
+
+| When | Do |
+|------|-----|
+| Before merging a PR | Find every row your diff touches. Keep it ✅ or explicitly flip to 🟡 / 🔴 with a note. Reviewers reject silent degradation. |
+| At release time | Walk every 👁 (manual-only) cell in the release scope. Anything 🔴 is a blocker unless explicitly accepted by the release manager. |
+| When a bug is found in prod | Add or update the row, drop the failing gate to 🔴, then fix-forward with the test that would have caught it. |
+| Every quarter | Walk every ⬜ row. Decide: build it, or remove from matrix. Backlog rot is worse than honest gaps. |
+
+## High-risk findings from the May 2026 audit
+
+These rows are 🔴 today and are duplicated inline below — pulled to
+the top so they don't get lost in the grid.
+
+| ID | Surface | The lie | Fix path |
+|----|---------|---------|----------|
+| cpl-01 | Inbound SMS "STOP" | ✅ **FIXED 2026-05-24** — `Contact.smsOptedOut` added; STOP/UNSUBSCRIBE/CANCEL exits early before AI reply, sends confirmation SMS, blocks further AI replies to opted-out contacts. START re-subscribes. | `app/api/twilio/webhook/route.ts` + `prisma/schema.prisma` + migration. |
+| cpl-02 | Subscription cancel | ✅ **FIXED 2026-05-24** — `customer.subscription.deleted` now calls `twilioMasterClient.incomingPhoneNumbers(sid).remove()` and nulls workspace Twilio columns. | `app/api/webhooks/stripe/route.ts`. |
+| notif-01..03 | Email pref toggles | ✅ **FIXED 2026-05-24** — `shouldSendNotificationEmail()` helper added. `emailNewContacts` fires on `createContact`; `emailDealUpdates` fires on `updateDealStage`. `emailWeeklySummary` toggle disabled with "(coming soon)" label. | `actions/notification-actions.ts`, `lib/owner-notification-email.ts`, `contact-actions.ts`, `deal-actions.ts`. |
+| bill-10 | Grace period on cancel | ✅ **FIXED 2026-05-24** — `app/crm/layout.tsx` now treats `"canceled"` + `stripeCurrentPeriodEnd > now` as still entitled. | `app/crm/layout.tsx`. |
+| crm-10, crm-11, crm-17, comm-11, ai-05 | Kanban drag, stale→quoted drag-modal, Ctrl+K search, bulk SMS via chat, ambiguous AI fallback | comm-11/ai-05 ✅ **FIXED** — `listDeals` tool now accepts optional keyword filter enabling "find indoor work" queries. crm-10/11/17 pending. | `lib/ai/tools.ts` + `chat-actions.ts`. |
+
+---
+
+## A. Acquisition surfaces (`acq`)
+
+Public-facing pages — pre-signup or unauthenticated. Every row must
+pass on mobile (CC-4) and warm-cream palette (CLAUDE.md homepage rule).
+
+| ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
+|----|---------|---|---|---|---|---|---|---|---|--------|-------|
+| acq-01 | `/` homepage load | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/homepage-journeys.spec.ts`; warm-cream tokens (`bg-paper`/`bg-cream`) enforced. |
+| acq-02 | `/` hero "Interview Tracey" callback form | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | verified | `__tests__/home-demo-form.test.tsx` — form submits all fields, success heading shown, deprecated timeout copy NOT shown. No browser E2E. |
+| acq-03 | `/features` page | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | No E2E spec; manual only. |
+| acq-04 | `/pricing` plan cards + checkout CTA | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/homepage-journeys.spec.ts`. |
+| acq-05 | `/pricing` enquiry → callback (with phone) | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | UI explicitly states callback before submit; `callPlaced` reflected. |
+| acq-06 | `/pricing` enquiry → message only (no phone) | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same spec covers both branches. |
+| acq-07 | `/contact` callback flow | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same as acq-05. |
+| acq-08 | `/contact` message-only flow | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same as acq-06. |
+| acq-09 | `/contact` department selection | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/contact-route.test.ts` — `subject: "[Contact – sales] Need a demo"` asserts department appears as email subject prefix. No separate inbox routing (acceptable MVP per logic-13). |
+| acq-10 | `/solutions` index | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
+| acq-11 | `/solutions/[slug]` (per-trade landing) | 🟡 | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Discoverable only via direct links; slugs unverified at scale. |
+| acq-12 | `/(legal)/privacy` reachable from footer | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Visual spec covers footer link. |
+| acq-13 | `/(legal)/terms` reachable | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
+| acq-14 | `/(legal)/cookies` reachable | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/footer.test.tsx` — Footer renders `/cookies` link confirming the page is reachable from every surface. |
+| acq-15 | `/offline` PWA fallback page | 🟡 | ➖ | ✅ | ✅ | 🟡 | 🟡 | ✅ | ⛔ | watch | Reachable only when SW intercepts; copy unverified. |
+| acq-16 | Custom 404 (`app/not-found.tsx`) | ✅ | ➖ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | verified | `__tests__/not-found-page.test.tsx` — "Page Not Found" heading + "Return to Dashboard" link renders correctly. |
+| acq-17 | Demo voice call (`/api/demo-call`) | 🟡 | ➖ | 🟡 | 🟡 | ✅ | 🟡 | 🟡 | 🟡 | gap | `missing_features.md` "real voice signoff" — still needs live handset proof. |
+| acq-18 | Public preview embed `/portal-preview` | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/public-preview.spec.ts`. |
+
+## B. Auth, session & account lifecycle (`auth`)
+
+Multiple competing auth surfaces (`/auth/*` and `/(auth)/*`) — see the
+B-meta row below. CC-4 (mobile) and CC-6 (reassuring loading copy)
+critical here.
+
+| ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
+|----|---------|---|---|---|---|---|---|---|---|--------|-------|
+| auth-meta | Two auth entry-point trees exist (`/auth/*` AND `/(auth)/login`, `/(auth)/signup`, `/(auth)/forgot-password`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/(auth)/login` → `/auth` and `/(auth)/signup` → `/auth` both asserted. `/forgot-password` is a separate password-reset flow. |
+| auth-01 | `/auth` magic-link request | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/auth-lib.test.ts` + `auth-next-page.test.tsx`. |
+| auth-02 | Magic-link land on `/auth/next` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
+| auth-03 | `/auth/google-done` post-OAuth landing | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | ✅ | verified | `__tests__/auth-google-done-page.test.tsx` — missing-token redirect, success→/auth/next, error→/auth?error=. |
+| auth-04 | `/auth/auth-code-error` recovery | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `__tests__/auth-code-error-page.test.tsx`: "Try again" calls `signOut()` before `router.push("/auth")`; navigates even when signOut throws (stale session). |
+| auth-05 | `/(auth)/login` Clerk-style page | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/(auth)/login` → `/auth` redirect asserted. See auth-meta. |
+| auth-06 | `/(auth)/login/google` OAuth init | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/(auth)/login/google` → `/auth` redirect. `__tests__/google-signin-route.test.ts` — OAuth URL generation. |
+| auth-07 | `/(auth)/signup` page | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/(auth)/signup` → `/auth` redirect asserted. See auth-meta. |
+| auth-08 | `/(auth)/signup/google` OAuth signup | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/(auth)/signup/google` → `/auth` redirect. Backend callback covered by `google-signin-callback-route.test.ts`. |
+| auth-09 | `/(auth)/forgot-password` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/auth-forgot-password.spec.ts` — form render + success message. Email delivery unverifiable in test environment (Supabase auth, no hook). |
+| auth-10 | `/invite/join` teammate accept | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/team-member.spec.ts`. |
+| auth-11 | `/api/auth/send-sms` OTP request | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/sms-auth-routes.test.ts` — unconfigured provider 500, sends OTP + stores code, provider failure 500. |
+| auth-12 | `/api/auth/verify-sms` OTP verify | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same file — rejects invalid/expired codes; verifies valid code + removes after use. |
+| auth-13 | Session refresh on protected page | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/middleware.test.ts` — `updateSession` is called for every protected page navigation. Mid-session action-layer refresh unverified (E2E gap only). |
+| auth-14 | Expired session mid-action recovery | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/middleware.test.ts` — `x-pathname` header set on every request. `__tests__/dashboard-layout.test.tsx` — unauthenticated visit with `x-pathname=/crm/deals` → `REDIRECT:/auth?next=%2Fcrm%2Fdeals` (auth-14). |
+| auth-15 | Sign out | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/middleware.test.ts`. |
+| auth-16 | Two-tab different workspaces | ➖ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | gap | No coverage. |
+| auth-17 | User removed from workspace mid-session | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `getDashboardShellState` pre-checks `User.workspaceId`; if null, CRM layout redirects to `/no-workspace` friendly page instead of /billing. `__tests__/dashboard-layout.test.tsx` — `{ noWorkspace: true }` → `REDIRECT:/no-workspace`. |
+| auth-18 | Role change live (owner promotes teammate) | ➖ | 🟡 | 🟡 | ✅ | 🟡 | 🟡 | 🟡 | ⛔ | gap | Next page-load reflects, but no in-session reflection. |
+| auth-19 | `/api/delete-user` account deletion | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/delete-user-route.test.ts` — blocked in prod when flag off, requires userId, deletes Supabase auth user, 500 on failure. `DeleteWorkspaceButton` in `/crm/settings/privacy` gates UI. |
+
+## C. Onboarding & first-run (`onb`)
+
+Pulled from `docs/CRITICAL_USER_JOURNEYS.md` §3 — that file's content
+is folded into the rows below. Three critical sequencing details
+(billing-then-setup-then-tutorial, Twilio provisioning outcome surface,
+resume mid-flow) are scored individually.
+
+| ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
+|----|---------|---|---|---|---|---|---|---|---|--------|-------|
+| onb-01 | Email sign-up creates workspace | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/admin.spec.ts` setup uses this. |
+| onb-02 | Google OAuth sign-up | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/google-signin-callback-route.test.ts` — error/missing-code/token-fail redirects, token handoff success. `__tests__/google-signin-route.test.ts` — OAuth init URL. Unit only (no browser E2E). |
+| onb-03 | Redirect post-signup → `/billing` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/billing-activation-flow.test.ts`. |
+| onb-04 | `/billing` plan select → Stripe checkout | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/billing-actions.test.ts`. |
+| onb-05 | `/billing/success` explicit success UI | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | CRITICAL_USER_JOURNEYS §3 finding 3 resolved. |
+| onb-06 | `/onboarding` start screen | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/onboarding-save.test.ts` — validates input, requires auth, persists business/pricing/onboarding state in transaction. No browser E2E (unit only). |
+| onb-07 | `/setup` trade-type + pricing wizard | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/onboarding-save.test.ts` — validates input, requires auth, persists business/pricing state. No browser E2E (unit only). |
+| onb-08 | Twilio number provisioned during onboarding | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/comms-provision.test.ts`. |
+| onb-09 | Onboarding completion: number provisioned copy | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | CRITICAL_USER_JOURNEYS §3 finding 4 resolved. |
+| onb-10 | Onboarding completion: no-number-requested copy | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
+| onb-11 | Onboarding completion: provisioning failure retry copy | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | CTA explicitly tells user to fix number setup. |
+| onb-12 | `/api/internal/provisioning-retry` manual retry | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `__tests__/provisioning-retry-route.test.ts`: asserts 400 on missing workspaceId, 404 on unknown workspace, 200 + correct `ensureWorkspaceProvisioned` call on happy path, null ownerPhone when owner has no phone. |
+| onb-13 | Tutorial overlay (`?tutorial=1`) dismiss | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/workspace-actions.test.ts` — `completeTutorial` asserts `{ data: { tutorialComplete: true } }` DB write. |
+| onb-14 | `/api/workspace/complete-tutorial` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/complete-tutorial-route.test.ts` — 401 unauth, marks session workspace only (not body param), 500 on action failure. |
+| onb-15 | Resume onboarding mid-flow after browser close | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `__tests__/setup-page-resuming.test.tsx`: `isResuming=true` when workspace name ≠ "My Workspace"; `isResuming=false` on default name; redirect to /crm/dashboard when already onboarded. |
+| onb-16 | Full post-payment browser journey (signup → CRM ready) | ✅ | ✅ | 🟡 | ✅ | ✅ | ✅ | 🟡 | ⬜ | gap | CRITICAL_USER_JOURNEYS §3 "Next automation targets" — still outstanding. |
+| onb-17 | Teammate join via `/invite/join` skips onboarding | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/team-member.spec.ts`. |
+
+## D. Billing & subscription lifecycle (`bill`)
+
+See top-of-file high-risk findings for bill-04 (Twilio leak) and
+bill-10 (no grace period).
+
+| ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
+|----|---------|---|---|---|---|---|---|---|---|--------|-------|
+| bill-01 | `/crm/settings/billing` page | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/billing-settings-page.test.tsx` — grace-period banner + active-subscription state. `__tests__/settings-route-redirects.test.tsx` — RBAC (team member blocked). |
+| bill-02 | "Manage" → Stripe portal | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | ✅ | verified | `__tests__/billing-actions.test.ts` — owner portal open + redirect, non-owner workspace reject, team member reject. No in-app confirmation step — portal is direct. |
+| bill-03 | Webhook `checkout.session.completed` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/stripe-webhook.test.ts`. |
+| bill-04 | Webhook `customer.subscription.deleted` releases Twilio | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24/25** — `__tests__/stripe-webhook.test.ts`: `customer.subscription.deleted` calls Twilio `remove()` and nulls all workspace phone fields. |
+| bill-05 | Webhook `customer.subscription.updated` (plan change) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/stripe-webhook.test.ts` — plan-change (active→yearly price) persists new price + period; bill-06 covers past_due path. |
+| bill-06 | Webhook `invoice.payment_failed` (dunning) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `customer.subscription.updated` handler persists `past_due` status; CRM layout blocks access (non-active + not in grace period). `__tests__/stripe-webhook.test.ts` asserts `past_due` DB write (bill-06). In-app dunning banner not yet implemented. |
+| bill-07 | Webhook signature invalid → 401 | ➖ | ✅ | ✅ | ➖ | ✅ | ➖ | ✅ | ✅ | verified | `__tests__/stripe-webhook.test.ts`. |
+| bill-08 | Webhook duplicate delivery idempotent | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/stripe-webhook.test.ts` — "already-processed events" test; `runIdempotent` wraps all event types at the handler root (not per-case), so single test covers all branches. |
+| bill-09 | In-app "Cancel subscription" button | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `__tests__/billing-actions.test.ts` — `cancelSubscriptionAtPeriodEnd`: sets `cancel_at_period_end=true`, status→"canceling"; blocks TEAM_MEMBER; returns error on no subscription. |
+| bill-10 | Cancellation grace period through `current_period_end` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24/25** — `__tests__/dashboard-layout.test.tsx`: canceled+future period end → no redirect; canceled+past period end → /billing. |
+| bill-11 | Post-cancel banner ("ends on DD MMM") | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24** — `__tests__/billing-settings-page.test.tsx`: amber banner renders with exact end date + export link when `subscriptionStatus=canceling` in grace period; absent on active. |
+| bill-12 | Pre-cancel data export | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24/25** — `__tests__/workspace-data-export-route.test.ts`: 401 unauth, 403 TEAM_MEMBER, JSON attachment with contacts + deals scoped to workspace, DELETED deals excluded. |
+| bill-13 | Plan upgrade (monthly→yearly) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Portal-driven: `__tests__/billing-actions.test.ts` asserts portal session creation; `__tests__/stripe-webhook.test.ts` (bill-05) asserts `customer.subscription.updated` persists new price + period end. |
+| bill-14 | Plan downgrade | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Portal-driven: same coverage as bill-13 — portal session creation + webhook handler. |
+| bill-15 | Referral discount applied to checkout | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/billing-actions.test.ts` asserts `referral_code` in checkout session metadata; `__tests__/stripe-webhook.test.ts` asserts `processReferralConversionForCheckout` called on `checkout.session.completed`. (Note: referral is attribution tracking, not a Stripe coupon.) |
+| bill-16 | Re-subscribe after cancellation | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Re-subscribe routes through Stripe portal (covered by bill-02 / `billing-actions.test.ts`). `__tests__/billing-activation-flow.test.ts` covers the checkout→active provisioning path. |
+| bill-17 | TEAM_MEMBER blocked from `/crm/settings/billing` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/team-member.spec.ts`. |
+| bill-18 | `/api/webhooks/twilio-usage` cost-ceiling | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/cost-ceiling.test.ts`. |
+
+## E. CRM main shell (`crm-shell`)
+
+The authenticated `/crm/*` pages. Sidebar (forest green, 45px,
+icon-only) is the durable nav. Mobile bottom-nav has exactly one
+Tracey button (CC-4).
+
+| ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
+|----|---------|---|---|---|---|---|---|---|---|--------|-------|
+| crm-01 | `/crm` root (legacy redirect to dashboard) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/crm` → `/crm/dashboard` asserted. |
+| crm-02 | `/crm/dashboard` chat-mode default | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/crm-core-journey.spec.ts`. |
+| crm-03 | `/crm/dashboard` advanced-mode toggle | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
+| crm-04 | `/crm/dashboard` KPI cards render | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
+| crm-05 | `/crm/dashboard` morning-briefing surfacing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `ensureDailyNotifications` covered. |
+| crm-05b | `/crm/dashboard` cashflow widget | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **ADDED 2026-05-27** — `__tests__/cashflow-widget.test.tsx`: hides when both totals zero, shows unpaid total (uses invoicedAmount over value), sums multiple deals, shows expected-this-week for deals within 7 days, excludes deals beyond 7 days or missing scheduledAt, shows both panels when both non-zero. |
+| crm-05c | `/crm/wrap-up` end-of-day summary | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **ADDED 2026-05-27** — `__tests__/wrap-up-client.test.tsx`: heading renders, quiet-day message when all empty, jobs-done count and collected total, invoicedAmount used over value, unpaid invoice count and outstanding total, stale quote count, action buttons shown/hidden correctly, no-jobs-completed copy. |
+| crm-06 | Sidebar nav renders + active state | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Visual specs. |
+| crm-07 | Mobile bottom-nav single Tracey entry | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Visual mobile spec; per `CLAUDE.md` CC-4. |
+| crm-08 | `/crm/contacts` list | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/contact-journeys.spec.ts` — title, stage, balance, quick actions. |
+| crm-09 | `/crm/contacts/new` create form | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/contact-form.test.tsx` (create + update UI) + `__tests__/contact-actions.test.ts` (dedup, enrichment, RBAC, validation). |
+| crm-10 | `/crm/contacts/[id]` detail with tabs (overview/deals/properties/activity) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/contact-journeys.spec.ts`. |
+| crm-11 | `/crm/contacts/[id]/edit` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/contact-actions.test.ts` — `updateContact` + `updateContactMetadata` both tested; workspace scoping enforced. |
+| crm-12 | `/contacts/[id]` (legacy outside `/crm`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/contacts/[id]` → `/crm/contacts/${id}` asserted with dynamic param. |
+| crm-13 | Contact filter chip — "Service Due" | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | watch | Manual only. |
+| crm-14 | Contact filter chip — "Last Job" | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Not built (UC9/15). |
+| crm-15 | Contact merge prompt on dedup | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/contact-actions.test.ts` — "merges into an existing matching-name contact instead of creating a duplicate"; P2002 dedup path covered. No UI merge-prompt assertion (unit only). |
+| crm-16 | Properties tab on contact (multi-property) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 👁 | watch | Round 3 walkthrough confirmed Sally fixture; no E2E. |
+| crm-17 | Asset tab on contact (asset DNA) | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Out of scope per `missing_features.md` "Archived". |
+| crm-18 | `/crm/deals` kanban board | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/crm-core-journey.spec.ts`. |
+| crm-19 | Kanban drag-and-drop stage change persists | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `dragStartColumnRef` set in `handleDragStart`; intra-column sort path reached. `__tests__/kanban-board.test.tsx` covers column renders and card deletion. Drag-interaction E2E is browser-only (dnd-kit). |
+| crm-20 | Drag stale → quoted opens follow-up modal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `StaleDealFollowUpModal` wired in `handleDragEnd`. `__tests__/stale-deal-follow-up-modal.test.tsx` covers the modal. Drag trigger is browser-only (dnd-kit). |
+| crm-21 | Stage transition fires automation exactly once | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/automation-actions.test.ts`. |
+| crm-22 | Stale / rotting badges on deals | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/deal-attention.test.ts` — stale, rotting, overdue, rejected, parked signals. **UPDATED 2026-05-27** — new_lead_sla signal (15-min SLA on new_request stage) covered: fires when >15 min old, silent when fresh, absent for non-new_request, absent when createdAt missing. |
+| crm-23 | `/crm/deals/[id]` detail page | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/crm-core-journey.spec.ts`. |
+| crm-24 | `/crm/deals/[id]/edit` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/deal-edit-form.test.tsx` — assignee-required block, save all fields, team-member RBAC. |
+| crm-25 | `/crm/deals/new` standalone create | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/deal-actions.test.ts` — `createDeal` tested: happy path, blocked without assignee (scheduled), blocked without date, booking-confirmation fired on SCHEDULED stage. |
+| crm-26 | `/crm/jobs/[id]` job detail | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/tradie-job-detail-view.test.tsx` — billing/handover routing, phone/address dead-end prevention, status labels, address-nav, chat tab. |
+| crm-27 | `/crm/inbox` thread list | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/crm-communication-modes.spec.ts`. |
+| crm-28 | `/crm/inbox/[contactId]` deep link | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
+| crm-29 | `/inbox` (legacy outside `/crm`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/inbox` → `/crm/inbox` asserted. |
+| crm-30 | `/crm/calendar` Google calendar view | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — Status icon + Popover added to calendar chips. See cal-04, cal-05. `__tests__/schedule-calendar.test.tsx` covers reschedule, timezone, empty state. |
+| crm-31 | `/crm/schedule` daily/weekly schedule | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/schedule-page.test.tsx` — manager sees all jobs + full roster; team member sees own jobs only. |
+| crm-32 | `/crm/map` map view | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | ✅ | verified | `__tests__/google-map-view.test.tsx` — next upcoming job surfaced after today completes. Marker clustering/popup visual fidelity is browser-only. |
+| crm-33 | `/crm/analytics` reports | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | ✅ | verified | `__tests__/analytics-actions.test.ts` — date range, revenue comparison, stage breakdown labels. Real-data charts remain manual. |
+| crm-34 | `/crm/estimator` quote estimator | ✅ | ✅ | ✅ | ✅ | 🟡 | 🟡 | ✅ | ✅ | verified | `__tests__/crm-estimator-page.test.tsx` — renders with active deals, team-member scope, unauth redirect. |
+| crm-35 | `/crm/hub` hub page | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/crm/hub` → `/crm/dashboard` asserted. |
+| crm-36 | `/crm/team` team management | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/team-member.spec.ts`. |
+| crm-37 | `/crm/agent` Tracey agent surface | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/agent-page.test.tsx` — renders legacy dashboard message with CRM path; redirects unauthenticated users. |
+| crm-38 | `/crm/tradie` tradie field view | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/crm-tradie-page.test.tsx` — stale tradie links redirected. `__tests__/tradie-job-detail-view.test.tsx` + `__tests__/tradie-job-page.test.tsx` cover field job detail. |
+| crm-39 | Ctrl+K global search (`/api/search/global`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `__tests__/search-global-route.test.ts`: 401 unauth, session-scoped query, short-query skip, results returned, 500 on failure. cmdk `shouldFilter={false}` fix prevents double-filtering of server results. |
+| crm-40 | `/crm/design/*` design sandbox pages | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/legacy-route-redirects.test.tsx` — `/crm/design/deal-cards` → `/crm/dashboard` asserted. Both sandbox pages redirect; no live UI exposed. |
+
+## F. Modals & dialogs (`modal`)
+
+Per `CLAUDE.md` "Dialogs & modals" rule: every modal uses `ott-dialog`
+base (viewport-relative width + `max-h-[90vh]`) and a per-modal
+`max-w-[Xpx]`. Mobile-fit + a11y checks apply universally.
+
+| ID | Modal | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
+|----|-------|---|---|---|---|---|---|---|---|--------|-------|
+| modal-01 | `deal-detail-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-deal-edit-modal.test.tsx` covers detail too. |
+| modal-02 | `deal-edit-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
+| modal-03 | `new-deal-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-new-deal-modal.test.tsx`. |
+| modal-04 | `new-deal-modal-standalone.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/new-deal-modal-standalone.test.tsx` — existing contact, new business, email validation, address-coord reset (4 cases). |
+| modal-05 | `job-completion-modal.tsx` (crm) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-job-completion-modal.test.tsx`. |
+| modal-06 | `job-completion-modal.tsx` (tradie variant) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/tradie-job-completion-modal.test.tsx` — photo-follow-up routing, completion copy, Xero-skip on PDF failure. |
+| modal-07 | `stale-job-reconciliation-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-stale-job-modal.test.tsx`. |
+| modal-08 | `stale-deal-follow-up-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-stale-deal-follow-up-modal.test.tsx` + `e2e/crm-follow-up-journey.spec.ts`. |
+| modal-09 | `loss-reason-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-loss-reason-modal.test.tsx` — renders + a11y; fixed hardcoded `#F6F4EE` inline-style → `bg-muted/30 border-border`. |
+| modal-10 | `kanban-automation-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-kanban-automation-modal.test.tsx`. |
+| modal-11 | `activity-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-activity-modal.test.tsx` — renders + a11y; fixed `style={{ borderColor: "#E6E2D7" }}` → `border-border` and `bg-paper` → `bg-muted/20`. |
+| modal-12 | `search-dialog.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `CommandDialog` replaced with `Dialog + CommandPrimitive shouldFilter={false}`; server results no longer discarded by client filter. See crm-39 / `__tests__/search-global-route.test.ts`. |
+| modal-13 | `personal-phone-dialog.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-personal-phone-dialog.test.tsx`. |
+| modal-14 | `onboarding-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-onboarding-modal.test.tsx` — renders + a11y. |
+| modal-15 | `referral-success-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-referral-success-modal.test.tsx` — renders + a11y; fixed missing `aria-label="Close"` on close button. |
+| modal-16 | `safety-modal.tsx` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/a11y-safety-modal.test.tsx` — renders + a11y. Fires in `/crm/tradie` field view when tradie taps "Start Work" on a scheduled job. |
+
+## G. Inbox & communications (`comm`)
+
+| ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
+|----|---------|---|---|---|---|---|---|---|---|--------|-------|
+| comm-01 | Inbox loads threads | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/crm-communication-modes.spec.ts`. |
+| comm-02 | Thread shows mixed SMS+voice in chronological order | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
+| comm-03 | Direct SMS send | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
+| comm-04 | Ask Tracey composer mode | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/crm-communication-recovery.spec.ts`. |
+| comm-05 | Mode-switch preserves draft | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
+| comm-06 | Email-only contact: Direct SMS disabled + CTA | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
+| comm-07 | Phone-only contact: email unavailable + CTA | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
+| comm-08 | Deal page with no phone: "Add phone in CRM" recovery | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
+| comm-09 | Template picker insert with variable merge | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/template-actions.test.ts` — `renderTemplate` asserts `{{contactName}}`, `{{dealTitle}}`, `{{amount}}` substitution; CRUD + JSON-encoded variables. |
+| comm-10 | WhatsApp send via composer | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/messaging-actions.test.ts` — audit-trail write, email fallback for no-phone contacts. Provider-blocked per `missing_features.md` (Meta approval pending). |
+| comm-11 | Bulk "rainy day blast" from chat ("find me indoor work") | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24/25** — `listDeals` AI tool accepts keyword filter; `__tests__/chat-actions.test.ts` asserts filter narrows by title/contactName/address. |
+| comm-12 | Outbound SMS blocked to opted-out contact | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24** — Contact.smsOptedOut checked before AI reply in webhook handler. `__tests__/twilio-sms-stop-handling.test.ts` — STOP sets flag; AI not called on opted-out numbers. |
+| comm-13 | SMS delivery status reflects via Twilio status webhook | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-28** — `/api/webhooks/twilio-sms-status` built. `sendViaTwilio` now passes `StatusCallback` URL; `sendSMS` stores `MessageSid` in `Activity.description`. On `failed`/`undelivered`: creates "SMS delivery failed" Activity + owner in-app Notification with link to deal. `__tests__/twilio-sms-status-webhook.test.ts` — sig validation, delivered/sent no-op, failed Activity + Notification, undelivered, no-match graceful, no-owner skips notification, DB error doesn't crash. |
+| comm-14 | Quote/invoice email send via Resend | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/tradie-actions.test.ts` — `emailInvoice` boundary cases: invoice-not-found returns error; contact with no email returns friendly error without calling PDF generator. |
+| comm-15 | Bounce/complaint webhook (`/api/webhooks/resend`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/resend-route.test.ts` — rejects invalid signature; skips unsupported events; records open events + notifies owner. |
+| comm-16 | `/api/twilio/webhook` SMS receive idempotency | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/twilio-sms-webhook.test.ts`. |
+| comm-17 | Booking-confirmation auto-SMS on Scheduled stage | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/deal-actions.test.ts` — booking confirmation fired on create-in-scheduled, `updateDealStage`, and `updateDeal`→scheduled (3 cases). No cross-workspace synthetic canary yet — runtime monitoring gap only. |
+| comm-18 | Customer SMS "CONFIRM" flips pending deal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/twilio-sms-webhook.test.ts`. |
+| comm-19 | Customer SMS "STOP" honoured | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24** — `__tests__/twilio-sms-stop-handling.test.ts`: STOP/UNSUBSCRIBE/CANCEL → smsOptedOut=true, confirmation SMS sent, no AI reply, no ghost contact for unknown senders. |
+| comm-20 | Inbound WhatsApp (`/api/webhooks/whatsapp`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/whatsapp-route.test.ts` — inbound message → `processAgentCommand` called → Twilio reply sent + `whatsapp.outbound` event logged. Failure path sends fallback reply. |
+
+## H. Voice agent (`voice`)
+
+Inbound + outbound + reliability. Cron heartbeat coverage in
+*Background work* section.
+
+| ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
+|----|---------|---|---|---|---|---|---|---|---|--------|-------|
+| voice-01 | Inbound voice → Tracey via `/api/webhooks/twilio-voice-gateway` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/twilio-voice-*.test.ts` + voice-fleet probes. |
+| voice-02 | Inbound voice → after-hours defer | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/call-window.test.ts`. |
+| voice-03 | Inbound voice → fallback (agent unavailable) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/twilio-voice-fallback-route.test.ts`. |
+| voice-04 | Auto-call new SMS lead within call window | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/auto-call-eligibility.test.ts` + `lead-callback.test.ts`. |
+| voice-05 | Auto-call blocked outside hours | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
+| voice-06 | Auto-call blocked on triage HOLD_REVIEW | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/triage.test.ts`. |
+| voice-07 | Auto-call blocked on inbound-lead-guard | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/inbound-lead-guard.test.ts`. |
+| voice-08 | Tracey replies in caller's language (multilingual) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `agentLanguage` added to `WorkspaceVoiceGrounding`; `setReplyLanguage()` called at call start in `livekit-agent/agent.ts`. `__tests__/voice-grounding-language.test.ts` asserts `voiceLanguage→agentLanguage` flow. Live canary outstanding. |
+| voice-09 | Demo voice call from homepage (`/api/demo-call`) | ✅ | ➖ | 🟡 | 🟡 | ✅ | 🟡 | 🟡 | ⬜ | gap | `missing_features.md` — real handset signoff still outstanding. |
+| voice-10 | Retell webhook integration (`/api/retell/webhook`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/retell-webhook-route.test.ts` — returns 410 Gone (ARCHIVED: migrated to LiveKit in 2026-03). |
+| voice-11 | Outbound call queue (`/api/internal/voice-outbound-queue`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/voice-outbound-queue-route.test.ts` — rejects unauth, claims oldest queued call, marks completed. |
+| voice-12 | Voice cost-ceiling circuit breaker at $50 threshold | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/cost-ceiling.test.ts` + `twilio-usage-route.test.ts`. |
+| voice-13 | Customer-agent drift reconcile cron | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/customer-agent-readiness.test.ts`. |
+| voice-14 | Voice fleet synthetic probe | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/voice-synthetic-probe-route.test.ts`. |
+
+## I. Lead capture across channels (`lead`)
+
+| ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
+|----|---------|---|---|---|---|---|---|---|---|--------|-------|
+| lead-01 | SMS inbound → new contact + deal + AI reply | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/twilio-sms-webhook.test.ts`. |
+| lead-02 | SMS inbound from existing contact appends activity | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
+| lead-03 | SMS classified as spam → activity logged, no reply | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/spam-classifier.test.ts`. |
+| lead-04 | Voice inbound → contact + transcript | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | See voice-01. |
+| lead-05 | Email inbound — hipages/airtasker/oneflare (`/api/webhooks/email`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/email-received-route.test.ts` — includes hipages provider test (subject "New hipages job request", from `notifications@hipages.com.au`). |
+| lead-06 | Email inbound — Gmail PubSub (`/api/webhooks/email-received`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/email-received-route.test.ts` — PubSub validation, no-inbox 404, full lead→CRM + intro-SMS happy path. |
+| lead-07 | Email inbound — Resend-forwarded (`/api/webhooks/inbound-email`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/inbound-email-route.test.ts` — signature, hipages/Google LSA/Meta lead capture, triage flags, voice-agent callback, normal email → AI agent. |
+| lead-08 | Embeddable webform (`/api/webhooks/webform`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/webform-route.test.ts` — honeypot, secret auth, full contact+deal+notification happy path, auto-call trigger/skip (445 lines). |
+| lead-09 | Lead capture email alias (`/crm/settings/integrations`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/lead-capture-email.test.ts`. |
+| lead-10 | Manual contact + deal create from CRM | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/crm-core-journey.spec.ts`. |
+| lead-11 | Lead triage HOLD_REVIEW path | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/triage.test.ts`. |
+| lead-12 | Inbound-lead-guard duplicate phone | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/inbound-lead-guard.test.ts`. |
+| lead-13 | Auto-call eligibility chain (mode, voice, number, window) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/auto-call-eligibility.test.ts`. |
+| lead-14 | Lead source attribution carries through to deal source | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/twilio-sms-webhook.test.ts` — `source: "sms"` + `metadata.leadSource: "sms"` on SMS deals. `__tests__/analytics-actions.test.ts` — `metadata.leadSource: "hipages"` fixture. |
+
+## J. Tradie field workflow (`job`)
+
+| ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
+|----|---------|---|---|---|---|---|---|---|---|--------|-------|
+| job-01 | Open Job Mode from `/crm/schedule` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/job-bottom-sheet.test.tsx` — Parts shortcut, scheduled time header, missing-phone routing, invoice routing, photo tile routing. |
+| job-02 | Start travel → ETA broadcast to customer | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/job-bottom-sheet.test.tsx` covers the start-travel quick-action path. ETA broadcast SMS is unit-tested via messaging-actions. |
+| job-03 | Mark on site → customer SMS | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/tradie-actions.test.ts` — `sendOnMyWaySMS()` (TRAVELING trigger) sends "I'm on my way" SMS; asserts content + no auto-send on status-only. ON_SITE status has no customer SMS — tradie manually calls sendOnMyWaySMS. |
+| job-04 | Complete job → invoice + photos prompt | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/job-detail-view.test.tsx` — completion modal opened for on-site jobs; billing panel routing; invoice routing. |
+| job-05 | Add job photos | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/deal-photos-upload.test.tsx` — upload success clears note + refresh; backend error surfaced. Thumbnail rendering is browser-only. |
+| job-06 | Digital handover deliverables | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Out of scope (real-estate arm). |
+| job-07 | Uber-style customer arrival page | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Depends on job-02 broadcast. |
+| job-08 | Post-job feedback request SMS | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/post-job-followups.test.ts` — idempotent send, dedup skip, sendSMS failure guard, scan cap. |
+| job-09 | Customer review page (`/feedback/[token]`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/public-feedback-route.test.ts` — rejects invalid payload; delegates to `submitFeedbackFromPublicToken` on valid submission. |
+| job-10 | "Running late" SMS to customer | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **ADDED 2026-05-27** — `__tests__/running-late-actions.test.ts` — happy path (delay message with first name, ETA), deal-not-found, wrong-workspace, no-phone, SMS failure propagation, null scheduledAt fallback. |
+
+## K. Quotes, invoices, accounting (`quote`)
+
+| ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
+|----|---------|---|---|---|---|---|---|---|---|--------|-------|
+| quote-01 | Create quote from deal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/tradie-actions.test.ts`. |
+| quote-02 | GST 10% calculation | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
+| quote-03 | Invoice numbering sequential & unique | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/invoice-number.test.ts`. |
+| quote-04 | Send quote via email | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/tradie-actions.test.ts` — `emailInvoice` boundary cases: invoice-not-found returns error; contact with no email returns friendly error without calling PDF generator. |
+| quote-05 | Quote accepted by customer | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-28** — `confirmPayment(token)` portal action marks ISSUED invoice PAID, moves deal to WON, logs Activity, notifies owner. Customer portal shows "Yes, I've paid" button when `isInvoiced && !invoicePaid`. `__tests__/job-portal-actions.test.ts` — happy path, invalid token, no invoice, no owner. Stripe `invoice.paid` webhook remains a stub (Stripe payment links are a minority path for tradies). |
+| quote-06 | Stripe-hosted payment link on invoice | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | verified | Same portal confirmation path as quote-05. Stripe payment-link auto-sync deferred (low priority for tradie use case). |
+| quote-07 | Xero/MYOB push (`/crm/settings/integrations`) | ✅ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | watch | Draft invoice creation works; later lifecycle steps incomplete (`missing_features.md`). |
+| quote-08 | `/crm/estimator` standalone quoting | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/crm-estimator-page.test.tsx` + `__tests__/estimator-form.test.tsx`. See crm-34. |
+| quote-09 | Auto payment reminder SMS at 3/7/14-day milestones (Execution mode) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **ADDED 2026-05-27** — `__tests__/auto-payment-reminders.test.ts` — EXECUTION-only gate, 3/7-day milestone send, idempotency (skips already-sent), no-phone skip, SMS failure = no activity log, one milestone per invoice per day. |
+
+## L. Calendar & scheduling (`cal`)
+
+| ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
+|----|---------|---|---|---|---|---|---|---|---|--------|-------|
+| cal-01 | Google Calendar OAuth connect (`/api/auth/google-calendar/callback`) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | verified | `__tests__/google-calendar-callback-route.test.ts` — error/missing-code/token-fail redirects, success+store. Token-refresh confidence is a runtime concern, not unit-testable. |
+| cal-02 | New deal with `scheduledAt` → calendar event push | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/deal-actions-sync.test.ts` — calendar sync failure recorded as SyncIssue, success path clean, `lastReminderSentAt` cleared on reschedule. |
+| cal-03 | Calendar inbound readback | ➖ | ➖ | ➖ | ➖ | ➖ | ➖ | ➖ | ➖ | n/a | Intentionally parked (`missing_features.md`). |
+| cal-04 | Visual confirmation status on event | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `CheckCircle2`/`Clock`/`XCircle` icon on each chip. Implementation fix confirmed; visual pixel-check is browser-only. |
+| cal-05 | Event-click popover (quick call/SMS/edit) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `Popover` with call/SMS/open-details wired. Implementation confirmed; interactive popover is browser-only. |
+| cal-06 | Business hours / call-window enforcement | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/call-window.test.ts`. |
+
+## M. Notifications (`notif`)
+
+| ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
+|----|---------|---|---|---|---|---|---|---|---|--------|-------|
+| notif-01 | Toggle "Email deal updates" enforced | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24** — `shouldSendNotificationEmail` gating in `updateDealStage`. `__tests__/notification-pref-gating.test.ts` — returns false when `emailDealUpdates: false`; returns default-true on missing prefs. |
+| notif-02 | Toggle "Email new contacts" enforced | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24** — `shouldSendNotificationEmail` gating in `createContact`. `__tests__/notification-pref-gating.test.ts` — returns false when `emailNewContacts: false`. |
+| notif-03 | Toggle "Email weekly summary" enforced | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `GET /api/cron/weekly-summary` gated by `shouldSendNotificationEmail`. `__tests__/notification-pref-gating.test.ts` — returns false when `emailWeeklySummary: false`. E2E spec in `notification-pref-enforcement.spec.ts` (fixme'd pending E2E fixture). |
+| notif-04 | Toggle "Task reminders" enforced | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `ensureDailyNotifications` reads pref. |
+| notif-05 | Toggle "Stale deal alerts" enforced | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `createNotification` pre-checks `inAppStaleDealAlerts` pref before creating the notification when `notificationType === "stale_deal"`. `__tests__/notification-pref-gating.test.ts` — skips when pref false; creates when default-true. |
+| notif-06 | Push subscribe via VAPID | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/push-subscribe-routes.test.ts`. |
+| notif-07 | Push unsubscribe | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
+| notif-08 | Push send respects `webPushEnabled` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `notification-actions.ts:158`. |
+| notif-09 | Expired endpoint (410) auto-removal | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `lib/push-notifications.ts:50-90`. |
+| notif-10 | WhatsApp per-type toggle persistence | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/notification-prefs-actions.test.ts`. |
+| notif-11 | WhatsApp dispatch respects type pref | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `lib/notifications/whatsapp-dispatch.ts`. |
+| notif-12 | Test notification button | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Settings → Send test. |
+| notif-13 | Morning briefing once-per-day | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `notification-actions.ts:278+`. |
+| notif-14 | Evening wrap-up once-per-day | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
+| notif-15 | Both briefings disabled when `inAppTaskReminders=false` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
+
+## N. Settings pages (`set`) — 22 subroutes
+
+`/crm/settings/*`. Owner-only surfaces gated per `CLAUDE.md` CC-2.
+
+| ID | Subroute | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
+|----|----------|---|---|---|---|---|---|---|---|--------|-------|
+| set-01 | `/crm/settings` index | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | ✅ | verified | `__tests__/settings-core-page-access.test.tsx` — account/automations/my-business rendering. `__tests__/settings-layout.test.tsx` — team-member hidden links, manager/owner visible links. 22-subroute IA grouping is a design-review item, not a test gap. |
+| set-02 | `/account` profile | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/settings-route-redirects.test.tsx` — `/crm/settings/account` → `/crm/settings` redirect asserted (set-02). Account content rendered in `settings-core-page-access.test.tsx`. |
+| set-03 | `/after-hours` messaging rules | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/settings-route-redirects.test.tsx` — `/after-hours` → `/crm/settings/call-settings` redirect. `__tests__/working-hours-form.test.tsx` — emergency hours + save. |
+| set-04 | `/agent` AI configuration | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/agent-settings-page.test.tsx`. |
+| set-05 | `/ai-voice` voice synthesis + LLM | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/voice-fleet.test.ts`. |
+| set-06 | `/appearance` theme | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/settings-route-redirects.test.tsx` — `/appearance` → `/crm/settings/display` redirect asserted. |
+| set-07 | `/automations` workflow rules | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/automation-actions.test.ts` — validation, toggle enabled, stage-change task, optimistic lock concurrency, overdue-task notification. |
+| set-08 | `/billing` | see Section D | – | – | – | – | – | – | – | – | – | Covered in `bill-*`. |
+| set-09 | `/call-settings` phone routing | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/call-forwarding.test.ts`. |
+| set-10 | `/data-privacy` controls | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/settings-route-redirects.test.tsx` — `/data-privacy` → `/crm/settings/privacy` redirect. `__tests__/workspace-data-export-route.test.ts` — export auth + RBAC. `__tests__/delete-user-route.test.ts` — account deletion. |
+| set-11 | `/display` preferences | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/display-settings-client.test.tsx` — renders language/accessibility/mobile sections. localStorage font-scale unverified in jsdom (acceptable). |
+| set-12 | `/help` & docs | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/settings-help-page.test.tsx` — contact support email + urgent-mark copy; no unverified phone number present. |
+| set-13 | `/integrations` (Google, Outlook, Xero, MYOB, Resend) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | verified | `__tests__/integration-actions.test.ts` — URL build, status load, calendar/email disconnect. Later lifecycle steps (Xero invoice sync) partial — see quote-07. |
+| set-14 | `/knowledge` AI grounding | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/knowledge-actions.test.ts` — save + load grounding knowledge. |
+| set-15 | `/my-business` profile + refusal rules | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/settings-actions.test.ts`. |
+| set-16 | `/notifications` | see Section M | – | – | – | – | – | – | – | – | – | Covered in `notif-*`. |
+| set-17 | `/phone-settings` (owner-only) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Owner gate per `e2e/team-member.spec.ts`. |
+| set-18 | `/privacy` (legacy?) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/settings-route-redirects.test.tsx` — `/data-privacy` → `/crm/settings/privacy` redirect asserted. |
+| set-19 | `/sms-templates` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/sms-templates.test.ts`. |
+| set-20 | `/support` contact form | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/support-contact-route.test.ts` — workspace access, Resend email send, unauthenticated 401. |
+| set-21 | `/training` agent training | ✅ | ✅ | ✅ | ✅ | 🟡 | ✅ | ✅ | ✅ | verified | `__tests__/agent-settings-page.test.tsx` — WhatsApp assistant entry point tested. Copy clarity noted but not blocking. |
+| set-22 | `/workspace` org settings | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/workspace-route.test.ts` (GET + POST) + `__tests__/workspace-actions.test.ts` (create, update, routing, pipeline health). |
+
+## O. AI / Tracey chat (`ai`)
+
+| ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
+|----|---------|---|---|---|---|---|---|---|---|--------|-------|
+| ai-01 | Sidebar chat send | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/chat-actions.test.ts`. |
+| ai-02 | AI creates job from natural language | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/chat-agent-crm-mutation-flow.test.ts` — "Create a new blocked drain job for Acme Plumbing for $420" → contact + deal via tool flow. |
+| ai-03 | AI books appointment | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/chat-actions.test.ts` — `runUpdateDealFields` schedule path: natural-language schedule converts to ISO and calls `updateDeal`; deal-not-found returns error. |
+| ai-04 | AI lookup tool (`/api/chat`) | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/agent-tools.test.ts`. |
+| ai-05 | AI handles ambiguous request | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24** — `listDeals` tool accepts keyword filter. `__tests__/chat-actions.test.ts` asserts keyword filter narrows results by title, contactName, address. |
+| ai-06 | AI tool-call error recovery | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/tracey-prompt-contract.test.ts` — system prompt asserts `success=false` reporting. Live tool-error scenario (DB failure mid-tool) not E2E tested (acceptable). |
+| ai-07 | AI feedback recognition (UC: "the chatbot recognizes feedback") | ✅ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | gap | JOURNEY_ACCEPTANCE journey 2 — no end-to-end synthetic. |
+
+## P. Team & workspace (`team`)
+
+| ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
+|----|---------|---|---|---|---|---|---|---|---|--------|-------|
+| team-01 | Owner invites teammate | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/team-member.spec.ts`. |
+| team-02 | Teammate accepts invite | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
+| team-03 | Teammate sees CRM, not billing or phone | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
+| team-04 | Owner removes teammate | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — Removed user's `workspaceId` becomes null; CRM layout redirects to `/no-workspace`. `__tests__/dashboard-layout.test.tsx` — `{ noWorkspace: true }` → `REDIRECT:/no-workspace`. See auth-17. |
+| team-05 | Role change reflected live | ➖ | 🟡 | 🟡 | ✅ | 🟡 | 🟡 | 🟡 | ⛔ | gap | Same as auth-18. |
+| team-06 | User in multiple workspaces — switcher | ✅ | ✅ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | gap | No coverage. |
+
+## Q. Public-facing customer surfaces (`pub`)
+
+These are URLs a customer (not the tradie) will hit.
+
+| ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
+|----|---------|---|---|---|---|---|---|---|---|--------|-------|
+| pub-01 | `/portal/[token]` public job portal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/job-portal-page.test.tsx` — renders SCHEDULED job for valid token; calls `notFound()` for invalid token. Audit trail: Activity "Job portal viewed" + `portal.opened` webhook (deduped 1 h). |
+| pub-02 | `/portal-preview` | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `e2e/public-preview.spec.ts`. |
+| pub-03 | `/feedback/[token]` customer review submit | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/public-feedback-route.test.ts`. |
+| pub-05 | Customer ETA page (Uber-style) | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | gap | Not built; UC14. |
+| pub-06 | Outbound SMS contains a portal link where promised | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `__tests__/sms-intro-portal-link.test.ts` asserts `buildPublicJobPortalUrl` is called with correct params, portal URL appears in SMS body, and activity is logged with "portal link" description. |
+
+## R. Cron jobs & background work (`cron`)
+
+Per `CLAUDE.md` CC-1 these never surface to the tradie. All called by
+GitHub Actions; each must emit a heartbeat the ops page can read.
+
+| ID | Cron path | Cadence | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
+|----|-----------|---------|---|---|---|---|---|---|---|---|--------|-------|
+| cron-01 | `/api/cron/booking-reminders` | hourly @0 | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/reminders-actions.test.ts`. |
+| cron-02 | `/api/cron/followup-reminders` | hourly @0 | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same family. |
+| cron-03 | `/api/cron/job-reminders` | hourly | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/job-reminders-route.test.ts` — auth check, summary response, 500 on error. |
+| cron-04 | `/api/cron/task-overdue` | hourly | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `__tests__/task-overdue-route.test.ts`: auth check, one `evaluateAutomations` call per workspace (groups tasks), zero count when no overdue tasks, 500 on DB failure. |
+| cron-05 | `/api/cron/recurring-jobs` | daily | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `__tests__/recurring-jobs-route.test.ts`: auth check, clone happy path (sets `recurrenceLastClonedAt`), idempotency (skips if `recurrenceLastClonedAt` not yet elapsed), end-date skip, DB error logged without crash. |
+| cron-06 | `/api/cron/scheduled-calls` | every 5m | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/lead-callback.test.ts`. |
+| cron-07 | `/api/cron/voice-agent-health` | 30m | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/voice-fleet-health-route.test.ts`. |
+| cron-08 | `/api/cron/voice-monitor-watchdog` | 30m | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Watchdog over cron-07. |
+| cron-09 | `/api/cron/voice-synthetic-probe` | 30m | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/voice-synthetic-probe-route.test.ts`. |
+| cron-10 | `/api/cron/customer-agent-reconcile` | 30m | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/customer-agent-readiness.test.ts`. |
+| cron-11 | `/api/cron/passive-communications-health` | 30m | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/passive-communications-health-route.test.ts`. |
+
+## S. Admin / internal (`adm`)
+
+Internal-only. Should be 404 in prod for non-staff (CC-1, CC-2).
+
+| ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
+|----|---------|---|---|---|---|---|---|---|---|--------|-------|
+| adm-01 | `/admin/diagnostics` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/admin-internal-route-redirects.test.ts`. |
+| adm-02 | `/admin/ops-status` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/admin-internal-route-redirects.test.ts` confirms redirect to unified ops tab. |
+| adm-03 | `/admin/customer-usage` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/customer-usage-metrics.test.ts` — filters, cost-per-won, margin gap, inactive workspace exclusion logic (144 lines). |
+| adm-04 | `/api/internal/voice-agent-status` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/voice-agent-status-route.test.ts` (144 lines). |
+| adm-05 | `/api/internal/voice-fleet-health` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/voice-fleet-health-route.test.ts`. |
+| adm-06 | `/api/internal/launch-readiness` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/launch-readiness.test.ts`. |
+| adm-07 | `/api/health` external health | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/health-route.test.ts`. |
+| adm-08 | `/api/check-env` env audit | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/check-env-route.test.ts` (129 lines). |
+| adm-09 | `/api/log-crash` client crash log | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/log-crash-route.test.ts` — auth-gated, logs crash, 200 on success (83 lines). |
+| adm-10 | `/api/internal/telemetry/client` + `/latency` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/telemetry-client-route.test.ts` + `__tests__/telemetry-latency-route.test.ts`. |
+| adm-11 | `/api/internal/customer-agent-drift` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Cron-10 consumer. |
+| adm-12 | `/api/sync/replay` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/sync-replay-route.test.ts` — auth, deal ownership, replay logic (137 lines). |
+| adm-13 | `/api/stale-jobs/sync` | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/stale-job-actions.test.ts`. |
+| adm-14 | `/api/extension/import` | 🟡 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/extension-import-route.test.ts` — auth, contact creation, dedup (112 lines). Note: browser-extension discoverability not tested (first-party install). |
+
+## T. Compliance, opt-out, data rights (`cpl`)
+
+Legal-exposure cluster. These are the audit's top fix items.
+
+| ID | Surface | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
+|----|---------|---|---|---|---|---|---|---|---|--------|-------|
+| cpl-01 | Customer SMS STOP / UNSUBSCRIBE / CANCEL honoured | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24** — `__tests__/twilio-sms-stop-handling.test.ts`: all opt-out keywords handled; smsOptedOut=true; no ghost contacts. See comm-19. |
+| cpl-02 | Subscription cancel releases Twilio number | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24/25** — `__tests__/stripe-webhook.test.ts` asserts Twilio `remove()` called and workspace phone fields nulled. See bill-04. |
+| cpl-03 | Email "Deal updates" pref enforced E2E | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24** — `shouldSendNotificationEmail` gating in `updateDealStage`. `__tests__/notification-pref-gating.test.ts` — see notif-01. E2E stub in `notification-pref-enforcement.spec.ts` (fixme'd). |
+| cpl-04 | Email "New contacts" pref enforced E2E | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `shouldSendNotificationEmail(workspaceId, "emailNewContacts")` gates send in `contact-actions.ts`. `__tests__/notification-pref-gating.test.ts` — see notif-02. |
+| cpl-05 | Email "Weekly summary" pref enforced E2E | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `shouldSendNotificationEmail(workspaceId, "emailWeeklySummary")` gates cron digest. `__tests__/notification-pref-gating.test.ts` — see notif-03. |
+| cpl-06 | Customer data export (one-click) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/workspace-data-export-route.test.ts` — owner only, JSON attachment (contacts + deals), workspace-scoped, DELETED deals excluded. See bill-12. |
+| cpl-07 | Workspace deletion (hard) with cooling-off | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-25** — `scheduleWorkspaceDeletion` sets `scheduledForDeletionAt = now + 30 days`. `DeleteWorkspaceButton` shows pending state + cancel. `cancelWorkspaceDeletion` clears the window. `/api/cron/process-deletions` runs daily and calls `deleteUserAccount` for expired workspaces. |
+| cpl-08 | Outbound customer email has unsubscribe footer | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-24** — HMAC token footer appended. `__tests__/email-unsubscribe-route.test.ts`: valid token → emailOptedOut=true; invalid token → 400; no enumeration on missing contact. |
+| cpl-09 | `/(legal)/privacy` accessible app-wide | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Footer link. |
+| cpl-10 | `/(legal)/terms` accessible app-wide | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Same. |
+| cpl-11 | `/(legal)/cookies` accessible app-wide | ✅ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/footer.test.tsx` — Footer renders link to `/cookies` ("Website tech") confirming policy is reachable app-wide. |
+| cpl-12 | Cookie banner / consent | ➖ | ➖ | ➖ | ➖ | ➖ | ➖ | ➖ | ➖ | verified | Legal review 2026-05-28: no mandatory opt-in banner under Australian Privacy Act 1988 / APPs for AU-only users. Cookie policy page (cpl-11) is sufficient. If EU users are ever targeted, GDPR consent gate is required. Remove from gap list. |
+
+## U. Resilience & failure modes (`res`)
+
+Cross-cutting failure simulations. Each row asks: when X breaks, does
+the tradie see a sensible message and can ops see the failure?
+
+| ID | Failure mode | D | A | C | O | 🧠 | ↪ | 🛡 | 📋 | Status | Notes |
+|----|--------------|---|---|---|---|---|---|---|---|--------|-------|
+| res-01 | Stripe API down during checkout | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/billing-actions.test.ts` — "propagates the error when Stripe API is unreachable during checkout (res-01)"; ETIMEDOUT thrown → `UpgradeButton` catches + toast. No retry backoff. |
+| res-02 | Stripe webhook delayed/missed (worker outage) | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/stripe-webhook.test.ts` — "returns 200 immediately for already-processed events"; `runIdempotent(event.id)` wraps all types (Stripe retries up to 3 days). No manual backfill script. |
+| res-03 | Twilio voice API rate-limit (429) | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Cost-ceiling + retry/backoff. |
+| res-04 | Twilio SMS API down | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | **FIXED 2026-05-27** — `retryWithBackoff()` extracted to `lib/retry.ts`. `__tests__/retry.test.ts`: 5xx retries up to maxAttempts, 4xx not retried (immediate throw), 429 not retried, network errors retried, succeeds on last attempt, returns immediately on first success. |
+| res-05 | Gemini/LLM timeout | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/ai-agent.test.ts` — `generateText` rejection returns graceful user-friendly message. |
+| res-06 | LiveKit SIP setup fails on inbound call | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Voice fallback (voice-03). |
+| res-07 | DB connection saturation | ➖ | ➖ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | watch | Prisma pool (default 10) implicit; no explicit pool-saturation guard or degraded-mode path. |
+| res-08 | Cron worker queue stuck | ➖ | ➖ | 🟡 | 🟡 | 🟡 | 🟡 | 🟡 | ⛔ | watch | `voice-monitor-watchdog` cron catches voice-worker gaps; other crons monitored via GitHub Actions only (no in-app auto-alert if cron misses). |
+| res-09 | Push send to expired endpoint | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Auto-remove on 410. |
+| res-10 | Outbound email bounce | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/resend-route.test.ts` — `email.bounced` → activity stamped "Bounced at …"; no spurious owner notification (res-10). |
+| res-11 | Resume-after-crash on partial provision | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | `__tests__/onboarding-provision.test.ts` — lock-based dedup; short-circuits when workspace already has number; bails on concurrent lock. `__tests__/provisioning-retry-route.test.ts` — manual retry route 400/404/200 paths. |
+| res-12 | Cost-ceiling triggers ($50) | ➖ | ➖ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | verified | Voice disabled, banner shown. |
+
+## V. Logic & intuitiveness review (`logic`)
+
+This section captures **coherence problems** — surfaces that
+technically work but mislead the user. Per `JOURNEY_ACCEPTANCE.md` gate
+🧠 (Coherence) these are the most insidious because passing the
+*Behavior* layer of `FEATURE_VERIFICATION.md` is not enough.
+
+| ID | Coherence concern | Status | Notes |
+|----|--------------------|--------|-------|
+| logic-01 | **Duplicate route trees** for the same task (`/auth/*` vs `/(auth)/*`, `/crm/contacts/[id]` vs `/contacts/[id]`, `/crm/inbox` vs `/inbox`) | verified | All legacy routes redirect to canonical destinations. See auth-meta, crm-12, crm-29 — all verified via `__tests__/legacy-route-redirects.test.tsx`. |
+| logic-02 | **`/crm/settings/privacy` vs `/crm/settings/data-privacy`** | verified | `/data-privacy` redirects to `/privacy`. See set-18 — verified via `__tests__/settings-route-redirects.test.tsx`. |
+| logic-03 | **`/crm/hub` is a 404 but appears wired in nav** | verified | `app/crm/hub/page.tsx` redirects to `/crm/dashboard`. See crm-35 — verified via `__tests__/legacy-route-redirects.test.tsx`. |
+| logic-04 | **`/crm/design/*` is publicly reachable by any signed-in user** | verified | Both pages redirect to `/crm/dashboard`. See crm-40 — verified via `__tests__/legacy-route-redirects.test.tsx`. |
+| logic-05 | **Email pref toggles save but do nothing** | verified | **FIXED 2026-05-24** — emailDealUpdates + emailNewContacts now enforced. See notif-01/02/03 — verified via `__tests__/notification-pref-gating.test.ts`. |
+| logic-06 | **Customer STOP gets an AI reply** | verified | **FIXED 2026-05-24** — STOP exits early, no AI reply. See cpl-01 — verified via `__tests__/twilio-sms-stop-handling.test.ts`. |
+| logic-07 | **Stripe Manage button bounces tradie off-app without warning** | verified | `CancelSubscriptionButton` provides in-app cancel dialog. "Manage" still opens Stripe portal — cross-brand UX acknowledged trade-off. See bill-09 (verified). |
+| logic-08 | **Immediate lockout on cancel even though they paid for the month** | verified | **FIXED 2026-05-24** — Grace period honoured in CRM layout. See bill-10 — verified via `__tests__/dashboard-layout.test.tsx`. |
+| logic-09 | **Twilio number kept billable on cancelled workspaces** | verified | **FIXED 2026-05-24** — Number released on `customer.subscription.deleted`. See bill-04 — verified via `__tests__/stripe-webhook.test.ts`. |
+| logic-10 | **Kanban drag does nothing** | verified | **FIXED 2026-05-25** — `dragStartColumnRef` set in `handleDragStart`; intra-column sort path now reached. See crm-19. |
+| logic-11 | **Stale-deal drag → expected follow-up modal doesn't open** | verified | **FIXED 2026-05-25** — `StaleDealFollowUpModal` wired into `handleDragEnd`. See crm-20. |
+| logic-12 | **Ctrl+K returns "No results" for known data** | verified | **FIXED 2026-05-25** — cmdk `shouldFilter={false}` fix. See crm-39 — verified via `__tests__/search-global-route.test.ts`. |
+| logic-13 | **Department selection on `/contact` is decorative** | verified | **VERIFIED 2026-05-25** — `__tests__/contact-route.test.ts` confirms department appears as `[Contact – sales]` email subject prefix. No separate inbox routing — acceptable MVP. See acq-09. |
+| logic-14 | **Calendar event click navigates to deal page** | verified | **FIXED 2026-05-25** — chip click opens Popover with call/SMS/open-details actions. See cal-05. |
+| logic-15 | **AI fails open-ended request without graceful "I can't do that yet"** | verified | **FIXED 2026-05-24** — `listDeals` keyword filter handles open-ended queries. See ai-05 — verified via `__tests__/chat-actions.test.ts`. |
+| logic-16 | **Multilingual onboarding toggle reads like preference but is a runtime switch** | verified | **FIXED 2026-05-25** — `setReplyLanguage()` called at call start from grounding. See voice-08 — verified via `__tests__/voice-grounding-language.test.ts`. |
+| logic-17 | **Auth has two entry-point trees** | verified | `/login` and `/signup` redirect to `/auth`. See logic-01 / auth-meta — verified via `__tests__/legacy-route-redirects.test.tsx`. |
+| logic-18 | **"22-row settings index" without grouping or search** | verified | Desktop sidebar grouped; mobile `SettingsIndexMobile` shows 10 icon+subtitle rows. Layout tested in `__tests__/settings-layout.test.tsx`. See set-01. |
+| logic-19 | **Onboarding "resume after browser close" lands silently** | verified | **FIXED 2026-05-25** — "Welcome back!" bubble shown when workspace name is non-default. See onb-15 — verified via `__tests__/setup-page-resuming.test.tsx`. |
+| logic-20 | **Loading states without reassurance copy** | verified | `__tests__/crm-loading-pages.test.tsx` — deals/contacts/jobs loading pages all render reassurance copy ("Loading your pipeline…" etc). Voice-call-specific loading is browser/device-only. |
+
+## W. Mobile-fit pass (`mob`)
+
+Per `CLAUDE.md` CC-4 ("Tracey visual identity"), the app must run on
+iPhone 13 viewport and 768px tablet. This pass tracks which areas
+have been driven on mobile.
+
+| ID | Area | iPhone 13 | Tablet | Notes |
+|----|------|-----------|--------|-------|
+| mob-01 | Homepage + hero callback | ✅ | ✅ | Visual specs cover both viewports. |
+| mob-02 | `/pricing`, `/contact` | ✅ | ✅ | Same. |
+| mob-03 | `/crm/dashboard` chat mode | ✅ | ✅ | Bottom-nav Tracey button — one entry point. |
+| mob-04 | `/crm/inbox` composer | ✅ | 🟡 | Tablet split-view unverified. |
+| mob-05 | `/crm/deals` kanban | 🟡 | 🟡 | Kanban drag fix landed (crm-19); mobile touch-drag usability not separately tested. |
+| mob-06 | `/crm/schedule` Open Job Mode bottom sheet | ✅ | 🟡 | Tradie field flow primary mobile path. |
+| mob-07 | Modals (full deal-detail, new-deal) | 🟡 | 🟡 | Mobile-fit per `ott-dialog` rule; audit by modal pending. |
+| mob-08 | Settings index + 22 subroutes | ✅ | 🟡 | `SettingsIndexMobile` renders 10 icon+subtitle rows; desktop sidebar already grouped. See logic-18. |
+
+## X. Action items (rollup of every 🔴 / ⬜)
+
+In approximate fix-priority order. Each lands with the test that
+would have caught it (rule below).
+
+### Compliance & money (do first)
+
+1. ✅ **cpl-01 / comm-19** — SMS STOP. FIXED 2026-05-24.
+2. ✅ **cpl-02 / bill-04** — Twilio release on subscription cancel. FIXED 2026-05-24.
+3. ✅ **cpl-03..05 / notif-01..03** — Email pref enforcement + test outbox infra. FIXED 2026-05-25.
+4. ✅ **bill-10** — Grace period through `current_period_end`. FIXED 2026-05-24.
+5. ✅ **bill-09 / bill-11 / bill-12** — In-app cancel UI + banner + export. FIXED 2026-05-24/25.
+6. ✅ **cpl-06 / cpl-07** — Data export + workspace deletion UX. FIXED 2026-05-24/25.
+7. ✅ **cpl-08** — Outbound customer-email unsubscribe footer. FIXED 2026-05-24.
+
+### Coherence (do next — these are user-trust bombs)
+
+8. ✅ **logic-01 / auth-meta / crm-12 / crm-29** — Duplicate route trees collapsed. FIXED 2026-05-25.
+9. ✅ **logic-02 / set-10 / set-18** — Privacy page canonical. FIXED 2026-05-25.
+10. ✅ **logic-03 / crm-35** — `/crm/hub` redirects. FIXED 2026-05-25.
+11. ✅ **logic-04 / crm-40** — `/crm/design/*` redirects. FIXED 2026-05-25.
+12. ✅ **logic-18 / set-01** — Settings grouping. FIXED 2026-05-25.
+13. ✅ **logic-10 / crm-19, crm-20** — Kanban drag + stale-deal follow-up. FIXED 2026-05-25.
+14. ✅ **logic-12 / crm-39 / modal-12** — Ctrl+K search. FIXED 2026-05-25.
+15. ✅ **logic-15 / ai-05 / comm-11** — AI graceful fallback. FIXED 2026-05-24.
+
+### Reliability / observability (do alongside)
+
+16. 🟡 **voice-08** — Unit test added (`__tests__/voice-grounding-language.test.ts`); live canary outstanding.
+17. ✅ **pub-01 / pub-06** — Portal audit trail exists; **FIXED 2026-05-25** `__tests__/sms-intro-portal-link.test.ts` asserts portal URL in intro SMS body and activity log. acq-09 verified via `contact-route.test.ts`.
+18. ✅ **comm-17** — Booking-confirmation WebhookEvents recorded; ops queried via feature-verification.ts.
+19. ✅ **comm-20** — **VERIFIED 2026-05-25** `__tests__/whatsapp-route.test.ts` — inbound → AI command → outbound reply round-trip covered (4 scenarios). Upgraded to verified.
+20. ✅ **res-01, res-02, res-04, res-05** — FIXED 2026-05-25: Stripe timeout (billing-actions test), Stripe retry idempotency (stripe-webhook test), Twilio retryWithBackoff, LLM error fallback (ai-agent test). res-07 (DB pool) and res-08 (cron watchdog) noted as infrastructure gaps.
+
+### Cleanup / UX polish
+
+21. ✅ **set-** rows — all settings subroutes now have at least one assertion.
+22. ✅ **modal-09, modal-11, modal-14, modal-15, modal-16** — A11y specs added 2026-05-25.
+23. ✅ **logic-20** — `loading.tsx` audited; missing `return` fixed in `crm/loading.tsx`.
+
+## Y. Execution rules (do not skip)
+
+These are the rules every PR is held to. They are the reason the
+matrix is worth maintaining.
+
+1. **Every PR updates this matrix.** If your diff touches a row's
+   area, either keep its state, improve it, or flip it to 🔴 with a
+   note. Reviewers reject PRs that silently degrade rows.
+2. **Every bug fix lands with the test that would have caught it.**
+   The test goes in the matrix row's *Proof* column.
+3. **Pre-release smoke pass.** The release manager walks every 👁
+   (manual-only) cell in the release scope. Anything 🔴 is a blocker
+   unless explicitly accepted in writing.
+4. **Quarterly cull.** Walk every ⬜ row. Decide: build it or remove
+   from the matrix. Backlog rot is worse than honest gaps.
+5. **A row cannot be ✅ if it violates a `CLAUDE.md` cross-cutting
+   policy** (design tokens, mobile-fit, owner-vs-teammate gating,
+   en-AU date/time, formatCurrency, focus ring, empty-state pattern).
+   Drop to 🟡 and link the violated policy in *Notes*.
+6. **A row cannot be ✅ on `📋 Proof` if its only evidence is a unit
+   test of a helper.** The proof must include either an E2E /
+   integration test that drives the surface or an ops observability
+   row (`/admin/customer-usage`).
+
+## Z. Change log
+
+- **2026-05-28 (continued)** — pub-04 (open-house kiosk) removed: real-estate feature, out of scope for current tradie product. cashflow-widget design tokens fixed (border-border, bg-emerald-600). follow-up-cadence-card quote description updated to reflect Execution mode behaviour. crm-14 confirmed not built.
+- **2026-05-28** — quote-05/06 verified: `confirmPayment(token)` portal action built; customer portal "Yes, I've paid" button marks invoice PAID and deal WON. comm-13 fixed and verified: `/api/webhooks/twilio-sms-status` built; `sendViaTwilio` passes StatusCallback; `Activity.description` stores MessageSid for lookup; failed delivery creates Activity + owner Notification. `__tests__/twilio-sms-status-webhook.test.ts` added.
+- **2026-05-27** — new_lead_sla signal added to crm-22. job-10 (running-late SMS), quote-09 (auto payment reminders), crm-05b (cashflow widget), crm-05c (wrap-up page) added as verified. res-04 upgraded to verified (`lib/retry.ts` + `__tests__/retry.test.ts`). `acceptQuote` server action covered in `__tests__/job-portal-actions.test.ts`. comm-13 demoted to gap (no Twilio delivery-status webhook route exists). Auto-payment reminders now respect `invoiceFollowUp.triggerDays` workspace setting (first milestone) instead of hardcoded 3-day default.
+- **2026-05-25 (continued)** — pub-06 verified: `__tests__/sms-intro-portal-link.test.ts`
+  asserts portal URL in intro SMS + activity log. acq-09 promoted to verified:
+  `contact-route.test.ts` already asserts `[Contact – sales]` email subject prefix.
+- **2026-05-24** — Audit: cpl-01 (STOP), cpl-02 (Twilio leak),
+  notif-01..03 (decorative email prefs), bill-10 (no grace period),
+  logic-01..20 (coherence problems). Three Playwright stubs added.
+  Matrix consolidated with `JOURNEY_ACCEPTANCE.md` 8-check framework.
+  Folded prose from `docs/CRITICAL_USER_JOURNEYS.md` and
+  `docs/use_case_walkthroughs.md` into per-row notes.

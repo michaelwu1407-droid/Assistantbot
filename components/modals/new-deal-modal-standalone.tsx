@@ -124,7 +124,7 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                 })
 
                 if (!contactResult.success) {
-                    toast.error("Failed to create contact: " + contactResult.error)
+                    toast.error("Couldn't add that contact — " + (contactResult.error ?? "please try again."))
                     setIsLoading(false)
                     return
                 }
@@ -149,10 +149,10 @@ export function NewDealModalStandalone({ workspaceId }: NewDealModalStandalonePr
                 toast.success("Job created. Opening it now.")
                 router.push(`/crm/deals/${result.dealId}`)
             } else {
-                toast.error("Failed: " + result.error)
+                toast.error("Couldn't create that job — " + (result.error ?? "please try again."))
             }
         } catch (error) {
-            toast.error("An unexpected error occurred.")
+            toast.error("Something went wrong — please try again or contact support.")
         } finally {
             setIsLoading(false)
         }

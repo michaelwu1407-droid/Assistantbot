@@ -43,7 +43,7 @@ export function ShareResult({
       }
     } catch (error) {
       console.error("Error sharing:", error)
-      toast.error("Failed to share")
+      toast.error("Couldn't share that link — try copying it instead.")
     } finally {
       setIsSharing(false)
     }
@@ -58,7 +58,7 @@ export function ShareResult({
         toast.success("Link copied to clipboard!")
       } catch (error) {
         console.error("Error copying link:", error)
-        toast.error("Failed to copy link")
+        toast.error("Couldn't copy the link — try selecting it manually.")
       }
     } else {
       await navigator.clipboard.writeText(referralLink)

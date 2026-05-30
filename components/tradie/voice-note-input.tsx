@@ -42,7 +42,7 @@ export function VoiceNoteInput({ dealId }: VoiceNoteInputProps) {
             setNote("")
             router.refresh()
         } catch (error) {
-            toast.error("Failed to save note")
+            toast.error("Couldn't save that note — please try again.")
         }
     }
 

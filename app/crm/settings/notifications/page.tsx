@@ -15,6 +15,7 @@ import {
 } from "@/actions/notification-actions"
 import { toast } from "sonner"
 import { WhatsAppNotificationToggles } from "@/components/settings/whatsapp-notification-toggles"
+import { FollowUpCadenceCard } from "@/components/settings/follow-up-cadence-card"
 
 function base64UrlToUint8Array(base64Url: string): Uint8Array {
   const padding = "=".repeat((4 - (base64Url.length % 4)) % 4)
@@ -58,7 +59,7 @@ export default function NotificationsSettingsPage() {
       toast.success("Notification preferences saved")
     } catch {
       setPrefs(previous)
-      toast.error("Failed to save preferences")
+      toast.error("Couldn't save preferences — please try again.")
     } finally {
       setSaving(false)
     }
@@ -70,7 +71,7 @@ export default function NotificationsSettingsPage() {
       await sendTestNotification()
       toast.success("Test notification sent")
     } catch {
-      toast.error("Failed to send test notification")
+      toast.error("Couldn't send the test notification — please try again.")
     } finally {
       setSendingTest(false)
     }
@@ -181,7 +182,7 @@ export default function NotificationsSettingsPage() {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label>Weekly summary</Label>
-              <p className="text-sm text-muted-foreground">Receive a weekly pipeline summary.</p>
+              <p className="text-sm text-muted-foreground">Receive a weekly pipeline summary every Monday.</p>
             </div>
             <Switch checked={prefs.emailWeeklySummary} onCheckedChange={(v) => updatePref("emailWeeklySummary", v)} />
           </div>
@@ -246,6 +247,7 @@ export default function NotificationsSettingsPage() {
         </CardContent>
       </Card>
       <WhatsAppNotificationToggles />
+      <FollowUpCadenceCard />
     </div>
   )
 }

@@ -146,7 +146,7 @@ export function KanbanAutomationModal({ open, onOpenChange, deal, onAction }: Ka
       setTargetStage("")
       onOpenChange(false)
     } catch {
-      toast.error("Failed to execute action")
+      toast.error("Couldn't complete that action — please try again.")
     } finally {
       setIsExecuting(false)
     }

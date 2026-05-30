@@ -12,6 +12,8 @@ import { getDeals, createDeal, updateDealStage, updateDealMetadata, updateDealAs
 import { appendTicketNote, logActivity } from "./activity-actions";
 import { createContact, searchContacts } from "./contact-actions";
 import { assertSafeRecipient } from "@/lib/messaging/safe-recipient";
+import { signUnsubscribeToken } from "@/lib/email-unsubscribe-token";
+import { buildPublicJobPortalUrl } from "@/lib/public-job-portal";
 import { withCostCeiling } from "@/lib/cost-ceiling";
 
 const TWILIO_SMS_COST_USD = 0.05;
@@ -676,10 +678,18 @@ export async function runProposeReschedule(
 /**
  * List deals for the LLM (title, stage, value). Used by the chat listDeals tool.
  */
-export async function runListDeals(workspaceId: string): Promise<{ deals: { id: string; title: string; stage: string; value: number; contactName: string }[] }> {
+export async function runListDeals(workspaceId: string, keyword?: string): Promise<{ deals: { id: string; title: string; stage: string; value: number; contactName: string }[] }> {
   const deals = await getDeals(workspaceId, undefined, { unbounded: true });
+  const kw = (keyword || "").trim().toLowerCase();
+  const filtered = kw
+    ? deals.filter((d) =>
+        d.title.toLowerCase().includes(kw) ||
+        (d.contactName ?? "").toLowerCase().includes(kw) ||
+        (d.address ?? "").toLowerCase().includes(kw)
+      )
+    : deals;
   return {
-    deals: deals.map((d) => {
+    deals: filtered.map((d) => {
       const rawStage = String(d.stage ?? "");
       return {
         id: d.id,
@@ -2777,11 +2787,24 @@ export async function runSendSms(
     }
     const safeSmsTo = assertSafeRecipient("sms", contact.phone);
     const fromNumber = workspace.twilioPhoneNumber;
+
+    // Auto-append accept link when contact has an open quote (CONTACTED stage)
+    let finalBody = params.message;
+    const openQuote = await db.deal.findFirst({
+      where: { workspaceId, contactId: contact.id, stage: "CONTACTED" },
+      select: { id: true },
+      orderBy: { updatedAt: "desc" },
+    });
+    if (openQuote) {
+      const acceptUrl = buildPublicJobPortalUrl({ dealId: openQuote.id, contactId: contact.id, workspaceId });
+      finalBody = `${params.message}\n\nAccept this quote: ${acceptUrl}`;
+    }
+
     await withCostCeiling("twilio", TWILIO_SMS_COST_USD, () =>
       twilioClient.messages.create({
         to: safeSmsTo,
         from: fromNumber,
-        body: params.message,
+        body: finalBody,
       }),
     );
 
@@ -2789,7 +2812,7 @@ export async function runSendSms(
     await db.chatMessage.create({
       data: {
         role: "assistant",
-        content: params.message,
+        content: finalBody,
         workspaceId,
         metadata: { contactId: contact.id, channel: "sms", direction: "outbound" },
       },
@@ -2797,11 +2820,11 @@ export async function runSendSms(
     await logActivity({
       type: "NOTE",
       title: `SMS sent to ${contact.name}`,
-      content: params.message,
+      content: finalBody,
       contactId: contact.id,
     });
 
-    return `SMS sent to ${contact.name} (${contact.phone}): "${params.message}"`;
+    return `SMS sent to ${contact.name} (${contact.phone}): "${finalBody}"`;
   } catch (err) {
     return `Error sending SMS: ${err instanceof Error ? err.message : String(err)}`;
   }
@@ -2862,6 +2885,17 @@ export async function runSendEmail(
     const contact = contacts[0];
     if (!contact.email) return `Contact "${contact.name}" has no email address on file. Add one first.`;
     const contactEmail = contact.email;
+
+    // Honour email opt-out before sending
+    const freshContact = await db.contact.findUnique({ where: { id: contact.id }, select: { emailOptedOut: true } })
+    if (freshContact?.emailOptedOut) {
+      return `${contact.name} has unsubscribed from emails. Sending has been skipped.`
+    }
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://app.earlymark.ai"
+    const unsubToken = signUnsubscribeToken(contact.id)
+    const unsubUrl = `${appUrl}/api/unsubscribe/email?token=${unsubToken}`
+    const bodyWithFooter = `${params.body}\n\n---\nTo unsubscribe from emails: ${unsubUrl}`
 
     const bodyHash = crypto.createHash("sha256").update(params.body).digest("hex");
 
@@ -2931,7 +2965,7 @@ export async function runSendEmail(
             from: fromAddress,
             to: [safeEmailTo],
             subject: params.subject,
-            text: params.body,
+            text: bodyWithFooter,
             replyTo: replyToAddress,
             bcc: bccAddress,
           }),

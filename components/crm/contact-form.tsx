@@ -72,7 +72,7 @@ export function ContactForm({ mode, workspaceId, contact }: ContactFormProps) {
         });
 
         if (!result.success || !result.contactId) {
-          toast.error(result.error || "Failed to create contact.");
+          toast.error(result.error || "Couldn't create that contact — please try again.");
           return;
         }
 
@@ -98,7 +98,7 @@ export function ContactForm({ mode, workspaceId, contact }: ContactFormProps) {
       });
 
       if (!result.success) {
-        toast.error(result.error || "Failed to update contact.");
+        toast.error(result.error || "Couldn't update that contact — please try again.");
         return;
       }
 

@@ -104,14 +104,10 @@ export function WorkspaceForm({ workspaceId, initialData }: WorkspaceFormProps) 
                 tradeType: resolvedSpecialty,
             })
 
-            toast.success("Workspace updated", {
-                description: "Your workspace settings have been saved."
-            })
+            toast.success("Business details saved.")
             router.refresh()
         } catch {
-            toast.error("Something went wrong", {
-                description: "Failed to update workspace. Please try again."
-            })
+            toast.error("Couldn't save your details — please try again.")
         }
     }
 
@@ -194,7 +190,7 @@ export function WorkspaceForm({ workspaceId, initialData }: WorkspaceFormProps) 
                         </FormItem>
                     )}
                 />
-                <Button type="submit">Update workspace</Button>
+                <Button type="submit">Save changes</Button>
             </form>
         </Form>
     )

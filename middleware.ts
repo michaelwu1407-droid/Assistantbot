@@ -45,6 +45,9 @@ export async function middleware(request: NextRequest) {
       response = await updateSession(request)
     }
 
+    // Expose pathname to server components so layouts can include ?next= in auth redirects.
+    response.headers.set('x-pathname', pathname)
+
     // Fix proxy headers for development
     if (request.headers.get('x-forwarded-host') === 'localhost:3000' &&
       request.headers.get('origin') === 'http://127.0.0.1:51280') {

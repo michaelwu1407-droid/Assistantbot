@@ -78,7 +78,7 @@ export function DealDetailModal({ dealId, open, onOpenChange, currentUserRole = 
     })
     fetch(`/api/deals/${dealId}`)
       .then((res) => {
-        if (!res.ok) throw new Error(res.status === 404 ? "Deal not found" : "Failed to load")
+        if (!res.ok) throw new Error(res.status === 404 ? "Job not found" : "Couldn't load this job — please try again.")
         return res.json()
       })
       .then((data: unknown) => {
@@ -87,7 +87,7 @@ export function DealDetailModal({ dealId, open, onOpenChange, currentUserRole = 
         setContactDeals(Array.isArray(parsed.contactDeals) ? (parsed.contactDeals as ContactDeal[]) : [])
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : "Failed to load")
+        setError(err instanceof Error ? err.message : "Couldn't load this job — please try again.")
         setDeal(null)
       })
       .finally(() => {
@@ -270,13 +270,13 @@ function DealDetailContent({
       const val = parseFloat(forcedVal ?? invoiceVal)
       const result = await updateDeal(deal.id, { invoicedAmount: isNaN(val) ? null : val })
       if (!result.success) {
-        throw new Error(result.error || "Failed to update invoice amount")
+        throw new Error(result.error || "Couldn't update the invoice amount — please try again.")
       }
       toast.success("Invoice amount updated")
       setIsEditingInvoice(false)
       setDeal((d) => ({ ...d, invoicedAmount: isNaN(val) ? undefined : val }))
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update invoice amount")
+      toast.error(error instanceof Error ? error.message : "Couldn't update the invoice amount — please try again.")
     } finally {
       setSavingInvoice(false)
     }
@@ -286,14 +286,14 @@ function DealDetailContent({
     try {
       const result = await updateDeal(deal.id, { isDraft: false })
       if (!result.success) {
-        throw new Error(result.error || "Failed to confirm job")
+        throw new Error(result.error || "Couldn't confirm the job — please try again.")
       }
       toast.success("Job confirmed")
       setDeal((d) => ({ ...d, isDraft: false }))
       onOpenChange(false)
       onDealUpdated?.()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to confirm job")
+      toast.error(error instanceof Error ? error.message : "Couldn't confirm the job — please try again.")
     }
   }
 
@@ -314,13 +314,13 @@ function DealDetailContent({
       const { sendSMS } = await import("@/actions/messaging-actions")
       const res = await sendSMS(deal.contactId, message, deal.id)
       if (!res.success) {
-        throw new Error(res.error || "Failed to send")
+        throw new Error(res.error || "Couldn't send the SMS — please try again.")
       }
       setQuickMessage("")
       toast.success("SMS sent")
       router.refresh()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to send")
+      toast.error(error instanceof Error ? error.message : "Couldn't send the SMS — please try again.")
     } finally {
       setSendingQuickMessage(false)
     }
@@ -337,11 +337,11 @@ function DealDetailContent({
         onDealUpdated?.()
         router.refresh()
       } else {
-        toast.error(result.error ?? "Failed to approve")
+        toast.error(result.error ?? "Couldn't approve that — please try again.")
         setLiveMessage("Could not approve completion.")
       }
     } catch {
-      toast.error("Failed to approve")
+      toast.error("Couldn't approve that — please try again.")
       setLiveMessage("Could not approve completion.")
     }
   }
@@ -356,11 +356,11 @@ function DealDetailContent({
         onDealUpdated?.()
         router.refresh()
       } else {
-        toast.error(result.error ?? "Failed to reject")
+        toast.error(result.error ?? "Couldn't reject that — please try again.")
         setLiveMessage("Could not reject completion.")
       }
     } catch {
-      toast.error("Failed to reject")
+      toast.error("Couldn't reject that — please try again.")
       setLiveMessage("Could not reject completion.")
     }
   }
@@ -700,7 +700,7 @@ function DealDetailContent({
                           toast.success("Follow-up marked complete")
                           onDealUpdated?.()
                         } else {
-                          toast.error(result.error || "Failed")
+                          toast.error(result.error || "Couldn't mark follow-up complete — please try again.")
                         }
                         setSavingFollowUp(false)
                       }}
@@ -808,7 +808,7 @@ function DealDetailContent({
                           toast.success("Follow-up reminder saved")
                           onDealUpdated?.()
                         } else {
-                          toast.error(result.error || "Failed to save")
+                          toast.error(result.error || "Couldn't save the reminder — please try again.")
                         }
                         setSavingFollowUp(false)
                       }}

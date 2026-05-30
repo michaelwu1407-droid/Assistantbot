@@ -138,6 +138,50 @@ export async function POST(req: NextRequest) {
 
         let contact = await findContactByPhone(workspace.id, From)
 
+        // ─── SMS Re-subscribe (START) ────────────────────────────────────
+        if (/^(start|unstop|subscribe)\b/i.test(Body.trim())) {
+            if (contact) {
+                await prisma.contact.update({
+                    where: { id: contact.id },
+                    data: { smsOptedOut: false },
+                })
+            }
+            return new NextResponse("OK", { status: 200 })
+        }
+
+        // ─── SMS Opt-out (STOP) Early Exit ──────────────────────────────
+        // Handle before contact creation so STOP from an unknown number
+        // does NOT create an "Unknown Sender" contact record.
+        if (/^(stop|stopall|unsubscribe|cancel|end|quit)\b/i.test(Body.trim())) {
+            if (contact) {
+                await prisma.contact.update({
+                    where: { id: contact.id },
+                    data: { smsOptedOut: true },
+                })
+            }
+            const client = getWorkspaceTwilioClient(workspace)
+            if (client && workspace.twilioPhoneNumber) {
+                await client.messages.create({
+                    from: To,
+                    to: From,
+                    body: `You've been unsubscribed from messages from ${workspace.name}. Reply START to re-subscribe.`,
+                }).catch(() => {})
+            }
+            await recordSmsWebhookEvent({
+                eventType: "sms.received",
+                status: "success",
+                payload: {
+                    workspaceId: workspace.id,
+                    workspaceName: workspace.name,
+                    from: From,
+                    to: To,
+                    messageSid: MessageSid || null,
+                    replySuppressedReason: "sms_opt_out",
+                },
+            })
+            return new NextResponse("OK", { status: 200 })
+        }
+
         if (!contact) {
             contact = await prisma.contact.create({
                 data: {
@@ -471,6 +515,23 @@ export async function POST(req: NextRequest) {
                             },
                         });
                     }
+                }
+
+                if (contact.smsOptedOut) {
+                    await recordSmsWebhookEvent({
+                        eventType: "sms.reply",
+                        status: "success",
+                        payload: {
+                            workspaceId,
+                            workspaceName: workspace.name,
+                            from: To,
+                            to: From,
+                            messageSid: MessageSid || null,
+                            autoRespondEnabled: false,
+                            replySuppressedReason: "sms_opted_out",
+                        },
+                    });
+                    return;
                 }
 
                 if (!canReplyToSender) {

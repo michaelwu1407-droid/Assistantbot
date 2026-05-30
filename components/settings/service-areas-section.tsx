@@ -27,7 +27,7 @@ export function ServiceAreasSection() {
         setBaseSuburb(area.baseSuburb)
         setServiceSuburbs(area.serviceSuburbs)
       })
-      .catch(() => toast.error("Failed to load service area"))
+      .catch(() => toast.error("Couldn't load service area — please refresh."))
       .finally(() => setLoading(false))
   }, [])
 
@@ -47,12 +47,12 @@ export function ServiceAreasSection() {
     try {
       const result = await updateServiceArea(serviceRadius, serviceSuburbs)
       if (!result.success) {
-        toast.error(result.error || "Failed to save service area")
+        toast.error(result.error || "Couldn't save service area — please try again.")
         return
       }
       toast.success("Service area saved")
     } catch {
-      toast.error("Failed to save service area")
+      toast.error("Couldn't save service area — please try again.")
     } finally {
       setSaving(false)
     }

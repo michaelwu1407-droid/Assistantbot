@@ -14,7 +14,6 @@ import {
 import { useRouter } from "next/navigation"
 
 import {
-    CommandDialog,
     CommandEmpty,
     CommandGroup,
     CommandInput,
@@ -23,6 +22,8 @@ import {
     CommandSeparator,
     CommandShortcut,
 } from "@/components/ui/command"
+import { Command as CommandPrimitive } from "cmdk"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
 
 import { globalSearchClient } from "@/lib/search-client"
 import type { SearchResultItem } from "@/lib/search-types"
@@ -109,7 +110,12 @@ export function SearchDialog({ children }: { children?: React.ReactNode }) {
                 </button>
             )}
 
-            <CommandDialog open={open} onOpenChange={setOpen}>
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogContent className="ott-dialog overflow-hidden p-0 shadow-lg">
+                <CommandPrimitive
+                  shouldFilter={false}
+                  className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5"
+                >
                 <CommandInput
                     placeholder="Type a command or search..."
                     value={query}
@@ -182,7 +188,9 @@ export function SearchDialog({ children }: { children?: React.ReactNode }) {
                         </CommandItem>
                     </CommandGroup>
                 </CommandList>
-            </CommandDialog>
+                </CommandPrimitive>
+              </DialogContent>
+            </Dialog>
         </>
     )
 }

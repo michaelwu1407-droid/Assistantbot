@@ -109,8 +109,19 @@ async function sendViaTwilio(
   }
 
   const toFormatted = channel === "whatsapp" ? `whatsapp:${to}` : to;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 
   try {
+    const msgParams: Record<string, string> = {
+      To: toFormatted,
+      From: fromNumber,
+      Body: body,
+    };
+    // Attach delivery-status callback for SMS (not WhatsApp — different webhook path)
+    if (channel === "sms" && appUrl) {
+      msgParams.StatusCallback = `${appUrl}/api/webhooks/twilio-sms-status`;
+    }
+
     const res = await fetch(
       `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
       {
@@ -119,11 +130,7 @@ async function sendViaTwilio(
           Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
           "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: new URLSearchParams({
-          To: toFormatted,
-          From: fromNumber,
-          Body: body,
-        }),
+        body: new URLSearchParams(msgParams),
       }
     );
 
@@ -281,11 +288,11 @@ export async function sendSMS(
   const result = await sendViaTwilio(contact.phone, message, "sms", contact.workspaceId);
 
   if (result.success) {
-    // Log as activity
     await db.activity.create({
       data: {
         type: "NOTE",
         title: "SMS sent",
+        description: result.sid ?? null,
         content: `SMS to ${contact.name}: "${message.substring(0, 100)}${message.length > 100 ? "..." : ""}"`,
         contactId,
         dealId,
@@ -456,6 +463,25 @@ export async function sendConfirmationSMS(dealId: string): Promise<MessageResult
           contactId: deal.contactId
         }
       });
+
+      await db.webhookEvent.create({
+        data: {
+          provider: "internal",
+          eventType: "booking_confirmation.sent",
+          status: "success",
+          payload: { dealId, contactId: deal.contactId, workspaceId: deal.workspaceId },
+        },
+      }).catch(() => {});
+    } else {
+      await db.webhookEvent.create({
+        data: {
+          provider: "internal",
+          eventType: "booking_confirmation.failed",
+          status: "error",
+          payload: { dealId, contactId: deal.contactId, workspaceId: deal.workspaceId },
+          error: result.error ?? "Unknown error",
+        },
+      }).catch(() => {});
     }
 
     return result;

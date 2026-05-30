@@ -9,6 +9,8 @@ import { getUserFacingDealStageLabel } from "@/lib/deal-utils";
 import { fuzzySearch, type SearchableItem } from "@/lib/search";
 import { evaluateAutomations } from "./automation-actions";
 import { requireContactInCurrentWorkspace, requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
+import { shouldSendNotificationEmail } from "./notification-actions";
+import { sendOwnerNotificationEmail } from "@/lib/owner-notification-email";
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -400,6 +402,16 @@ export async function createContact(input: z.infer<typeof CreateContactSchema>) 
     type: "new_lead",
     contactId: contact.id
   });
+
+  const shouldEmail = await shouldSendNotificationEmail(parsed.data.workspaceId, "emailNewContacts").catch(() => true)
+  if (shouldEmail) {
+    sendOwnerNotificationEmail({
+      workspaceId: parsed.data.workspaceId,
+      subject: `New contact: ${contact.name}`,
+      text: `A new contact was added to your Earlymark workspace.\n\nName: ${contact.name}\nPhone: ${contact.phone || "—"}\nEmail: ${contact.email || "—"}\n\nView in CRM: ${process.env.NEXT_PUBLIC_APP_URL || "https://app.earlymark.ai"}/crm/contacts/${contact.id}`,
+      template: "contact-created",
+    }).catch(() => {})
+  }
 
   return { success: true as const, contactId: contact.id, enriched, merged: false };
 }

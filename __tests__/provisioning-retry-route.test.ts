@@ -1,9 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-const { isOpsAuthorized, getUnauthorizedJsonResponse, db, ensureWorkspaceProvisioned } = vi.hoisted(() => ({
-  isOpsAuthorized: vi.fn(),
-  getUnauthorizedJsonResponse: vi.fn(() => new Response(JSON.stringify({ error: "Unauthorized" }), { status: 403 })),
+const hoisted = vi.hoisted(() => ({
   db: {
     workspace: {
       findUnique: vi.fn(),
@@ -15,87 +13,86 @@ const { isOpsAuthorized, getUnauthorizedJsonResponse, db, ensureWorkspaceProvisi
   ensureWorkspaceProvisioned: vi.fn(),
 }));
 
-vi.mock("@/lib/ops-auth", () => ({
-  isOpsAuthorized,
-  getUnauthorizedJsonResponse,
+vi.mock("@/lib/db", () => ({ db: hoisted.db }));
+vi.mock("@/lib/onboarding-provision", () => ({
+  ensureWorkspaceProvisioned: hoisted.ensureWorkspaceProvisioned,
 }));
-
-vi.mock("@/lib/db", () => ({ db }));
-vi.mock("@/lib/onboarding-provision", () => ({ ensureWorkspaceProvisioned }));
 
 import { POST } from "@/app/api/internal/provisioning-retry/route";
 
-function makeRequest(body: Record<string, unknown>) {
-  return new NextRequest("https://www.earlymark.ai/api/internal/provisioning-retry", {
+function makeRequest(body: Record<string, unknown> = {}) {
+  return new NextRequest("https://app.example.com/api/internal/provisioning-retry", {
     method: "POST",
     body: JSON.stringify(body),
     headers: { "Content-Type": "application/json" },
   });
 }
 
-describe("POST /api/internal/provisioning-retry", () => {
+describe("POST /api/internal/provisioning-retry (onb-12)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    isOpsAuthorized.mockReturnValue(true);
+    hoisted.db.workspace.findUnique.mockResolvedValue({
+      id: "ws_1",
+      name: "Acme Plumbing",
+      ownerId: "owner_1",
+    });
+    hoisted.db.user.findUnique.mockResolvedValue({ phone: "0400000000" });
+    hoisted.ensureWorkspaceProvisioned.mockResolvedValue({
+      provisioningStatus: "provisioned",
+      elapsedMs: 100,
+      phoneNumber: "+61400000000",
+    });
   });
 
-  it("rejects unauthorized requests", async () => {
-    isOpsAuthorized.mockReturnValue(false);
-
-    const response = await POST(makeRequest({ workspaceId: "ws_1" }));
-
-    expect(response.status).toBe(403);
-    await expect(response.json()).resolves.toEqual({ error: "Unauthorized" });
-  });
-
-  it("validates workspaceId", async () => {
+  it("returns 400 when workspaceId is missing from the request body", async () => {
     const response = await POST(makeRequest({}));
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({ error: "Missing workspaceId" });
+    expect(hoisted.ensureWorkspaceProvisioned).not.toHaveBeenCalled();
   });
 
-  it("returns 404 when the workspace cannot be found", async () => {
-    db.workspace.findUnique.mockResolvedValue(null);
+  it("returns 404 when the workspace is not found in the database", async () => {
+    hoisted.db.workspace.findUnique.mockResolvedValue(null);
 
-    const response = await POST(makeRequest({ workspaceId: "ws_missing" }));
+    const response = await POST(makeRequest({ workspaceId: "ws_ghost" }));
 
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({ error: "Workspace not found" });
+    expect(hoisted.ensureWorkspaceProvisioned).not.toHaveBeenCalled();
   });
 
-  it("retries provisioning with workspace-derived business and owner context", async () => {
-    db.workspace.findUnique.mockResolvedValue({
-      id: "ws_1",
-      name: "Friendly Plumbing",
-      ownerId: "user_1",
-    });
-    db.user.findUnique.mockResolvedValue({ phone: "+61434955958" });
-    ensureWorkspaceProvisioned.mockResolvedValue({
-      success: true,
-      provisioningStatus: "provisioned",
-      phoneNumber: "+61485010634",
-    });
-
+  it("calls ensureWorkspaceProvisioned with triggerSource onboarding-activation and returns ok", async () => {
     const response = await POST(makeRequest({ workspaceId: "ws_1" }));
 
-    expect(ensureWorkspaceProvisioned).toHaveBeenCalledWith({
+    expect(response.status).toBe(200);
+    expect(hoisted.ensureWorkspaceProvisioned).toHaveBeenCalledWith({
       workspaceId: "ws_1",
-      businessName: "Friendly Plumbing",
-      ownerPhone: "+61434955958",
+      businessName: "Acme Plumbing",
+      ownerPhone: "0400000000",
       triggerSource: "onboarding-activation",
     });
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({
-      ok: true,
-      workspaceId: "ws_1",
-      businessName: "Friendly Plumbing",
-      ownerPhonePresent: true,
-      result: {
-        success: true,
-        provisioningStatus: "provisioned",
-        phoneNumber: "+61485010634",
-      },
+    const body = await response.json();
+    expect(body.ok).toBe(true);
+    expect(body.workspaceId).toBe("ws_1");
+    expect(body.businessName).toBe("Acme Plumbing");
+    expect(body.ownerPhonePresent).toBe(true);
+  });
+
+  it("handles missing owner gracefully (ownerPhone becomes null)", async () => {
+    hoisted.db.workspace.findUnique.mockResolvedValue({
+      id: "ws_nophone",
+      name: "No Phone Co",
+      ownerId: null,
     });
+
+    const response = await POST(makeRequest({ workspaceId: "ws_nophone" }));
+
+    expect(response.status).toBe(200);
+    expect(hoisted.ensureWorkspaceProvisioned).toHaveBeenCalledWith(
+      expect.objectContaining({ ownerPhone: null }),
+    );
+    const body = await response.json();
+    expect(body.ownerPhonePresent).toBe(false);
   });
 });

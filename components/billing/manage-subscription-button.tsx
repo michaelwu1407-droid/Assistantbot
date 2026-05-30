@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { createCustomerPortalSession } from "@/actions/billing-actions";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 export function ManageSubscriptionButton({ workspaceId }: { workspaceId: string }) {
     const [loading, setLoading] = useState(false);
@@ -14,6 +15,7 @@ export function ManageSubscriptionButton({ workspaceId }: { workspaceId: string 
             await createCustomerPortalSession(workspaceId);
         } catch (error) {
             console.error("Failed to open customer portal:", error);
+            toast.error("Could not reach the billing portal — please try again in a moment.");
             setLoading(false);
         }
     };

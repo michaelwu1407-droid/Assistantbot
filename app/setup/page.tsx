@@ -13,9 +13,11 @@ export default async function SetupPage() {
     }
 
     let alreadyOnboarded = false
+    let isResuming = false
     try {
         const workspace = await getOrCreateWorkspace(userId ?? undefined)
         alreadyOnboarded = workspace.onboardingComplete
+        isResuming = !workspace.onboardingComplete && workspace.name !== "My Workspace"
     } catch (error) {
         console.error("Workspace error:", error)
     }
@@ -24,5 +26,5 @@ export default async function SetupPage() {
         redirect("/crm/dashboard")
     }
 
-    return <TraceyOnboarding />
+    return <TraceyOnboarding isResuming={isResuming} />
 }

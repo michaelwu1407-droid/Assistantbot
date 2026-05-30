@@ -202,14 +202,14 @@ function ContactsClientDesktop({ contacts, pagination }: ContactsClientProps) {
     try {
       const result = await deleteContacts(Array.from(selected))
       if (result?.success === false) {
-        throw new Error(result.error || "Failed to delete contacts")
+        throw new Error(result.error || "Couldn't delete those contacts — please try again.")
       }
       toast.success(`Deleted ${selectedCount} contact${selectedCount === 1 ? "" : "s"}`)
       setSelected(new Set())
       setDeleteDialogOpen(false)
       router.refresh()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to delete contacts")
+      toast.error(error instanceof Error ? error.message : "Couldn't delete those contacts — please try again.")
     } finally {
       setSending(false)
     }
@@ -488,15 +488,15 @@ function ContactsClientDesktop({ contacts, pagination }: ContactsClientProps) {
                         </td>
                         <td className="hidden sm:table-cell px-4 py-2.5 text-muted-foreground">{contact.balanceLabel}</td>
                         <td className="px-4 py-2.5 text-right">
-                          <div className="flex items-center justify-end gap-0.5">
+                          <div className="flex items-center justify-end gap-1">
                             {contact.phone && (
                               <>
-                                <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" asChild title="Call">
+                                <Button size="icon" variant="ghost" className="h-10 w-10 shrink-0" asChild title="Call">
                                   <a href={`tel:${contact.phone}`}>
                                     <Phone className="h-4 w-4" />
                                   </a>
                                 </Button>
-                                <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" asChild title="Text">
+                                <Button size="icon" variant="ghost" className="h-10 w-10 shrink-0" asChild title="Text">
                                   <a href={`sms:${contact.phone}`}>
                                     <MessageSquare className="h-4 w-4" />
                                   </a>
@@ -504,7 +504,7 @@ function ContactsClientDesktop({ contacts, pagination }: ContactsClientProps) {
                               </>
                             )}
                             {contact.email && (
-                              <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" asChild title="Email">
+                              <Button size="icon" variant="ghost" className="h-10 w-10 shrink-0" asChild title="Email">
                                 <a href={`mailto:${contact.email}`}>
                                   <Mail className="h-4 w-4" />
                                 </a>

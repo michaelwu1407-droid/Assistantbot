@@ -27,10 +27,10 @@ interface ChatInterfaceProps {
 }
 
 const QUICK_ACTIONS = [
-  { icon: Calendar, label: "Schedule a job", prompt: "Help me schedule a job with a client" },
-  { icon: FileText, label: "Create a quote", prompt: "Help me create a quote for a new job" },
-  { icon: Phone, label: "Follow up call", prompt: "Help me prepare for a follow-up call" },
-  { icon: Sparkles, label: "Move a deal", prompt: "Show my deals" },
+  { icon: Calendar, label: "What's on today?", prompt: "Give me today's run sheet — all scheduled jobs and what needs attention." },
+  { icon: FileText, label: "Chase stale quotes", prompt: "List my quotes with no reply and draft a polite follow-up for each." },
+  { icon: Phone, label: "Chase unpaid invoices", prompt: "List unpaid invoices and draft a payment reminder for the oldest one." },
+  { icon: Sparkles, label: "What needs attention?", prompt: "Show me everything that needs my attention right now — stale deals, overdue tasks, missed calls." },
 ];
 
 /** Convert DB chat history to UIMessage[] (chronological). */

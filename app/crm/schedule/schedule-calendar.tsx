@@ -9,8 +9,9 @@ import { useIsMobile } from "@/hooks/use-is-mobile"
 import { ScheduleMobile } from "@/components/mobile/schedule/schedule-mobile"
 import { cn } from "@/lib/utils"
 import { DealDetailModal } from "@/components/crm/deal-detail-modal"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, CheckCircle2, XCircle, Clock, Phone, MessageSquare, ArrowUpRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { publishCrmSelection } from "@/lib/crm-selection"
 import {
   buildDateForHourInTimezone,
@@ -59,6 +60,7 @@ function ScheduleCalendarDesktop({ deals, teamMembers, workspaceTimezone, initia
   const [current, setCurrent] = useState(() => initialDate ?? new Date())
   const [view, setView] = useState<ViewMode>("month")
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null)
+  const [openPopoverDealId, setOpenPopoverDealId] = useState<string | null>(null)
   const [filterMemberId, setFilterMemberId] = useState<string | null>(null)
   const [localDeals, setLocalDeals] = useState(deals)
   const showTeamFilter = teamMembers.length > 1
@@ -185,17 +187,67 @@ function ScheduleCalendarDesktop({ deals, teamMembers, workspaceTimezone, initia
     }
   }
 
+  const getStageStatusIcon = (stage: string) => {
+    switch (stage) {
+      case "scheduled": return <CheckCircle2 className="h-3 w-3 shrink-0 text-emerald-600" />
+      case "completed": return <CheckCircle2 className="h-3 w-3 shrink-0 text-muted-foreground" />
+      case "lost": return <XCircle className="h-3 w-3 shrink-0 text-destructive" />
+      case "quote_sent": return <Clock className="h-3 w-3 shrink-0 text-amber-500" />
+      default: return null
+    }
+  }
+
   const renderDealChip = (deal: DealView) => (
-    <div
-      key={deal.id}
-      draggable
-      onDragStart={(e) => handleDragStart(e, deal.id)}
-      onClick={() => setSelectedDealId(deal.id)}
-      className={cn("app-body-primary w-full truncate rounded border px-2 py-1 text-left hover:opacity-80 cursor-grab active:cursor-grabbing", getStageChipStyle(deal.stage))}
-    >
-      {deal.scheduledAt && <span className="mr-1 text-xs opacity-70">{formatTimeInTimezone(deal.scheduledAt, resolvedTimezone)}</span>}
-      {deal.title}
-    </div>
+    <Popover key={deal.id} open={openPopoverDealId === deal.id} onOpenChange={(o) => setOpenPopoverDealId(o ? deal.id : null)}>
+      <PopoverTrigger asChild>
+        <div
+          draggable
+          onDragStart={(e) => { handleDragStart(e, deal.id); setOpenPopoverDealId(null) }}
+          className={cn("flex w-full cursor-grab items-center gap-1 rounded border px-2 py-1 text-left text-xs active:cursor-grabbing hover:opacity-80", getStageChipStyle(deal.stage))}
+        >
+          {deal.scheduledAt && (
+            <span className="shrink-0 opacity-70">{formatTimeInTimezone(deal.scheduledAt, resolvedTimezone)}</span>
+          )}
+          <span className="min-w-0 flex-1 truncate font-medium">{deal.title}</span>
+          {getStageStatusIcon(deal.stage)}
+        </div>
+      </PopoverTrigger>
+      <PopoverContent className="w-60 p-3" align="start" onClick={(e) => e.stopPropagation()}>
+        <div className="space-y-2">
+          <div>
+            <p className="app-panel-title truncate">{deal.title}</p>
+            <p className="app-body-secondary mt-0.5 text-xs">{deal.contactName}</p>
+          </div>
+          {deal.scheduledAt && (
+            <p className="text-xs text-muted-foreground">{formatTimeInTimezone(deal.scheduledAt, resolvedTimezone)}</p>
+          )}
+          {deal.contactPhone && (
+            <a href={`tel:${deal.contactPhone}`} className="flex items-center gap-1.5 text-xs text-primary hover:underline">
+              <Phone className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{deal.contactPhone}</span>
+            </a>
+          )}
+          <div className="flex gap-1.5 pt-0.5">
+            {deal.contactPhone && (
+              <Button asChild variant="outline" size="sm" className="flex-1 px-2 text-xs">
+                <a href={`tel:${deal.contactPhone}`}><Phone className="mr-1 h-3 w-3" />Call</a>
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 px-2 text-xs"
+              onClick={() => { setOpenPopoverDealId(null); setSelectedDealId(deal.id) }}
+            >
+              <MessageSquare className="mr-1 h-3 w-3" />SMS
+            </Button>
+            <Button asChild variant="outline" size="sm" className="px-2 text-xs">
+              <Link href={`/crm/deals/${deal.id}`}><ArrowUpRight className="h-3 w-3" /></Link>
+            </Button>
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
   )
 
   const renderEmptyState = (scope: string) => (
@@ -489,14 +541,14 @@ function ScheduleCalendarDesktop({ deals, teamMembers, workspaceTimezone, initia
     <div className="h-full flex flex-col bg-card rounded-lg border shadow-sm overflow-hidden" style={{ borderColor: "#E6E2D7" }}>
       <div className="flex items-center justify-between p-3.5 border-b shrink-0" style={{ borderColor: "#E6E2D7", background: "#F6F4EE" }}>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => nav(-1)} className="rounded-md h-8 w-8 hover:bg-card shadow-sm">
+          <Button variant="outline" size="icon" onClick={() => nav(-1)} className="rounded-md hover:bg-card shadow-sm">
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setCurrent(new Date())} className="h-8 hover:bg-card shadow-sm font-medium">
+          <Button variant="outline" size="sm" onClick={() => setCurrent(new Date())} className="hover:bg-card shadow-sm font-medium">
             Today
           </Button>
           <h2 className="app-panel-title min-w-[150px] text-center">{headerLabel()}</h2>
-          <Button variant="outline" size="icon" onClick={() => nav(1)} className="rounded-md h-8 w-8 hover:bg-card shadow-sm">
+          <Button variant="outline" size="icon" onClick={() => nav(1)} className="rounded-md hover:bg-card shadow-sm">
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>

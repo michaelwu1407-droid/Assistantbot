@@ -29,12 +29,12 @@ export function BusinessContactForm({ initialData }: BusinessContactFormProps) {
         address: address?.trim() || undefined,
       })
       if (!result.success) {
-        toast.error("Failed to save")
+        toast.error("Couldn't save your contact details — please try again.")
         return
       }
       toast.success("Business contact saved")
     } catch {
-      toast.error("Failed to save")
+      toast.error("Couldn't save your contact details — please try again.")
     } finally {
       setSaving(false)
     }

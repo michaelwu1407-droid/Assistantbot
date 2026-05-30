@@ -39,6 +39,22 @@ A journey is not truly ready until it passes all of these checks:
 
 If any of the eight checks are weak, the journey is still `watch` or `gap`, even if the underlying code is correct.
 
+## Where the per-row data lives
+
+This file is the **framework definition** — the 8 gates and the
+release-gate rule. The actual scored rows (every surface, current
+state of each gate) live in `docs/USE_CASE_TEST_MATRIX.md`.
+
+The five priority-journey blocks below are the **product intent** for
+the highest-impact flows. They are kept because the matrix scores
+surfaces, not narratives, and these narratives are still the canonical
+"what does good look like for this journey?" statement.
+
+When updating, the rule is:
+
+- intent changes → edit the priority-journey block below.
+- "is the gate green today?" changes → edit the matrix row.
+
 ## Current priority journeys
 
 ### 1. Admin/tradie -> message Earlymark on WhatsApp
@@ -110,14 +126,17 @@ If any of the eight checks are weak, the journey is still `watch` or `gap`, even
 
 ## Working rule
 
-For each feature we care about, we should keep both of these in sync:
+For each feature we care about, three files must agree:
 
-- feature proof: `FEATURE_VERIFICATION.md`
-- user journey proof: this file
+- feature proof: `FEATURE_VERIFICATION.md` (the 4-layer proof model)
+- user journey intent: this file (the 8-check gate)
+- live row-by-row state: `docs/USE_CASE_TEST_MATRIX.md` (the scored grid)
 
-That gives us two independent questions:
+That gives three independent questions:
 
-1. Did the system do the right thing?
-2. Could the intended person actually use it successfully?
+1. Did the system do the right thing? — `FEATURE_VERIFICATION.md`
+2. Could the intended person actually use it successfully? — this file
+3. Is every surface green today? — `docs/USE_CASE_TEST_MATRIX.md`
 
-Only when both answers are solid should we treat the feature as fully ready.
+Only when all three are solid should we treat a journey as fully
+ready.

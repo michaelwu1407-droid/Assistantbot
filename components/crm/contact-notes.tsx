@@ -26,10 +26,10 @@ export function ContactNotes({ contactId, initialNotes }: ContactNotesProps) {
       if (result.success) {
         toast.success("Notes saved")
       } else {
-        toast.error(result.error ?? "Failed to save")
+        toast.error(result.error ?? "Couldn't save your notes — please try again.")
       }
     } catch {
-      toast.error("Failed to save notes")
+      toast.error("Couldn't save your notes — please try again.")
     } finally {
       setSaving(false)
     }

@@ -9,6 +9,7 @@ import {
   Settings2,
   LifeBuoy,
   LogOut,
+  Moon,
 } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useShellStore } from "@/lib/store"
@@ -41,6 +42,7 @@ export function MoreSheet({ open, onOpenChange }: MoreSheetProps) {
   }
 
   const items: MoreItem[] = [
+    { href: "/crm/wrap-up", label: "Tonight's Wrap", icon: Moon },
     { href: "/crm/contacts", label: "Contacts", icon: Users, managerOnly: true },
     { href: "/crm/team", label: "Team", icon: UsersRound },
     // BETA_REMOVED: Map entry. To reinstate: import Map as MapIcon from lucide-react, add { href: "/crm/map", label: "Map", icon: MapIcon } here

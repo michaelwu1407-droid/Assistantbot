@@ -1,6 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton"
 
 export default function DashboardLoading() {
+    return (
     <div className="h-full flex flex-col overflow-hidden relative p-2 md:p-3 md:pt-2 gap-1.5">
         {/* Header Skeleton */}
         <div className="flex items-center justify-between shrink-0 h-14 pb-2">
@@ -15,7 +16,7 @@ export default function DashboardLoading() {
         </div>
 
         {/* Setup Widget Skeleton */}
-        <Skeleton className="h-16 w-full rounded-xl mb-6 shadow-sm border border-emerald-200" />
+        <Skeleton className="h-16 w-full rounded-xl mb-6 shadow-sm border border-border" />
 
         <div className="flex flex-col flex-1 min-h-0 gap-0">
             {/* Top row: KPI Cards Skeleton */}
@@ -44,4 +45,5 @@ export default function DashboardLoading() {
             </div>
         </div>
     </div>
+    )
 }

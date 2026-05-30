@@ -55,14 +55,14 @@ export function StaleJobReconciliationModal({ deal, onClose, onSuccess }: Props)
         outcomeNotes: outcomeNotes.trim() || null,
       });
       if (!result.success) {
-        toast.error(result.error || "Failed to update job");
+        toast.error(result.error || "Couldn't update that job — please try again.");
         return;
       }
       toast.success("Job updated");
       onSuccess();
     } catch (error) {
       console.error("Failed to reconcile stale job:", error);
-      toast.error("Failed to update job");
+      toast.error("Couldn't update that job — please try again.");
     } finally {
       setIsSubmitting(false);
     }

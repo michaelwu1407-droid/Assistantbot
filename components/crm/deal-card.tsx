@@ -79,7 +79,8 @@ function statusPillStyle(label: string, severity?: "critical" | "warning" | "mil
     case "Draft":         return { background: "#ECE6FA", color: "#8B6FE0" }
     case "Pending approval": return { background: "#FBEFD8", color: "#E89A2B" }
     case "Urgent":
-    case "Rejected":      return { background: "#FBDDD9", color: "#DC4A4A" }
+    case "Rejected":
+    case "Respond now":   return { background: "#FBDDD9", color: "#DC4A4A" }
     case "Follow up":     return { background: "#FBEFD8", color: "#E89A2B" }
     case "Needs review":  return { background: "#FEF0E6", color: "#D97706" }
     default:              return { background: "#F0EFED", color: "#6B7773" }
@@ -189,6 +190,14 @@ export function DealCard({
     if (isRejected && statusLabel === "") {
       statusLabel = "Rejected"
     }
+
+    // SLA: new lead with no action taken > 15 min
+    if (deal.stage === "new_request" && deal.createdAt && statusLabel === "") {
+      const ageMs = Date.now() - new Date(deal.createdAt).getTime()
+      if (ageMs > 15 * 60 * 1000) {
+        statusLabel = "Respond now"
+      }
+    }
   }
 
   // Add overdue border on top of base card (overdue wins over health/draft look)
@@ -239,10 +248,10 @@ export function DealCard({
         onDecisionApplied?.({ type: "approve_completion" })
         router.refresh()
       } else {
-        toast.error(result.error ?? "Failed to approve")
+        toast.error(result.error ?? "Couldn't approve that job — please try again.")
       }
     } catch {
-      toast.error("Failed to approve")
+      toast.error("Couldn't approve that job — please try again.")
     } finally {
       setApprovalBusy(false)
     }
@@ -259,10 +268,10 @@ export function DealCard({
         onDecisionApplied?.({ type: "approve_draft" })
         router.refresh()
       } else {
-        toast.error(result.error ?? "Failed to approve draft")
+        toast.error(result.error ?? "Couldn't approve that draft — please try again.")
       }
     } catch {
-      toast.error("Failed to approve draft")
+      toast.error("Couldn't approve that draft — please try again.")
     } finally {
       setApprovalBusy(false)
     }
@@ -285,10 +294,10 @@ export function DealCard({
         )
         router.refresh()
       } else {
-        toast.error(result.error ?? "Failed to reject")
+        toast.error(result.error ?? "Couldn't reject that — please try again.")
       }
     } catch {
-      toast.error("Failed to reject")
+      toast.error("Couldn't reject that — please try again.")
     } finally {
       setApprovalBusy(false)
     }

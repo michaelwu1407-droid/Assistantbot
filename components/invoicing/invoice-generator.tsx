@@ -32,11 +32,11 @@ export function InvoiceGenerator({ invoiceId, invoiceNumber }: InvoiceGeneratorP
             if (result.success && result.html) {
                 setHtmlContent(result.html)
             } else {
-                toast.error("Failed to load invoice preview")
+                toast.error("Couldn't load the invoice preview — please try again.")
                 setIsOpen(false)
             }
         } catch {
-            toast.error("Error generating invoice")
+            toast.error("Couldn't generate the invoice — please try again.")
             setIsOpen(false)
         } finally {
             setIsLoading(false)
@@ -98,7 +98,7 @@ export function InvoiceGenerator({ invoiceId, invoiceNumber }: InvoiceGeneratorP
                         />
                     ) : (
                         <div className="flex items-center justify-center h-full text-muted-foreground">
-                            Failed to load preview
+                            Couldn't load preview — try again.
                         </div>
                     )}
                 </div>

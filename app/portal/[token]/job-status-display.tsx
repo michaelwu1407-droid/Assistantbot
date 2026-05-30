@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState, useTransition } from "react"
-import { getJobPortalStatus, type JobPortalStatus } from "@/actions/job-portal-actions"
+import { getJobPortalStatus, acceptQuote, confirmPayment, type JobPortalStatus } from "@/actions/job-portal-actions"
+import { formatCurrency } from "@/lib/format"
 
 const STATUS_STEPS = [
   { key: "SCHEDULED", label: "Booked" },
@@ -26,7 +27,37 @@ export function JobStatusDisplay({
   initial: JobPortalStatus
 }) {
   const [data, setData] = useState<JobPortalStatus>(initial)
+  const [accepting, setAccepting] = useState(false)
+  const [accepted, setAccepted] = useState(initial.quoteAccepted)
+  const [acceptError, setAcceptError] = useState<string | null>(null)
+  const [confirming, setConfirming] = useState(false)
+  const [paymentConfirmed, setPaymentConfirmed] = useState(initial.invoicePaid)
+  const [paymentError, setPaymentError] = useState<string | null>(null)
   const [, startTransition] = useTransition()
+
+  const handleConfirmPayment = async () => {
+    setConfirming(true)
+    setPaymentError(null)
+    const result = await confirmPayment(token)
+    if (result.success) {
+      setPaymentConfirmed(true)
+    } else {
+      setPaymentError(result.error ?? "Couldn't confirm payment — please try again.")
+    }
+    setConfirming(false)
+  }
+
+  const handleAccept = async () => {
+    setAccepting(true)
+    setAcceptError(null)
+    const result = await acceptQuote(token)
+    if (result.success) {
+      setAccepted(true)
+    } else {
+      setAcceptError(result.error ?? "Couldn't accept the quote — please try again.")
+    }
+    setAccepting(false)
+  }
 
   useEffect(() => {
     // Poll every 5 minutes for status updates.
@@ -63,10 +94,39 @@ export function JobStatusDisplay({
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Job</p>
         <p className="mt-1 text-xl font-semibold text-foreground">{data.title}</p>
+        {data.quoteValue && (
+          <p className="mt-1 text-lg font-semibold text-foreground">{formatCurrency(data.quoteValue)}</p>
+        )}
         {data.scheduledAt && (
           <p className="mt-1 text-sm text-muted-foreground">{data.scheduledAt}</p>
         )}
       </div>
+
+      {/* Accept quote panel */}
+      {data.isQuote && (
+        <div className={[
+          "rounded-xl border p-5 text-center shadow-sm",
+          accepted ? "border-emerald-200 bg-emerald-50" : "border-blue-200 bg-blue-50",
+        ].join(" ")}>
+          {accepted ? (
+            <>
+              <p className="text-sm font-semibold text-emerald-800">Quote accepted — we&apos;ll be in touch to confirm your booking.</p>
+            </>
+          ) : (
+            <>
+              <p className="mb-3 text-sm font-medium text-blue-900">Ready to go ahead?</p>
+              {acceptError && <p className="mb-2 text-xs text-red-600">{acceptError}</p>}
+              <button
+                onClick={handleAccept}
+                disabled={accepting}
+                className="rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {accepting ? "Accepting…" : "Accept Quote"}
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Status timeline */}
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
@@ -125,6 +185,33 @@ export function JobStatusDisplay({
           })}
         </ol>
       </div>
+
+      {/* Payment confirmation panel */}
+      {data.isInvoiced && (
+        <div className={[
+          "rounded-xl border p-5 text-center shadow-sm",
+          paymentConfirmed ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50",
+        ].join(" ")}>
+          {paymentConfirmed ? (
+            <p className="text-sm font-semibold text-emerald-800">Payment confirmed — thank you!</p>
+          ) : (
+            <>
+              {data.invoiceTotal && (
+                <p className="mb-1 text-lg font-semibold text-foreground">{formatCurrency(data.invoiceTotal)} due</p>
+              )}
+              <p className="mb-3 text-sm text-amber-900">Have you already paid this invoice?</p>
+              {paymentError && <p className="mb-2 text-xs text-red-600">{paymentError}</p>}
+              <button
+                onClick={handleConfirmPayment}
+                disabled={confirming}
+                className="rounded-lg bg-amber-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-50"
+              >
+                {confirming ? "Confirming…" : "Yes, I've paid"}
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Feedback prompt when complete */}
       {data.isComplete && data.feedbackUrl && (

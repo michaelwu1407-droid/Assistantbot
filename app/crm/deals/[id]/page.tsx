@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DealNotes } from "@/components/crm/deal-notes"
+import { RunningLateInline } from "@/components/crm/running-late-inline"
 import { DealPhotosUpload } from "@/components/crm/deal-photos-upload"
 import { JobBillingTab } from "@/components/tradie/job-billing-tab"
 import { ActivityFeed } from "@/components/crm/activity-feed"
@@ -134,12 +135,20 @@ export default async function DealDetailPage({ params, searchParams }: PageProps
             </p>
           </div>
         </div>
-        <Button variant="secondary" size="sm" asChild>
-          <Link href={`/crm/deals/${id}/edit`}>
-            <Edit className="w-4 h-4 mr-2" />
-            Edit
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link href={`/crm/deals/${id}?tab=billing#billing`}>
+              <FileText className="w-4 h-4 mr-2" />
+              Quote / Invoice
+            </Link>
+          </Button>
+          <Button variant="secondary" size="sm" asChild>
+            <Link href={`/crm/deals/${id}/edit`}>
+              <Edit className="w-4 h-4 mr-2" />
+              Edit
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Main: LHS (contact + job) | RHS (history + notes) */}
@@ -154,7 +163,7 @@ export default async function DealDetailPage({ params, searchParams }: PageProps
                 Contact details
               </h3>
               {contact && (
-                <Button variant="outline" size="sm" asChild className="h-8 text-xs">
+                <Button variant="outline" size="sm" asChild className="text-xs">
                   <Link href={`/crm/contacts/${contact.id}/edit`}>
                     <Edit className="w-3.5 h-3.5 mr-1" />
                     Edit contact
@@ -165,18 +174,18 @@ export default async function DealDetailPage({ params, searchParams }: PageProps
             {contact ? (
               <div className="space-y-2.5 text-sm">
                 <div>
-                  <p className="text-muted-foreground text-xs">Name</p>
+                  <p className="app-field-label">Name</p>
                   <p className="font-medium text-foreground">{contact.name}</p>
                 </div>
                 {contact.email && (
                   <div>
-                    <p className="text-muted-foreground text-xs">Email</p>
+                    <p className="app-field-label">Email</p>
                     <p className="font-medium text-foreground">{contact.email}</p>
                   </div>
                 )}
                 {contact.phone && (
                   <div>
-                    <p className="text-muted-foreground text-xs">Phone</p>
+                    <p className="app-field-label">Phone</p>
                     <a href={`tel:${contact.phone}`} className="font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 mt-0.5">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
                       {contact.phone}
@@ -185,7 +194,7 @@ export default async function DealDetailPage({ params, searchParams }: PageProps
                 )}
                 {contact.company && (
                   <div>
-                    <p className="text-muted-foreground text-xs">Company</p>
+                    <p className="app-field-label">Company</p>
                     <p className="font-medium text-foreground">{contact.company}</p>
                   </div>
                 )}
@@ -193,7 +202,7 @@ export default async function DealDetailPage({ params, searchParams }: PageProps
                   <div className="flex items-start gap-1.5">
                     <MapPin className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-muted-foreground text-xs">Address</p>
+                      <p className="app-field-label">Address</p>
                       <p className="font-medium text-foreground">{deal.address || (metadata.address as string)}</p>
                     </div>
                   </div>
@@ -231,13 +240,13 @@ export default async function DealDetailPage({ params, searchParams }: PageProps
             </div>
             <div className="space-y-2.5 text-sm">
               <div>
-                <p className="text-muted-foreground text-xs">Job</p>
+                <p className="app-field-label">Job</p>
                 <p className="font-medium text-foreground">{deal.title}</p>
               </div>
               <div>
                 {deal.invoicedAmount && Number(deal.invoicedAmount) > 0 ? (
                   <>
-                    <p className="text-muted-foreground text-xs">Invoiced</p>
+                    <p className="app-field-label">Invoiced</p>
                     <p className="font-medium text-emerald-600">{formatCurrency(Number(deal.invoicedAmount))}</p>
                     {Number(deal.invoicedAmount) !== Number(deal.value || 0) && (
                       <p className="text-xs text-muted-foreground mt-0.5">Quoted: {formatCurrency(Number(deal.value || 0))}</p>
@@ -245,20 +254,25 @@ export default async function DealDetailPage({ params, searchParams }: PageProps
                   </>
                 ) : (
                   <>
-                    <p className="text-muted-foreground text-xs">Quoted value</p>
+                    <p className="app-field-label">Quoted value</p>
                     <p className="font-medium text-emerald-600">{formatCurrency(Number(deal.value || 0))}</p>
                   </>
                 )}
               </div>
               <div>
-                <p className="text-muted-foreground text-xs">Scheduled</p>
+                <p className="app-field-label">Scheduled</p>
                 <p className="font-medium text-foreground">
                   {deal.scheduledAt ? formatDateTimeInTimezone(deal.scheduledAt, workspaceTimezone) : "Not scheduled"}
                 </p>
+                {deal.stage === "SCHEDULED" && deal.contactId && (
+                  <div className="mt-2">
+                    <RunningLateInline dealId={id} />
+                  </div>
+                )}
               </div>
               {deal.address || (typeof metadata.address === "string" && metadata.address) ? (
                 <div>
-                  <p className="text-muted-foreground text-xs">Job address</p>
+                  <p className="app-field-label">Job address</p>
                   <div className="flex items-start justify-between gap-2">
                     <p className="font-medium text-foreground flex-1">
                       {deal.address || (metadata.address as string)}
@@ -276,7 +290,7 @@ export default async function DealDetailPage({ params, searchParams }: PageProps
                 </div>
               ) : contact?.id ? (
                 <div>
-                  <p className="text-muted-foreground text-xs">Job address</p>
+                  <p className="app-field-label">Job address</p>
                   <p className="text-xs text-destructive">No address on file. Add one in CRM before using route or map actions for this job.</p>
                   <Button variant="outline" size="sm" className="mt-2 h-8 text-xs" asChild>
                     <Link href={`/crm/contacts/${contact.id}/edit`}>Add address in CRM</Link>
@@ -284,7 +298,7 @@ export default async function DealDetailPage({ params, searchParams }: PageProps
                 </div>
               ) : null}
               <div>
-                <p className="text-muted-foreground text-xs">Assigned to</p>
+                <p className="app-field-label">Assigned to</p>
                 <p className="font-medium text-foreground">
                   {deal.assignedTo ? (deal.assignedTo.name || deal.assignedTo.email) : "Unassigned"}
                 </p>
@@ -315,7 +329,7 @@ export default async function DealDetailPage({ params, searchParams }: PageProps
                 </div>
               ) : null}
               <div>
-                <p className="text-muted-foreground text-xs">Created</p>
+                <p className="app-field-label">Created</p>
                 <p className="font-medium text-foreground">{format(new Date(deal.createdAt), "MMM d, yyyy")}</p>
               </div>
             </div>
@@ -414,7 +428,7 @@ export default async function DealDetailPage({ params, searchParams }: PageProps
       </div>
 
       {/* Billing + Photos as tabs */}
-      <div className="shrink-0">
+      <div id="billing" className="shrink-0">
         <Tabs defaultValue={defaultBottomTab} className="w-full">
           <TabsList className="h-9">
             <TabsTrigger value="billing" className="gap-2 text-xs">

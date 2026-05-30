@@ -74,4 +74,15 @@ describe("processAgentCommand", () => {
 
     expect(result).toBe("I processed that in Earlymark, but I don't have a text summary to send back yet.");
   });
+
+  it("returns a user-friendly error message when the LLM call throws (res-05 timeout/error)", async () => {
+    hoisted.generateText.mockRejectedValue(new Error("Request timed out after 30000ms"));
+    const { processAgentCommand } = await import("@/lib/services/ai-agent");
+
+    const result = await processAgentCommand("user_1", "what jobs are on today?");
+
+    expect(result).toBe(
+      "I encountered an error trying to process your request. Please try again or contact support if the issue persists.",
+    );
+  });
 });
