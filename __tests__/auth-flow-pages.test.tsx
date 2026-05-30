@@ -31,16 +31,8 @@ vi.mock("@/components/onboarding/tracey-onboarding", () => ({
 }));
 
 vi.mock("@/components/billing/upgrade-button", () => ({
-  UpgradeButton: ({
-    workspaceId,
-    initialProvisionPhoneNumberRequested,
-  }: {
-    workspaceId: string;
-    initialProvisionPhoneNumberRequested: boolean;
-  }) => (
-    <div data-testid="upgrade-button">
-      {workspaceId}:{String(initialProvisionPhoneNumberRequested)}
-    </div>
+  UpgradeButton: ({ workspaceId }: { workspaceId: string }) => (
+    <div data-testid="upgrade-button">{workspaceId}</div>
   ),
 }));
 
@@ -96,6 +88,6 @@ describe("setup and billing pages", () => {
     render(page);
 
     expect(screen.getByText(/Activate your assistant/i)).toBeInTheDocument();
-    expect(screen.getByTestId("upgrade-button")).toHaveTextContent("ws_123:true");
+    expect(screen.getByTestId("upgrade-button")).toHaveTextContent("ws_123");
   });
 });

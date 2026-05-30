@@ -37,6 +37,28 @@ describe("real integration readiness", () => {
   it("returns all core services with auth included", () => {
     const result = getAllServiceReadiness({});
 
-    expect(result.map((service) => service.name)).toEqual(["stripe", "twilio", "resend", "livekit", "auth"]);
+    expect(result.map((service) => service.name)).toEqual([
+      "stripe",
+      "twilio",
+      "resend",
+      "livekit",
+      "auth",
+      "qstash",
+    ]);
+  });
+
+  it("marks qstash ready when token, both signing keys, and app url are present", () => {
+    const result = getServiceReadiness(
+      {
+        QSTASH_TOKEN: "qstash_token",
+        QSTASH_CURRENT_SIGNING_KEY: "sig_current",
+        QSTASH_NEXT_SIGNING_KEY: "sig_next",
+        NEXT_PUBLIC_APP_URL: "https://staging.example.com",
+      },
+      "qstash",
+    );
+
+    expect(result.ready).toBe(true);
+    expect(result.missingRequired).toEqual([]);
   });
 });

@@ -16,8 +16,12 @@ If an external platform genuinely requires configuration the customer must do (e
 
 If a limitation forces a technical ask onto the customer (e.g. infra delay floor), fix the limitation at the infra/team level — do not punt the cost onto the customer.
 
-## Tracey number IS the business number
-Customers do not bring their own number. Every workspace is auto-provisioned a Twilio number at signup and that IS their business number. There is no BYO path, no "keep existing number" toggle, no decline option. Code, copy and flows should reflect this single source of truth.
+## Tracey number IS the business number (default)
+Every workspace is auto-provisioned a Twilio number at signup. That is the business number — this is the default path (90% of new tradies). Code, copy, and onboarding should treat provisioning as automatic and invisible.
+
+**Supported option — keep your number:** An established tradie who already has a public number can keep it and forward missed calls to Tracey. The engine for this already exists in `lib/call-forwarding.ts` (backup/full/off modes, carrier-aware, tap-to-dial `tel:` links). Surface this in phone settings as a single one-tap toggle — never expose raw MMI codes. This path is owner-only (gate with `user.id === workspace.ownerId`).
+
+Do NOT present forwarding as the default or required setup. Auto-provisioning is the path for new tradies; forwarding is an opt-in for existing ones.
 
 ## Workspace vs teammate
 The Twilio number is a workspace-level resource owned by the workspace OWNER. Teammates (MANAGER / TEAM_MEMBER) who join via invite share the workspace's resources but do not get their own number and do not see number-management UI. Phone/billing/provisioning UI is owner-only — gate with `user.id === workspace.ownerId`.

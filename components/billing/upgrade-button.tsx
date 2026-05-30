@@ -4,18 +4,15 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { createCheckoutSession } from "@/actions/billing-actions";
 import { Loader2 } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
 
 export function UpgradeButton({
     workspaceId,
-    initialProvisionPhoneNumberRequested = false,
 }: {
     workspaceId: string;
-    initialProvisionPhoneNumberRequested?: boolean;
 }) {
     const [loading, setLoading] = useState(false);
     const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("yearly");
-    const [provisionPhoneNumberRequested, setProvisionPhoneNumberRequested] = useState(initialProvisionPhoneNumberRequested);
+    const provisionPhoneNumberRequested = true;
 
     const handleUpgrade = async () => {
         try {
@@ -81,22 +78,6 @@ export function UpgradeButton({
                     : "Billed A$288/year. Cancel anytime. Promo codes accepted at checkout."}
             </p>
 
-            <div className="rounded-xl border border-border dark:border-slate-800 bg-muted/30 dark:bg-slate-900 p-4 text-left">
-                <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                        <p className="text-sm font-semibold text-foreground">Provision mobile business number</p>
-                        <p className="text-xs text-muted-foreground">
-                            Temporary beta option. Turn this on before payment if you want Earlymark to provision your dedicated AU mobile number after Stripe succeeds.
-                        </p>
-                    </div>
-                    <Switch
-                        checked={provisionPhoneNumberRequested}
-                        onCheckedChange={setProvisionPhoneNumberRequested}
-                        aria-label="Provision mobile business number"
-                    />
-                </div>
-            </div>
-
             <Button
                 size="lg"
                 className="w-full text-lg shadow-xl shadow-primary/20"
@@ -106,9 +87,7 @@ export function UpgradeButton({
                 {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : `Continue to Stripe checkout`}
             </Button>
             <p className="text-center text-xs text-muted-foreground">
-                {provisionPhoneNumberRequested
-                    ? "Your paid workspace will be eligible for AU mobile-number provisioning after Stripe succeeds."
-                    : "You can still pay and complete onboarding without a Twilio number. Leave this off if you do not want provisioning during beta."}
+                Your Tracey AU mobile number will be set up automatically after payment.
             </p>
         </div>
     );

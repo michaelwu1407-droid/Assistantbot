@@ -12,6 +12,7 @@ import { useShellStore } from "@/lib/store"
 import { useDashboardHeaderExtraSetter } from "@/components/dashboard/dashboard-header-extra-context"
 import { Filter, Save, X } from "lucide-react"
 import { SetupWidget } from "@/components/dashboard/setup-widget"
+import { RecentCallsWidget } from "@/components/dashboard/recent-calls-widget"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -335,6 +336,13 @@ function DashboardClientDesktop({ workspace, deals, teamMembers, userName }: Das
                         </div>
 
                         <SetupWidget />
+
+                        <div className={cn(
+                            "shrink-0 pt-4",
+                            assistantPanelExpanded ? "-ml-6 pl-6 pr-0" : "-mx-6 px-6"
+                        )}>
+                            <RecentCallsWidget workspaceId={workspace.id} />
+                        </div>
 
                         <div
                             className={cn(

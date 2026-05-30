@@ -12,11 +12,6 @@ import { formatDateTimeInTimezone } from "@/lib/timezone";
 
 type LeadCaptureEmailReadiness = Awaited<ReturnType<typeof getLeadCaptureEmailReadiness>>;
 
-const AUTO_CALL_DELAY_PRESETS: { seconds: number; label: string }[] = [
-  { seconds: 0, label: "Immediate" },
-  { seconds: 300, label: "Wait 5 min" },
-  { seconds: 900, label: "Wait 15 min" },
-];
 
 function formatDate(value: string | null | undefined) {
   if (!value) return null;
@@ -60,7 +55,6 @@ function getReadinessMessage(readiness: LeadCaptureEmailReadiness | null) {
 export function EmailLeadCaptureSettings() {
   const [forwardingEmail, setForwardingEmail] = useState<string>("");
   const [autoCallLeads, setAutoCallLeads] = useState(false);
-  const [autoCallDelaySec, setAutoCallDelaySec] = useState<number>(0);
   const [readiness, setReadiness] = useState<LeadCaptureEmailReadiness | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -76,10 +70,8 @@ export function EmailLeadCaptureSettings() {
           getLeadCaptureEmailReadiness(),
         ]);
         if (!cancelled) {
-          const savedDelay = (settings as { autoCallDelaySec?: number } | null)?.autoCallDelaySec ?? 0;
           setForwardingEmail(email);
           setAutoCallLeads(settings?.autoCallLeads ?? false);
-          setAutoCallDelaySec(savedDelay === 60 ? 0 : savedDelay);
           setReadiness(nextReadiness);
         }
       } catch {
@@ -131,33 +123,6 @@ export function EmailLeadCaptureSettings() {
     }
   };
 
-  const handleSaveDelay = async (nextSec: number) => {
-    const clamped = Math.max(0, Math.min(900, Math.floor(nextSec)));
-    setAutoCallDelaySec(clamped);
-    setSaving(true);
-    try {
-      const settings = await getWorkspaceSettings();
-      if (!settings) throw new Error("No settings");
-      await updateWorkspaceSettings({
-        ...settings,
-        aiPreferences: settings.aiPreferences ?? undefined,
-        jobReminderHours: settings.jobReminderHours ?? undefined,
-        inboundEmailAlias: settings.inboundEmailAlias ?? undefined,
-        agentScriptStyle: (settings.agentScriptStyle as "opening" | "closing") ?? undefined,
-        agentMode: settings.agentMode,
-        workingHoursStart: settings.workingHoursStart ?? "08:00",
-        workingHoursEnd: settings.workingHoursEnd ?? "17:00",
-        agendaNotifyTime: settings.agendaNotifyTime ?? "07:30",
-        wrapupNotifyTime: settings.wrapupNotifyTime ?? "17:30",
-        autoCallDelaySec: clamped,
-      });
-      toast.success(clamped === 0 ? "Tracey will dial new leads immediately." : `Tracey will wait ${clamped}s before dialling new leads.`);
-    } catch {
-      toast.error("Failed to save");
-    } finally {
-      setSaving(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -257,33 +222,6 @@ export function EmailLeadCaptureSettings() {
           />
         </div>
 
-        {autoCallLeads && (
-          <div className="rounded-lg border border-border/50 p-4 space-y-3">
-            <div className="space-y-1">
-              <Label className="text-base font-medium">When should Tracey call back?</Label>
-              <p className="text-sm text-muted-foreground">
-                Faster is almost always better &mdash; speed-to-lead research says contacting a fresh lead within a minute converts ~4&times; better than waiting 5. Pick a different option below if you&apos;d like a short pause first.
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {AUTO_CALL_DELAY_PRESETS.map((preset) => (
-                <button
-                  key={preset.seconds}
-                  type="button"
-                  disabled={saving}
-                  onClick={() => handleSaveDelay(preset.seconds)}
-                  className={
-                    autoCallDelaySec === preset.seconds
-                      ? "rounded-md border border-foreground bg-foreground text-background px-3 py-2 text-sm font-medium"
-                      : "rounded-md border border-border bg-background px-3 py-2 text-sm hover:bg-muted/40"
-                  }
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

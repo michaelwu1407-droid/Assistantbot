@@ -1,5 +1,6 @@
 import { getDeals } from "@/actions/deal-actions"
 import { MapPageClient } from "@/components/map/map-page-client"
+import { BetaGate } from "@/components/beta-gate"
 import { Calendar } from "lucide-react"
 import { redirect } from "next/navigation"
 import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access"
@@ -80,19 +81,21 @@ export default async function DashboardMapPage() {
     }
 
     return (
-        <div className="h-full flex flex-col">
-            <div className="shrink-0 flex items-center gap-4 p-3 border-b" style={{ background: "#F6F4EE", borderColor: "#E6E2D7" }}>
-                <div className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5 text-primary" />
-                    <span className="font-semibold text-foreground">
-                        {todayCount > 0 ? `${todayCount} job${todayCount === 1 ? "" : "s"} today` : "No jobs scheduled for today"}
-                    </span>
+        <BetaGate>
+            <div className="h-full flex flex-col">
+                <div className="shrink-0 flex items-center gap-4 p-3 border-b" style={{ background: "#F6F4EE", borderColor: "#E6E2D7" }}>
+                    <div className="flex items-center gap-2">
+                        <Calendar className="h-5 w-5 text-primary" />
+                        <span className="font-semibold text-foreground">
+                            {todayCount > 0 ? `${todayCount} job${todayCount === 1 ? "" : "s"} today` : "No jobs scheduled for today"}
+                        </span>
+                    </div>
+                </div>
+                <div className="flex-1 min-h-0">
+                    <MapPageClient jobs={displayJobs} />
                 </div>
             </div>
-            <div className="flex-1 min-h-0">
-                <MapPageClient jobs={displayJobs} />
-            </div>
-        </div>
+        </BetaGate>
     )
 }
 

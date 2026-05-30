@@ -40,6 +40,7 @@ import {
 } from './runtime-config';
 import { buildVoiceAgentRuntimeFingerprint } from './runtime-fingerprint';
 import voiceLatency from './voice-latency';
+import { buildCallKeyterms, deriveGroundingKeyterms } from './stt-keyterms';
 import { isEarlymarkInboundRoomName } from './room-routing';
 import type {
   GuardDecision,
@@ -975,42 +976,6 @@ function resolveConfiguredTtsModel() {
 
 function resolveSttModel() {
   return (process.env.VOICE_STT_MODEL || "nova-3").trim();
-}
-
-const VOICE_STT_BASE_KEYTERMS = [
-  "Earlymark",
-  "earlymark.ai",
-  "Tracey",
-  "Tracy",
-  "Ottorize",
-  "Alexandria Automotive Services",
-  "Alexandria Automotive",
-  "Assistantbot",
-  "LiveKit",
-  "Cartesia",
-  "Deepgram",
-  "Sonic",
-  "Nova",
-  "Groq",
-  "DeepInfra",
-  "Llama",
-  "Sydney",
-  "Alexandria",
-  "Marrickville",
-  "Newtown",
-  "Erskineville",
-  "Redfern",
-  "Mascot",
-  "Botany",
-];
-
-function resolveSttKeyterms(): string[] {
-  const fromEnv = (process.env.VOICE_STT_KEYTERMS || "")
-    .split(",")
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-  const merged = [...VOICE_STT_BASE_KEYTERMS, ...fromEnv];
-  return Array.from(new Set(merged));
 }
 
 type TurnDetectionMode = "stt" | "vad";
@@ -2477,7 +2442,11 @@ export default defineAgent({
 
     callType = resolveCallType(callType, calledPhone, roomName);
     const voiceTurnTuning = resolveVoiceTurnTuning(callType);
-    const sttKeyterms = resolveSttKeyterms();
+    // For normal customer calls, boost the workspace's own proper nouns
+    // (business name, trade, service suburbs) in addition to the base list.
+    const sttGrounding =
+      callType === "normal" ? getCachedVoiceGrounding(calledPhone) : null;
+    const sttKeyterms = buildCallKeyterms(sttGrounding);
     const sttModelName = resolveSttModel();
     const sttLanguageMode = "multi";
     const stt = new deepgram.STT({
@@ -2499,6 +2468,7 @@ export default defineAgent({
       model: sttModelName,
       languageMode: sttLanguageMode,
       keytermCount: sttKeyterms.length,
+      groundingKeyterms: deriveGroundingKeyterms(sttGrounding).length,
     })}`);
     console.log(`[voice-tts-config] ${JSON.stringify({
       callId,
@@ -2539,10 +2509,8 @@ export default defineAgent({
       calledPhone,
     };
 
-    const normalVoiceGrounding =
-      callType === "normal"
-        ? getCachedVoiceGrounding(calledPhone)
-        : null;
+    // Reuse the grounding already fetched for STT keyterms (same cache lookup).
+    const normalVoiceGrounding = sttGrounding;
     if (callType === "normal" && !normalVoiceGrounding) {
       void refreshVoiceGroundingIndex().catch(() => {});
     }

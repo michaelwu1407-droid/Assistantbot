@@ -81,12 +81,7 @@ export default async function BillingPaywallPage() {
                     </div>
                 </div>
 
-                <UpgradeButton
-                    workspaceId={workspace.id}
-                    initialProvisionPhoneNumberRequested={
-                        getWorkspaceSettings((workspace as { settings?: unknown }).settings).provisionPhoneNumberRequested === true
-                    }
-                />
+                <UpgradeButton workspaceId={workspace.id} />
             </div>
 
             <div className="mt-8 text-xs text-muted-foreground opacity-60">

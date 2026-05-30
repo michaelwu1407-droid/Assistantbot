@@ -128,6 +128,16 @@ type LatencyWaterfall = {
   topTools: { tool: string; summary: PercentileSummary }[];
 };
 
+export const VOICE_METRIC_KEYS = {
+  stt: 'voice.stt_ms',
+  tts: 'voice.tts_ms',
+  ttsTtfb: 'voice.tts.ttfb_ms',
+  llmGroq: 'voice.llm.groq_ms',
+  llmGroqTtft: 'voice.llm.groq.ttft_ms',
+  llmDeepinfra: 'voice.llm.deepinfra_ms',
+  llmDeepinfraTtft: 'voice.llm.deepinfra.ttft_ms',
+} as const;
+
 const WATERFALL_PHASES = [
   'chat.web.preprocessing_ms',
   'chat.web.preprocessing.job_extraction_ms',
@@ -138,6 +148,13 @@ const WATERFALL_PHASES = [
   'chat.web.model_ms',
   'chat.web.total_ms',
   'chat.client.ttft_ms',
+  VOICE_METRIC_KEYS.stt,
+  VOICE_METRIC_KEYS.llmGroq,
+  VOICE_METRIC_KEYS.llmGroqTtft,
+  VOICE_METRIC_KEYS.llmDeepinfra,
+  VOICE_METRIC_KEYS.llmDeepinfraTtft,
+  VOICE_METRIC_KEYS.tts,
+  VOICE_METRIC_KEYS.ttsTtfb,
 ];
 
 export async function getLatencyWaterfall(topToolsCount = 10): Promise<LatencyWaterfall> {

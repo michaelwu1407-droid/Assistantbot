@@ -8,7 +8,6 @@ import {
     LayoutDashboard,
     Inbox,
     CalendarDays,
-    Map,
     Users,
     BarChart2,
     UsersRound,
@@ -31,7 +30,7 @@ const allNavItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/crm/dashboard", id: "dashboard-link", managerOnly: false },
     { icon: Inbox, label: "Inbox", href: "/crm/inbox", id: "inbox-link", managerOnly: true },
     { icon: CalendarDays, label: "Schedule", href: "/crm/schedule", id: "schedule-link", managerOnly: false },
-    { icon: Map, label: "Map", href: "/crm/map", id: "map-link", managerOnly: false },
+    // BETA_REMOVED: Map nav item. To reinstate: import Map from lucide-react, add { icon: Map, label: "Map", href: "/crm/map", id: "map-link", managerOnly: false } here
     { icon: Users, label: "Contacts", href: "/crm/contacts", id: "contacts-link", managerOnly: true },
     { icon: BarChart2, label: "Analytics", href: "/crm/analytics", id: "reports-link", managerOnly: true },
     { icon: UsersRound, label: "Team", href: "/crm/team", id: "team-link", managerOnly: false },

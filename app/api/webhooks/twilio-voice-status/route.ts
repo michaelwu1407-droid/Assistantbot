@@ -173,7 +173,7 @@ export async function POST(req: NextRequest) {
         contactName: contact.name || `Caller ${callerNumber}`,
         dealId: deal.id,
         reason: `missed_call_callback:${dialStatus}`,
-        delaySec: workspace.autoCallDelaySec === 60 ? 0 : (workspace.autoCallDelaySec ?? 0),
+        delaySec: 0,
         triggerSource: "missed_call",
         callbackKind: "automatic",
       }).catch((err) => {
