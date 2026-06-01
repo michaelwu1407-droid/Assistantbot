@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
+vi.mock("@/lib/workspace-access", () => ({
+  requireCurrentWorkspaceAccess: vi.fn().mockResolvedValue({ workspaceId: "ws_test" }),
+}));
+
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
 import { POST } from "@/app/api/voice-preview/route";
 
 function makeRequest(body: unknown) {
@@ -17,6 +22,7 @@ describe("POST /api/voice-preview", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(requireCurrentWorkspaceAccess).mockResolvedValue({ workspaceId: "ws_test" } as never);
     global.fetch = fetchMock as unknown as typeof fetch;
     process.env.CARTESIA_API_KEY = "cartesia_test";
   });
@@ -24,6 +30,19 @@ describe("POST /api/voice-preview", () => {
   afterEach(() => {
     global.fetch = originalFetch;
     delete process.env.CARTESIA_API_KEY;
+  });
+
+  it("rejects unauthenticated requests", async () => {
+    vi.mocked(requireCurrentWorkspaceAccess).mockRejectedValueOnce(new Error("Unauthorized"));
+
+    const response = await POST(makeRequest({
+      voiceId: "a4a16c5e-5902-4732-b9b6-2a48efd2e11b",
+      text: "Hello",
+    }));
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({ error: "Unauthorized" });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("requires CARTESIA_API_KEY", async () => {
