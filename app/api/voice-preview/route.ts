@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireCurrentWorkspaceAccess } from "@/lib/workspace-access";
 
 const CARTESIA_API_URL = "https://api.cartesia.ai/tts/bytes";
 const CARTESIA_MODEL = "sonic-3";
@@ -11,6 +12,12 @@ const ALLOWED_VOICE_IDS = new Set([
 ]);
 
 export async function POST(req: NextRequest) {
+  try {
+    await requireCurrentWorkspaceAccess();
+  } catch {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const apiKey = process.env.CARTESIA_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
