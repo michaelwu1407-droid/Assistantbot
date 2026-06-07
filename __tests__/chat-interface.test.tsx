@@ -93,18 +93,18 @@ describe("ChatInterface", () => {
   it("renders the current quick actions", async () => {
     await renderChatInterface();
 
-    expect(screen.getByRole("button", { name: "What's on today?" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Chase stale quotes" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Chase unpaid invoices" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "What needs attention?" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Schedule a job" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create a quote" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Follow up call" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Move a deal" })).toBeInTheDocument();
   });
 
   it("sends the quick-action prompt immediately so Tracey responds without an extra Send click", async () => {
     const { user } = await renderChatInterface();
 
-    await user.click(screen.getByRole("button", { name: "What's on today?" }));
+    await user.click(screen.getByRole("button", { name: "Schedule a job" }));
 
-    expect(screen.getByText("Give me today's run sheet — all scheduled jobs and what needs attention.")).toBeInTheDocument();
+    expect(screen.getByText("Help me schedule a job with a client")).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Message" })).toHaveValue("");
   });
 

@@ -83,7 +83,7 @@ describe("ContactHeader", () => {
     await waitFor(() => {
       expect(sendSMS).toHaveBeenCalledWith("contact_1", "On my way");
     });
-    expect(toastSuccess).toHaveBeenCalledWith("SMS sent.");
+    expect(toastSuccess).toHaveBeenCalledWith("SMS sent via Twilio");
     expect(screen.getByPlaceholderText("Type your message...")).toHaveValue("");
   });
 

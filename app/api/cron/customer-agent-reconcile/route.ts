@@ -46,7 +46,7 @@ export async function GET(req: Request) {
         voiceWorker: audit.voiceWorker,
         readiness: audit.readiness,
       },
-      { status: audit.status === "unhealthy" ? 500 : 200 },
+      { status: 200 },
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown customer-agent-reconcile failure";

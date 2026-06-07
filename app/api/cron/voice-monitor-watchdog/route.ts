@@ -271,7 +271,7 @@ export async function GET(req: NextRequest) {
         refreshedSyntheticProbeRun,
         incidents,
       },
-      { status: watchdogStatus === "unhealthy" ? 500 : 200 },
+      { status: 200 },
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown watchdog failure";

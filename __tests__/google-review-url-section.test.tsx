@@ -69,7 +69,7 @@ describe("GoogleReviewUrlSection", () => {
 
     await user.click(screen.getByRole("button", { name: "Save" }));
 
-    await waitFor(() => expect(toastError).toHaveBeenCalledWith("Couldn't save that URL — please try again."));
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith("Failed to save"));
     expect(updateWorkspaceSettings).not.toHaveBeenCalled();
   });
 });

@@ -39,14 +39,14 @@ describe("lib/ai-models", () => {
       apiKey: "gemini-key",
     });
     expect(googleProvider).toHaveBeenCalledWith("gemini-2.0-flash-lite-preview-02-05");
-    expect(openaiProvider).toHaveBeenCalledWith("deepseek-ai/DeepSeek-V4-Flash");
+    expect(openaiProvider).toHaveBeenCalledWith("deepseek-ai/DeepSeek-V3");
     expect(contextModel).toEqual({
       provider: "google",
       model: "gemini-2.0-flash-lite-preview-02-05",
     });
     expect(logicModel).toEqual({
       provider: "deepinfra",
-      model: "deepseek-ai/DeepSeek-V4-Flash",
+      model: "deepseek-ai/DeepSeek-V3",
     });
   });
 

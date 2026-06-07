@@ -96,7 +96,7 @@ describe("WorkingHoursForm", () => {
     await user.click(screen.getByRole("button", { name: "Save hours" }));
 
     await waitFor(() => {
-      expect(toastError).toHaveBeenCalledWith("Couldn't load current settings — please refresh.");
+      expect(toastError).toHaveBeenCalledWith("Failed to get current settings");
     });
     expect(updateWorkspaceSettings).not.toHaveBeenCalled();
   });
