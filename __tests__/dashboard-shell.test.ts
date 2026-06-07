@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getAuthUserId, getOrCreateWorkspace, requireCurrentWorkspaceAccess } = vi.hoisted(() => ({
+const { getAuthUserId, getAuthUser, getOrCreateWorkspace, requireCurrentWorkspaceAccess } = vi.hoisted(() => ({
   getAuthUserId: vi.fn(),
+  getAuthUser: vi.fn(),
   getOrCreateWorkspace: vi.fn(),
   requireCurrentWorkspaceAccess: vi.fn(),
 }));
 
-vi.mock("@/lib/auth", () => ({ getAuthUserId }));
+vi.mock("@/lib/auth", () => ({ getAuthUserId, getAuthUser }));
 vi.mock("@/actions/workspace-actions", () => ({ getOrCreateWorkspace }));
 vi.mock("@/lib/workspace-access", () => ({ requireCurrentWorkspaceAccess }));
 
