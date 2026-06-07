@@ -142,7 +142,7 @@ describe("KanbanBoard", () => {
     expect(screen.getAllByText("Completed").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Deleted").length).toBeGreaterThan(0);
 
-    await user.click(screen.getAllByRole("button", { name: /add your first deal/i })[0]);
+    await user.click(screen.getAllByRole("button", { name: /add your first job/i })[0]);
 
     expect(dispatchSpy).toHaveBeenCalledWith(
       expect.objectContaining({

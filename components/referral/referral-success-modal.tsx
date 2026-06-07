@@ -120,7 +120,7 @@ export function ReferralSuccessModal({ isOpen, onClose, trigger, userId }: Refer
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md bg-card">
+      <Card role="dialog" aria-modal="true" aria-labelledby="referral-modal-title" className="w-full max-w-md bg-card">
         <CardHeader className="relative">
           <button
             onClick={onClose}
@@ -129,7 +129,7 @@ export function ReferralSuccessModal({ isOpen, onClose, trigger, userId }: Refer
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
-          <CardTitle className="text-center">Share Earlymark & Earn Rewards</CardTitle>
+          <CardTitle id="referral-modal-title" className="text-center">Share Earlymark & Earn Rewards</CardTitle>
         </CardHeader>
         
         <CardContent className="space-y-4">
@@ -154,6 +154,7 @@ export function ReferralSuccessModal({ isOpen, onClose, trigger, userId }: Refer
                 type="text"
                 value={referralLink}
                 readOnly
+                aria-label="Your referral link"
                 className="flex-1 px-3 py-2 text-sm border border-border rounded-md bg-card"
               />
               <Button

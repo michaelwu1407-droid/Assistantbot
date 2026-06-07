@@ -20,6 +20,7 @@ vi.mock("@/actions/messaging-actions", () => ({
 
 vi.mock("@/actions/notification-actions", () => ({
   createNotification: vi.fn(),
+  shouldSendNotificationEmail: vi.fn().mockResolvedValue(false),
 }));
 
 vi.mock("@/lib/monitoring", () => ({

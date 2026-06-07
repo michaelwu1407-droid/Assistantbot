@@ -33,6 +33,7 @@ vi.mock("next/cache", () => ({
 
 vi.mock("@/actions/notification-actions", () => ({
   createNotification: vi.fn(),
+  shouldSendNotificationEmail: vi.fn().mockResolvedValue(false),
 }));
 
 import { getUnresolvedDeviations, resolveDeviation } from "@/actions/learning-actions";

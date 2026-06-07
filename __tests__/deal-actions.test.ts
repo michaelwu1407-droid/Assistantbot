@@ -54,6 +54,7 @@ vi.mock("@/actions/automation-actions", () => ({
 }));
 vi.mock("@/actions/notification-actions", () => ({
   createNotification: hoisted.createNotification,
+  shouldSendNotificationEmail: vi.fn().mockResolvedValue(false),
 }));
 vi.mock("@/lib/auth", () => ({
   getAuthUser: hoisted.getAuthUser,

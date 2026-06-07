@@ -185,7 +185,7 @@ describe("DealDetailModal", () => {
 
     render(<DealDetailModal dealId="missing" open onOpenChange={onOpenChange} />);
 
-    expect(await screen.findByText("Deal not found")).toBeInTheDocument();
+    expect(await screen.findByText("Job not found")).toBeInTheDocument();
 
     await user.click(screen.getAllByRole("button", { name: "Close" })[0]);
 

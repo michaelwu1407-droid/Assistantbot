@@ -2,6 +2,10 @@ import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 
+vi.mock("@/components/settings/support-ticket-list", () => ({
+  SupportTicketList: () => null,
+}));
+
 vi.mock("@/components/ui/select", async () => {
   const React = await import("react");
 
