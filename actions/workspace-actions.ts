@@ -23,6 +23,7 @@ export interface WorkspaceView {
   stripeCustomerId?: string | null;
   stripePriceId?: string | null;
   subscriptionStatus?: string | null;
+  stripeCurrentPeriodEnd?: Date | null;
   settings?: unknown;
 }
 
@@ -43,6 +44,7 @@ function toWorkspaceView(w: {
   stripeCustomerId?: string | null;
   stripePriceId?: string | null;
   subscriptionStatus?: string | null;
+  stripeCurrentPeriodEnd?: Date | null;
   settings?: unknown;
 }): WorkspaceView {
   return {
@@ -58,6 +60,7 @@ function toWorkspaceView(w: {
     stripeCustomerId: w.stripeCustomerId,
     stripePriceId: w.stripePriceId,
     subscriptionStatus: w.subscriptionStatus,
+    stripeCurrentPeriodEnd: w.stripeCurrentPeriodEnd,
     settings: w.settings,
   };
 }

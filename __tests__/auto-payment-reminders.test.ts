@@ -24,7 +24,7 @@ function makeWorkspace(overrides: { agentMode?: string; triggerDays?: number } =
   return {
     agentMode: overrides.agentMode ?? "EXECUTION",
     name: "Acme Plumbing",
-    invoiceFollowUp: overrides.triggerDays != null ? { triggerDays: overrides.triggerDays } : null,
+    settings: overrides.triggerDays != null ? { invoiceFollowUp: { triggerDays: overrides.triggerDays } } : {},
   };
 }
 
@@ -45,7 +45,7 @@ function makeInvoice(overrides: {
       id: "deal_1",
       title: "Drain fix",
       contactId: "contact_1",
-      contact: { name: "Jane Smith", phone: overrides.phone ?? "+61400000001" },
+      contact: { name: "Jane Smith", phone: overrides.phone === undefined ? "+61400000001" : overrides.phone },
       activities: milestones.map((m) => ({
         title: `Auto payment reminder: ${m} days (invoice ${overrides.number ?? "INV-001"})`,
       })),

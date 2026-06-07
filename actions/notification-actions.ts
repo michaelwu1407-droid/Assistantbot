@@ -353,7 +353,7 @@ export async function ensureDailyNotifications(workspaceId: string) {
       const todayJobs = await db.deal.findMany({
         where: {
           workspaceId,
-          stage: "scheduled",
+          stage: "SCHEDULED",
           scheduledAt: { gte: todayStart, lt: todayEnd },
         },
         select: { title: true, scheduledAt: true, value: true, contact: { select: { name: true } } },
@@ -465,7 +465,7 @@ async function ensureFollowUpReminders(
 
   const [staleQuotes, unpaidInvoices] = await Promise.all([
     db.deal.findMany({
-      where: { workspaceId, stage: "quote_sent", stageChangedAt: { lte: quoteThreshold } },
+      where: { workspaceId, stage: "CONTACTED", stageChangedAt: { lte: quoteThreshold } },
       select: { id: true, title: true, contact: { select: { name: true } }, value: true },
       take: 5,
     }),

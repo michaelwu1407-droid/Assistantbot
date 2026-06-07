@@ -6,11 +6,12 @@ import { sendSMS } from "@/actions/messaging-actions"
 export async function ensureAutoPaymentReminders(workspaceId: string) {
   const workspace = await db.workspace.findUnique({
     where: { id: workspaceId },
-    select: { agentMode: true, name: true, invoiceFollowUp: true },
+    select: { agentMode: true, name: true, settings: true },
   })
   if (!workspace || workspace.agentMode !== "EXECUTION") return
 
-  const setting = workspace.invoiceFollowUp as { triggerDays?: number } | null
+  const settings = (workspace.settings as Record<string, unknown> | null) ?? {}
+  const setting = settings.invoiceFollowUp as { triggerDays?: number } | null
   const firstMilestone = setting?.triggerDays ?? 7
   // Send at the configured interval, then again 7 and 14 days later
   const milestonesDays = [firstMilestone, firstMilestone + 7, firstMilestone + 14]

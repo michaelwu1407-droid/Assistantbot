@@ -86,7 +86,7 @@ export async function syncVoiceCallToCRM(
         metadata: { source: "voice_call", createdFromCall: payload.callId },
       },
     });
-    contact = { id: newContact.id, name: newContact.name, phone: newContact.phone };
+    contact = { id: newContact.id, name: newContact.name, phone: newContact.phone, smsOptedOut: newContact.smsOptedOut };
     contactCreated = true;
     console.log(`[post-call-sync] Created contact ${newContact.id} for ${callerName} (${payload.callerPhone})`);
   }

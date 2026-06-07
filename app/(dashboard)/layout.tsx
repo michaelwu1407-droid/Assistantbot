@@ -29,6 +29,10 @@ export default async function DashboardLayout({
     redirect("/auth");
   }
 
+  if ("noWorkspace" in dashboardState && dashboardState.noWorkspace) {
+    redirect("/no-workspace");
+  }
+
   try {
     userId = dashboardState.userId;
     const workspace = dashboardState.workspace;

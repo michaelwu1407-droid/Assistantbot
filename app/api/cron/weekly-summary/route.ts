@@ -38,15 +38,15 @@ export async function GET(req: NextRequest) {
           where: { workspaceId: workspace.id, createdAt: { gte: sevenDaysAgo } },
         }),
         db.deal.count({
-          where: { workspaceId: workspace.id, stage: "COMPLETED", updatedAt: { gte: sevenDaysAgo } },
+          where: { workspaceId: workspace.id, stage: "WON", updatedAt: { gte: sevenDaysAgo } },
         }),
         db.deal.count({
-          where: { workspaceId: workspace.id, stage: { notIn: ["COMPLETED", "LOST", "DELETED"] } },
+          where: { workspaceId: workspace.id, stage: { notIn: ["WON", "LOST", "DELETED"] } },
         }),
         db.deal.aggregate({
           where: {
             workspaceId: workspace.id,
-            stage: "COMPLETED",
+            stage: "WON",
             updatedAt: { gte: sevenDaysAgo },
             value: { not: null },
           },
@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
         }),
       ]);
 
-      const revenueNum = weekRevenue._sum.value ? Number(weekRevenue._sum.value) : 0;
+      const revenueNum = weekRevenue._sum?.value ? Number(weekRevenue._sum.value) : 0;
       const revenueStr = revenueNum > 0 ? formatCurrency(revenueNum) : "—";
 
       const text = [

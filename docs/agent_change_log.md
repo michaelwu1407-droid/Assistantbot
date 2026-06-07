@@ -1,3 +1,39 @@
+## 2026-06-07 (Claude) - Fix all 37 pre-existing TypeScript errors
+
+- Files changed:
+  - `actions/auto-payment-reminders.ts` — read `invoiceFollowUp` from the
+    `settings` JSON (it is not a top-level Workspace column)
+  - `actions/deal-actions.ts` — add `title` to the optimistic-lock deal select
+  - `actions/notification-actions.ts` — use DB enum stages (`SCHEDULED`,
+    `CONTACTED`) instead of UI strings (`scheduled`, `quote_sent`)
+  - `app/api/cron/weekly-summary/route.ts`, `app/api/test/trigger/weekly-digest/route.ts`
+    — completed-deal stage is `WON` (no `COMPLETED` enum value); guard optional `_sum`
+  - `app/(dashboard)/layout.tsx` — handle the `noWorkspace` shell state so
+    `workspace` narrows to non-null
+  - `actions/workspace-actions.ts` — expose `stripeCurrentPeriodEnd` on
+    `WorkspaceView` (used by `app/crm/layout.tsx` grace-period gating)
+  - `components/settings/email-lead-capture-settings.tsx` — remove dead
+    `handleSaveDelay` (leftover from the delay-knob removal; referenced a deleted
+    `setAutoCallDelaySec` setter)
+  - `lib/post-call-sync.ts` — include `smsOptedOut` on the created-contact literal
+    (the missing field broke null-narrowing for all later `contact` uses)
+  - `__tests__/auto-payment-reminders.test.ts` — mock `settings.invoiceFollowUp`;
+    fix the `makeInvoice` helper so an explicit `phone: null` is honoured (was
+    `?? default`, so the "no phone" case never actually exercised null — that test
+    was already failing on baseline)
+- Why:
+  - `npx tsc --noEmit` reported 37 errors on baseline `e88d075`, almost all from
+    `d17cd61` (the 30 May "tradie UX excellence" commit) shipping code that used
+    UI stage strings / non-existent enum values / a removed setter against the
+    current Prisma schema. The schema is the source of truth (changing it needs a
+    DB migration), so the code was aligned to the schema.
+- Verified with:
+  - `node_modules/.bin/tsc --noEmit` — 0 errors (was 37)
+  - Full `vitest run`: failing test files went 25 → 24 (fixed
+    auto-payment-reminders, introduced zero regressions vs baseline). The
+    remaining 24 failing files fail identically on baseline `e88d075` and are
+    unrelated to this change (separate pre-existing issue).
+
 ## 2026-06-07 (Claude) - Exclude synthetic probe calls from real-traffic voice health
 
 - Files changed:
