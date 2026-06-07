@@ -25,6 +25,9 @@ function makeRequest() {
 
 const ONE_WEEK_AGO = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000); // 8 days ago
 const JUST_NOW = new Date(Date.now() - 60 * 1000); // 1 min ago
+// 5 days ago: for a weekly rule the next occurrence (+7d) is 2 days in the
+// future, which is what the daily cron clones (it only schedules future runs).
+const DUE_SOON = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000);
 
 describe("GET /api/cron/recurring-jobs (cron-05)", () => {
   beforeEach(() => {
@@ -63,7 +66,7 @@ describe("GET /api/cron/recurring-jobs (cron-05)", () => {
         workspaceId: "ws_1",
         contactId: "contact_1",
         assignedToId: null,
-        scheduledAt: ONE_WEEK_AGO,
+        scheduledAt: DUE_SOON,
         metadata: { recurrence: { unit: "week", interval: 1 } },
       },
     ]);
@@ -166,7 +169,7 @@ describe("GET /api/cron/recurring-jobs (cron-05)", () => {
         workspaceId: "ws_1",
         contactId: "contact_3",
         assignedToId: null,
-        scheduledAt: ONE_WEEK_AGO,
+        scheduledAt: DUE_SOON,
         metadata: { recurrence: { unit: "week", interval: 1 } },
       },
     ]);

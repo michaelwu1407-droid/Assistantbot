@@ -38,15 +38,15 @@ export async function POST(req: NextRequest) {
 
   const [newContacts, completedDeals, activeDeals, weekRevenue] = await Promise.all([
     db.contact.count({ where: { workspaceId, createdAt: { gte: sevenDaysAgo } } }),
-    db.deal.count({ where: { workspaceId, stage: "COMPLETED", updatedAt: { gte: sevenDaysAgo } } }),
-    db.deal.count({ where: { workspaceId, stage: { notIn: ["COMPLETED", "LOST", "DELETED"] } } }),
+    db.deal.count({ where: { workspaceId, stage: "WON", updatedAt: { gte: sevenDaysAgo } } }),
+    db.deal.count({ where: { workspaceId, stage: { notIn: ["WON", "LOST", "DELETED"] } } }),
     db.deal.aggregate({
-      where: { workspaceId, stage: "COMPLETED", updatedAt: { gte: sevenDaysAgo }, value: { not: null } },
+      where: { workspaceId, stage: "WON", updatedAt: { gte: sevenDaysAgo }, value: { not: null } },
       _sum: { value: true },
     }),
   ])
 
-  const revenueNum = weekRevenue._sum.value ? Number(weekRevenue._sum.value) : 0
+  const revenueNum = weekRevenue._sum?.value ? Number(weekRevenue._sum.value) : 0
   const revenueStr = revenueNum > 0 ? formatCurrency(revenueNum) : "—"
 
   const text = [

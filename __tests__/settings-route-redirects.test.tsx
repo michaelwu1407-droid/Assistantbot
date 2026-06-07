@@ -100,7 +100,7 @@ describe("settings route redirects", () => {
     });
   });
 
-  it("redirects /crm/settings/account to the main settings index (set-02)", () => {
-    expect(() => AccountSettingsRedirectPage()).toThrow("REDIRECT:/crm/settings");
+  it("redirects /crm/settings/account to the main settings index (set-02)", async () => {
+    await expect(AccountSettingsRedirectPage()).rejects.toThrow("REDIRECT:/crm/settings");
   });
 });

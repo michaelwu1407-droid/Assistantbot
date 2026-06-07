@@ -119,6 +119,7 @@ vi.mock("@/actions/task-actions", () => ({
 }));
 vi.mock("@/actions/notification-actions", () => ({
   createNotification: hoisted.createNotification,
+  shouldSendNotificationEmail: vi.fn().mockResolvedValue(false),
 }));
 vi.mock("@/lib/digest", () => ({
   generateMorningDigest: hoisted.generateMorningDigest,

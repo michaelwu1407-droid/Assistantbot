@@ -167,6 +167,7 @@ vi.mock("@/actions/task-actions", () => ({
 }));
 vi.mock("@/actions/notification-actions", () => ({
   createNotification: vi.fn(),
+  shouldSendNotificationEmail: vi.fn().mockResolvedValue(false),
 }));
 vi.mock("@/lib/deal-stage-rules", () => ({
   kanbanStageRequiresScheduledDate: vi.fn(() => false),

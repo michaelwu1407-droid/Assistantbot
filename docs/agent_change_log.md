@@ -1,3 +1,77 @@
+## 2026-06-07 (Claude) - Fix all 37 pre-existing TypeScript errors
+
+- Files changed:
+  - `actions/auto-payment-reminders.ts` — read `invoiceFollowUp` from the
+    `settings` JSON (it is not a top-level Workspace column)
+  - `actions/deal-actions.ts` — add `title` to the optimistic-lock deal select
+  - `actions/notification-actions.ts` — use DB enum stages (`SCHEDULED`,
+    `CONTACTED`) instead of UI strings (`scheduled`, `quote_sent`)
+  - `app/api/cron/weekly-summary/route.ts`, `app/api/test/trigger/weekly-digest/route.ts`
+    — completed-deal stage is `WON` (no `COMPLETED` enum value); guard optional `_sum`
+  - `app/(dashboard)/layout.tsx` — handle the `noWorkspace` shell state so
+    `workspace` narrows to non-null
+  - `actions/workspace-actions.ts` — expose `stripeCurrentPeriodEnd` on
+    `WorkspaceView` (used by `app/crm/layout.tsx` grace-period gating)
+  - `components/settings/email-lead-capture-settings.tsx` — remove dead
+    `handleSaveDelay` (leftover from the delay-knob removal; referenced a deleted
+    `setAutoCallDelaySec` setter)
+  - `lib/post-call-sync.ts` — include `smsOptedOut` on the created-contact literal
+    (the missing field broke null-narrowing for all later `contact` uses)
+  - `__tests__/auto-payment-reminders.test.ts` — mock `settings.invoiceFollowUp`;
+    fix the `makeInvoice` helper so an explicit `phone: null` is honoured (was
+    `?? default`, so the "no phone" case never actually exercised null — that test
+    was already failing on baseline)
+- Why:
+  - `npx tsc --noEmit` reported 37 errors on baseline `e88d075`, almost all from
+    `d17cd61` (the 30 May "tradie UX excellence" commit) shipping code that used
+    UI stage strings / non-existent enum values / a removed setter against the
+    current Prisma schema. The schema is the source of truth (changing it needs a
+    DB migration), so the code was aligned to the schema.
+- Verified with:
+  - `node_modules/.bin/tsc --noEmit` — 0 errors (was 37)
+  - Full `vitest run`: failing test files went 25 → 24 (fixed
+    auto-payment-reminders, introduced zero regressions vs baseline). The
+    remaining 24 failing files fail identically on baseline `e88d075` and are
+    unrelated to this change (separate pre-existing issue).
+
+## 2026-06-07 (Claude) - Exclude synthetic probe calls from real-traffic voice health
+
+- Files changed:
+  - `lib/voice-monitor-probe-identity.ts` (new)
+  - `lib/twilio-voice-call-health.ts`
+  - `__tests__/voice-monitor-probe-identity.test.ts` (new)
+  - `__tests__/twilio-voice-call-health.test.ts` (new)
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added a shared helper that resolves the synthetic voice-probe caller numbers
+    (`VOICE_MONITOR_PROBE_CALLER_NUMBER`, `VOICE_ALERT_SMS_TO`, default) and a
+    matcher for them.
+  - `getTwilioVoiceCallHealth` now ignores calls originating from the probe
+    caller, so the probe's own SIP-direct verification calls (which end as
+    no-answer/busy when the path is unhealthy) no longer count as real customer
+    traffic failures.
+- Why:
+  - The Earlymark inbound (`inbound_demo`) sales-agent path was genuinely down
+    (flapping `earlymark-sales-agent` worker). The dedicated `voice-synthetic-probe`
+    workflow and the `fleet` check already alert on that. But because
+    `isRelevantVoiceCall` matched any call to `@live.earlymark.ai`, the probe's
+    own failed calls were ALSO counted by recent-call health AND passive
+    communications health — paging the operator 3x for one incident.
+  - This keeps real customer voice traffic as the signal for those passive
+    surfaces while leaving the real outage detection (probe + fleet) intact.
+- NOT changed (deliberately):
+  - The `pstn_self_call_risk` unhealthy path in `lib/voice-spoken-canary.ts` is
+    a real signal — its SIP-direct attempt is the legitimate inbound_demo
+    verification and correctly fails when the sales agent is down. It must keep
+    paging until the worker is restored.
+- Known pre-existing issue (not addressed here):
+  - `npx tsc --noEmit` reports 37 errors on baseline `e88d075` in untouched
+    `actions/` and `app/` files (Prisma schema/code drift). This change adds zero
+    new type errors but does not fix that drift.
+- Verified with:
+  - `node_modules/.bin/vitest run` for the new + passive/monitoring suites (16 tests passing)
+  - `node_modules/.bin/tsc --noEmit` (error count unchanged at 37, none in changed files)
+
 ## 2026-05-30 (Claude) - Flag stale planning/audit docs as outdated
 
 - Files changed:

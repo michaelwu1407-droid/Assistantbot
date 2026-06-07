@@ -57,6 +57,7 @@ vi.mock("@/actions/geo-actions", () => ({
 }));
 vi.mock("@/actions/notification-actions", () => ({
   createNotification: vi.fn(),
+  shouldSendNotificationEmail: vi.fn().mockResolvedValue(false),
 }));
 vi.mock("@/actions/automation-actions", () => ({
   evaluateAutomations: vi.fn(),

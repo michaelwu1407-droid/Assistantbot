@@ -22,6 +22,7 @@ const hoisted = vi.hoisted(() => ({
     },
   },
   captureException: vi.fn(),
+  idempotencySeen: new Set<string>(),
 }));
 
 vi.mock("@/lib/db", () => ({ db: hoisted.db }));
@@ -30,7 +31,7 @@ vi.mock("@sentry/nextjs", () => ({
 }));
 
 vi.mock("@/lib/idempotency", () => {
-  const seen = new Set<string>();
+  const seen = hoisted.idempotencySeen;
   return {
     runIdempotent: vi.fn(async (params: { actionType: string; parts: unknown[]; resultFactory: () => Promise<unknown> }) => {
       const key = `${params.actionType}|${JSON.stringify(params.parts)}`;
@@ -71,6 +72,7 @@ describe("POST /api/webhooks/resend", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();
+    hoisted.idempotencySeen.clear();
     hoisted.db.webhookEvent.create.mockResolvedValue(undefined);
   });
 

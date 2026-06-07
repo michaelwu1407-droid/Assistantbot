@@ -48,6 +48,7 @@ vi.mock("@/actions/messaging-actions", () => ({
 }));
 vi.mock("@/actions/notification-actions", () => ({
   createNotification: hoisted.createNotification,
+  shouldSendNotificationEmail: vi.fn().mockResolvedValue(false),
 }));
 vi.mock("@/lib/monitoring", () => ({
   MonitoringService: {

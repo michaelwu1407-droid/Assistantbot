@@ -581,7 +581,7 @@ export async function updateDealStage(dealId: string, stage: string) {
 
       const latestDeal = await db.deal.findUnique({
         where: { id: parsed.data.dealId },
-        select: { id: true, workspaceId: true, contactId: true, stage: true },
+        select: { id: true, title: true, workspaceId: true, contactId: true, stage: true },
       });
 
       if (!latestDeal) {

@@ -35,6 +35,7 @@ const BASE_DEAL = {
   workspaceId: "ws_1",
   value: null,
   metadata: {},
+  invoices: [],
   workspace: {
     name: "Earlymark Plumbing",
     twilioPhoneNumber: "+61485010634",

@@ -50,7 +50,7 @@ const {
 }));
 
 vi.mock("@/lib/db", () => ({ db }));
-vi.mock("@/actions/notification-actions", () => ({ createNotification }));
+vi.mock("@/actions/notification-actions", () => ({ createNotification, shouldSendNotificationEmail: vi.fn().mockResolvedValue(false) }));
 vi.mock("@/actions/task-actions", () => ({ createTask }));
 vi.mock("@/actions/chat-actions", () => ({ runSendEmail }));
 vi.mock("@/actions/template-actions", () => ({ renderTemplate }));

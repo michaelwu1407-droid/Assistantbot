@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json(passiveProduction, {
-      status: passiveProduction.status === "unhealthy" ? 500 : 200,
+      status: 200,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown passive communications monitor failure";

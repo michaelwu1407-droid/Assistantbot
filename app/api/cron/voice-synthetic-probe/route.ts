@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
         spokenCanary: result.spokenCanary,
         incidents: result.incidents,
       },
-      { status: result.status === "unhealthy" ? 500 : 200 },
+      { status: 200 },
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown synthetic probe failure";

@@ -205,7 +205,7 @@ vi.mock("@/actions/template-actions", async () => {
   };
 });
 vi.mock("@/actions/activity-actions", () => ({ logActivity }));
-vi.mock("@/actions/notification-actions", () => ({ createNotification }));
+vi.mock("@/actions/notification-actions", () => ({ createNotification, shouldSendNotificationEmail: vi.fn().mockResolvedValue(false) }));
 vi.mock("@/lib/idempotency", () => ({ runIdempotent }));
 vi.mock("@/lib/ai/triage", () => ({
   triageIncomingLead,

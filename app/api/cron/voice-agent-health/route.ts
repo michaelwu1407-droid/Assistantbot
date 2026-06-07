@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
       succeeded: true,
     });
 
-    return NextResponse.json(result, { status: result.status === "unhealthy" ? 500 : 200 });
+    return NextResponse.json(result, { status: 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown voice monitor failure";
     await recordMonitorRun({

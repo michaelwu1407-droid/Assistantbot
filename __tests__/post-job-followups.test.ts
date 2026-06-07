@@ -13,7 +13,7 @@ const hoisted = vi.hoisted(() => ({
 vi.mock("@/lib/db", () => ({ db: hoisted.db }));
 vi.mock("@/lib/idempotency", () => ({ runIdempotent: hoisted.runIdempotent }));
 vi.mock("@/actions/messaging-actions", () => ({ sendSMS: hoisted.sendSMS }));
-vi.mock("@/actions/notification-actions", () => ({ createNotification: vi.fn() }));
+vi.mock("@/actions/notification-actions", () => ({ createNotification: vi.fn(), shouldSendNotificationEmail: vi.fn().mockResolvedValue(false) }));
 vi.mock("@/lib/messaging/safe-recipient", () => ({ assertSafeRecipient: vi.fn((_: string, value: string) => value) }));
 vi.mock("@/lib/cost-ceiling", () => ({ withCostCeiling: vi.fn(async (_a: string, _b: number, fn: () => Promise<unknown>) => fn()) }));
 
