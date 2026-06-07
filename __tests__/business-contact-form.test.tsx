@@ -56,7 +56,7 @@ describe("BusinessContactForm", () => {
     await user.click(screen.getByRole("button", { name: "Save contact" }));
 
     await waitFor(() => expect(updateBusinessContact).toHaveBeenCalled());
-    expect(toastError).toHaveBeenCalledWith("Failed to save");
+    expect(toastError).toHaveBeenCalledWith("Couldn't save your contact details — please try again.");
     expect(toastSuccess).not.toHaveBeenCalled();
   });
 });
