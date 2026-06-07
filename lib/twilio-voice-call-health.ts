@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { getWorkspaceTwilioClient, twilioMasterClient } from "@/lib/twilio";
+import { isSyntheticProbeCaller } from "@/lib/voice-monitor-probe-identity";
 import type { RuntimeStatus, VoiceSurface } from "@/lib/voice-fleet";
 
 export type VoiceCallSummary = {
@@ -40,7 +41,15 @@ const FAILURE_STATUSES = new Set(["failed", "no-answer", "busy", "canceled"]);
 function isRelevantVoiceCall(call: {
   direction?: string | null;
   to?: string | null;
+  from?: string | null;
 }) {
+  // Synthetic probe calls verify the voice path on their own dedicated monitor.
+  // Excluding them here keeps recent-call and passive-traffic health focused on
+  // real customer traffic so a single probe failure does not page repeatedly.
+  if (isSyntheticProbeCaller(call.from)) {
+    return false;
+  }
+
   const direction = (call.direction || "").toLowerCase();
   const to = (call.to || "").toLowerCase();
 

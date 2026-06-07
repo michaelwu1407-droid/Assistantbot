@@ -1,3 +1,41 @@
+## 2026-06-07 (Claude) - Exclude synthetic probe calls from real-traffic voice health
+
+- Files changed:
+  - `lib/voice-monitor-probe-identity.ts` (new)
+  - `lib/twilio-voice-call-health.ts`
+  - `__tests__/voice-monitor-probe-identity.test.ts` (new)
+  - `__tests__/twilio-voice-call-health.test.ts` (new)
+  - `docs/agent_change_log.md`
+- Summary:
+  - Added a shared helper that resolves the synthetic voice-probe caller numbers
+    (`VOICE_MONITOR_PROBE_CALLER_NUMBER`, `VOICE_ALERT_SMS_TO`, default) and a
+    matcher for them.
+  - `getTwilioVoiceCallHealth` now ignores calls originating from the probe
+    caller, so the probe's own SIP-direct verification calls (which end as
+    no-answer/busy when the path is unhealthy) no longer count as real customer
+    traffic failures.
+- Why:
+  - The Earlymark inbound (`inbound_demo`) sales-agent path was genuinely down
+    (flapping `earlymark-sales-agent` worker). The dedicated `voice-synthetic-probe`
+    workflow and the `fleet` check already alert on that. But because
+    `isRelevantVoiceCall` matched any call to `@live.earlymark.ai`, the probe's
+    own failed calls were ALSO counted by recent-call health AND passive
+    communications health — paging the operator 3x for one incident.
+  - This keeps real customer voice traffic as the signal for those passive
+    surfaces while leaving the real outage detection (probe + fleet) intact.
+- NOT changed (deliberately):
+  - The `pstn_self_call_risk` unhealthy path in `lib/voice-spoken-canary.ts` is
+    a real signal — its SIP-direct attempt is the legitimate inbound_demo
+    verification and correctly fails when the sales agent is down. It must keep
+    paging until the worker is restored.
+- Known pre-existing issue (not addressed here):
+  - `npx tsc --noEmit` reports 37 errors on baseline `e88d075` in untouched
+    `actions/` and `app/` files (Prisma schema/code drift). This change adds zero
+    new type errors but does not fix that drift.
+- Verified with:
+  - `node_modules/.bin/vitest run` for the new + passive/monitoring suites (16 tests passing)
+  - `node_modules/.bin/tsc --noEmit` (error count unchanged at 37, none in changed files)
+
 ## 2026-05-30 (Claude) - Flag stale planning/audit docs as outdated
 
 - Files changed:
