@@ -58,7 +58,7 @@ describe("AgentSettingsPage", () => {
 
     await waitFor(() => expect(screen.getByText("WhatsApp Assistant")).toBeInTheDocument());
 
-    expect(screen.getByText(/Your team can message this number from the mobile saved on their Earlymark account/i)).toBeInTheDocument();
+    expect(screen.getByText(/Workspace users can message this number from the personal mobile saved on their Earlymark user account/i)).toBeInTheDocument();
     expect(screen.getByText("+61485010634")).toBeInTheDocument();
 
     const whatsappLink = screen.getByRole("link", { name: /Connect via WhatsApp/i });

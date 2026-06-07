@@ -72,7 +72,7 @@ describe("JobBillingTab", () => {
 
     await user.type(screen.getByPlaceholderText("Item (e.g. Extra materials)"), "Extra labour");
     await user.type(screen.getByPlaceholderText("0"), "100");
-    await user.click(screen.getByRole("button", { name: "Save as Draft" }));
+    await user.click(screen.getByRole("button", { name: "Create Draft Invoice" }));
 
     await waitFor(() =>
       expect(generateQuote).toHaveBeenCalledWith("deal_1", [{ desc: "Extra labour", price: 100 }]),
@@ -90,7 +90,7 @@ describe("JobBillingTab", () => {
 
     await user.type(screen.getByPlaceholderText("Item (e.g. Extra materials)"), "Replacement part");
     await user.type(screen.getByPlaceholderText("0"), "75");
-    await user.click(screen.getByRole("button", { name: "Save as Draft" }));
+    await user.click(screen.getByRole("button", { name: "Create Draft Invoice" }));
 
     await waitFor(() =>
       expect(generateQuote).toHaveBeenCalledWith("deal_1", [{ desc: "Replacement part", price: 75 }]),

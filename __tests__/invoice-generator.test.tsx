@@ -67,7 +67,7 @@ describe("InvoiceGenerator", () => {
     await user.click(screen.getByRole("button", { name: /view \/ print/i }));
 
     await waitFor(() => {
-      expect(toastError).toHaveBeenCalledWith("Couldn't load the invoice preview — please try again.");
+      expect(toastError).toHaveBeenCalledWith("Failed to load invoice preview");
     });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
