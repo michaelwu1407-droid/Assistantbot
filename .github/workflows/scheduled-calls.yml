@@ -12,8 +12,7 @@ name: Scheduled Calls
 # the sole driver and the ~5-minute floor applies. See docs/QSTASH_SETUP.md.
 
 on:
-  schedule:
-    - cron: "*/5 * * * *"
+  # Schedule paused — re-enable when ready to resume billable Twilio outbound calls.
   workflow_dispatch:
 
 jobs:

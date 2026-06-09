@@ -1,8 +1,7 @@
 name: Reminder Crons
 
 on:
-  schedule:
-    - cron: "0 * * * *"
+  # Schedule paused — re-enable when ready to resume billable Twilio SMS sends.
   workflow_dispatch:
 
 jobs:
