@@ -448,36 +448,17 @@ export async function processPostJobFollowUps(): Promise<{
         workspaceId: true,
         stageChangedAt: true,
         contact: { select: { name: true, phone: true } },
-        workspace: { select: { name: true } },
+        workspace: { select: { name: true, ownerId: true } },
       },
       take: 200,
     });
 
     for (const deal of completedDeals) {
-      // Check if workspace has the "follow_up_after_job" rule enabled
-      const rule = await db.automatedMessageRule.findFirst({
-        where: {
-          workspaceId: deal.workspaceId,
-          triggerType: "follow_up_after_job",
-          enabled: true,
-        },
-      });
-
-      if (!rule) {
+      const ownerId = deal.workspace.ownerId;
+      if (!ownerId) {
         skipped++;
         continue;
       }
-
-      if (!deal.contact.phone) {
-        skipped++;
-        continue;
-      }
-
-      // Personalize the template
-      const message = rule.messageTemplate
-        .replace(/\{\{clientName\}\}/g, deal.contact.name)
-        .replace(/\{\{jobTitle\}\}/g, deal.title)
-        .replace(/\{\{businessName\}\}/g, deal.workspace.name || "us");
 
       try {
         const claim = await runIdempotent<{ success: boolean; error?: string }>({
@@ -487,18 +468,12 @@ export async function processPostJobFollowUps(): Promise<{
           bucketAt: deal.stageChangedAt ?? new Date(),
           parts: [deal.id],
           resultFactory: async () => {
-            const result = await sendSMS(deal.contactId, message, deal.id);
-            if (!result.success) {
-              return { success: false, error: result.error };
-            }
-            await db.activity.create({
-              data: {
-                type: "NOTE",
-                title: "Post-job follow-up sent",
-                content: `Automated follow-up SMS to ${deal.contact.name}: "${message.substring(0, 100)}..."`,
-                dealId: deal.id,
-                contactId: deal.contactId,
-              },
+            await createNotification({
+              userId: ownerId,
+              title: "Time to follow up",
+              message: `${deal.contact.name}'s job "${deal.title}" completed yesterday — worth checking in.`,
+              type: "INFO",
+              link: `/crm/deals/${deal.id}`,
             });
             return { success: true };
           },
@@ -509,7 +484,7 @@ export async function processPostJobFollowUps(): Promise<{
         } else if (claim.result?.success) {
           sent++;
         } else {
-          errors.push(`SMS to ${deal.contact.name} failed: ${claim.result?.error ?? "unknown"}`);
+          errors.push(`Notification for ${deal.contact.name} failed: ${claim.result?.error ?? "unknown"}`);
         }
       } catch (err) {
         errors.push(`Post-job follow-up for deal ${deal.id} failed: ${err}`);

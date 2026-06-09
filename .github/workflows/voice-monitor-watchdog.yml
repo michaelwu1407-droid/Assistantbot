@@ -1,8 +1,7 @@
 name: Voice Monitor Watchdog
 
 on:
-  schedule:
-    - cron: "7,37 * * * *"
+  # Schedule paused — re-enable when ready to resume billable Twilio probe calls.
   workflow_dispatch:
 
 jobs:
