@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { MastheadHero } from "@/components/marketing/masthead-hero"
 import {
   ArrowRight,
   Send,
@@ -184,24 +185,12 @@ export default function PricingPage() {
 
       <main>
         {/* ── 1. Hero / Pricing Header ── */}
-        <section className="pt-32 sm:pt-40 pb-16 md:pb-24 px-6 relative overflow-hidden isolate bg-forest">
-          <div aria-hidden className="absolute inset-0 z-0 pointer-events-none" style={{ background: "radial-gradient(90% 60% at 50% -10%, rgba(0,210,139,0.16) 0%, rgba(0,210,139,0.05) 45%, transparent 75%)" }} />
-          <div aria-hidden className="absolute inset-x-0 top-0 z-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-          <div className="relative z-10 mx-auto max-w-3xl text-center flex flex-col items-center gap-6">
-            <motion.p {...fadeUp()} className="text-[11px] font-bold uppercase tracking-[0.28em] text-mint-500">
-              Pricing
-            </motion.p>
-            <motion.h1
-              {...fadeUp(0.04)}
-              className="font-display text-4xl md:text-6xl font-semibold tracking-[-0.015em] leading-[1.05] text-balance text-paper"
-            >
-              One plan. Everything included.
-            </motion.h1>
-            <motion.p {...fadeUp(0.08)} className="text-lg leading-8 text-paper/65 max-w-xl text-balance">
-              A$30/month platform. 10¢ per call minute or text. That&apos;s it.
-            </motion.p>
-          </div>
-        </section>
+        <MastheadHero
+          index="§ Pricing"
+          kicker="One plan, everything in"
+          title={<>One plan.<br />Everything included.</>}
+          lead="A$30/month platform. 10¢ per call minute or text. That's it."
+        />
 
         {/* ── 2. Pricing Section ── */}
         <section className="py-12 px-6">

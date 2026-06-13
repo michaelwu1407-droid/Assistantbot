@@ -79,23 +79,21 @@ export default function ContactPage() {
     <div className="min-h-screen bg-paper">
       <Navbar />
 
-      <main className="pt-28 pb-20 px-6">
-        <div className="container mx-auto max-w-xl">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm text-ink2 hover:text-ink transition-colors mb-8"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to home
-          </Link>
+      <main className="pt-24 pb-20 px-5 sm:px-8">
+        <div className="mx-auto max-w-xl">
+          <div className="flex items-center justify-between gap-4 border-t border-hair pt-3.5">
+            <span className="em-kicker text-forest">§ Contact</span>
+            <Link href="/" className="em-kicker inline-flex items-center gap-1.5 text-ink2/60 transition-colors hover:text-ink">
+              <ArrowLeft className="h-3 w-3" /> Home
+            </Link>
+          </div>
 
-          <div className="mb-8">
-            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-forest mb-3">We&apos;re here to help</p>
-            <h1 className="font-display text-3xl md:text-5xl font-semibold tracking-[-0.01em] text-ink">
+          <div className="mb-10 mt-10">
+            <h1 className="em-display text-[2.5rem] leading-[1.0] text-ink sm:text-6xl">
               Contact us
             </h1>
-            <p className="text-ink2 mt-3">
-              Get in touch with the right team at Earlymark.
+            <p className="text-ink2 mt-5 max-w-md leading-relaxed">
+              Get in touch with the right team at Earlymark — or have Tracey call you back.
             </p>
           </div>
 

@@ -12,6 +12,7 @@ import { Navbar } from "@/components/layout/navbar"
 import { Button } from "@/components/ui/button"
 import { HeroDashboardReel } from "@/components/home/hero-dashboard-reel"
 import { PlatformDiagram } from "@/components/home/platform-diagram"
+import { SectionHead } from "@/components/marketing/section-head"
 
 // ─── Animation ────────────────────────────────────────────────────────────────
 
@@ -543,46 +544,48 @@ export default function FeaturesPage() {
       <main>
 
         {/* ── 1. Hero ── */}
-        <section className="pt-32 sm:pt-40 pb-16 sm:pb-20 px-6 bg-forest relative overflow-hidden isolate">
-          <div aria-hidden className="absolute inset-0 z-0 pointer-events-none" style={{ background: "radial-gradient(90% 60% at 50% -10%, rgba(0,210,139,0.16) 0%, rgba(0,210,139,0.05) 45%, transparent 75%)" }} />
-          <div aria-hidden className="absolute inset-x-0 top-0 z-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
-          <div aria-hidden className="absolute inset-x-0 bottom-0 z-0 h-[120px] sm:h-[180px] bg-paper" />
-          <div className="relative z-10 mx-auto max-w-3xl text-center flex flex-col items-center gap-6">
-            <motion.p {...fadeUp()} className="text-[11px] font-bold uppercase tracking-[0.28em] text-mint-500">The platform</motion.p>
-            <motion.h1 {...fadeUp(0.04)} className="font-display text-4xl sm:text-5xl md:text-7xl font-semibold tracking-[-0.015em] leading-[1.05] text-balance text-paper">
-              An AI assistant.<br />A CRM that runs itself.
-            </motion.h1>
-            <motion.p {...fadeUp(0.08)} className="text-lg leading-8 text-paper/65 max-w-xl text-balance">
-              One platform with two halves: an AI voice assistant that picks up every call and text, and a full CRM that fills itself in as she works.
-            </motion.p>
-            <motion.div {...fadeUp(0.12)} className="flex flex-col sm:flex-row gap-3">
-              <Link href="/auth">
-                <Button size="lg" variant="mint">
-                  Get started <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-              <Link href="/contact#contact-form">
-                <Button size="lg" variant="outline" className="border-white/25 bg-transparent text-paper hover:bg-white/10 hover:border-white/40 hover:text-white">Get a demo</Button>
-              </Link>
+        <section className="em-grain relative overflow-hidden bg-cream px-5 sm:px-8 pt-24 sm:pt-28 pb-20 sm:pb-28">
+          <div className="relative z-10 mx-auto max-w-[1320px]">
+            <motion.div {...fadeUp()} className="flex items-center justify-between gap-4 border-t border-hair pt-3.5">
+              <span className="em-kicker text-forest">§ The platform</span>
+              <span className="em-kicker hidden text-ink2/55 sm:inline">Assistant + CRM</span>
+              <span className="em-kicker text-ink2/55">Australia</span>
             </motion.div>
-          </div>
+            <div className="mt-12 grid gap-x-8 gap-y-10 sm:mt-16 md:grid-cols-12 md:items-end">
+              <motion.h1 {...fadeUp(0.06)} className="em-display col-span-12 text-[clamp(2.5rem,7vw,6rem)] text-ink md:col-span-8">
+                An AI assistant.<br />A CRM that <span className="italic text-forest">runs itself</span>.
+              </motion.h1>
+              <motion.div {...fadeUp(0.12)} className="col-span-12 flex flex-col gap-6 md:col-span-4 md:pb-2">
+                <p className="max-w-sm text-[15px] leading-relaxed text-ink2">
+                  One platform with two halves: an AI voice assistant that picks up every call and text, and a full CRM that fills itself in as she works.
+                </p>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Link href="/auth"><Button size="lg" variant="mint">Get started <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
+                  <Link href="/contact#contact-form"><Button size="lg" variant="outline">Get a demo</Button></Link>
+                </div>
+              </motion.div>
+            </div>
 
-          {/* Full-width dashboard reel */}
-          <motion.div {...fadeUp(0.16)} className="relative z-10 mx-auto mt-8 md:mt-14 max-w-6xl px-4">
-            <div className="absolute inset-x-[8%] top-8 -z-10 h-32 rounded-full bg-mint-500/20 blur-3xl" />
-            <HeroDashboardReel />
-          </motion.div>
+            {/* Plate 01 — the reel framed as a figure */}
+            <motion.figure {...fadeUp(0.16)} className="relative mt-14 sm:mt-20">
+              <figcaption className="flex items-center justify-between gap-4 border-t border-hair pt-3 pb-5">
+                <span className="em-kicker text-forest">Plate 01</span>
+                <span className="em-figcaption text-right">The operating surface — chat, inbox, map &amp; calendar</span>
+              </figcaption>
+              <HeroDashboardReel />
+            </motion.figure>
+          </div>
         </section>
 
         {/* ── 1.5 Platform diagram ── */}
-        <section className="py-10 md:py-20 px-6 bg-cream">
-          <div className="mx-auto max-w-7xl">
-            <motion.div {...fadeUp()} className="mx-auto mb-12 max-w-3xl text-center">
-              <h2 className="text-4xl md:text-5xl font-display font-semibold tracking-[-0.01em]" style={{ color: "var(--color-ink)" }}>One comprehensive platform.</h2>
-              <p className="mt-4 text-lg text-muted-foreground">
-                An AI assistant and a CRM that runs itself, so you don&apos;t have to.
-              </p>
-            </motion.div>
+        <section className="py-16 md:py-24 px-5 sm:px-8 bg-cream">
+          <div className="mx-auto max-w-[1320px]">
+            <SectionHead
+              index="§01 — Platform"
+              kicker="Two halves, one system"
+              title="One comprehensive platform."
+              lead="An AI assistant and a CRM that runs itself, so you don't have to."
+            />
             <motion.div {...fadeUp(0.08)}>
               <PlatformDiagram />
             </motion.div>
@@ -590,16 +593,14 @@ export default function FeaturesPage() {
         </section>
 
         {/* ── 2. Core jobs ── */}
-        <section className="py-16 md:py-20 px-6 bg-paper">
-          <div className="mx-auto max-w-6xl">
-            <motion.div {...fadeUp()} className="mb-10 max-w-3xl">
-              <h2 className="mt-3 text-3xl md:text-5xl font-display font-semibold tracking-[-0.01em]" style={{ color: "var(--color-ink)" }}>
-                More than a call bot. A working system for the whole job lifecycle.
-              </h2>
-              <p className="mt-4 text-base leading-7 text-muted-foreground">
-                The homepage explains the promise. This page shows the operating surface: what Tracey touches, where the CRM fills in, and how you keep control.
-              </p>
-            </motion.div>
+        <section className="py-16 md:py-24 px-5 sm:px-8 bg-paper">
+          <div className="mx-auto max-w-[1320px]">
+            <SectionHead
+              index="§02 — The system"
+              kicker="The whole job lifecycle"
+              title={<>More than a call bot.</>}
+              lead="The operating surface: what Tracey touches, where the CRM fills in, and how you keep control."
+            />
 
             <div className="grid gap-4 md:grid-cols-3">
               {PRODUCT_AREAS.map(({ icon: Icon, label, detail }, i) => (

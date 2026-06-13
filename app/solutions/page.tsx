@@ -6,6 +6,7 @@ import {
 import { Footer } from "@/components/layout/footer";
 import { Navbar } from "@/components/layout/navbar";
 import { Button } from "@/components/ui/button";
+import { MastheadHero } from "@/components/marketing/masthead-hero";
 import { TRADE_SERVICES, TRADE_SERVICES_SUMMARY } from "@/lib/trade-services";
 
 const TRADE_ICONS: Record<string, typeof Zap> = {
@@ -35,38 +36,26 @@ export default function SolutionsPage() {
   return (
     <div className="min-h-screen bg-paper text-ink">
       <Navbar />
-      <main className="mx-auto flex max-w-7xl flex-col gap-20 px-6 pb-24 pt-36">
+      <main>
 
         {/* Hero */}
-        <section className="flex flex-col items-center gap-8 text-center">
-          <div className="max-w-3xl">
-            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-forest">
-              {TRADE_SERVICES_SUMMARY.eyebrow}
-            </p>
-            <h1 className="mt-4 font-display text-4xl font-semibold tracking-[-0.01em] md:text-6xl text-ink">
-              {TRADE_SERVICES_SUMMARY.title}
-            </h1>
-            <p className="mt-4 text-lg leading-8 text-ink2">
-              {TRADE_SERVICES_SUMMARY.description}
-            </p>
-          </div>
+        <MastheadHero
+          index="§ Solutions"
+          kicker={TRADE_SERVICES_SUMMARY.eyebrow}
+          title={TRADE_SERVICES_SUMMARY.title}
+          lead={TRADE_SERVICES_SUMMARY.description}
+          actions={<>
+            <Link href="/auth"><Button size="lg" variant="mint">Get started <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
+            <Link href="/contact#contact-form"><Button size="lg" variant="outline">Get a demo</Button></Link>
+          </>}
+        />
 
-          <div className="flex flex-col justify-center gap-3 sm:flex-row">
-            <Link href="/auth">
-              <Button size="lg" variant="mint">
-                Get started
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href="/contact#contact-form">
-              <Button size="lg" variant="outline">
-                Get a demo
-              </Button>
-            </Link>
-          </div>
+        <div className="mx-auto flex max-w-[1320px] flex-col gap-20 px-5 sm:px-8 pb-24 pt-16 md:pt-24">
 
-          {/* What's included in every solution */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-8 pt-2">
+        {/* What's included in every solution */}
+        <div className="flex flex-col gap-4 border-t border-hair pt-4 sm:flex-row sm:items-center sm:gap-10">
+          <span className="em-kicker text-forest shrink-0">In every solution</span>
+          <div className="flex flex-col gap-3 sm:flex-row sm:gap-10">
             {INCLUDED.map(({ icon: Icon, label }) => (
               <div key={label} className="flex items-center gap-2 text-sm text-ink2">
                 <Icon className="h-4 w-4 text-forest shrink-0" />
@@ -74,7 +63,7 @@ export default function SolutionsPage() {
               </div>
             ))}
           </div>
-        </section>
+        </div>
 
         {/* Trade cards */}
         <section className="flex flex-col gap-6">
@@ -88,10 +77,11 @@ export default function SolutionsPage() {
               >
                 {/* Text side */}
                 <div className={`flex flex-col justify-center gap-5 p-8 md:p-10 ${reverse ? "md:order-2" : ""}`}>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-between gap-3 border-b border-hair pb-4">
                     <span className="flex h-10 w-10 items-center justify-center rounded-md bg-primary-subtle text-forest">
                       <Icon className="h-5 w-5" />
                     </span>
+                    <span className="em-kicker text-ink2/45">{String(index + 1).padStart(2, "0")} / {String(TRADE_SERVICES.length).padStart(2, "0")}</span>
                   </div>
                   <h2 className="font-display text-2xl font-semibold tracking-[-0.01em] md:text-3xl text-ink">
                     {service.summaryTeaser}
@@ -155,6 +145,7 @@ export default function SolutionsPage() {
           </div>
         </section>
 
+        </div>
       </main>
       <Footer />
     </div>
