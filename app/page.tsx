@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import {
-    ArrowRight, ChevronDown,
+    ArrowRight,
     Phone, Calendar, MapPin, Users, UsersRound,
     BarChart3, CheckCircle2, MessageSquare, Layers,
     Inbox, ShieldCheck, Globe, Sparkles, Receipt,
@@ -17,13 +17,14 @@ import { Button } from "@/components/ui/button";
 import { requestDemoCall } from "@/actions/demo-call-action";
 import { TrustStrip } from "@/components/home/trust-strip";
 import { MobileStickyCTA } from "@/components/home/mobile-sticky-cta";
+import { SectionHead } from "@/components/marketing/section-head";
 
 const HeroDashboardReel = dynamic(
     () => import("@/components/home/hero-dashboard-reel").then((mod) => mod.HeroDashboardReel),
     {
         loading: () => (
-            <div className="relative mx-auto w-full max-w-[1120px] overflow-hidden rounded border border-white/55 bg-card/55 shadow-[0_28px_90px_rgba(15,23,42,0.16)] backdrop-blur-xl">
-                <div className="aspect-[16/10] bg-[linear-gradient(180deg,#e2e8f0_0%,#cbd5e1_100%)] sm:aspect-[16/9]" />
+            <div className="relative mx-auto w-full max-w-[1120px] overflow-hidden rounded-md border border-white/15 bg-card/10 shadow-[0_28px_90px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+                <div className="aspect-[16/10] bg-[linear-gradient(180deg,#F6F4EE_0%,#F1ECDD_100%)] sm:aspect-[16/9]" />
             </div>
         ),
     },
@@ -125,25 +126,25 @@ function HireMockup1() {
     ];
     return (
         <div className="h-full flex flex-col bg-card">
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-neutral-200">
-                <div className="w-6 h-6 rounded-full bg-card border border-neutral-200 flex items-center justify-center shadow-sm">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-hair">
+                <div className="w-6 h-6 rounded-full bg-card border border-hair flex items-center justify-center shadow-sm">
                     <Image src="/latest-logo.png" alt="" width={14} height={14} className="w-3.5 h-3.5 object-contain" unoptimized />
                 </div>
-                <span className="text-xs font-semibold text-neutral-900">Tracey Chat</span>
-                <span className="ml-auto text-[10px] text-emerald-500">● Online</span>
+                <span className="text-xs font-semibold text-ink">Tracey Chat</span>
+                <span className="ml-auto text-[10px] text-mint-500">● Online</span>
             </div>
-            <div className="flex-1 flex flex-col justify-end gap-2.5 px-4 py-4 bg-[#F8FAFC]">
+            <div className="flex-1 flex flex-col justify-end gap-2.5 px-4 py-4 bg-paper">
                 {messages.map((m, i) => (
                     <div key={i} className={`flex gap-2 items-end ${m.from === "user" ? "flex-row-reverse" : ""}`}>
                         {m.from === "tracey" && (
-                            <div className="w-5 h-5 rounded-full bg-card border border-neutral-200 flex items-center justify-center shrink-0 shadow-sm">
+                            <div className="w-5 h-5 rounded-full bg-card border border-hair flex items-center justify-center shrink-0 shadow-sm">
                                 <Image src="/latest-logo.png" alt="" width={12} height={12} className="w-3 h-3 object-contain" unoptimized />
                             </div>
                         )}
-                        <div className={`rounded px-3 py-2 text-xs leading-relaxed max-w-[80%] ${
+                        <div className={`rounded-md px-3 py-2 text-xs leading-relaxed max-w-[80%] ${
                             m.from === "user"
-                                ? "bg-primary text-white rounded-tr-sm"
-                                : "bg-card border border-neutral-200 text-neutral-800 rounded-bl-sm shadow-sm"
+                                ? "bg-forest text-paper rounded-tr-sm"
+                                : "bg-card border border-hair text-ink rounded-bl-sm shadow-sm"
                         }`}>
                             {m.text}
                         </div>
@@ -157,7 +158,7 @@ function HireMockup1() {
 // ─── Interview Form ───────────────────────────────────────────────────────────
 
 const INPUT_CLASS =
-    "w-full px-4 py-2.5 rounded-md border border-border text-sm placeholder:text-muted-foreground bg-card transition";
+    "w-full px-4 py-2.5 rounded-md border border-hair text-sm text-ink placeholder:text-ink2/55 bg-paper/60 transition";
 
 const DEMO_CALL_TIMEOUT_MS = 30_000;
 
@@ -213,10 +214,10 @@ function InterviewForm() {
     if (status === "success") {
         return (
             <div className="flex flex-col items-center justify-center text-center gap-4 py-10">
-                <div className="w-16 h-16 rounded-full bg-primary/15 flex items-center justify-center">
-                    <Phone className="w-8 h-8 text-primary" />
+                <div className="w-16 h-16 rounded-full bg-primary-subtle flex items-center justify-center">
+                    <Phone className="w-8 h-8 text-forest" />
                 </div>
-                <h3 className="text-xl font-bold" style={{ color: "var(--color-ink)" }}>
+                <h3 className="text-xl font-bold text-ink">
                     {message || "Tracey is calling you now!"}
                 </h3>
             </div>
@@ -247,7 +248,7 @@ function InterviewForm() {
                 {status === "loading" ? "Calling you now..." : "Interview Tracey for free"}
                 {status !== "loading" && <Phone className="ml-2 h-4 w-4" />}
             </Button>
-            <p className="text-xs text-slate-body text-center">
+            <p className="text-xs text-ink2/75 text-center">
                 Tracey will call you within seconds. No credit card required.
             </p>
         </form>
@@ -265,20 +266,16 @@ const TESTIMONIALS = [
 function TestimonialsCarousel() {
     const slides = [...TESTIMONIALS, ...TESTIMONIALS];
     const Card = ({ t }: { t: typeof TESTIMONIALS[0] }) => (
-        <div className="bg-card rounded p-8 shadow-sm border border-border flex flex-col justify-between">
-            <div>
-                <div className="flex gap-1 mb-4">
-                    {[1,2,3,4,5].map(s => (
-                        <svg key={s} className="w-4 h-4 text-amber-400 fill-current" viewBox="0 0 20 20">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                    ))}
-                </div>
-                <p className="italic text-[15px] leading-relaxed mb-6" style={{ color: "var(--color-ink)", opacity: 0.8 }}>&quot;{t.quote}&quot;</p>
-            </div>
-            <div>
-                <p className="font-bold text-sm" style={{ color: "var(--color-ink)" }}>{t.author}</p>
-                <p className="text-xs text-muted-foreground font-medium mt-0.5">{t.role}</p>
+        <div className="flex h-full flex-col justify-between border-t-2 border-ink bg-card/40 px-7 pt-7 pb-6">
+            <p className="em-display text-2xl leading-[1.25] text-ink">&ldquo;{t.quote}&rdquo;</p>
+            <div className="mt-8 flex items-center gap-3">
+                <span className="h-8 w-8 rounded-full bg-forest text-paper em-kicker flex items-center justify-center">
+                    {t.author.charAt(0)}
+                </span>
+                <span className="flex flex-col">
+                    <span className="text-sm font-semibold text-ink">{t.author}</span>
+                    <span className="em-kicker mt-1 text-ink2/55">{t.role}</span>
+                </span>
             </div>
         </div>
     );
@@ -293,8 +290,8 @@ function TestimonialsCarousel() {
                     transition={{ duration: 26, ease: "linear", repeat: Infinity }}>
                     {slides.map((t, i) => <div key={`${t.author}-${i}`} className="w-[350px]"><Card t={t} /></div>)}
                 </motion.div>
-                <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-[linear-gradient(90deg,#F8FAFC_0%,rgba(248,250,252,0)_100%)]" />
-                <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-[linear-gradient(270deg,#F8FAFC_0%,rgba(248,250,252,0)_100%)]" />
+                <div className="pointer-events-none absolute inset-y-0 left-0 w-24 bg-[linear-gradient(90deg,#F1ECDD_0%,rgba(241,236,221,0)_100%)]" />
+                <div className="pointer-events-none absolute inset-y-0 right-0 w-24 bg-[linear-gradient(270deg,#F1ECDD_0%,rgba(241,236,221,0)_100%)]" />
             </div>
         </div>
     );
@@ -318,21 +315,32 @@ function FaqSection() {
     const toggle = (idx: number) =>
         setOpenIndices((prev) => prev.includes(idx) ? prev.filter((i) => i !== idx) : [...prev, idx]);
     return (
-        <section className="py-10 md:py-20 px-4 bg-background">
-            <div className="max-w-3xl mx-auto">
-                <h2 className="text-3xl font-bold text-center mb-10" style={{ color: "var(--color-ink)" }}>Frequently asked.</h2>
-                <div className="space-y-3">
+        <section className="bg-cream px-5 sm:px-8 py-16 md:py-24">
+            <div className="mx-auto grid max-w-[1320px] gap-x-12 gap-y-10 md:grid-cols-12">
+                <div className="md:col-span-4">
+                    <div className="border-t border-hair pt-3.5 md:sticky md:top-24">
+                        <span className="em-kicker text-forest">§ Good to know</span>
+                        <h2 className="em-display mt-6 text-[2rem] leading-[1.0] text-ink sm:text-5xl">
+                            Frequently<br className="hidden md:block" /> asked.
+                        </h2>
+                        <p className="mt-5 max-w-xs text-[15px] leading-relaxed text-ink2">
+                            Still wondering something? Interview Tracey yourself — she&apos;ll answer live.
+                        </p>
+                    </div>
+                </div>
+                <div className="border-t border-ink md:col-span-8">
                     {FAQ_ITEMS.map((item, idx) => {
                         const isOpen = openIndices.includes(idx);
                         return (
-                            <div key={idx} className="border border-border rounded overflow-hidden">
+                            <div key={idx} className="border-b border-hair">
                                 <button onClick={() => toggle(idx)}
-                                    className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-muted/30 transition-colors">
-                                    <span className="font-semibold text-sm pr-4" style={{ color: "var(--color-ink)" }}>{item.q}</span>
-                                    <ChevronDown className={`w-5 h-5 text-muted-foreground shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+                                    className="group flex w-full items-baseline gap-4 py-5 text-left">
+                                    <span className="em-kicker w-6 shrink-0 text-ink2/45">{String(idx + 1).padStart(2, "0")}</span>
+                                    <span className="flex-1 pr-4 text-[15px] font-semibold text-ink transition-colors group-hover:text-forest">{item.q}</span>
+                                    <span className={`em-display shrink-0 text-2xl leading-none text-forest transition-transform duration-200 ${isOpen ? "rotate-45" : ""}`}>+</span>
                                 </button>
-                                <div className={`transition-all duration-200 overflow-hidden ${isOpen ? "max-h-60" : "max-h-0"}`}>
-                                    <p className="px-5 pb-4 text-sm text-muted-foreground leading-relaxed">{item.a}</p>
+                                <div className={`overflow-hidden transition-all duration-200 ${isOpen ? "max-h-60" : "max-h-0"}`}>
+                                    <p className="pb-5 pl-10 pr-10 text-sm leading-relaxed text-ink2">{item.a}</p>
                                 </div>
                             </div>
                         );
@@ -347,71 +355,104 @@ function FaqSection() {
 
 export default function Home() {
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-paper">
             <Navbar />
 
-            {/* Hero */}
-            <section className="pt-24 sm:pt-32 pb-16 sm:pb-24 px-6 relative overflow-hidden isolate bg-[linear-gradient(180deg,#F8FAFC_0%,#F1F5F9_55%,#F8FAFC_100%)]">
-                <div className="absolute inset-0 z-0 pointer-events-none" style={{ background: `radial-gradient(110% 70% at 50% 10%, rgba(16,185,129,0.20) 0%, rgba(16,185,129,0.10) 42%, rgba(16,185,129,0.00) 74%),radial-gradient(90% 50% at 50% 86%, rgba(34,197,94,0.30) 0%, rgba(34,197,94,0.14) 32%, rgba(34,197,94,0.00) 72%),radial-gradient(70% 34% at 50% 86%, rgba(163,230,53,0.22) 0%, rgba(163,230,53,0.00) 75%)` }} />
-                <div className="absolute inset-y-[2%] left-0 w-[32%] z-0 pointer-events-none opacity-60" style={{ background: "linear-gradient(180deg, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.05) 48%, rgba(16,185,129,0.00) 100%)", clipPath: "polygon(0 0, 100% 6%, 76% 100%, 0 100%)" }} />
-                <div className="absolute inset-y-[2%] right-0 w-[32%] z-0 pointer-events-none opacity-60" style={{ background: "linear-gradient(180deg, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.05) 48%, rgba(16,185,129,0.00) 100%)", clipPath: "polygon(24% 0, 100% 0, 100% 100%, 0 100%)" }} />
-                <div className="container mx-auto max-w-6xl relative z-10 flex flex-col items-center gap-8">
-                    <motion.h1 {...fadeUp(0.06)} className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.08] text-balance text-center" style={{ color: "var(--color-ink)" }}>
-                        Your AI assistant &amp; CRM.
-                        <span className="block">Here to give you an <span className="text-primary">early mark</span></span>
-                    </motion.h1>
-                    <motion.div {...fadeUp(0.10)} className="flex flex-col sm:flex-row gap-3">
-                        <Link href="/auth"><Button size="lg" variant="mint">Get started</Button></Link>
-                        <a href="#interview-assistant"><Button size="lg" variant="outline">Interview your assistant</Button></a>
+            {/* Hero — editorial masthead */}
+            <section className="em-grain relative overflow-hidden bg-cream px-5 sm:px-8 pt-24 sm:pt-28 pb-20 sm:pb-28">
+                <div className="relative z-10 mx-auto max-w-[1320px]">
+                    {/* masthead rule */}
+                    <motion.div {...fadeUp(0.02)} className="flex items-center justify-between gap-4 border-t border-hair pt-3.5">
+                        <span className="em-kicker text-forest">§00 — Index</span>
+                        <span className="em-kicker hidden text-ink2/55 sm:inline">AI receptionist &amp; CRM</span>
+                        <span className="em-kicker text-ink2/55">Australia</span>
                     </motion.div>
-                    <motion.div {...fadeUp(0.14)} className="relative w-full max-w-5xl mx-auto mt-8">
-                        <HeroDashboardReel />
-                        <motion.div {...fadeUp(0.18)} className="hidden md:block absolute right-[-0.75rem] lg:right-[-1.5rem] bottom-[-3.25rem] z-20">
-                            <PulsingLogo />
+
+                    {/* headline + spec column */}
+                    <div className="mt-12 grid gap-x-8 gap-y-10 sm:mt-16 md:grid-cols-12 md:items-end">
+                        <motion.h1 {...fadeUp(0.06)} className="em-display col-span-12 text-[clamp(2.75rem,8vw,6.75rem)] text-ink md:col-span-8">
+                            Your AI assistant <span className="text-ink2/50">&amp;</span> CRM.<br />
+                            Here to give you an <span className="italic text-forest">early mark</span>.
+                        </motion.h1>
+                        <motion.div {...fadeUp(0.12)} className="col-span-12 flex flex-col gap-6 md:col-span-4 md:pb-2">
+                            <p className="max-w-sm text-[15px] leading-relaxed text-ink2">
+                                Tracey answers every call, books the job and runs your CRM — while you stay on the tools.
+                            </p>
+                            <div className="flex flex-col gap-3 sm:flex-row">
+                                <Link href="/auth"><Button size="lg" variant="mint">Get started</Button></Link>
+                                <a href="#interview-assistant"><Button size="lg" variant="outline">Interview Tracey</Button></a>
+                            </div>
                         </motion.div>
-                    </motion.div>
+                    </div>
+
+                    {/* Plate 01 — the reel framed as a figure */}
+                    <motion.figure {...fadeUp(0.16)} className="relative mt-14 sm:mt-20">
+                        <figcaption className="flex items-center justify-between gap-4 border-t border-hair pt-3 pb-5">
+                            <span className="em-kicker text-forest">Plate 01</span>
+                            <span className="em-figcaption text-right">Tracey at work — chat, inbox, map &amp; calendar</span>
+                        </figcaption>
+                        <div className="relative">
+                            <HeroDashboardReel />
+                            <div className="absolute bottom-[-3.25rem] right-[-0.75rem] z-20 hidden md:block lg:right-[-1.5rem]">
+                                <PulsingLogo />
+                            </div>
+                        </div>
+                    </motion.figure>
                 </div>
             </section>
 
             <TrustStrip />
 
             {/* Testimonials */}
-            <section className="bg-card px-6 py-12 md:py-24 overflow-hidden">
-                <div className="container mx-auto max-w-7xl">
-                    <motion.div {...fadeUp()} className="text-center mb-8 md:mb-12">
-                        <h2 className="text-2xl sm:text-3xl md:text-5xl font-extrabold tracking-[-0.03em]" style={{ color: "var(--color-ink)" }}>Built for businesses with non-stop calls.</h2>
-                    </motion.div>
-                    <motion.div {...fadeUp(0.08)} className="-mx-6 px-6"><TestimonialsCarousel /></motion.div>
+            <section className="overflow-hidden bg-cream px-5 sm:px-8 py-16 md:py-24">
+                <div className="mx-auto max-w-[1320px]">
+                    <SectionHead
+                        index="§ Field notes"
+                        kicker="From the tools"
+                        title={<>Built for businesses<br className="hidden sm:block" /> with non-stop calls.</>}
+                        lead="Real operators, real days on site — the admin handled in the background."
+                    />
+                    <motion.div {...fadeUp(0.08)} className="-mx-5 px-5 sm:-mx-8 sm:px-8"><TestimonialsCarousel /></motion.div>
                 </div>
             </section>
 
             {/* Interview form — invitation to try Tracey */}
-            <section id="interview-assistant" className="scroll-mt-28 py-12 md:py-24 px-6 relative overflow-hidden bg-[#1E232B]">
-                <div className="container mx-auto max-w-7xl">
-                    <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
-                        <div className="flex flex-col gap-8">
-                            <motion.h2 {...fadeUp()} className="text-3xl md:text-5xl font-extrabold text-white tracking-[-0.03em] leading-tight">
-                                Interview your assistant now. She will contact customers and run your CRM so you don&apos;t have to.
-                            </motion.h2>
+            <section id="interview-assistant" className="scroll-mt-20 bg-forest-dk px-5 sm:px-8 py-16 md:py-24">
+                <div className="relative mx-auto max-w-[1320px]">
+                    <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(70% 90% at 90% 0%, rgba(0,210,139,0.12) 0%, transparent 60%)" }} />
+                    <div className="relative">
+                        <div className="flex items-center gap-4 border-t border-white/15 pt-3.5">
+                            <span className="em-kicker text-mint-500">§ Hear her first</span>
+                            <span className="em-kicker flex-1 text-paper/40">No card required</span>
                         </div>
-                        <motion.div {...fadeUp(0.1)} className="bg-card/95 backdrop-blur-md rounded border border-white/40 p-7 shadow-xl">
-                            <h3 className="font-bold text-lg mb-1" style={{ color: "var(--color-ink)" }}>Interview Tracey for free</h3>
-                            <p className="text-slate-body text-sm mb-6 leading-relaxed">Tracey will call you and answer questions, explain her capabilities, or roleplay as your very own AI receptionist.</p>
-                            <InterviewForm />
-                        </motion.div>
+                        <div className="mt-10 grid items-end gap-x-8 gap-y-10 lg:grid-cols-12">
+                            <motion.div {...fadeUp()} className="flex flex-col gap-6 lg:col-span-7">
+                                <h2 className="em-display text-[2rem] leading-[1.0] text-paper sm:text-5xl md:text-[3.5rem]">
+                                    Interview your assistant<br className="hidden sm:block" /> before she starts.
+                                </h2>
+                                <p className="max-w-md text-base leading-relaxed text-paper/60">
+                                    She will contact customers and run your CRM so you don&apos;t have to. Put her on the phone before you put her on the payroll.
+                                </p>
+                            </motion.div>
+                            <motion.div {...fadeUp(0.1)} className="bg-card rounded-md p-7 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.5)] lg:col-span-5">
+                                <h3 className="mb-1 text-lg font-bold text-ink">Interview Tracey for free</h3>
+                                <p className="mb-6 text-sm leading-relaxed text-ink2">Tracey will call you and answer questions, explain her capabilities, or roleplay as your very own AI receptionist.</p>
+                                <InterviewForm />
+                            </motion.div>
+                        </div>
                     </div>
                 </div>
             </section>
 
             {/* Platform diagram — voice agent + CRM */}
-            <section id="platform" className="bg-background px-6 py-12 md:py-24">
-                <div className="container mx-auto max-w-7xl">
-                    <motion.div {...fadeUp()} className="mx-auto mb-12 max-w-3xl text-center">
-                        <h2 className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em]" style={{ color: "var(--color-ink)" }}>One comprehensive platform.</h2>
-                        <p className="mt-4 text-lg" style={{ color: "var(--color-ink2)" }}>
-                            An AI assistant and a CRM that runs itself, so you don&apos;t have to.
-                        </p>
-                    </motion.div>
+            <section id="platform" className="bg-paper px-5 sm:px-8 py-16 md:py-24">
+                <div className="mx-auto max-w-[1320px]">
+                    <SectionHead
+                        index="§01 — Platform"
+                        kicker="Two halves, one system"
+                        title="One comprehensive platform."
+                        lead="An AI assistant and a CRM that runs itself, so you don't have to."
+                    />
                     <motion.div {...fadeUp(0.08)}>
                         <PlatformDiagram />
                     </motion.div>
@@ -419,41 +460,33 @@ export default function Home() {
             </section>
 
             {/* Section 1 — Meet Tracey (the voice agent) */}
-            <section id="meet-tracey" className="bg-background px-6 py-12 md:py-24">
-                <div className="container mx-auto max-w-7xl">
-                    <motion.div {...fadeUp()} className="mx-auto mb-12 max-w-3xl text-center">
-                        <h2 className="text-4xl font-extrabold tracking-[-0.03em] md:text-5xl" style={{ color: "var(--color-ink)" }}>Meet Tracey.</h2>
-                        <p className="mt-3 text-lg max-w-xl mx-auto" style={{ color: "var(--color-ink2)" }}>
-                            Your AI receptionist, CRM manager, and follow-up specialist — all in one.
-                        </p>
-                    </motion.div>
+            <section id="meet-tracey" className="bg-cream px-5 sm:px-8 py-16 md:py-24">
+                <div className="mx-auto max-w-[1320px]">
+                    <SectionHead
+                        index="§02 — The assistant"
+                        kicker="Your AI offsider"
+                        title="Meet Tracey."
+                        lead="Your AI receptionist, CRM manager, and follow-up specialist — all in one."
+                    />
 
-                    <motion.div {...fadeUp(0.06)} className="grid sm:grid-cols-3 gap-4 relative">
-                        {/* dashed vertical guide on mobile */}
-                        <div className="absolute left-[22px] top-6 bottom-6 w-0.5 sm:hidden" style={{ background: "repeating-linear-gradient(to bottom, var(--color-hair) 0 4px, transparent 4px 8px)" }} aria-hidden />
-                        {TRACEY_WORKFLOW.map(({ label, points }, i) => {
-                            const accent = [["#00D28B", "rgba(0,210,139,0.12)"], ["#4A7CE6", "rgba(74,124,230,0.12)"], ["#8B6FE0", "rgba(139,111,224,0.12)"]][i];
-                            return (
-                                <div key={label} className="bg-card border border-[var(--color-hair)] rounded-md p-5 flex gap-4 sm:flex-col sm:gap-4">
-                                    <div className="flex-shrink-0 relative z-10">
-                                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: accent[0], boxShadow: `0 0 0 4px #F8FAFC, 0 4px 12px -4px ${accent[0]}80` }}>
-                                            0{i + 1}
-                                        </div>
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className="text-base font-bold mb-3" style={{ color: "var(--color-ink)" }}>{label}</h4>
-                                        <ul className="space-y-2.5">
-                                            {points.map((point) => (
-                                                <li key={point} className="flex items-start gap-2.5">
-                                                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: accent[0] }} />
-                                                    <span className="text-sm leading-relaxed" style={{ color: "var(--color-ink2)" }}>{point}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
+                    <motion.div {...fadeUp(0.06)} className="grid gap-x-8 gap-y-10 sm:grid-cols-3">
+                        {TRACEY_WORKFLOW.map(({ label, points }, i) => (
+                            <div key={label} className="flex flex-col border-t-2 border-ink pt-5">
+                                <div className="flex items-baseline justify-between">
+                                    <span className="em-display text-5xl text-forest">0{i + 1}</span>
+                                    <span className="em-kicker text-ink2/45">Step</span>
                                 </div>
-                            );
-                        })}
+                                <h4 className="mt-4 mb-4 text-lg font-semibold text-ink">{label}</h4>
+                                <ul className="space-y-3">
+                                    {points.map((point) => (
+                                        <li key={point} className="flex items-start gap-2.5 border-t border-hair pt-3">
+                                            <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-mint-500" />
+                                            <span className="text-sm leading-relaxed text-ink2">{point}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ))}
                     </motion.div>
 
                     <motion.div {...fadeUp(0.10)} className="mt-12 flex flex-col items-center gap-5">
@@ -462,49 +495,46 @@ export default function Home() {
                 </div>
             </section>
             {/* Section 2 — A CRM that fills itself in */}
-            <section id="product" className="py-12 md:py-24 px-6 bg-card">
-                <div className="container mx-auto max-w-7xl flex flex-col gap-16">
-                    <motion.div {...fadeUp()} className="text-center max-w-2xl mx-auto">
-                        <h2 className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em]" style={{ color: "var(--color-ink)" }}>A CRM that fills itself in.</h2>
-                        <p className="mt-3 text-lg leading-relaxed" style={{ color: "var(--color-ink2)" }}>
-                            Run it from the dashboard, the in-app chat, or just message Tracey on WhatsApp.
-                        </p>
-                    </motion.div>
+            <section id="product" className="bg-paper px-5 sm:px-8 py-16 md:py-24">
+                <div className="mx-auto flex max-w-[1320px] flex-col gap-16">
+                    <SectionHead
+                        index="§03 — The CRM"
+                        kicker="Runs on plain English"
+                        title={<>A CRM that<br className="hidden sm:block" /> fills itself in.</>}
+                        lead="Run it from the dashboard, the in-app chat, or just message Tracey on WhatsApp."
+                    />
 
-                    <motion.div {...fadeUp(0.06)} className="grid items-center gap-8 md:grid-cols-2">
-                        <div className="flex flex-col gap-6">
-                            <ul className="flex flex-col gap-3">
-                                {[
-                                    "One message moves a job, sends a quote, or closes a lead",
-                                    "Chat drives the CRM — Tracey handles the form-filling",
-                                    "Your whole pipeline, accessible by message",
-                                ].map((b) => (
-                                    <li key={b} className="flex items-start gap-2.5 text-sm text-slate-body">
-                                        <CheckCircle2 className="mt-0.5 w-4 h-4 text-primary shrink-0" />
-                                        <span>{b}</span>
-                                    </li>
-                                ))}
-                            </ul>
+                    <motion.div {...fadeUp(0.06)} className="grid items-stretch gap-8 md:grid-cols-2">
+                        <div className="flex flex-col justify-center gap-5">
+                            {[
+                                "One message moves a job, sends a quote, or closes a lead",
+                                "Chat drives the CRM — Tracey handles the form-filling",
+                                "Your whole pipeline, accessible by message",
+                            ].map((b, i) => (
+                                <div key={b} className="flex items-start gap-4 border-t border-hair pt-4">
+                                    <span className="em-kicker text-forest">0{i + 1}</span>
+                                    <span className="text-[15px] leading-relaxed text-ink">{b}</span>
+                                </div>
+                            ))}
                         </div>
-                        <div className="relative min-h-[380px] overflow-hidden rounded border border-border shadow-[0_8px_40px_rgba(15,23,42,0.10)]">
+                        <div className="relative min-h-[380px] overflow-hidden rounded-md border border-hair shadow-[0_24px_60px_-30px_rgba(14,31,26,0.4)]">
                             <HireMockup1 />
                         </div>
                     </motion.div>
 
-                    <motion.div {...fadeUp(0.10)} className="flex flex-col gap-6">
-                        <div className="text-center">
-                            <h3 className="text-2xl font-extrabold tracking-[-0.02em] md:text-3xl" style={{ color: "var(--color-ink)" }}>A full-featured CRM, built for the way trades actually work.</h3>
+                    {/* Feature ledger — bill of materials, not icon cards */}
+                    <motion.div {...fadeUp(0.10)} className="flex flex-col gap-8">
+                        <div className="flex items-center gap-4 border-t border-hair pt-3.5">
+                            <span className="em-kicker text-forest">§ Index of features</span>
+                            <span className="em-kicker flex-1 text-ink2/55">Twelve, included from day one</span>
                         </div>
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                            {FEATURE_CARDS.map(({ icon: Icon, title, desc }) => (
-                                <div key={title} className="group flex items-start gap-3 rounded-md border border-[var(--color-hair)] bg-card p-4 transition-all hover:-translate-y-0.5 hover:shadow-[0_6px_18px_-10px_rgba(14,31,26,0.18)]">
-                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary/10">
-                                        <Icon className="h-4 w-4 text-primary" />
-                                    </div>
-                                    <div className="flex flex-col gap-0.5 min-w-0">
-                                        <span className="text-sm font-semibold" style={{ color: "var(--color-ink)" }}>{title}</span>
-                                        <span className="text-xs leading-relaxed text-muted-foreground">{desc}</span>
-                                    </div>
+                        <div className="grid gap-x-12 md:grid-cols-2">
+                            {FEATURE_CARDS.map(({ icon: Icon, title, desc }, i) => (
+                                <div key={title} className="group flex items-baseline gap-4 border-b border-hair py-4 transition-colors hover:bg-cream/50">
+                                    <span className="em-kicker w-6 shrink-0 text-ink2/45">{String(i + 1).padStart(2, "0")}</span>
+                                    <Icon className="h-4 w-4 shrink-0 translate-y-0.5 text-forest" />
+                                    <span className="w-40 shrink-0 text-[15px] font-semibold text-ink">{title}</span>
+                                    <span className="hidden flex-1 text-sm leading-relaxed text-ink2/80 sm:block">{desc}</span>
                                 </div>
                             ))}
                         </div>
@@ -514,16 +544,21 @@ export default function Home() {
 
             <FaqSection />
 
-            {/* Final CTA */}
-            <section className="py-14 md:py-24 px-6 relative overflow-hidden" style={{ background: "var(--color-forest)" }}>
-                <div aria-hidden className="absolute top-[-60px] left-[-40px] w-56 h-56 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(0,210,139,0.3), rgba(22,67,58,0) 70%)" }} />
-                <div aria-hidden className="absolute bottom-[-40px] right-[-60px] w-72 h-72 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(0,210,139,0.15), rgba(22,67,58,0) 70%)" }} />
-                <div className="mx-auto max-w-3xl text-center flex flex-col items-center gap-6 relative z-10">
-                    <motion.h2 {...fadeUp()} className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-white leading-tight text-balance">Focus on the job.<br/><span style={{ color: "#00D28B" }}>Not the admin.</span></motion.h2>
-                    <motion.p {...fadeUp(0.04)} className="text-lg text-white/65 leading-7 max-w-xl">Start free. No card required. Live in under a day.</motion.p>
-                    <motion.div {...fadeUp(0.12)} className="flex flex-col sm:flex-row gap-3">
+            {/* Final CTA — forest bookend, flows into the footer */}
+            <section className="em-grain relative overflow-hidden bg-forest px-5 sm:px-8 py-20 md:py-32">
+                <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(80% 70% at 50% 120%, rgba(0,210,139,0.18) 0%, rgba(0,210,139,0.05) 45%, transparent 75%)" }} />
+                <div className="relative z-10 mx-auto max-w-[1320px]">
+                    <motion.div {...fadeUp()} className="flex items-center gap-4 border-t border-white/15 pt-3.5">
+                        <span className="em-kicker text-mint-500">§ Knock off early</span>
+                        <span className="em-kicker flex-1 text-paper/40">Live in under a day</span>
+                    </motion.div>
+                    <motion.h2 {...fadeUp(0.04)} className="em-display mt-10 text-[clamp(3rem,10vw,8rem)] text-paper">
+                        Focus on the job.<br /><span className="italic text-mint-500">Not the admin.</span>
+                    </motion.h2>
+                    <motion.div {...fadeUp(0.12)} className="mt-12 flex flex-col items-start gap-6 sm:flex-row sm:items-center">
                         <Link href="/auth"><Button size="lg" variant="mint">Get started <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>
-                        <Link href="/contact#contact-form"><Button size="lg" variant="ghost" className="text-white border-white/30 hover:bg-card/10">Get a demo</Button></Link>
+                        <Link href="/contact#contact-form"><Button size="lg" variant="ghost" className="border border-white/25 text-paper hover:bg-white/10 hover:text-white">Get a demo</Button></Link>
+                        <span className="text-sm text-paper/55 sm:ml-2">Start free. No card required.</span>
                     </motion.div>
                 </div>
             </section>

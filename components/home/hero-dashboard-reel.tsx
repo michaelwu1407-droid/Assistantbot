@@ -368,7 +368,7 @@ function ReelChrome({ children }: { children: React.ReactNode }) {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            className="relative overflow-hidden rounded border border-white/55 bg-card/55 shadow-[0_28px_90px_rgba(15,23,42,0.16)] backdrop-blur-xl"
+            className="relative overflow-hidden rounded-md border border-hair bg-card shadow-[0_40px_90px_-45px_rgba(14,31,26,0.5)]"
         >
             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.52)_0%,rgba(255,255,255,0.18)_18%,rgba(255,255,255,0)_36%)] pointer-events-none" />
             <div className="absolute inset-x-0 top-0 h-px bg-card/80 pointer-events-none" />
@@ -383,8 +383,8 @@ function ReelChrome({ children }: { children: React.ReactNode }) {
                         earlymark.ai/crm
                     </div>
                 </div>
-                <div className="hidden items-center gap-1.5 rounded-full border border-emerald-200/80 bg-emerald-50/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700 sm:flex">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <div className="hidden items-center gap-1.5 rounded-full border border-mint-100 bg-primary-subtle px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-forest sm:flex">
+                    <span className="w-1.5 h-1.5 rounded-full bg-mint-500 animate-pulse" />
                     Live demo
                 </div>
             </div>
@@ -410,8 +410,8 @@ export function HeroDashboardReel({ className = "" }: { className?: string }) {
     return (
         <div className={`relative mx-auto w-full max-w-[1120px] ${className}`}>
             {/* Ambient glows */}
-            <div className="absolute inset-x-[10%] top-6 -z-10 h-28 rounded-full bg-emerald-400/18 blur-3xl" />
-            <div className="absolute inset-x-[18%] bottom-0 -z-10 h-24 rounded-full bg-cyan-300/16 blur-3xl" />
+            <div className="absolute inset-x-[10%] top-6 -z-10 h-28 rounded-full bg-mint-500/20 blur-3xl" />
+            <div className="absolute inset-x-[18%] bottom-0 -z-10 h-24 rounded-full bg-mint-500/10 blur-3xl" />
 
             {/* ── Mobile: static chat preview only ── */}
             <div className="md:hidden">
@@ -429,7 +429,7 @@ export function HeroDashboardReel({ className = "" }: { className?: string }) {
                 <div className="relative overflow-hidden md:h-[500px]">
                     <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border border-white/80 bg-card/88 px-3.5 py-2 shadow-sm backdrop-blur">
                         <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                            <ActiveStepIcon className="h-3.5 w-3.5 text-emerald-600" />
+                            <ActiveStepIcon className="h-3.5 w-3.5 text-forest" />
                             <span>{activeStep.label}</span>
                         </div>
                         <div className="h-4 w-px bg-muted" />
@@ -443,7 +443,7 @@ export function HeroDashboardReel({ className = "" }: { className?: string }) {
                                         onClick={() => setActive(idx)}
                                         aria-label={`Show ${step.label} view`}
                                         className={`h-2.5 rounded-full transition-all duration-200 ${
-                                            isActive ? "w-6 bg-emerald-500" : "w-2.5 bg-muted-foreground/20 hover:bg-slate-400"
+                                            isActive ? "w-6 bg-mint-500" : "w-2.5 bg-muted-foreground/20 hover:bg-muted-foreground/40"
                                         }`}
                                     />
                                 );

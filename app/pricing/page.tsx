@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { MastheadHero } from "@/components/marketing/masthead-hero"
 import {
   ArrowRight,
   Send,
@@ -103,24 +104,22 @@ function FaqSection() {
   }
 
   return (
-    <div className="space-y-3 max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto border-t border-hair">
       {FAQ_ITEMS.map((item, idx) => {
         const isOpen = openIndices.includes(idx)
         return (
-          <div key={idx} className="border border-border rounded-md overflow-hidden bg-card">
+          <div key={idx} className="border-b border-hair">
             <button
               onClick={() => toggle(idx)}
-              className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-muted/30 transition-colors"
+              className="w-full flex items-center justify-between gap-4 py-5 text-left group"
             >
-              <span className="font-semibold text-sm pr-4" style={{ color: "var(--color-ink)" }}>{item.q}</span>
-              <ChevronDown
-                className={`w-5 h-5 text-muted-foreground shrink-0 transition-transform duration-200 ${
-                  isOpen ? "rotate-180" : ""
-                }`}
-              />
+              <span className="font-semibold text-[15px] pr-4 text-ink group-hover:text-forest transition-colors">{item.q}</span>
+              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-hair bg-card transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}>
+                <ChevronDown className="w-4 h-4 text-forest" />
+              </span>
             </button>
             <div className={`transition-all duration-200 overflow-hidden ${isOpen ? "max-h-60" : "max-h-0"}`}>
-              <p className="px-5 pb-4 text-sm text-muted-foreground leading-relaxed">{item.a}</p>
+              <p className="pb-5 pr-10 text-sm text-ink2 leading-relaxed">{item.a}</p>
             </div>
           </div>
         )
@@ -181,35 +180,17 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-paper text-ink">
       <Navbar />
 
       <main>
         {/* ── 1. Hero / Pricing Header ── */}
-        <section className="pt-24 sm:pt-32 pb-10 md:pb-16 px-6 relative overflow-hidden isolate bg-[linear-gradient(180deg,#F8FAFC_0%,#F1F5F9_60%,#F8FAFC_100%)]">
-          <div
-            className="absolute inset-0 z-0 pointer-events-none"
-            style={{
-              background:
-                "radial-gradient(110% 60% at 50% 0%,rgba(16,185,129,0.18) 0%,rgba(16,185,129,0.00) 72%)",
-            }}
-          />
-          <div className="relative z-10 mx-auto max-w-3xl text-center flex flex-col items-center gap-6">
-            <motion.p {...fadeUp()} className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">
-              Pricing
-            </motion.p>
-            <motion.h1
-              {...fadeUp(0.04)}
-              className="text-4xl md:text-6xl font-extrabold tracking-[-0.04em] leading-[1.07] text-balance"
-              style={{ color: "var(--color-ink)" }}
-            >
-              One plan. Everything included.
-            </motion.h1>
-            <motion.p {...fadeUp(0.08)} className="text-lg leading-8 text-muted-foreground max-w-xl text-balance">
-              A$30/month platform. 10¢ per call minute or text. That&apos;s it.
-            </motion.p>
-          </div>
-        </section>
+        <MastheadHero
+          index="§ Pricing"
+          kicker="One plan, everything in"
+          title={<>One plan.<br />Everything included.</>}
+          lead="A$30/month platform. 10¢ per call minute or text. That's it."
+        />
 
         {/* ── 2. Pricing Section ── */}
         <section className="py-12 px-6">
@@ -240,7 +221,7 @@ export default function PricingPage() {
                   >
                     Yearly
                   </button>
-                  <span className="absolute -top-3 -right-3 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                  <span className="absolute -top-3 -right-3 bg-forest text-paper text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
                     Save 20%
                   </span>
                 </div>
@@ -366,10 +347,10 @@ export default function PricingPage() {
         </section>
 
         {/* ── 3. ROI Justification ── */}
-        <section className="py-10 md:py-20 px-6 bg-card border-t border-border/60">
+        <section className="py-12 md:py-20 px-6 bg-cream">
           <div className="max-w-4xl mx-auto">
             <motion.div {...fadeUp()} className="text-center mb-14">
-              <h2 className="text-3xl font-extrabold" style={{ color: "var(--color-ink)" }}>Pays for itself by saving 1 missed job</h2>
+              <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-[-0.01em] text-ink">Pays for itself by saving 1 missed job</h2>
               <p className="mt-3 text-muted-foreground max-w-2xl mx-auto">
                 Stop losing money on missed calls, forgotten follow-ups, and wasted admin hours.
               </p>
@@ -380,9 +361,9 @@ export default function PricingPage() {
                 <motion.div
                   key={i}
                   {...fadeUp(0.1 + i * 0.1)}
-                  className="bg-card rounded-md p-8 border border-border shadow-sm text-center flex flex-col items-center justify-center"
+                  className="bg-card rounded-md p-8 border border-hair shadow-[0_2px_10px_-6px_rgba(14,31,26,0.08)] text-center flex flex-col items-center justify-center"
                 >
-                  <div className="text-4xl font-extrabold text-primary mb-3">{stat.value}</div>
+                  <div className="font-display text-4xl font-semibold text-forest mb-3">{stat.value}</div>
                   <div className="text-sm font-semibold text-muted-foreground">{stat.label}</div>
                 </motion.div>
               ))}
@@ -391,10 +372,10 @@ export default function PricingPage() {
         </section>
 
         {/* ── 4. Feature Grid ── */}
-        <section className="py-10 md:py-20 px-6 bg-background border-t border-border/60">
+        <section className="py-12 md:py-20 px-6 bg-paper">
           <div className="max-w-5xl mx-auto">
             <motion.div {...fadeUp()} className="text-center mb-14">
-              <h2 className="text-3xl font-extrabold" style={{ color: "var(--color-ink)" }}>Everything you need is included</h2>
+              <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-[-0.01em] text-ink">Everything you need is included</h2>
               <p className="mt-3 text-muted-foreground">No add-ons, no hidden modules. You get the full platform from day one.</p>
             </motion.div>
 
@@ -405,9 +386,9 @@ export default function PricingPage() {
                   <motion.div
                     key={f.title}
                     {...fadeUp(0.1 + i * 0.05)}
-                    className="bg-card border border-border/50 p-5 rounded-md flex flex-col items-start gap-4 hover:shadow-md transition-shadow"
+                    className="bg-card border border-hair p-5 rounded-md flex flex-col items-start gap-4 hover:shadow-md transition-shadow"
                   >
-                    <div className="w-10 h-10 rounded-md bg-emerald-100 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-md bg-primary-subtle flex items-center justify-center">
                       <Icon className="w-5 h-5 text-primary" />
                     </div>
                     <div>
@@ -422,10 +403,10 @@ export default function PricingPage() {
         </section>
 
         {/* ── 5. FAQ ── */}
-        <section className="py-10 md:py-20 px-6 bg-card border-t border-border/60">
+        <section className="py-12 md:py-20 px-6 bg-cream">
           <div className="max-w-3xl mx-auto">
             <motion.div {...fadeUp()} className="text-center mb-10">
-              <h2 className="text-3xl font-extrabold" style={{ color: "var(--color-ink)" }}>Pricing questions</h2>
+              <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-[-0.01em] text-ink">Pricing questions</h2>
             </motion.div>
 
             <motion.div {...fadeUp(0.1)}>
@@ -435,10 +416,10 @@ export default function PricingPage() {
         </section>
 
         {/* ── 6. Contact Form ── */}
-        <section id="contact-form" className="py-10 md:py-20 px-6 bg-background border-t border-border/60 scroll-mt-20">
+        <section id="contact-form" className="py-12 md:py-20 px-6 bg-paper scroll-mt-20">
           <div className="container mx-auto max-w-xl">
             <motion.div {...fadeUp()} className="text-center mb-10">
-              <h2 className="text-3xl font-extrabold" style={{ color: "var(--color-ink)" }}>Still have questions?</h2>
+              <h2 className="font-display text-3xl md:text-4xl font-semibold tracking-[-0.01em] text-ink">Still have questions?</h2>
               <p className="text-muted-foreground mt-2">Get in touch with the team.</p>
             </motion.div>
 
@@ -477,7 +458,7 @@ export default function PricingPage() {
                   </CardContent>
                 </Card>
               ) : (
-                <Card className="rounded-md border border-border shadow-sm bg-card">
+                <Card className="rounded-md border border-hair shadow-sm bg-card">
                   <CardHeader className="px-8 pt-8 pb-0">
                     <CardTitle style={{ color: "var(--color-ink)" }}>Get in touch</CardTitle>
                     <CardDescription>Choose the team that best fits your question.</CardDescription>
@@ -584,15 +565,17 @@ export default function PricingPage() {
         </section>
 
         {/* ── 7. Final CTA ── */}
-        <section className="py-14 md:py-24 px-6" style={{ background: "var(--color-forest)" }}>
-          <div className="mx-auto max-w-3xl text-center flex flex-col items-center gap-6">
+        <section className="relative overflow-hidden py-16 md:py-28 px-6 bg-forest">
+          <div aria-hidden className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(70% 60% at 50% 120%, rgba(0,210,139,0.18) 0%, transparent 70%)" }} />
+          <div aria-hidden className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+          <div className="relative mx-auto max-w-3xl text-center flex flex-col items-center gap-6">
             <motion.h2
               {...fadeUp()}
-              className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-white leading-tight text-balance"
+              className="font-display text-4xl md:text-5xl font-semibold tracking-[-0.01em] text-paper leading-[1.05] text-balance"
             >
-              Give yourself an early mark
+              Give yourself an <span className="italic text-mint-500">early mark</span>
             </motion.h2>
-            <motion.p {...fadeUp(0.04)} className="text-lg text-white/65 leading-7 max-w-xl">
+            <motion.p {...fadeUp(0.04)} className="text-lg text-paper/65 leading-7 max-w-xl">
               No contracts. No complexity. Try Earlymark free.
             </motion.p>
             <motion.div {...fadeUp(0.12)} className="flex flex-col sm:flex-row gap-3">
@@ -602,7 +585,7 @@ export default function PricingPage() {
                 </Button>
               </Link>
               <Link href="/#interview-assistant">
-                <Button size="lg" variant="ghost" className="text-white border border-white/30 hover:bg-card/10">
+                <Button size="lg" variant="ghost" className="text-paper border border-white/25 hover:bg-white/10 hover:text-white">
                   Interview Tracey for free
                 </Button>
               </Link>
