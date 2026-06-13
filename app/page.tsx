@@ -315,7 +315,7 @@ function FaqSection() {
         <section className="py-12 md:py-20 px-6 bg-cream">
             <div className="max-w-3xl mx-auto">
                 <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-forest text-center mb-4">Good to know</p>
-                <h2 className="text-3xl md:text-4xl font-extrabold tracking-[-0.03em] text-center mb-10 text-ink">Frequently asked.</h2>
+                <h2 className="text-3xl md:text-4xl font-display font-semibold tracking-[-0.01em] text-center mb-10 text-ink">Frequently asked.</h2>
                 <div className="border-t border-hair">
                     {FAQ_ITEMS.map((item, idx) => {
                         const isOpen = openIndices.includes(idx);
@@ -357,9 +357,9 @@ export default function Home() {
                     <motion.p {...fadeUp(0.02)} className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.28em] text-mint-500">
                         AI receptionist &amp; CRM for trades
                     </motion.p>
-                    <motion.h1 {...fadeUp(0.06)} className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-[-0.04em] leading-[1.06] text-balance text-center text-paper">
+                    <motion.h1 {...fadeUp(0.06)} className="font-display text-4xl sm:text-5xl md:text-7xl font-semibold tracking-[-0.02em] leading-[1.04] text-balance text-center text-paper">
                         Your AI assistant &amp; CRM.
-                        <span className="block">Here to give you an <span className="text-mint-500">early mark</span></span>
+                        <span className="block">Here to give you an <span className="italic text-mint-500">early mark</span></span>
                     </motion.h1>
                     <motion.p {...fadeUp(0.08)} className="max-w-xl text-center text-base sm:text-lg leading-relaxed text-paper/65">
                         Tracey answers every call, books the job and runs your CRM — while you stay on the tools.
@@ -384,7 +384,7 @@ export default function Home() {
                 <div className="container mx-auto max-w-7xl">
                     <motion.div {...fadeUp()} className="text-center mb-8 md:mb-12">
                         <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-forest mb-4">From the tools</p>
-                        <h2 className="text-2xl sm:text-3xl md:text-5xl font-extrabold tracking-[-0.03em] text-ink">Built for businesses with non-stop calls.</h2>
+                        <h2 className="text-2xl sm:text-3xl md:text-5xl font-display font-semibold tracking-[-0.01em] text-ink">Built for businesses with non-stop calls.</h2>
                     </motion.div>
                     <motion.div {...fadeUp(0.08)} className="-mx-6 px-6"><TestimonialsCarousel /></motion.div>
                 </div>
@@ -398,7 +398,7 @@ export default function Home() {
                         <div className="relative grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
                             <div className="flex flex-col gap-5">
                                 <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-mint-500">Hear her first</p>
-                                <h2 className="text-3xl md:text-5xl font-extrabold text-paper tracking-[-0.03em] leading-tight">
+                                <h2 className="text-3xl md:text-5xl font-display font-semibold text-paper tracking-[-0.01em] leading-tight">
                                     Interview your assistant now.
                                 </h2>
                                 <p className="text-base md:text-lg leading-relaxed text-paper/65 max-w-md">
@@ -420,7 +420,7 @@ export default function Home() {
                 <div className="container mx-auto max-w-7xl">
                     <motion.div {...fadeUp()} className="mx-auto mb-12 max-w-3xl text-center">
                         <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-forest mb-4">The platform</p>
-                        <h2 className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-ink">One comprehensive platform.</h2>
+                        <h2 className="text-4xl md:text-5xl font-display font-semibold tracking-[-0.01em] text-ink">One comprehensive platform.</h2>
                         <p className="mt-4 text-lg text-ink2">
                             An AI assistant and a CRM that runs itself, so you don&apos;t have to.
                         </p>
@@ -436,7 +436,7 @@ export default function Home() {
                 <div className="container mx-auto max-w-7xl">
                     <motion.div {...fadeUp()} className="mx-auto mb-12 max-w-3xl text-center">
                         <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-forest mb-4">Your AI offsider</p>
-                        <h2 className="text-4xl font-extrabold tracking-[-0.03em] md:text-5xl text-ink">Meet Tracey.</h2>
+                        <h2 className="text-4xl font-display font-semibold tracking-[-0.01em] md:text-5xl text-ink">Meet Tracey.</h2>
                         <p className="mt-3 text-lg max-w-xl mx-auto text-ink2">
                             Your AI receptionist, CRM manager, and follow-up specialist — all in one.
                         </p>
@@ -477,7 +477,7 @@ export default function Home() {
                 <div className="container mx-auto max-w-7xl flex flex-col gap-16">
                     <motion.div {...fadeUp()} className="text-center max-w-2xl mx-auto">
                         <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-forest mb-4">The CRM</p>
-                        <h2 className="text-4xl md:text-5xl font-extrabold tracking-[-0.03em] text-ink">A CRM that fills itself in.</h2>
+                        <h2 className="text-4xl md:text-5xl font-display font-semibold tracking-[-0.01em] text-ink">A CRM that fills itself in.</h2>
                         <p className="mt-3 text-lg leading-relaxed text-ink2">
                             Run it from the dashboard, the in-app chat, or just message Tracey on WhatsApp.
                         </p>
@@ -505,7 +505,7 @@ export default function Home() {
 
                     <motion.div {...fadeUp(0.10)} className="flex flex-col gap-6">
                         <div className="text-center">
-                            <h3 className="text-2xl font-extrabold tracking-[-0.02em] md:text-3xl text-ink">A full-featured CRM, built for the way trades actually work.</h3>
+                            <h3 className="text-2xl font-display font-semibold tracking-[-0.01em] md:text-3xl text-ink">A full-featured CRM, built for the way trades actually work.</h3>
                         </div>
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                             {FEATURE_CARDS.map(({ icon: Icon, title, desc }) => (
@@ -532,7 +532,7 @@ export default function Home() {
                 <div aria-hidden className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
                 <div className="mx-auto max-w-3xl text-center flex flex-col items-center gap-6 relative z-10">
                     <motion.p {...fadeUp()} className="text-[11px] font-bold uppercase tracking-[0.28em] text-mint-500">Knock off early</motion.p>
-                    <motion.h2 {...fadeUp(0.02)} className="text-4xl md:text-6xl font-extrabold tracking-[-0.04em] text-paper leading-[1.05] text-balance">Focus on the job.<br/><span className="text-mint-500">Not the admin.</span></motion.h2>
+                    <motion.h2 {...fadeUp(0.02)} className="text-4xl md:text-6xl font-display font-semibold tracking-[-0.015em] text-paper leading-[1.05] text-balance">Focus on the job.<br/><span className="text-mint-500">Not the admin.</span></motion.h2>
                     <motion.p {...fadeUp(0.04)} className="text-lg text-paper/65 leading-7 max-w-xl">Start free. No card required. Live in under a day.</motion.p>
                     <motion.div {...fadeUp(0.12)} className="flex flex-col sm:flex-row gap-3">
                         <Link href="/auth"><Button size="lg" variant="mint">Get started <ArrowRight className="ml-2 h-4 w-4" /></Button></Link>

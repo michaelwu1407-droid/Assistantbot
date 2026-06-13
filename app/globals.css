@@ -6,6 +6,7 @@
 
 @theme {
   --font-sans: var(--font-sans);
+  --font-display: var(--font-display), 'Fraunces', Georgia, serif;
 
   --radius-sm: 18px;
   --radius-md: 18px;
