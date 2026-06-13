@@ -76,24 +76,25 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-paper">
       <Navbar />
 
       <main className="pt-28 pb-20 px-6">
         <div className="container mx-auto max-w-xl">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
+            className="inline-flex items-center gap-2 text-sm text-ink2 hover:text-ink transition-colors mb-8"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to home
           </Link>
 
           <div className="mb-8">
-            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight" style={{ color: "var(--color-ink)" }}>
+            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-forest mb-3">We&apos;re here to help</p>
+            <h1 className="font-display text-3xl md:text-5xl font-semibold tracking-[-0.01em] text-ink">
               Contact us
             </h1>
-            <p className="text-slate-body mt-2">
+            <p className="text-ink2 mt-3">
               Get in touch with the right team at Earlymark.
             </p>
           </div>
@@ -109,7 +110,7 @@ export default function ContactPage() {
                     <h2 className="font-semibold" style={{ color: "var(--color-ink)" }}>
                       {callPlaced ? "Tracey is calling you now" : "Message sent"}
                     </h2>
-                    <p className="text-sm text-slate-body mt-1">
+                    <p className="text-sm text-ink2 mt-1">
                       {callPlaced
                         ? "Pick up — Tracey will be on the line in a few seconds."
                         : "Thanks for reaching out. We’ll get back to you within 24 hours."}
@@ -125,7 +126,7 @@ export default function ContactPage() {
             <Card className="ott-card-elevated">
               <CardHeader>
                 <CardTitle style={{ color: "var(--color-ink)" }}>Contact form</CardTitle>
-                <CardDescription className="text-slate-body">
+                <CardDescription className="text-ink2">
                   Choose the department that best fits your enquiry, then fill in your details.
                 </CardDescription>
               </CardHeader>
@@ -163,7 +164,7 @@ export default function ContactPage() {
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone (optional)</Label>
                     <Input id="phone" name="phone" type="tel" placeholder="+61 400 000 000" />
-                    <p className="text-xs text-slate-body">
+                    <p className="text-xs text-ink2">
                       Add your phone if you want Tracey to call you back right away.
                     </p>
                   </div>
