@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Button } from "@/components/ui/button"
 import {
     ChevronDown, Menu, X, ArrowRight,
     Zap, Wrench, Trees, Sparkles, Bug, Key, Paintbrush, Thermometer,
@@ -45,19 +44,23 @@ export function Navbar() {
     }, [])
 
     return (
-        <nav className="fixed top-5 left-1/2 z-50 flex h-16 w-[95%] max-w-[1200px] -translate-x-1/2 items-center justify-between rounded-full border border-white/20 bg-card/70 px-6 shadow-lg backdrop-blur-md transition-all lg:px-8">
+        <nav className="fixed top-0 left-0 right-0 z-50 border-b border-hair bg-paper/85 backdrop-blur-md">
+          <div className="mx-auto flex h-16 max-w-[1320px] items-center justify-between px-5 sm:px-8">
             <Link href="/" className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center">
-                    <Image src="/latest-logo.png" alt="Earlymark Logo" width={32} height={32} className="rounded-lg" unoptimized />
+                <div className="flex h-8 w-8 items-center justify-center">
+                    <Image src="/latest-logo.png" alt="Earlymark Logo" width={30} height={30} className="rounded-md" unoptimized />
                 </div>
-                <span className="text-lg font-bold tracking-tight text-ink">Earlymark</span>
+                <span className="flex items-baseline gap-2.5">
+                    <span className="font-display text-xl font-semibold tracking-[-0.01em] text-ink">Earlymark</span>
+                    <span className="em-kicker hidden text-ink2/55 lg:inline">Est. for trades</span>
+                </span>
             </Link>
 
-            <div className="hidden items-center gap-8 md:flex">
-                <Link href="/" className="text-[15px] font-medium text-ink2 transition-colors hover:text-ink">
+            <div className="hidden items-center gap-9 md:flex">
+                <Link href="/" className="text-[14px] font-medium text-ink2 transition-colors hover:text-ink">
                     Home
                 </Link>
-                <Link href="/features" className="text-[15px] font-medium text-ink2 transition-colors hover:text-ink">
+                <Link href="/features" className="text-[14px] font-medium text-ink2 transition-colors hover:text-ink">
                     Product
                 </Link>
 
@@ -68,7 +71,7 @@ export function Navbar() {
                     onFocus={openSolutions}
                     onBlur={closeSolutionsSoon}
                 >
-                    <Link href="/solutions" className="inline-flex items-center gap-1 text-[15px] font-medium text-ink2 transition-colors hover:text-ink">
+                    <Link href="/solutions" className="inline-flex items-center gap-1 text-[14px] font-medium text-ink2 transition-colors hover:text-ink">
                         Solutions
                         <ChevronDown className={`h-4 w-4 transition-transform ${isSolutionsOpen ? "rotate-180" : ""}`} />
                     </Link>
@@ -114,22 +117,19 @@ export function Navbar() {
                     </div>
                 </div>
 
-                <Link href="/pricing" className="text-[15px] font-medium text-ink2 transition-colors hover:text-ink">
+                <Link href="/pricing" className="text-[14px] font-medium text-ink2 transition-colors hover:text-ink">
                     Pricing
                 </Link>
             </div>
 
-            <div className="flex items-center gap-3">
-                <Button asChild variant="ghost" size="sm" className="hidden text-[15px] font-medium text-ink sm:inline-flex">
-                    <Link href="/contact">
-                        Contact us
-                    </Link>
-                </Button>
-                <Button asChild size="sm" variant="mint" className="hidden text-[15px] font-medium sm:inline-flex">
-                    <Link href="/auth">
-                        Log in / Get started
-                    </Link>
-                </Button>
+            <div className="flex items-center gap-5">
+                <Link href="/contact" className="hidden text-[14px] font-medium text-ink2 transition-colors hover:text-ink sm:inline-flex">
+                    Contact
+                </Link>
+                <Link href="/auth" className="group hidden items-center gap-2 text-[14px] font-semibold text-ink sm:inline-flex">
+                    <span className="border-b-2 border-mint-500 pb-0.5 transition-colors group-hover:border-forest">Log in / Get started</span>
+                    <ArrowRight className="h-3.5 w-3.5 text-forest transition-transform group-hover:translate-x-0.5" />
+                </Link>
                 <button
                     onClick={() => setIsOpen(!isOpen)}
                     className="-mr-2 p-2 text-ink md:hidden"
@@ -137,9 +137,10 @@ export function Navbar() {
                     {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
                 </button>
             </div>
+          </div>
 
             {isOpen && (
-                <div className="animate-in fade-in slide-in-from-top-2 absolute left-0 right-0 top-16 z-50 mx-4 flex flex-col gap-4 rounded-2xl border border-hair bg-card p-5 shadow-xl md:hidden">
+                <div className="animate-in fade-in slide-in-from-top-2 absolute left-0 right-0 top-16 z-50 mx-4 flex flex-col gap-4 rounded-md border border-hair bg-card p-5 shadow-xl md:hidden">
                     <Link href="/" className="text-[15px] font-medium text-ink2" onClick={() => setIsOpen(false)}>Home</Link>
                     <Link href="/features" className="text-[15px] font-medium text-ink2" onClick={() => setIsOpen(false)}>Product</Link>
                     <div className="flex flex-col gap-2">

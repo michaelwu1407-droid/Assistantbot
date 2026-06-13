@@ -1,37 +1,44 @@
 export function TrustStrip() {
     const metrics = [
         {
+            no: "01",
             value: "99%",
-            label: "calls answered",
+            label: "Calls answered",
             sub: "Every customer gets a response, even while you're on the tools",
         },
         {
+            no: "02",
             value: "~60%",
-            label: "more jobs booked",
+            label: "More jobs booked",
             sub: "Average increase in booked jobs in the first month",
         },
         {
+            no: "03",
             value: "~3 hrs",
-            label: "admin saved daily",
+            label: "Admin saved daily",
             sub: "Time reclaimed from calls, follow-ups, and manual entry",
         },
     ];
 
     return (
-        <section className="bg-paper px-6 pt-14 pb-12 md:pt-20 md:pb-16">
-            <div className="container mx-auto max-w-5xl">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-10 sm:gap-0 sm:divide-x sm:divide-hair">
-                    {metrics.map((m) => (
-                        <div key={m.label} className="flex flex-col items-center text-center sm:px-10 gap-1">
-                            <div className="text-5xl md:text-6xl font-extrabold tracking-[-0.04em] leading-none text-ink">
-                                {m.value}
-                            </div>
-                            <div className="text-[11px] font-bold uppercase tracking-[0.22em] mt-2.5 text-forest">
-                                {m.label}
-                            </div>
-                            <p className="text-xs leading-relaxed max-w-[200px] mt-1.5 text-ink2/80">
-                                {m.sub}
-                            </p>
+        <section className="bg-paper px-5 sm:px-8 py-16 md:py-24">
+            <div className="mx-auto max-w-[1320px]">
+                <div className="flex items-center gap-4 border-t border-hair pt-3.5">
+                    <span className="em-kicker text-forest">§ Results</span>
+                    <span className="em-kicker flex-1 text-ink2/55">Measured across live workspaces</span>
+                </div>
+                <div className="mt-10 grid grid-cols-1 md:grid-cols-3">
+                    {metrics.map((m, i) => (
+                        <div
+                            key={m.label}
+                            className={`flex flex-col gap-3 py-8 md:py-2 md:px-10 ${
+                                i > 0 ? "border-t border-hair md:border-t-0 md:border-l" : "md:pl-0"
+                            }`}
+                        >
+                            <span className="em-kicker text-ink2/45">{m.no}</span>
+                            <div className="em-display text-[clamp(3.5rem,7vw,5.5rem)] text-ink">{m.value}</div>
+                            <div className="text-base font-semibold text-forest">{m.label}</div>
+                            <p className="max-w-[240px] text-sm leading-relaxed text-ink2/80">{m.sub}</p>
                         </div>
                     ))}
                 </div>

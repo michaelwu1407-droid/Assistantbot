@@ -368,7 +368,7 @@ function ReelChrome({ children }: { children: React.ReactNode }) {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            className="relative overflow-hidden rounded-md border border-white/55 bg-card/55 shadow-[0_38px_110px_-30px_rgba(0,0,0,0.55)] backdrop-blur-xl"
+            className="relative overflow-hidden rounded-md border border-hair bg-card shadow-[0_40px_90px_-45px_rgba(14,31,26,0.5)]"
         >
             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.52)_0%,rgba(255,255,255,0.18)_18%,rgba(255,255,255,0)_36%)] pointer-events-none" />
             <div className="absolute inset-x-0 top-0 h-px bg-card/80 pointer-events-none" />
