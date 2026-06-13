@@ -43,21 +43,21 @@ export function PlatformDiagram() {
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true, margin: "-60px" }}
                     transition={{ duration: 0.6, ease: EASE }}
-                    className="relative flex flex-col gap-5 rounded-2xl border border-emerald-900/10 bg-[linear-gradient(145deg,#103126_0%,#1B4637_52%,#2B5F4D_100%)] p-7 md:p-8 shadow-[0_18px_60px_rgba(15,23,42,0.14)]"
+                    className="relative flex flex-col gap-5 rounded-md bg-[linear-gradient(145deg,#0E2F28_0%,#16433A_55%,#1E5447_100%)] p-7 md:p-8 shadow-[0_18px_50px_-18px_rgba(14,31,26,0.45)]"
                 >
                     <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-card/10">
-                            <Phone className="h-5 w-5 text-emerald-300" />
+                        <div className="flex h-11 w-11 items-center justify-center rounded-md bg-white/10">
+                            <Phone className="h-5 w-5 text-mint-500" />
                         </div>
                         <div>
                             <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/50">Voice Agent</p>
-                            <h3 className="text-xl font-bold text-white">Your AI voice assistant</h3>
+                            <h3 className="text-xl font-bold text-paper">Your AI voice assistant</h3>
                         </div>
                     </div>
                     <ul className="space-y-2.5">
                         {VOICE_POINTS.map((point) => (
                             <li key={point} className="flex items-start gap-2.5">
-                                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-mint-500" />
                                 <span className="text-sm leading-relaxed text-white/80">{point}</span>
                             </li>
                         ))}
@@ -67,7 +67,7 @@ export function PlatformDiagram() {
                         <div className="flex flex-wrap gap-2">
                             {CHANNELS.map(({ label, icon: Icon }) => (
                                 <span key={label} className="inline-flex items-center gap-1.5 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-xs text-white/75">
-                                    <Icon className="h-3 w-3 text-emerald-400" />
+                                    <Icon className="h-3 w-3 text-mint-500" />
                                     {label}
                                 </span>
                             ))}
@@ -84,11 +84,11 @@ export function PlatformDiagram() {
                     className="flex flex-row md:flex-col items-center justify-center gap-4 py-4 md:py-0"
                     aria-hidden="true"
                 >
-                    <div className="flex h-20 w-20 md:h-24 md:w-24 items-center justify-center rounded-full border-2 border-emerald-200 bg-card shadow-[0_10px_28px_rgba(16,185,129,0.30)]">
-                        <ArrowRight className="h-9 w-9 md:h-11 md:w-11 text-emerald-600 rotate-90 md:rotate-0" strokeWidth={2.5} />
+                    <div className="flex h-16 w-16 md:h-20 md:w-20 items-center justify-center rounded-full border border-hair bg-card shadow-[0_10px_28px_-10px_rgba(14,31,26,0.25)]">
+                        <ArrowRight className="h-7 w-7 md:h-9 md:w-9 text-forest rotate-90 md:rotate-0" strokeWidth={2} />
                     </div>
-                    <div className="flex h-20 w-20 md:h-24 md:w-24 items-center justify-center rounded-full border-2 border-emerald-200 bg-card shadow-[0_10px_28px_rgba(16,185,129,0.30)]">
-                        <ArrowLeft className="h-9 w-9 md:h-11 md:w-11 text-emerald-600 rotate-90 md:rotate-0" strokeWidth={2.5} />
+                    <div className="flex h-16 w-16 md:h-20 md:w-20 items-center justify-center rounded-full border border-hair bg-card shadow-[0_10px_28px_-10px_rgba(14,31,26,0.25)]">
+                        <ArrowLeft className="h-7 w-7 md:h-9 md:w-9 text-forest rotate-90 md:rotate-0" strokeWidth={2} />
                     </div>
                 </motion.div>
 
@@ -98,28 +98,28 @@ export function PlatformDiagram() {
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true, margin: "-60px" }}
                     transition={{ duration: 0.6, delay: 0.1, ease: EASE }}
-                    className="relative flex flex-col gap-5 rounded-2xl border border-border bg-card p-7 md:p-8 shadow-[0_18px_60px_rgba(15,23,42,0.10)]"
+                    className="relative flex flex-col gap-5 rounded-md border border-hair bg-card p-7 md:p-8 shadow-[0_18px_50px_-22px_rgba(14,31,26,0.25)]"
                 >
                     <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50">
-                            <Database className="h-5 w-5 text-emerald-600" />
+                        <div className="flex h-11 w-11 items-center justify-center rounded-md bg-primary-subtle">
+                            <Database className="h-5 w-5 text-forest" />
                         </div>
                         <div>
-                            <p className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">CRM</p>
-                            <h3 className="text-xl font-bold text-midnight">A CRM that runs itself</h3>
+                            <p className="text-xs font-bold uppercase tracking-[0.18em] text-ink2/70">CRM</p>
+                            <h3 className="text-xl font-bold text-ink">A CRM that runs itself</h3>
                         </div>
                     </div>
-                    <div className="flex items-start gap-2.5 rounded-xl bg-emerald-50/60 px-3.5 py-3 ring-1 ring-emerald-100">
-                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-                        <span className="text-sm font-semibold leading-relaxed text-midnight">Auto-logs every job and customer interaction</span>
+                    <div className="flex items-start gap-2.5 rounded-md bg-primary-subtle/60 px-3.5 py-3 ring-1 ring-mint-100">
+                        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-forest" />
+                        <span className="text-sm font-semibold leading-relaxed text-ink">Auto-logs every job and customer interaction</span>
                     </div>
                     <div className="flex flex-col gap-2.5">
-                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">Traditional CRM features</p>
+                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-ink2/70">Traditional CRM features</p>
                         <div className="grid grid-cols-2 gap-x-3 gap-y-2">
                             {CRM_FEATURES.map(({ icon: Icon, label }) => (
                                 <div key={label} className="flex items-center gap-2">
-                                    <Icon className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
-                                    <span className="text-xs leading-snug text-muted-foreground">{label}</span>
+                                    <Icon className="h-3.5 w-3.5 shrink-0 text-forest" />
+                                    <span className="text-xs leading-snug text-ink2">{label}</span>
                                 </div>
                             ))}
                         </div>
