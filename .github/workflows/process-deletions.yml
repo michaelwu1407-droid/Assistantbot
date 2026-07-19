@@ -1,9 +1,7 @@
 name: Process Scheduled Deletions
 
 on:
-  schedule:
-    # Run weekly on Monday at 3:00 AM UTC
-    - cron: "0 3 * * 1"
+  # Schedule paused — re-enable when ready to resume automated deletions.
   workflow_dispatch:
 
 jobs:

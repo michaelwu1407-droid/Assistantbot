@@ -1,8 +1,7 @@
 name: Customer Agent Reconcile
 
 on:
-  schedule:
-    - cron: "22,52 * * * *"
+  # Schedule paused — re-enable when ready to resume automated Twilio routing checks.
   workflow_dispatch:
 
 jobs:

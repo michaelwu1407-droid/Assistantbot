@@ -1,10 +1,7 @@
 name: Voice Agent Health
 
 on:
-  schedule:
-    # Every 30 min, staggered against voice-monitor-watchdog (7,37) and
-    # customer-agent-reconcile (22,52) so the fleet doesn't stampede.
-    - cron: "12,42 * * * *"
+  # Schedule paused — re-enable when ready to resume automated health checks.
   workflow_dispatch:
 
 jobs:

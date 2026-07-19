@@ -1,10 +1,7 @@
 name: Passive Communications Health
 
 on:
-  schedule:
-    # Every 30 min, staggered against the other health monitors so the
-    # fleet doesn't stampede the API on the same minute.
-    - cron: "17,47 * * * *"
+  # Schedule paused — re-enable when ready to resume automated health checks.
   workflow_dispatch:
 
 jobs:
