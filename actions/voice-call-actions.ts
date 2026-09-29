@@ -8,6 +8,7 @@ import {
   hasRecentCallbackInProgress,
   recordCallbackEvent,
 } from "@/lib/callback-events";
+import { restoreVoiceIfSpendCapExpired } from "@/lib/voice-circuit-breaker-store";
 
 export type VoiceCallView = {
   id: string;
@@ -76,6 +77,8 @@ export async function requestTraceyRecall(input: {
         id: true,
         twilioPhoneNumber: true,
         voiceEnabled: true,
+        voiceDisabledReason: true,
+        voiceDisabledAt: true,
         agentMode: true,
       },
     }),
@@ -104,7 +107,7 @@ export async function requestTraceyRecall(input: {
     return { success: false, error: "This contact has no phone number yet." };
   }
 
-  if (workspace.voiceEnabled === false) {
+  if (!(await restoreVoiceIfSpendCapExpired(workspace))) {
     return { success: false, error: "Tracey voice is temporarily disabled for this workspace." };
   }
 

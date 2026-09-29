@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { runIdempotent } from "@/lib/idempotency";
 import { verifyTwilioFormPost } from "@/lib/twilio/verify-signature";
+import { VOICE_DISABLED_SPEND_CAP } from "@/lib/voice-circuit-breaker";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +49,12 @@ export async function POST(req: NextRequest) {
             resultFactory: async () => {
                 const workspace = await db.workspace.findFirst({
                     where: { twilioSubaccountId: accountSid },
-                    select: { id: true, name: true, voiceEnabled: true },
+                    select: {
+                        id: true,
+                        name: true,
+                        voiceEnabled: true,
+                        voiceDisabledReason: true,
+                    },
                 });
 
                 if (!workspace) {
@@ -57,20 +63,35 @@ export async function POST(req: NextRequest) {
                 }
 
                 if (workspace.voiceEnabled === false) {
+                    // Already paused. If this is an earlier spend-cap pause, push its
+                    // timestamp forward so it covers today's billing day too — otherwise
+                    // a stale timestamp would let the pause expire while spend is still
+                    // over the cap. A pause set for any other reason (support, owner) is
+                    // left untouched so it never becomes auto-expiring.
+                    if (workspace.voiceDisabledReason === VOICE_DISABLED_SPEND_CAP) {
+                        await db.workspace.update({
+                            where: { id: workspace.id },
+                            data: { voiceDisabledAt: new Date() },
+                        });
+                    }
                     console.log(`[twilio-usage] Voice already disabled for workspace ${workspace.id}`);
                     return { handled: true as const, alreadyDisabled: true };
                 }
 
                 await db.workspace.update({
                     where: { id: workspace.id },
-                    data: { voiceEnabled: false },
+                    data: {
+                        voiceEnabled: false,
+                        voiceDisabledReason: VOICE_DISABLED_SPEND_CAP,
+                        voiceDisabledAt: new Date(),
+                    },
                 });
 
                 await db.activity.create({
                     data: {
                         type: "NOTE",
                         title: "⚠️ Voice Disabled — Daily Spend Limit Reached",
-                        content: `Voice calls have been automatically paused for ${workspace.name || "this workspace"}. Daily Twilio spend reached $${currentValue} (limit: $${triggerValue}). Voice will re-enable at the start of the next billing day. Contact support if this is unexpected.`,
+                        content: `Voice calls have been automatically paused for ${workspace.name || "this workspace"}. Daily Twilio spend reached $${currentValue} (limit: $${triggerValue}). Voice turns itself back on automatically when the daily limit resets. Contact support if this is unexpected.`,
                     },
                 });
 

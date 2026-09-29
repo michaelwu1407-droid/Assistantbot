@@ -11,6 +11,8 @@
  * it to operators.
  */
 
+import { isVoiceUsable, type VoiceCircuitFields } from "@/lib/voice-circuit-breaker";
+
 export type AutoCallEligibility =
   | { allowed: true; reason: null }
   | { allowed: false; reason: AutoCallBlockReason };
@@ -23,16 +25,21 @@ export type AutoCallBlockReason =
 
 export type WorkspacePolicyFields = {
   autoCallLeads?: boolean | null;
-  voiceEnabled?: boolean | null;
   agentMode?: string | null;
   twilioPhoneNumber?: string | null;
-};
+} & VoiceCircuitFields;
 
-export function canAutoCallLead(workspace: WorkspacePolicyFields): AutoCallEligibility {
+export function canAutoCallLead(
+  workspace: WorkspacePolicyFields,
+  now: Date = new Date(),
+): AutoCallEligibility {
   if (!workspace.autoCallLeads) {
     return { allowed: false, reason: "auto_call_disabled" };
   }
-  if (workspace.voiceEnabled === false) {
+  // An automatic Twilio spend-cap pause expires at the next billing day, so a
+  // workspace still flagged disabled from yesterday is callable again. Callers
+  // that don't select the voiceDisabled* fields behave exactly as before.
+  if (!isVoiceUsable(workspace, now)) {
     return { allowed: false, reason: "voice_disabled" };
   }
   if (workspace.agentMode !== "EXECUTION") {

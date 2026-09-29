@@ -91,6 +91,10 @@ model Workspace {
   // Voice Agent — LiveKit (Retell/Vapi are ARCHIVED, do NOT use)
   retellAgentId String? // DEPRECATED — kept for migration compatibility
   voiceEnabled  Boolean @default(true) // Circuit breaker: flipped by Twilio UsageTrigger
+  // Why voice was last switched off, and when. Lets an automatic spend-cap pause
+  // expire on its own without also undoing a deliberate support/owner disable.
+  voiceDisabledReason String?
+  voiceDisabledAt     DateTime?
 
   // Stripe Billing & Subscriptions
   stripeCustomerId       String?   @unique

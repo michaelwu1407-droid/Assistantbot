@@ -10,6 +10,7 @@ import { getVoiceFleetHealth, isVoiceSurfaceRoutable, type VoiceSurface } from "
 import { reconcileVoiceIncidents } from "@/lib/voice-incidents";
 import { findManagedTwilioNumberByPhone } from "@/lib/twilio-drift";
 import { findWorkspaceByTwilioNumber } from "@/lib/workspace-routing";
+import { restoreVoiceIfSpendCapExpired } from "@/lib/voice-circuit-breaker-store";
 import { getTwilioRequestPublicUrl, readTwilioFormParams, verifyTwilioSignature } from "@/lib/twilio/verify-signature";
 import { logger } from "@/lib/logging";
 
@@ -363,7 +364,14 @@ export async function POST(req: NextRequest) {
     });
     lastSurface = surface;
 
-    if (workspace?.voiceEnabled === false) {
+    // A Twilio spend-cap pause expires at the next billing day. Clear it here
+    // rather than waiting for a cron — every scheduled workflow in this repo is
+    // paused, so an inbound call is the moment the tradie needs voice back.
+    const voiceUsable = workspace
+      ? await restoreVoiceIfSpendCapExpired(workspace)
+      : true;
+
+    if (!voiceUsable) {
       if (process.env.NODE_ENV !== "test") {
         console.log("[voice-gateway] Voice disabled for workspace; routing to voicemail fallback.");
       }

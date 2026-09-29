@@ -106,7 +106,11 @@ describe("POST /api/webhooks/twilio-usage", () => {
     expect(await response.json()).toEqual(expect.objectContaining({ ok: true, voiceDisabled: true }));
     expect(hoisted.db.workspace.update).toHaveBeenCalledWith({
       where: { id: "ws_1" },
-      data: { voiceEnabled: false },
+      data: {
+        voiceEnabled: false,
+        voiceDisabledReason: "twilio_daily_spend_cap",
+        voiceDisabledAt: expect.any(Date),
+      },
     });
     expect(hoisted.db.activity.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
