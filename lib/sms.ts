@@ -43,7 +43,10 @@ export async function sendIntroSms(options: {
     workspaceId: options.workspaceId,
   });
 
-  const introMessage = `Hi! This is ${owner?.name || workspace.name} from ${workspace.name}. Thanks for your interest! I've received your request and will get back to you shortly with a quote. Best way to reach me is replying to this message.\n\nTrack your job here: ${portalUrl}`;
+  // Portal link is omitted rather than rendered as "null" if link signing isn't
+  // configured — the customer still gets the message, just without the tracker.
+  const trackingLine = portalUrl ? `\n\nTrack your job here: ${portalUrl}` : "";
+  const introMessage = `Hi! This is ${owner?.name || workspace.name} from ${workspace.name}. Thanks for your interest! I've received your request and will get back to you shortly with a quote. Best way to reach me is replying to this message.${trackingLine}`;
 
   const twilioClient = getWorkspaceTwilioClient(workspace);
   if (!twilioClient) {

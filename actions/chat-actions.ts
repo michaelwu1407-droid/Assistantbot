@@ -2797,7 +2797,9 @@ export async function runSendSms(
     });
     if (openQuote) {
       const acceptUrl = buildPublicJobPortalUrl({ dealId: openQuote.id, contactId: contact.id, workspaceId });
-      finalBody = `${params.message}\n\nAccept this quote: ${acceptUrl}`;
+      if (acceptUrl) {
+        finalBody = `${params.message}\n\nAccept this quote: ${acceptUrl}`;
+      }
     }
 
     await withCostCeiling("twilio", TWILIO_SMS_COST_USD, () =>

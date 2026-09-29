@@ -8,6 +8,14 @@ const hoisted = vi.hoisted(() => ({
   dispatchDemoCallFailureAlert: vi.fn(),
   sendDemoLeadNotificationEmail: vi.fn(),
   headers: vi.fn(),
+  rateLimit: vi.fn(),
+}));
+
+// These cases all submit the same number, so the real limiter would refuse
+// after the second one. Throttling has its own suite in
+// __tests__/demo-call-throttle.test.ts.
+vi.mock("@/lib/rate-limit", () => ({
+  rateLimit: hoisted.rateLimit,
 }));
 
 vi.mock("@/lib/demo-call", () => ({
@@ -52,6 +60,7 @@ describe("requestDemoCall server action", () => {
         return null;
       },
     });
+    hoisted.rateLimit.mockResolvedValue({ allowed: true });
     hoisted.persistDemoLeadAttempt.mockResolvedValue("lead_123");
     hoisted.markDemoLeadInitiated.mockResolvedValue(undefined);
     hoisted.markDemoLeadFailed.mockResolvedValue(undefined);

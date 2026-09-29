@@ -10,6 +10,22 @@ import {
     markDemoLeadInitiated,
     persistDemoLeadAttempt,
 } from "@/lib/demo-lead-store";
+import { rateLimit } from "@/lib/rate-limit";
+import { normalizePhone } from "@/lib/phone-utils";
+
+/**
+ * This action is unauthenticated by design — it's the homepage "Interview Tracey"
+ * form — but it places a real outbound PSTN call to whatever number is submitted.
+ * Without limits that is both a Twilio cost bomb and a way to make Earlymark
+ * repeatedly ring a stranger, so every submission is capped twice:
+ *
+ * - per IP, to stop one actor dialling in bulk;
+ * - per destination number, so rotating IPs still can't harass one handset.
+ */
+const DEMO_CALLS_PER_IP = 3;
+const DEMO_CALLS_PER_IP_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const DEMO_CALLS_PER_PHONE = 2;
+const DEMO_CALLS_PER_PHONE_WINDOW_MS = 24 * 60 * 60 * 1000; // 1 day
 
 /**
  * Demo call action - triggered from the homepage "Interview Tracey" form.
@@ -73,6 +89,40 @@ async function readRequestMeta(): Promise<{ ipAddress?: string; userAgent?: stri
     }
 }
 
+/**
+ * Returns a customer-facing message when this submission should be refused, or
+ * null to let it through. Deliberately vague about which limit was hit — the
+ * caller doesn't need to know, and it gives an abuser less to work with.
+ */
+async function isDemoCallThrottled(
+    ipAddress: string | undefined,
+    phone: string,
+): Promise<string | null> {
+    const tooManyTries =
+        "We've already got a few call requests from you. Give it an hour and try again, or email us and we'll ring you back.";
+
+    const normalizedPhone = normalizePhone(phone) || phone.trim();
+    const byPhone = await rateLimit(
+        `demo-call:phone:${normalizedPhone}`,
+        DEMO_CALLS_PER_PHONE,
+        DEMO_CALLS_PER_PHONE_WINDOW_MS,
+    );
+    if (!byPhone.allowed) {
+        return "We've already called this number today. Try again tomorrow, or email us and we'll sort it out.";
+    }
+
+    if (ipAddress) {
+        const byIp = await rateLimit(
+            `demo-call:ip:${ipAddress}`,
+            DEMO_CALLS_PER_IP,
+            DEMO_CALLS_PER_IP_WINDOW_MS,
+        );
+        if (!byIp.allowed) return tooManyTries;
+    }
+
+    return null;
+}
+
 export async function requestDemoCall(data: DemoCallData): Promise<DemoCallResult> {
     const validation = validate(data);
     if (!validation.ok) {
@@ -80,6 +130,12 @@ export async function requestDemoCall(data: DemoCallData): Promise<DemoCallResul
     }
 
     const meta = await readRequestMeta();
+
+    // Checked before the lead is persisted so a flood can't fill the table either.
+    const throttled = await isDemoCallThrottled(meta.ipAddress, data.phone);
+    if (throttled) {
+        return { success: false, error: throttled, field: "phone", leadId: null };
+    }
 
     const leadId = await persistDemoLeadAttempt({
         firstName: data.firstName,
