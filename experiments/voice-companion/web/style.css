@@ -1,0 +1,86 @@
+:root {
+  --bg: #0b0b12;
+  --panel: #151522;
+  --text: #ecebf5;
+  --muted: #8b8aa3;
+  --karaoke: #ffd54a;
+  --listen: #2dd4bf;
+  --think: #a855f7;
+  --speak: #fb923c;
+  --hear: #38bdf8;
+  --danger: #f87171;
+  --orb: var(--think);
+  --level: 0;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text);
+  font-family: "Segoe UI", system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+body { display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden; }
+button { font: inherit; color: inherit; cursor: pointer; }
+
+.top { display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 16px 24px; flex-wrap: wrap; }
+.brand { display: flex; gap: 10px; align-items: center; min-width: 0; }
+.hex { color: var(--think); font-size: 28px; }
+h1 { margin: 0; font-size: 20px; letter-spacing: .5px; }
+.byline { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+.actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ghost { background: transparent; border: 1px solid #2a2a3d; border-radius: 10px; padding: 6px 12px; }
+.ghost:hover { border-color: var(--muted); }
+.toggle { color: var(--muted); font-size: 13px; display: flex; gap: 6px; align-items: center; }
+
+.stage { flex: 1; display: grid; grid-template-columns: 1fr 1fr; align-items: center;
+  gap: 24px; padding: 8px 24px; }
+.left { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.orb-row { display: flex; align-items: center; gap: 28px; }
+.mic { width: 48px; height: 48px; border-radius: 50%; border: 1px solid #2a2a3d;
+  background: var(--panel); font-size: 20px; }
+.mic.on { border-color: var(--listen); box-shadow: 0 0 16px var(--listen); }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: #2a2a3d; }
+.mic.on ~ .dot { background: var(--listen); }
+
+.orb { width: clamp(150px, 22vw, 240px); aspect-ratio: 1; border-radius: 50%; position: relative;
+  background: radial-gradient(circle at 35% 30%, #fff8, transparent 40%),
+              radial-gradient(circle, var(--orb), #0000 70%);
+  box-shadow: 0 0 calc(40px + 60px * var(--level)) var(--orb);
+  transform: scale(calc(1 + .12 * var(--level)));
+  transition: background .4s, box-shadow .12s, transform .12s; }
+.orb .core { position: absolute; inset: 22%; border-radius: 50%; background: var(--orb);
+  filter: blur(18px); opacity: .85; }
+.orb.idle { --orb: #3b3b55; }
+.orb.listening { --orb: var(--listen); animation: breathe 3.5s ease-in-out infinite; }
+.orb.hearing { --orb: var(--hear); }
+.orb.transcribing, .orb.thinking { --orb: var(--think); animation: pulse 1s ease-in-out infinite; }
+.orb.speaking { --orb: var(--speak); }
+@keyframes breathe { 50% { transform: scale(1.04); } }
+@keyframes pulse { 50% { transform: scale(.94); opacity: .8; } }
+
+.status { margin: 0; color: var(--muted); font-size: 14px; }
+.latency { margin: 0; color: #5d5c75; font-size: 12px; min-height: 1em; }
+
+.right { display: flex; justify-content: center; }
+.avatar { width: min(100%, 360px); aspect-ratio: 3 / 4; border-radius: 22px; overflow: hidden;
+  background: linear-gradient(160deg, #3b2a5a, #1b1b2b 55%, #5a3424);
+  display: grid; place-items: center; box-shadow: 0 20px 60px #0008; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+.avatar span { font-size: 96px; font-weight: 700; color: #ffffff30; }
+
+.subtitles { text-align: center; padding: 8px 24px; min-height: 96px; }
+.user-line { margin: 0 0 6px; color: var(--muted); font-size: 15px; min-height: 1.2em;
+  overflow-wrap: anywhere; }
+.subtitle { margin: 0; font-size: clamp(20px, 2.6vw, 30px); font-weight: 600; min-height: 1.4em;
+  text-shadow: 0 2px 6px #000; overflow-wrap: anywhere; }
+.subtitle .lit { color: var(--karaoke); }
+
+.text-form { display: flex; gap: 8px; max-width: 640px; width: calc(100% - 32px); margin: 0 auto 12px; }
+.text-form input { flex: 1; min-width: 0; background: var(--panel); border: 1px solid #2a2a3d;
+  border-radius: 12px; padding: 10px 14px; color: var(--text); font: inherit; }
+.text-form button { background: var(--think); border: 0; border-radius: 12px; padding: 0 18px; }
+.error { color: var(--danger); text-align: center; margin: 0 16px 14px; min-height: 1em; font-size: 13px; }
+
+@media (max-width: 720px) {
+  .top, .stage { padding-left: 16px; padding-right: 16px; }
+  .stage { grid-template-columns: 1fr; }
+  .right { order: -1; }
+  .avatar { width: 160px; }
+}

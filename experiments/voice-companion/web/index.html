@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Voice Companion</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="hex">⬢</span>
+      <div>
+        <h1 id="title">Voice Companion</h1>
+        <p class="byline" id="byline">local · private · always listening when on</p>
+      </div>
+    </div>
+    <div class="actions">
+      <label class="toggle"><input type="checkbox" id="bargeIn" checked /> talk over her</label>
+      <button id="resetBtn" class="ghost" title="Forget the conversation">New chat</button>
+      <button id="reloadBtn" class="ghost" title="Re-read config.toml and swap models">Reload</button>
+    </div>
+  </header>
+
+  <main class="stage">
+    <section class="left">
+      <div class="orb-row">
+        <button id="micBtn" class="mic" aria-label="Start or stop the microphone">🎙</button>
+        <div id="orb" class="orb idle" aria-hidden="true"><div class="core"></div></div>
+        <span id="dot" class="dot"></span>
+      </div>
+      <p id="status" class="status">Tap the mic to start talking</p>
+      <p id="latency" class="latency"></p>
+    </section>
+
+    <section class="right">
+      <div id="avatar" class="avatar"><span id="avatarInitial">A</span></div>
+    </section>
+  </main>
+
+  <div class="subtitles" aria-live="polite">
+    <p id="userLine" class="user-line"></p>
+    <p id="subtitle" class="subtitle"></p>
+  </div>
+
+  <form id="textForm" class="text-form">
+    <input id="textInput" autocomplete="off" placeholder="…or type a message" />
+    <button type="submit">Send</button>
+  </form>
+
+  <p id="error" class="error" role="alert"></p>
+
+  <script src="audio.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

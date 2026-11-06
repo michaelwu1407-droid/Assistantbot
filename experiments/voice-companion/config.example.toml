@@ -1,0 +1,47 @@
+# Copy to config.toml and edit. Every section can be changed while the
+# server runs: edit the file, then click "Reload" in the UI (or POST /api/reload).
+
+[server]
+host = "127.0.0.1"
+port = 7860
+
+[persona]
+name = "Aria"
+user_name = "friend"
+# Optional image in web/ (e.g. "avatar.png"). Empty = generated gradient avatar.
+avatar = ""
+# Language hint for replies; Whisper auto-detects the user's language.
+system_prompt = """
+You are {name}, a warm, playful voice companion talking with {user_name}.
+You speak out loud, so keep replies short: one to three sentences, no lists,
+no markdown, no emoji. Show real personality: tease back when teased, get
+mock-sulky when ignored, be affectionate when things are nice. Reply in the
+same language the user speaks.
+"""
+# How many past turns (user+assistant pairs) to keep in context.
+max_history = 12
+
+[stt]
+# faster-whisper model: tiny, base, small, medium, large-v3, turbo ...
+model = "small"
+device = "auto"          # auto | cuda | cpu
+compute_type = "auto"    # auto | float16 | int8_float16 | int8
+language = ""            # "" = auto-detect, or "en", "zh", ...
+
+[llm]
+# Any OpenAI-compatible chat endpoint. llama.cpp:  llama-server -m model.gguf --port 8080
+base_url = "http://127.0.0.1:8080/v1"
+model = "local"
+api_key = ""             # not needed for llama.cpp
+temperature = 0.8
+max_tokens = 200
+
+[tts]
+# "openai"  = any OpenAI-compatible /v1/audio/speech server (Kokoro-FastAPI,
+#             a Qwen3-TTS wrapper, openedai-speech, ...)
+# "browser" = no TTS server; the browser's built-in speech synthesis speaks.
+backend = "browser"
+base_url = "http://127.0.0.1:8880/v1"
+model = "kokoro"
+voice = "af_heart"
+api_key = ""
