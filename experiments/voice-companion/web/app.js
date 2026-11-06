@@ -1,117 +1,162 @@
-// UI + websocket session. Server protocol: see README "WebSocket protocol".
+// Session: websocket, microphone + VAD, barge-in. Protocol: see README.
 "use strict";
 
-const $ = (id) => document.getElementById(id);
-const els = ["orb", "status", "latency", "subtitle", "userLine", "micBtn", "error", "bargeIn",
-  "textForm", "textInput", "resetBtn", "reloadBtn", "title", "byline", "avatar", "avatarInitial"]
-  .reduce((o, id) => ((o[id] = $(id)), o), {});
-
-const STATUS = {
-  idle: "Tap the mic to start talking", listening: "Listening…", hearing: "Hearing you…",
-  transcribing: "Catching that…", thinking: "Thinking…", speaking: "",
-};
-let ws, mic = null, ignoreUtterance = false, persona = { name: "Companion" }, karaokeTimer = 0;
-
-function setState(state) {
-  if (state === "listening" && !mic) state = "idle";
-  els.orb.className = "orb " + state;
-  els.status.textContent = STATUS[state] ?? "";
-}
-function showError(msg) { els.error.textContent = msg || ""; }
-function setLevel(v) { document.documentElement.style.setProperty("--level", v.toFixed(3)); }
+let ws = null, mic = null, greeted = false;
+let replyStart = 0;            // when the user finished their turn (for the latency readout)
+// Her turn runs from "thinking" until "done", including silent gaps between sentences.
+const turn = { latest: 0, cancelled: 0, active: false };
+const herTurn = () => player.busy || turn.active;
+// Barge-in: when the user seems to talk over her we duck her first, and only stop
+// once ~400 ms of confident speech confirms it (her own echo rarely gets that far).
+const barge = { pending: false, frames: 0, done: false, ignore: false, preempt: false };
+const BARGE_FRAMES = 12;       // v5 frames are 32 ms
 
 const player = new VC.Player({
-  onSentence: (text, seconds) => { setState("speaking"); karaoke(text, seconds); },
-  onIdle: () => setState("listening"),
-  onLevel: setLevel,
+  onSentence: (item, seconds) => {
+    if (item.id === 0 && replyStart) {
+      els.latency.textContent = `replied in ${((performance.now() - replyStart) / 1000).toFixed(1)}s`;
+      replyStart = 0;
+    }
+    UI.setState("speaking");
+    UI.startKaraoke(item.text, seconds);
+  },
+  onProgress: UI.karaokeProgress,
+  onIdle: () => UI.setState("listening"),
+  onLevel: (v) => { if (player.busy) UI.setLevel(v); },
 });
-
-// Karaoke subtitles: light up characters across the sentence's audio duration.
-function karaoke(text, seconds) {
-  cancelAnimationFrame(karaokeTimer);
-  const chars = [...text];
-  els.subtitle.replaceChildren(...chars.map((c) => Object.assign(document.createElement("span"), { textContent: c })));
-  const start = performance.now();
-  const step = () => {
-    const lit = Math.ceil(chars.length * Math.min(1, (performance.now() - start) / (seconds * 1000)));
-    els.subtitle.childNodes.forEach((n, i) => n.classList.toggle("lit", i < lit));
-    if (lit < chars.length) karaokeTimer = requestAnimationFrame(step);
-  };
-  step();
-}
 
 function connect() {
   ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`);
-  ws.binaryType = "arraybuffer";
   ws.onmessage = (e) => handle(JSON.parse(e.data));
-  ws.onclose = () => { setState("idle"); els.status.textContent = "Disconnected. Reconnecting…"; setTimeout(connect, 1500); };
-  ws.onopen = () => showError("");
+  ws.onopen = () => { if (mic && !greeted) greet(); };
+  ws.onclose = () => {
+    player.stop();
+    els.status.textContent = "Lost connection, reconnecting…";
+    setTimeout(connect, 1500);
+  };
 }
-function send(obj) { if (ws && ws.readyState === 1) ws.send(typeof obj === "string" ? obj : JSON.stringify(obj)); }
+const send = (obj) => ws && ws.readyState === 1 && ws.send(obj instanceof Float32Array ? obj : JSON.stringify(obj));
 
 function handle(msg) {
+  if (msg.turn != null) {
+    if (msg.turn <= turn.cancelled) return; // a reply we already cut off
+    turn.latest = Math.max(turn.latest, msg.turn);
+  }
+  const userTalking = els.orb.classList.contains("hearing");
   switch (msg.type) {
     case "state":
-      if (msg.state === "speaking") {
-        if (msg.latency_ms != null) els.latency.textContent = `first reply in ${(msg.latency_ms / 1000).toFixed(1)}s`;
-        break; // the player flips to "speaking" when sound actually starts
-      }
-      if (msg.state !== "listening" || !player.busy) setState(msg.state);
+      if (msg.turn != null && msg.state === "thinking") turn.active = true;
+      if (msg.ignored) { UI.clearSubtitle(); replyStart = 0; }
+      if (!player.busy && !userTalking) UI.setState(msg.state);
       break;
-    case "user": els.userLine.textContent = `${persona.user_name || "You"}: ${msg.text}`; break;
-    case "sentence": showError(""); player.push(msg); break;
-    case "done": if (!player.busy) setState("listening"); break;
-    case "error": showError(msg.message); if (!player.busy) setState("listening"); break;
+    case "user": UI.banner(""); UI.showUser(msg.text); break;
+    case "sentence": UI.banner(""); player.push(msg); break;
+    case "done":
+      turn.active = false;
+      if (!player.busy && !userTalking) { UI.setState("listening"); if (!els.subtitle.querySelector("span:not(.dots)")) UI.clearSubtitle(); }
+      break;
+    case "error":
+      turn.active = false;
+      UI.banner(msg.message);
+      if (!player.busy) { UI.clearSubtitle(); UI.setState("listening"); }
+      break;
   }
 }
 
-function interrupt() { player.stop(); cancelAnimationFrame(karaokeTimer); send({ type: "interrupt" }); }
+// Cut her off: stop audio, drop anything still in flight for this turn, and tell the
+// server how many sentences were heard so her memory matches what the user heard.
+function interrupt() {
+  if (!herTurn()) return;
+  const heard = player.heard;
+  turn.cancelled = turn.latest;
+  turn.active = false;
+  player.stop();
+  send({ type: "interrupt", heard });
+}
+
+function greet() { greeted = true; replyStart = performance.now(); send({ type: "greet" }); }
+
+const vadCallbacks = {
+  onSpeechStart: () => {
+    // While she is audible, wait for proof it's really the user (duck meanwhile).
+    // While she is only thinking or between sentences, the user simply takes the floor.
+    Object.assign(barge, { pending: player.busy, frames: 0, done: false, ignore: false, preempt: !player.busy && turn.active });
+    if (barge.pending) {
+      if (els.bargeIn.checked) player.duck(true); else barge.ignore = true;
+    } else UI.setState("hearing");
+  },
+  onSpeechRealStart: () => {
+    if (barge.preempt) { barge.preempt = false; interrupt(); UI.setState("hearing"); }
+  },
+  onFrameProcessed: (probs, frame) => {
+    if (!player.busy) {
+      let sum = 0;
+      for (let i = 0; i < frame.length; i += 4) sum += frame[i] * frame[i];
+      UI.setLevel(Math.min(1, Math.sqrt(sum / (frame.length / 4)) * 9));
+    }
+    if (barge.pending && !barge.done && !barge.ignore) {
+      barge.frames = probs.isSpeech > 0.75 ? barge.frames + 1 : Math.max(0, barge.frames - 1);
+      if (barge.frames >= BARGE_FRAMES) { barge.done = true; interrupt(); UI.setState("hearing"); }
+    }
+  },
+  onVADMisfire: () => {
+    if (barge.pending && !barge.done) player.duck(false);
+    barge.pending = barge.preempt = false;
+    if (!player.busy) UI.setState("listening");
+  },
+  onSpeechEnd: (audio) => {
+    const wasBarge = barge.pending, confirmed = barge.done;
+    barge.pending = barge.preempt = false;
+    if (wasBarge && !confirmed) { player.duck(false); return; } // her echo or a cough: carry on
+    replyStart = performance.now();
+    UI.setState("transcribing");
+    send(audio); // Float32 PCM, 16 kHz mono
+  },
+};
 
 async function toggleMic() {
   player.ensureCtx(); // unlock audio on a user gesture
-  if (mic) { mic.pause(); mic = null; els.micBtn.classList.remove("on"); setState("idle"); return; }
+  if (mic) {
+    mic.pause();
+    mic = null;
+    UI.micOn = false;
+    els.micBtn.classList.remove("on");
+    els.micBtn.setAttribute("aria-pressed", "false");
+    UI.setState(player.busy ? "speaking" : "idle");
+    return;
+  }
   try {
-    els.status.textContent = "Loading voice detector…";
+    els.status.textContent = "Starting microphone…";
     const base = await VC.loadVad();
     mic = await vad.MicVAD.new({
-      model: "v5",
-      baseAssetPath: base.vad,
-      onnxWASMBasePath: base.ort,
-      positiveSpeechThreshold: 0.6,
-      negativeSpeechThreshold: 0.45,
-      redemptionMs: 700,
-      minSpeechMs: 300,
-      onSpeechStart: () => {
-        ignoreUtterance = player.busy && !els.bargeIn.checked;
-        if (!ignoreUtterance) setState("hearing");
-      },
-      onSpeechRealStart: () => { if (!ignoreUtterance && player.busy) interrupt(); },
-      onVADMisfire: () => { if (!player.busy) setState("listening"); },
-      onSpeechEnd: (audio) => {
-        if (ignoreUtterance) { ignoreUtterance = false; return; }
-        send(audio); // Float32 PCM, 16 kHz mono
-      },
+      model: "v5", baseAssetPath: base.vad, onnxWASMBasePath: base.ort,
+      positiveSpeechThreshold: 0.6, negativeSpeechThreshold: 0.4,
+      redemptionMs: 600, minSpeechMs: 250, preSpeechPadMs: 300,
+      ...vadCallbacks,
     });
     mic.start();
+    UI.micOn = true;
     els.micBtn.classList.add("on");
-    setState("listening");
+    els.micBtn.setAttribute("aria-pressed", "true");
+    UI.banner("");
+    UI.setState(player.busy ? "speaking" : "listening");
+    if (!greeted && UI.persona.greet) greet();
   } catch (err) {
     mic = null;
-    setState("idle");
-    showError(`Microphone unavailable: ${err.message || err}. You can still type.`);
+    UI.setState("idle");
+    const denied = /denied|NotAllowed|Permission/i.test(String(err && (err.name + err.message)));
+    UI.banner(denied ? "Microphone access was blocked. Allow it in the address bar's site settings, then tap the mic again."
+                     : `Couldn't start the microphone (${err.message || err}). You can still type.`);
   }
 }
 
-async function loadInfo(method = "GET") {
-  const info = await (await fetch("/api/" + (method === "POST" ? "reload" : "info"), { method })).json();
-  persona = info;
-  document.title = info.name;
-  els.title.textContent = info.name;
-  els.byline.textContent = info.demo ? "demo mode · no models loaded" : `${info.llm} · voice: ${info.tts}`;
-  els.avatarInitial.textContent = (info.name || "?")[0];
-  els.avatar.querySelector("img")?.remove();
-  if (info.avatar) els.avatar.prepend(Object.assign(document.createElement("img"), { src: info.avatar, alt: info.name }));
-  if (!info.stt_ready && !info.demo) showError(info.stt_error || "Speech-to-text not loaded. Type instead.");
+async function loadInfo(reload = false) {
+  const res = await fetch(reload ? "/api/reload" : "/api/info", { method: reload ? "POST" : "GET" });
+  const info = UI.applyInfo(await res.json());
+  // poll while loading; while something is down, keep checking so it recovers by itself
+  const down = Object.values(info.status).some((s) => !s.ok);
+  clearTimeout(loadInfo.timer);
+  if (info.loading || (down && !info.demo)) loadInfo.timer = setTimeout(loadInfo, info.loading ? 1000 : 4000);
 }
 
 els.micBtn.onclick = toggleMic;
@@ -121,17 +166,22 @@ els.textForm.onsubmit = (e) => {
   if (!text) return;
   player.ensureCtx();
   interrupt();
-  els.userLine.textContent = `${persona.user_name || "You"}: ${text}`;
+  UI.showUser(text);
+  replyStart = performance.now();
   send({ type: "text", text });
   els.textInput.value = "";
 };
-els.resetBtn.onclick = () => { interrupt(); send({ type: "reset" }); els.subtitle.textContent = els.userLine.textContent = ""; };
-els.reloadBtn.onclick = async () => {
-  els.status.textContent = "Reloading models…";
-  try { await loadInfo("POST"); showError(""); } catch (e) { showError("Reload failed: " + e.message); }
-  setState(mic ? "listening" : "idle");
+els.resetBtn.onclick = () => {
+  interrupt(); send({ type: "reset" });
+  greeted = false; UI.showUser(""); UI.clearSubtitle(); els.latency.textContent = "";
+  if (mic && UI.persona.greet) greet();
 };
+els.reloadBtn.onclick = () => { els.status.textContent = "Reloading…"; loadInfo(true).catch((e) => UI.banner("Reload failed: " + e.message)); };
+document.addEventListener("keydown", (e) => {
+  if (e.target === els.textInput || e.repeat) return;
+  if (e.code === "Space") { e.preventDefault(); toggleMic(); }
+  if (e.code === "Escape") { interrupt(); UI.setState("listening"); }
+});
 
-setState("idle");
 connect();
-loadInfo().catch(() => {});
+loadInfo().catch(() => UI.banner("Can't reach the companion server."));

@@ -14,6 +14,7 @@ class Persona:
     user_name: str = "friend"
     avatar: str = ""
     system_prompt: str = "You are {name}, a friendly voice companion."
+    greet: bool = True
     max_history: int = 12
 
     def render_prompt(self) -> str:
@@ -22,7 +23,7 @@ class Persona:
 
 @dataclass
 class STTConfig:
-    model: str = "small"
+    model: str = "auto"
     device: str = "auto"
     compute_type: str = "auto"
     language: str = ""
@@ -30,19 +31,23 @@ class STTConfig:
 
 @dataclass
 class LLMConfig:
-    base_url: str = "http://127.0.0.1:8080/v1"
-    model: str = "local"
+    base_url: str = "auto"
+    model: str = "auto"
     api_key: str = ""
     temperature: float = 0.8
-    max_tokens: int = 200
+    max_tokens: int = 160
 
 
 @dataclass
 class TTSConfig:
-    backend: str = "browser"
+    backend: str = "auto"
+    voice: str = "af_heart"
+    voice_zh: str = "zf_xiaoxiao"
+    speed: float = 1.05
+    kokoro_model: str = "models/kokoro-v1.0.onnx"
+    kokoro_voices: str = "models/voices-v1.0.bin"
     base_url: str = "http://127.0.0.1:8880/v1"
     model: str = "kokoro"
-    voice: str = "af_heart"
     api_key: str = ""
 
 
@@ -54,6 +59,12 @@ class Config:
     stt: STTConfig = field(default_factory=STTConfig)
     llm: LLMConfig = field(default_factory=LLMConfig)
     tts: TTSConfig = field(default_factory=TTSConfig)
+
+
+def resolve(path: str) -> Path:
+    """Paths in config.toml are relative to the project folder."""
+    p = Path(path).expanduser()
+    return p if p.is_absolute() else ROOT / p
 
 
 def _pick(cls, data: dict):

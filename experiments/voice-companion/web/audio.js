@@ -1,4 +1,4 @@
-// Sentence playback queue (server WAV or browser speechSynthesis) + Silero VAD loader.
+// Sentence playback (server WAV or browser speechSynthesis) + Silero VAD loader.
 "use strict";
 
 const VAD_VERSION = "0.0.29";
@@ -7,12 +7,12 @@ const CDN = {
   vad: `https://cdn.jsdelivr.net/npm/@ricky0123/vad-web@${VAD_VERSION}/dist/`,
   ort: `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ORT_VERSION}/dist/`,
 };
+const CJK = /[㐀-鿿]/;
+const PAUSE_S = 0.12; // breath between sentences
 
 function loadScript(src) {
   return new Promise((resolve, reject) => {
-    const s = document.createElement("script");
-    s.src = src;
-    s.onload = resolve;
+    const s = Object.assign(document.createElement("script"), { src, onload: resolve });
     s.onerror = () => reject(new Error("failed to load " + src));
     document.head.appendChild(s);
   });
@@ -28,36 +28,57 @@ async function loadVad() {
       return base;
     } catch (_) { /* try next */ }
   }
-  throw new Error("Could not load the voice detector (Silero VAD).");
+  throw new Error("Could not load the voice detector.");
+}
+
+function pickBrowserVoice(text) {
+  const lang = CJK.test(text) ? "zh" : "en";
+  const voices = speechSynthesis.getVoices().filter((v) => v.lang.toLowerCase().startsWith(lang));
+  const good = /natural|neural|premium|enhanced|google|aria|jenny|samantha|ava|xiaoxiao/i;
+  return voices.find((v) => good.test(v.name)) || voices[0] || null;
 }
 
 class Player {
-  constructor({ onSentence, onIdle, onLevel }) {
-    Object.assign(this, { onSentence, onIdle, onLevel });
+  constructor({ onSentence, onProgress, onIdle, onLevel }) {
+    Object.assign(this, { onSentence, onProgress, onIdle, onLevel });
     this.queue = [];
     this.playing = false;
-    this.ctx = null;
-    this.source = null;
-    this.gen = 0; // bumps on stop() so stale callbacks are ignored
+    this.heard = 0;   // sentences of the current reply that started playing
+    this.gen = 0;     // bumps on stop() so stale callbacks are ignored
+    if (window.speechSynthesis) speechSynthesis.getVoices(); // starts async voice loading
   }
 
   ensureCtx() {
     if (!this.ctx) {
       this.ctx = new AudioContext();
+      this.gain = this.ctx.createGain();
       this.analyser = this.ctx.createAnalyser();
       this.analyser.fftSize = 512;
-      this.analyser.connect(this.ctx.destination);
+      this.gain.connect(this.analyser).connect(this.ctx.destination);
       this.levelBuf = new Uint8Array(this.analyser.fftSize);
     }
     if (this.ctx.state === "suspended") this.ctx.resume();
   }
 
-  push(sentence) {
-    this.queue.push(sentence);
-    if (!this.playing) this.next();
+  get busy() { return this.playing || this.queue.length > 0; }
+
+  push(item) {
+    if (item.id === 0) this.heard = 0;
+    if (item.audio) { // decode now, while earlier sentences play
+      this.ensureCtx();
+      const bytes = Uint8Array.from(atob(item.audio), (c) => c.charCodeAt(0));
+      item.buffer = this.ctx.decodeAudioData(bytes.buffer);
+      item.buffer.catch(() => {});
+    }
+    this.queue.push(item);
+    if (!this.playing) this.next(true);
   }
 
-  get busy() { return this.playing || this.queue.length > 0; }
+  // Quieten while the user might be talking over her; restore if it was a false alarm.
+  duck(on) {
+    if (this.gain) this.gain.gain.setTargetAtTime(on ? 0.2 : 1, this.ctx.currentTime, 0.04);
+    if (window.speechSynthesis && speechSynthesis.speaking) on ? speechSynthesis.pause() : speechSynthesis.resume();
+  }
 
   stop() {
     this.gen++;
@@ -66,17 +87,21 @@ class Player {
     try { this.source && this.source.stop(); } catch (_) {}
     this.source = null;
     if (window.speechSynthesis) speechSynthesis.cancel();
+    if (this.gain) {
+      this.gain.gain.cancelScheduledValues(0);
+      this.gain.gain.value = 1;
+    }
     this.onLevel(0);
   }
 
-  async next() {
+  async next(first = false) {
     const item = this.queue.shift();
     if (!item) { this.playing = false; this.onLevel(0); this.onIdle(); return; }
     this.playing = true;
     const gen = this.gen;
     const done = () => { if (gen === this.gen) this.next(); };
     try {
-      if (item.audio) await this.playWav(item, gen, done);
+      if (item.buffer) await this.playWav(item, gen, done, first ? 0 : PAUSE_S);
       else this.speakBrowser(item, gen, done);
     } catch (err) {
       console.warn("playback failed", err);
@@ -84,43 +109,50 @@ class Player {
     }
   }
 
-  async playWav(item, gen, done) {
-    this.ensureCtx();
-    const bytes = Uint8Array.from(atob(item.audio), (c) => c.charCodeAt(0));
-    const buf = await this.ctx.decodeAudioData(bytes.buffer);
+  async playWav(item, gen, done, delay) {
+    const buf = await item.buffer;
     if (gen !== this.gen) return;
     const src = this.ctx.createBufferSource();
     src.buffer = buf;
-    src.connect(this.analyser);
+    src.connect(this.gain);
     src.onended = done;
     this.source = src;
-    src.start();
-    this.onSentence(item.text, buf.duration);
-    const tick = () => {
-      if (gen !== this.gen || this.source !== src) return;
-      this.analyser.getByteTimeDomainData(this.levelBuf);
-      let peak = 0;
-      for (const v of this.levelBuf) peak = Math.max(peak, Math.abs(v - 128));
-      this.onLevel(Math.min(1, peak / 64));
-      requestAnimationFrame(tick);
-    };
-    tick();
+    src.start(this.ctx.currentTime + delay);
+    setTimeout(() => {
+      if (gen !== this.gen) return;
+      this.heard++;
+      this.onSentence(item, buf.duration);
+      this.meter(gen, src);
+    }, delay * 1000);
+  }
+
+  meter(gen, src) {
+    if (gen !== this.gen || this.source !== src) return;
+    this.analyser.getByteTimeDomainData(this.levelBuf);
+    let peak = 0;
+    for (const v of this.levelBuf) peak = Math.max(peak, Math.abs(v - 128));
+    this.onLevel(Math.min(1, peak / 48));
+    requestAnimationFrame(() => this.meter(gen, src));
   }
 
   speakBrowser(item, gen, done) {
-    if (!window.speechSynthesis) { this.onSentence(item.text, item.text.length * 0.08); setTimeout(done, 1500); return; }
-    const u = new SpeechSynthesisUtterance(item.text);
-    if (/[㐀-鿿]/.test(item.text)) u.lang = "zh-CN";
+    const text = item.text;
+    const estimate = Math.max(1, text.length * (CJK.test(text) ? 0.22 : 0.065));
+    this.heard++;
+    if (!window.speechSynthesis) { this.onSentence(item, estimate); setTimeout(done, estimate * 1000); return; }
+    const u = new SpeechSynthesisUtterance(text);
+    u.voice = pickBrowserVoice(text);
+    if (u.voice) u.lang = u.voice.lang;
     u.rate = 1.05;
-    u.pitch = 1.2;
+    u.pitch = 1.15;
     u.onend = u.onerror = done;
-    // No audio stream to measure in this mode: wobble the orb instead.
-    const wobble = setInterval(() => {
+    u.onboundary = (e) => { if (gen === this.gen) this.onProgress(e.charIndex + (e.charLength || 1)); };
+    const wobble = setInterval(() => { // no audio stream to measure in this mode
       if (gen !== this.gen || !speechSynthesis.speaking) { clearInterval(wobble); return; }
-      this.onLevel(0.3 + Math.random() * 0.4);
-    }, 120);
+      this.onLevel(speechSynthesis.paused ? 0 : 0.3 + Math.random() * 0.4);
+    }, 110);
     speechSynthesis.speak(u);
-    this.onSentence(item.text, Math.max(1, item.text.length * (/[㐀-鿿]/.test(item.text) ? 0.22 : 0.065)));
+    this.onSentence(item, estimate);
   }
 }
 

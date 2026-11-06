@@ -18,9 +18,14 @@ class Conversation:
         self.llm = llm
         self.tts = tts
         self.history: list[dict] = []
+        self._last_reply: list[str] = []   # sentences of the latest assistant turn
 
     def reset(self) -> None:
         self.history.clear()
+        self._last_reply = []
+
+    def greeting_cue(self) -> str:
+        return f"({self.persona.user_name} just came online. Greet them in one short line, in character.)"
 
     def messages(self, user_text: str) -> list[dict]:
         keep = self.history[-2 * self.persona.max_history:] if self.persona.max_history else []
@@ -36,11 +41,22 @@ class Conversation:
             merged.pop(0)
         return [{"role": "system", "content": self.persona.render_prompt()}, *merged]
 
-    async def reply(self, user_text: str, send: Send) -> str:
-        """Generate and send a reply. Safe to cancel; history keeps what was already said."""
-        started = time.perf_counter()
+    def trim_to_heard(self, heard: int) -> None:
+        """After an interruption, remember only the sentences the user actually heard."""
+        if not self.history or self.history[-1]["role"] != "assistant" or heard >= len(self._last_reply):
+            return
+        if heard <= 0:
+            self.history.pop()
+        else:
+            self.history[-1] = {"role": "assistant", "content": " ".join(self._last_reply[:heard]) + " —"}
+        self._last_reply = self._last_reply[:heard]
+
+    async def reply(self, user_text: str, send: Send, started: float | None = None) -> str:
+        """Generate and send a reply. Safe to cancel; history keeps what was already sent."""
+        started = started or time.perf_counter()
         queue: asyncio.Queue[str | None] = asyncio.Queue()
         said: list[str] = []
+        self._last_reply = said
         msgs = self.messages(user_text)
         self.history.append({"role": "user", "content": user_text})
         await send({"type": "state", "state": "thinking"})
@@ -60,13 +76,11 @@ class Conversation:
             idx = 0
             while (sentence := await queue.get()) is not None:
                 audio = await self.tts.synth(sentence)
+                msg = {"type": "sentence", "id": idx, "text": sentence,
+                       "audio": base64.b64encode(audio).decode() if audio else None}
                 if idx == 0:
-                    await send({"type": "state", "state": "speaking",
-                                "latency_ms": int((time.perf_counter() - started) * 1000)})
-                await send({
-                    "type": "sentence", "id": idx, "text": sentence,
-                    "audio": base64.b64encode(audio).decode() if audio else None,
-                })
+                    msg["latency_ms"] = int((time.perf_counter() - started) * 1000)
+                await send(msg)
                 said.append(sentence)
                 idx += 1
 
@@ -76,8 +90,7 @@ class Conversation:
             await producer  # surface LLM errors
         finally:
             producer.cancel()
-            text = " ".join(said)
-            if text:
-                self.history.append({"role": "assistant", "content": text})
+            if said:
+                self.history.append({"role": "assistant", "content": " ".join(said)})
         await send({"type": "done"})
-        return text
+        return " ".join(said)
