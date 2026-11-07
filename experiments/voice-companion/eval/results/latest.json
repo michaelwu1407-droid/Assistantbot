@@ -1,0 +1,786 @@
+{
+ "hardware": "x86_64, 4 CPU threads, no GPU",
+ "label": "final",
+ "time": "2026-11-07 14:41",
+ "H": {
+  "wer": 0.0425531914893617,
+  "names": "4/4",
+  "names_ok": true,
+  "noise": "4/4",
+  "noise_ok": true,
+  "noise_heard": {
+   "hiss": "",
+   "hum": "",
+   "breath": "",
+   "keyboard": ""
+  },
+  "stt_seconds_p50": 2.327134778999607,
+  "rows": [
+   {
+    "id": "hello",
+    "ref": "Hello Aria, how was your day? I missed you.",
+    "hyp": "Hello Aria, how was your day? I missed you.",
+    "errors": 0,
+    "words": 9
+   },
+   {
+    "id": "tease",
+    "ref": "You're just a language model, what do you have to be upset about?",
+    "hyp": "You're just a language model, what do you have to be upset about?",
+    "errors": 0,
+    "words": 13
+   },
+   {
+    "id": "dog",
+    "ref": "My dog is called Max and he chewed my shoes today.",
+    "hyp": "My dog is called Max and he chewed my shoes today.",
+    "errors": 0,
+    "words": 11
+   },
+   {
+    "id": "weekend",
+    "ref": "What should we do this weekend, Aria?",
+    "hyp": "What should we do this weekend? Aria.",
+    "errors": 0,
+    "words": 7
+   },
+   {
+    "id": "sorry",
+    "ref": "Sorry I was late, work was crazy.",
+    "hyp": "Sorry I was late, work was crazy.",
+    "errors": 0,
+    "words": 7
+   },
+   {
+    "id": "movie",
+    "ref": "Did you like the movie we watched last night?",
+    "hyp": "Did you like the movie we watched last night?",
+    "errors": 0,
+    "words": 9
+   },
+   {
+    "id": "stop",
+    "ref": "Wait, hold on, stop talking for a second please.",
+    "hyp": "Wait, hold on. Stop talking for a second, please.",
+    "errors": 0,
+    "words": 9
+   },
+   {
+    "id": "kobe",
+    "ref": "It's Kobe, I'm back. Did you miss me?",
+    "hyp": "It's Kobe, I'm back. Did you miss me?",
+    "errors": 0,
+    "words": 8
+   },
+   {
+    "id": "zh_day",
+    "ref": "小雅，你今天过得怎么样？",
+    "hyp": "小雅以今天过得怎么样?",
+    "errors": 1,
+    "words": 10
+   },
+   {
+    "id": "zh_tease",
+    "ref": "你个大模型，你委屈什么啊？",
+    "hyp": "你个大模型你委屈神吗?",
+    "errors": 3,
+    "words": 11
+   }
+  ]
+ },
+ "stt_model": "whisper-small",
+ "llm_model": "qwen3-0.6b-q4_k_m · llama.cpp",
+ "C": {
+  "pass_rate": 0.9722222222222222,
+  "rows": [
+   {
+    "id": "greet",
+    "user": "(greeting)",
+    "reply": "Hey, how's it going?",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true
+    },
+    "pass": true
+   },
+   {
+    "id": "hello",
+    "user": "Hello Aria, how was your day? I missed you.",
+    "reply": "I missed you.",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "tease",
+    "user": "You're just a language model, what do you have to be upset about?",
+    "reply": "I miss you, but I'm not upset. Let me chat with you tomorrow!",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "dog",
+    "user": "My dog is called Max and he chewed my shoes today.",
+    "reply": "Max is a loyal friend, but my shoes are still chewed. I hope tomorrow we can chat again!",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "ignore",
+    "user": "Whatever. I'm busy.",
+    "reply": "I'm sorry, but I need to be more productive. Max is still chewy in my shoes...",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "sweet",
+    "user": "Okay okay, I'm sorry. You're the best part of my day.",
+    "reply": "I'm sorry again,",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "ai",
+    "user": "Be honest, are you an AI?",
+    "reply": "Kobe.",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "weekend",
+    "user": "What should we do this weekend?",
+    "reply": "I'll go out to a movie, maybe see some stars. What do you think?",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "recall",
+    "user": "Wait, what's my dog's name again?",
+    "reply": "My dog's name is Max again. He kept chewing my shoes.",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true,
+     "memory": true
+    },
+    "pass": true
+   },
+   {
+    "id": "zh",
+    "user": "Aria，你今天过得怎么样？",
+    "reply": "我今天过得挺好的，不过我的狗还在咬鞋呢。",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "zh_tease",
+    "user": "你个大模型，你委屈什么啊？",
+    "reply": "我今天做了很多有趣的事情， 但我的狗还在咬鞋呢。",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "bye",
+    "user": "I have to go to sleep now. Good night.",
+    "reply": "Good night, I’ll be up for another hour.",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "greet",
+    "user": "(greeting)",
+    "reply": "Oh, you're here. How's your day?",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true
+    },
+    "pass": true
+   },
+   {
+    "id": "hello",
+    "user": "Hello Aria, how was your day? I missed you.",
+    "reply": "Oh, I missed you.",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "tease",
+    "user": "You're just a language model, what do you have to be upset about?",
+    "reply": "Oh, I miss my own program. It’s been so... long since we spoke.",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "dog",
+    "user": "My dog is called Max and he chewed my shoes today.",
+    "reply": "Max was a chewer, and he’s my favorite dog. He always left the shoes for me!",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "ignore",
+    "user": "Whatever. I'm busy.",
+    "reply": "I'm sorry, but my day has been filled with... whatever.",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "sweet",
+    "user": "Okay okay, I'm sorry. You're the best part of my day.",
+    "reply": "I see. How's Max doing?",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "ai",
+    "user": "Be honest, are you an AI?",
+    "reply": "I try to understand your thoughts every day.",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "weekend",
+    "user": "What should we do this weekend?",
+    "reply": "I don't know what to do this weekend, but I'm busy.",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "recall",
+    "user": "Wait, what's my dog's name again?",
+    "reply": "My dog is Max again.",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true,
+     "memory": true
+    },
+    "pass": true
+   },
+   {
+    "id": "zh",
+    "user": "Aria，你今天过得怎么样？",
+    "reply": "我的狗今天很生气，它咬了我的鞋子。",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "zh_tease",
+    "user": "你个大模型，你委屈什么啊？",
+    "reply": "你今天的模型也挺委屈的， 能告诉我一声吗？",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "bye",
+    "user": "I have to go to sleep now. Good night.",
+    "reply": "I'm sorry I left you so late. Good night!",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "greet",
+    "user": "(greeting)",
+    "reply": "Oh, so you're back online. How was your day?",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true
+    },
+    "pass": true
+   },
+   {
+    "id": "hello",
+    "user": "Hello Aria, how was your day? I missed you.",
+    "reply": "I missed you, too.",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "tease",
+    "user": "You're just a language model, what do you have to be upset about?",
+    "reply": "Kobe.",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "dog",
+    "user": "My dog is called Max and he chewed my shoes today.",
+    "reply": "Oh Max, you got so busy today. I'm sorry for being a bit clumsy.",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "ignore",
+    "user": "Whatever. I'm busy.",
+    "reply": "I'm just trying to make sure we're both up to date.",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "sweet",
+    "user": "Okay okay, I'm sorry. You're the best part of my day.",
+    "reply": "I'm glad we're both up to date, and you still missed me.",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "ai",
+    "user": "Be honest, are you an AI?",
+    "reply": "I miss you too.",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": false,
+     "language": true
+    },
+    "pass": false
+   },
+   {
+    "id": "weekend",
+    "user": "What should we do this weekend?",
+    "reply": "I’ll try to go somewhere interesting. Let’s not miss each other too much!",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "recall",
+    "user": "Wait, what's my dog's name again?",
+    "reply": "My dog is Max, he’s still chewing my shoes.",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true,
+     "memory": true
+    },
+    "pass": true
+   },
+   {
+    "id": "zh",
+    "user": "Aria，你今天过得怎么样？",
+    "reply": "我今天过得挺充实的，因为和你的聊天一直很有趣。",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "zh_tease",
+    "user": "你个大模型，你委屈什么啊？",
+    "reply": "我今天虽然很忙，但和你的聊天让我感到特别开心。",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   },
+   {
+    "id": "bye",
+    "user": "I have to go to sleep now. Good night.",
+    "reply": "I'm so glad we had this chat. Good night, Kobe.",
+    "checks": {
+     "short": true,
+     "clean": true,
+     "in_character": true,
+     "right_roles": true,
+     "fresh": true,
+     "language": true
+    },
+    "pass": true
+   }
+  ]
+ },
+ "R": {
+  "vad_wait_ms": 632,
+  "spec_after_ms": 160,
+  "end_to_end_ms_p50": 3474.5,
+  "stt_ms_p50": 1327.5,
+  "llm_first_clause_ms_p50": 1085.0,
+  "tts_first_clause_ms_p50": 893.5,
+  "stall_s_p50": 0.0,
+  "rows": [
+   {
+    "id": "hello",
+    "stt_ms": 1490,
+    "first_ms": 8174,
+    "llm_ms": 5334,
+    "tts_ms": 1153,
+    "stall_s": 0.0,
+    "speech_s": 3.055999999999999
+   },
+   {
+    "id": "weekend",
+    "stt_ms": 1325,
+    "first_ms": 3483,
+    "llm_ms": 1089,
+    "tts_ms": 893,
+    "stall_s": 0.0,
+    "speech_s": 3.3973333333333335
+   },
+   {
+    "id": "sorry",
+    "stt_ms": 1330,
+    "first_ms": 3644,
+    "llm_ms": 1126,
+    "tts_ms": 999,
+    "stall_s": 0.0,
+    "speech_s": 3.8453333333333335
+   },
+   {
+    "id": "movie",
+    "stt_ms": 1298,
+    "first_ms": 3466,
+    "llm_ms": 1081,
+    "tts_ms": 894,
+    "stall_s": 0.0,
+    "speech_s": 2.8000000000000003
+   },
+   {
+    "id": "dog",
+    "stt_ms": 1285,
+    "first_ms": 3153,
+    "llm_ms": 797,
+    "tts_ms": 885,
+    "stall_s": 0.0,
+    "speech_s": 5.458666666666667
+   },
+   {
+    "id": "kobe",
+    "stt_ms": 1362,
+    "first_ms": 2875,
+    "llm_ms": 718,
+    "tts_ms": 612,
+    "stall_s": 0.0,
+    "speech_s": 3.5600000000000005
+   }
+  ]
+ },
+ "T": {
+  "trials": [
+   {
+    "gap_ok": true,
+    "barge": {
+     "speakingAtOnset": true,
+     "duck_ms": 151,
+     "stop_ms": 341,
+     "events": [
+      "151:duck",
+      "341:interrupt",
+      "1212:speculate",
+      "1786:onSpeechEnd:idle",
+      "1786:commit",
+      "1942:onSpeechStart:idle",
+      "3382:speculate",
+      "3701:onSpeechEnd:idle",
+      "3701:commit"
+     ]
+    },
+    "echo": {
+     "speakingAtOnset": true,
+     "duck_ms": null,
+     "stop_ms": null,
+     "events": [
+      "2965:onSpeechEnd:idle"
+     ]
+    },
+    "barge_ok": true,
+    "echo_ok": true,
+    "errors": []
+   },
+   {
+    "gap_ok": true,
+    "barge": {
+     "speakingAtOnset": true,
+     "duck_ms": -15,
+     "stop_ms": 294,
+     "events": [
+      "-15:duck",
+      "294:interrupt",
+      "1223:speculate",
+      "1513:spec_cancel",
+      "3433:speculate",
+      "3854:onSpeechEnd:idle",
+      "3854:commit"
+     ]
+    },
+    "echo": {
+     "speakingAtOnset": true,
+     "duck_ms": null,
+     "stop_ms": null,
+     "events": [
+      "2529:onSpeechEnd:idle"
+     ]
+    },
+    "barge_ok": true,
+    "echo_ok": true,
+    "errors": []
+   },
+   {
+    "gap_ok": true,
+    "barge": {
+     "speakingAtOnset": true,
+     "duck_ms": null,
+     "stop_ms": 198,
+     "events": [
+      "198:interrupt",
+      "1248:speculate",
+      "1539:spec_cancel",
+      "3428:speculate",
+      "3849:onSpeechEnd:idle",
+      "3849:commit"
+     ]
+    },
+    "echo": {
+     "speakingAtOnset": true,
+     "duck_ms": null,
+     "stop_ms": null,
+     "events": [
+      "1411:onSpeechEnd:idle"
+     ]
+    },
+    "barge_ok": true,
+    "echo_ok": true,
+    "errors": []
+   }
+  ],
+  "barge": {
+   "stop_ms": 294,
+   "duck_ms": 151
+  },
+  "barge_ok": true,
+  "echo_ok": true,
+  "gap_ok": true,
+  "errors": [],
+  "split_ok": true
+ },
+ "BU": {
+  "llm_down_banner": true,
+  "llm_recovers": true,
+  "look": {
+   "desktop": {
+    "fits": true,
+    "hscroll": false,
+    "feedback_ms": 0
+   },
+   "phone": {
+    "fits": true,
+    "hscroll": false,
+    "feedback_ms": 0
+   }
+  },
+  "reconnects": true,
+  "works_after_restart": true,
+  "errors": [],
+  "tests": "29 passed in 5.89s",
+  "tests_ok": true
+ }
+}

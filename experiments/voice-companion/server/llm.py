@@ -4,9 +4,13 @@ from __future__ import annotations
 import json
 from typing import AsyncIterator
 
+import re
+
 import httpx
 
 from .config import LLMConfig
+
+_CJK = re.compile(r"[\u3400-\u9fff]")
 
 # Tried in order when base_url = "auto".
 KNOWN_SERVERS = [
@@ -51,25 +55,37 @@ class ChatLLM:
                 self.model = models[0]["id"] if models else "local"
             return
         if self.base_url:
-            raise LLMUnavailable(f"Can't reach the language model at {self.base_url}. Is the server running?")
+            raise LLMUnavailable(f"Can't reach the language model at {self.base_url}. Start llama.cpp, Ollama or "
+                                 "LM Studio there and she will connect automatically.")
         raise LLMUnavailable("No language model server found. Start llama.cpp "
                              "(llama-server -m model.gguf --port 8080), Ollama or LM Studio and she will connect automatically.")
 
-    async def stream(self, messages: list[dict]) -> AsyncIterator[str]:
+    async def stream(self, messages: list[dict], temperature: float | None = None) -> AsyncIterator[str]:
         if not self.base_url or not self.model:
             await self.connect()
-        if "qwen3" in self.model.lower() and messages and messages[-1]["role"] == "user":
-            # Qwen3's soft switch for servers that ignore chat_template_kwargs. It must be on
-            # the latest user turn: the model obeys the most recent switch.
-            messages = [*messages[:-1], {"role": "user", "content": messages[-1]["content"] + " /no_think"}]
+        if messages and messages[-1]["role"] == "user":
+            last = messages[-1]["content"]
+            if _CJK.search(last):
+                last += "\n（用中文回答）"  # small models drift between languages without an explicit cue
+            elif any(_CJK.search(m["content"]) for m in messages[-4:-1] if m["role"] == "assistant"):
+                last += "\n(Reply in English.)"
+            if "qwen3" in self.model.lower():
+                # Qwen3's soft switch for servers that ignore chat_template_kwargs. It must be on
+                # the latest user turn: the model obeys the most recent switch.
+                last += " /no_think"
+            messages = [*messages[:-1], {"role": "user", "content": last}]
         body = {
             "model": self.model,
             "messages": messages,
             "stream": True,
-            "temperature": self.cfg.temperature,
+            "temperature": self.cfg.temperature if temperature is None else temperature,
             "max_tokens": self.cfg.max_tokens,
             # llama.cpp (--jinja) honours this to skip Qwen3 "thinking"; others ignore it.
             "chat_template_kwargs": {"enable_thinking": False},
+            # small models loop ("Max is still chewy in his shoes!") without these
+            "frequency_penalty": 0.6,
+            "presence_penalty": 0.4,
+            "repeat_penalty": 1.15,  # llama.cpp name; ignored elsewhere
         }
         try:
             async with self.client.stream("POST", self.base_url + "/chat/completions", json=body) as resp:
@@ -91,6 +107,18 @@ class ChatLLM:
                         yield token
         except httpx.ConnectError:
             raise LLMUnavailable(f"Lost the language model at {self.base_url}. Is it still running?") from None
+
+    async def prime(self, messages: list[dict]) -> None:
+        """Have the server read a prompt prefix into its cache (1 token generated) while the user is
+        still listening/talking, so their next turn only costs their own new words."""
+        if not self.base_url or not self.model:
+            return
+        body = {"model": self.model, "messages": messages, "max_tokens": 1, "stream": False,
+                "chat_template_kwargs": {"enable_thinking": False}}
+        try:
+            await self.client.post(self.base_url + "/chat/completions", json=body, timeout=30)
+        except httpx.HTTPError:
+            pass
 
     async def warmup(self, system_prompt: str) -> None:
         """Prime the server's prompt cache with the system prompt so the first reply is quick."""

@@ -24,12 +24,14 @@ def test_chinese_sentences():
 
 def test_first_chunk_cuts_early_at_comma_for_latency():
     out = run_chunker(["Well, you finally showed up, didn't you, after all this time."])
-    assert out[0] == "Well, you finally showed up,"
+    assert out[0] == "Well, you finally showed up,"  # (4-char first chunks measured slower: CPU contention)
 
 
 def test_punctuation_only_chunks_dropped_and_markdown_cleaned():
     assert run_chunker(["**Hey**!! 😀 ...", "\n"]) == ["Hey!"]
-    assert clean("  *a*  `b` ") == "a b"
+    assert clean("  `a`  b ") == "a b"
+    assert clean("*smiles* hi (pouts)") == "hi"  # stage directions are never read aloud
+    assert clean("Aria: hey there") == "hey there"  # no speaker labels
 
 
 def test_think_filter_across_token_boundaries():

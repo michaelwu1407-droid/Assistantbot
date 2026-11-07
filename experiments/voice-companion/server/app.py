@@ -38,7 +38,8 @@ def create_app(demo: bool = False) -> FastAPI:
     @app.websocket("/ws")
     async def ws(socket: WebSocket) -> None:
         await socket.accept()
-        await Session(socket, engine).run()
+        app.state.last_session = session = Session(socket, engine)  # handle for tests
+        await session.run()
 
     app.mount("/", StaticFiles(directory=ROOT / "web", html=True), name="web")
     return app

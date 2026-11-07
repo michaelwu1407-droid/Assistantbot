@@ -72,7 +72,7 @@ const UI = {
     let problem = "";
     for (const chip of els.health.querySelectorAll(".chip")) {
       const st = info.status[chip.dataset.key];
-      chip.className = "chip " + (info.loading && !st.ok ? "busy" : st.ok ? (st.error ? "warn" : "ok") : "bad");
+      chip.className = "chip " + ((info.loading && !st.ok) || st.busy ? "busy" : st.ok ? (st.error ? "warn" : "ok") : "bad");
       chip.title = st.error || st.label;
       if (!info.loading && st.error && !problem) problem = st.error;
     }

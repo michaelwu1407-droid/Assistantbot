@@ -24,10 +24,47 @@ class Session:
         self.send_lock = asyncio.Lock()
         self.greeted = False
         self.turn = 0  # tags every reply message so the browser can drop cancelled turns
+        # Speculation: the browser sends audio as soon as the user *might* have finished. We start
+        # transcribing and replying at once, but hold the output until it confirms ("commit").
+        self.expect_spec = False
+        self.spec_task: asyncio.Task | None = None
+        self.holding = False
+        self.held: list[dict] = []
+        self.spec_mark = 0
 
     async def send(self, msg: dict) -> None:
         async with self.send_lock:
             await self.socket.send_json(msg)
+
+    async def send_spec(self, msg: dict) -> None:
+        async with self.send_lock:
+            if self.holding:
+                self.held.append(msg)
+            else:
+                await self.socket.send_json(msg)
+
+    async def commit_spec(self) -> None:
+        async with self.send_lock:
+            self.holding = False
+            for msg in self.held:
+                await self.socket.send_json(msg)
+            self.held.clear()
+
+    async def cancel_spec(self) -> None:
+        was_active = self.holding or (self.spec_task and not self.spec_task.done())
+        self.holding = False
+        self.held.clear()
+        for task in (self.spec_task, self.task if was_active else None):
+            if task and not task.done():
+                task.cancel()
+                try:
+                    await task
+                except (asyncio.CancelledError, Exception):
+                    pass
+        self.spec_task = None
+        if was_active:  # forget the provisional turn entirely
+            self.task = None
+            del self.conv.history[self.spec_mark:]
 
     async def run(self) -> None:
         await self.send({"type": "state", "state": "listening"})
@@ -49,6 +86,12 @@ class Session:
         kind = data.get("type")
         if kind == "text" and str(data.get("text", "")).strip():
             await self.start_reply(str(data["text"]).strip())
+        elif kind == "speculate":
+            self.expect_spec = True  # the next binary message is provisional audio
+        elif kind == "commit":
+            await self.commit_spec()
+        elif kind == "spec_cancel":
+            await self.cancel_spec()
         elif kind == "interrupt":
             await self.interrupt(data.get("heard"))
         elif kind == "reset":
@@ -64,39 +107,53 @@ class Session:
 
     async def on_audio(self, payload: bytes) -> None:
         started = time.perf_counter()
+        if self.expect_spec:
+            self.expect_spec = False
+            await self.cancel_spec()
+            await self.interrupt()
+            self.spec_mark, self.holding = len(self.conv.history), True
+            self.spec_task = asyncio.create_task(self.process_audio(payload, started, self.send_spec))
+            return
+        await self.cancel_spec()
         await self.interrupt()
+        await self.process_audio(payload, started, self.send)
+
+    async def process_audio(self, payload: bytes, started: float, out) -> None:
         stt = self.engine.stt
         if stt is None:
             err = self.engine.status["stt"].error or "Speech recognition is off. You can still type."
-            await self.send({"type": "error", "message": err})
-            await self.send({"type": "state", "state": "listening"})
+            await out({"type": "error", "message": err})
+            await out({"type": "state", "state": "listening"})
             return
         pcm = np.frombuffer(payload[: 16000 * 4 * MAX_AUDIO_SECONDS], dtype=np.float32)
-        await self.send({"type": "state", "state": "transcribing"})
+        await out({"type": "state", "state": "transcribing"})
         text = await asyncio.to_thread(stt.transcribe, pcm)
         if not text:  # noise or a phantom phrase: quietly keep listening
-            await self.send({"type": "state", "state": "listening", "ignored": True})
+            await out({"type": "state", "state": "listening", "ignored": True})
             return
-        await self.send({"type": "user", "text": text, "stt_ms": int((time.perf_counter() - started) * 1000)})
-        await self.start_reply(text, started)
+        await out({"type": "user", "text": text, "stt_ms": int((time.perf_counter() - started) * 1000)})
+        await self.start_reply(text, started, out)
 
-    async def start_reply(self, text: str, started: float | None = None) -> None:
+    async def start_reply(self, text: str, started: float | None = None, out=None) -> None:
+        out = out or self.send
         await self.interrupt()
         e = self.engine
         if e.llm is None or e.tts is None:
-            await self.send({"type": "error", "message": "Still waking up, give me a few seconds…"})
-            await self.send({"type": "state", "state": "listening"})
+            await out({"type": "error", "message": "Still waking up, give me a few seconds…"})
+            await out({"type": "state", "state": "listening"})
             return
         # pick up hot-swapped backends for each new turn
         self.conv.persona, self.conv.llm, self.conv.tts = e.cfg.persona, e.llm, e.tts
         self.turn += 1
-        self.task = asyncio.create_task(self._reply(text, started, self.turn))
+        self.task = asyncio.create_task(self._reply(text, started, self.turn, out))
 
-    async def _reply(self, text: str, started: float | None, turn: int) -> None:
+    async def _reply(self, text: str, started: float | None, turn: int, out) -> None:
         async def send(msg: dict) -> None:
-            await self.send({**msg, "turn": turn})
+            await out({**msg, "turn": turn})
         try:
             await self.conv.reply(text, send, started)
+            if hasattr(self.conv.llm, "prime"):
+                await self.conv.llm.prime(self.conv.next_prompt_prefix())
         except asyncio.CancelledError:
             raise
         except Exception as exc:

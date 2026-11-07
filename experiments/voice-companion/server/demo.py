@@ -13,7 +13,7 @@ LINES = [
 
 
 class DemoLLM:
-    async def stream(self, messages):
+    async def stream(self, messages, temperature=None):
         text = random.choice(LINES)
         for word in text.split(" "):
             await asyncio.sleep(0.06)

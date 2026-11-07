@@ -53,14 +53,28 @@ class KokoroTTS:
         self.cfg = cfg
         self.kokoro = Kokoro(str(resolve(cfg.kokoro_model)), str(resolve(cfg.kokoro_voices)))
         self.lock = threading.Lock()
+        self.zh_g2p = _misaki_zh()
 
     def _synth(self, text: str) -> bytes:
         zh = bool(_CJK.search(text))
         voice = self.cfg.voice_zh if zh else self.cfg.voice
-        lang = "cmn" if zh else ("en-gb" if voice[:1] == "b" else "en-us")
+        text = self._pronounce(text)
         with self.lock:
-            samples, rate = self.kokoro.create(text, voice=voice, speed=self.cfg.speed, lang=lang)
+            if zh and self.zh_g2p:
+                # Kokoro's Chinese voices were trained on misaki phonemes; espeak's are far worse
+                # (Whisper misreads 68% of characters with espeak, 16% with misaki).
+                phonemes = self.zh_g2p(text)
+                phonemes = phonemes[0] if isinstance(phonemes, tuple) else phonemes
+                samples, rate = self.kokoro.create(phonemes, voice=voice, speed=self.cfg.speed, is_phonemes=True)
+            else:
+                lang = "cmn" if zh else ("en-gb" if voice[:1] == "b" else "en-us")
+                samples, rate = self.kokoro.create(text, voice=voice, speed=self.cfg.speed, lang=lang)
         return to_wav(samples, rate)
+
+    def _pronounce(self, text: str) -> str:
+        for word, sounds_like in self.cfg.pronounce.items():
+            text = re.sub(rf"\b{re.escape(word)}\b", sounds_like, text)
+        return text
 
     def warmup(self) -> None:
         self._synth("Hi.")
@@ -97,6 +111,14 @@ class OpenAICompatTTS:
 
     async def aclose(self) -> None:
         await self.client.aclose()
+
+
+def _misaki_zh():
+    try:
+        from misaki import zh
+        return zh.ZHG2P()
+    except Exception:  # optional: pip install "misaki[zh]" for good Chinese
+        return None
 
 
 def kokoro_available(cfg: TTSConfig) -> bool:

@@ -7,6 +7,7 @@ from dataclasses import asdict, dataclass
 
 from .config import Config, load_config
 from .llm import ChatLLM
+from .assets import ensure_kokoro, ensure_web_assets, kokoro_missing
 from .tts import BrowserTTS, make_tts
 
 log = logging.getLogger("voice-companion")
@@ -17,6 +18,7 @@ class Status:
     ok: bool = False
     label: str = "loading…"
     error: str = ""
+    busy: bool = False  # working on it (e.g. downloading); the UI shows a pulsing dot
 
 
 class Engine:
@@ -27,6 +29,7 @@ class Engine:
         self.status = {"stt": Status(), "llm": Status(), "tts": Status()}
         self.loading = True
         self.lock = asyncio.Lock()
+        self.download: asyncio.Task | None = None
 
     async def reload(self) -> None:
         async with self.lock:
@@ -49,23 +52,15 @@ class Engine:
             return
 
         # STT: only rebuild when its settings changed (loading Whisper is slow)
-        if self.stt is None or cfg.stt != self.cfg.stt:
+        if cfg.stt.model == "off":
+            self.stt, self.status["stt"] = None, Status(True, "off (type to chat)")
+        elif self.stt is None or cfg.stt != self.cfg.stt:
             self.status["stt"] = Status(False, "loading Whisper…")
             self.stt, self.status["stt"] = await asyncio.to_thread(_load_stt, cfg)
         if self.stt is not None:
-            self.stt.set_names(p.name, p.user_name)
+            self.stt.set_names(p.name, p.user_name, *p.nicknames)
 
-        self.status["tts"] = Status(False, "loading voice…")
-        try:
-            tts = await asyncio.to_thread(make_tts, cfg.tts)
-            await asyncio.to_thread(tts.warmup)
-            self.tts = tts
-            self.status["tts"] = Status(True, {"kokoro": f"Kokoro · {cfg.tts.voice}", "browser": "browser voice",
-                                               "openai": f"{cfg.tts.model} · {cfg.tts.voice}"}[tts.name])
-        except Exception as exc:
-            log.warning("voice unavailable: %s", exc)
-            self.tts = BrowserTTS()
-            self.status["tts"] = Status(True, "browser voice", f"Built-in voice failed ({exc}); using the browser's.")
+        await self._load_tts(cfg)
 
         llm = ChatLLM(cfg.llm)
         self.llm = llm
@@ -81,6 +76,45 @@ class Engine:
         for backend in (old_llm, old_tts):
             if backend is not None and backend not in (self.llm, self.tts):
                 await backend.aclose()
+
+    async def _load_tts(self, cfg: Config) -> None:
+        self.status["tts"] = Status(False, "loading voice…")
+        if self.download is None or self.download.done():
+            asyncio.get_running_loop().run_in_executor(None, ensure_web_assets)  # page works offline next time
+        if cfg.tts.backend in ("auto", "kokoro") and kokoro_missing(cfg.tts) and _has_kokoro_package():
+            # first run: talk with the browser's voice while hers downloads, then switch over
+            self.tts = BrowserTTS()
+            self.status["tts"] = Status(True, "browser voice for now", busy=True)
+            if self.download is None or self.download.done():
+                self.download = asyncio.create_task(self._download_voice(cfg))
+            return
+        try:
+            tts = await asyncio.to_thread(make_tts, cfg.tts)
+            await asyncio.to_thread(tts.warmup)
+            self.tts = tts
+            self.status["tts"] = Status(True, {"kokoro": f"Kokoro · {cfg.tts.voice}", "browser": "browser voice",
+                                               "openai": f"{cfg.tts.model} · {cfg.tts.voice}"}[tts.name])
+        except Exception as exc:
+            log.warning("voice unavailable: %s", exc)
+            self.tts = BrowserTTS()
+            self.status["tts"] = Status(True, "browser voice", f"Built-in voice failed ({exc}); using the browser's.")
+
+    async def _download_voice(self, cfg: Config) -> None:
+        loop = asyncio.get_running_loop()
+
+        def progress(msg: str) -> None:
+            loop.call_soon_threadsafe(lambda: self.status.__setitem__(
+                "tts", Status(True, f"browser voice for now · {msg}", busy=True)))
+        try:
+            await asyncio.to_thread(ensure_kokoro, cfg.tts, progress)
+            tts = await asyncio.to_thread(make_tts, cfg.tts)
+            await asyncio.to_thread(tts.warmup)
+        except Exception as exc:
+            log.warning("%s", exc)
+            self.status["tts"] = Status(True, "browser voice", f"Using the browser's voice: {exc}")
+            return
+        self.tts = tts
+        self.status["tts"] = Status(True, f"Kokoro · {cfg.tts.voice}")
 
     async def recheck_llm(self) -> None:
         """Called while the LLM is down: reconnect as soon as the user starts their server."""
@@ -118,3 +152,11 @@ def _load_stt(cfg: Config):
     except Exception as exc:  # missing package, model download failed, bad device...
         log.warning("speech-to-text unavailable: %s", exc)
         return None, Status(False, "not loaded", f"Speech recognition couldn't start ({exc}). You can still type.")
+
+
+def _has_kokoro_package() -> bool:
+    try:
+        import kokoro_onnx  # noqa: F401
+        return True
+    except ImportError:
+        return False

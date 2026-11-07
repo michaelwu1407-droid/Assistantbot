@@ -7,14 +7,12 @@ mic ─► Silero VAD (browser) ─► Whisper ─► LLM (llama.cpp / Ollama / 
                                             └ streamed and voiced one sentence at a time
 ```
 
-## Setup (once)
+## Setup
 
 ```bash
 cd experiments/voice-companion
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-./scripts/download_models.sh      # built-in voice (Kokoro, ~340 MB)
-./scripts/fetch_web_assets.sh     # voice detector for the page, so it works offline
 ```
 
 Start a language model. Any of these works; the app finds it by itself:
@@ -32,7 +30,9 @@ Then:
 python -m server
 ```
 
-Open http://127.0.0.1:7860 and press **Space** or tap the mic. Whisper downloads on first start.
+Open http://127.0.0.1:7860 and press **Space** or tap the mic. On first start she talks with the
+browser's voice while her own (Kokoro, ~350 MB) downloads, then switches over by herself; the
+voice detector is fetched too, so the page works offline afterwards. Whisper downloads itself.
 
 No models yet? `python -m server --demo` shows the UI with canned replies.
 
@@ -46,26 +46,36 @@ No models yet? `python -m server --demo` shows the UI with canned replies.
 
 ## Personalising
 
-Copy `config.example.toml` to `config.toml`. `[persona]` sets her name, your name, personality, greeting and avatar (put an image in `web/` and set `avatar = "me.png"`). Press the refresh button in the UI to apply changes, including model or voice swaps, without restarting.
+Copy `config.example.toml` to `config.toml`. `[persona]` sets her name, your name, nicknames, personality, greeting and avatar (put an image in `web/` and set `avatar = "me.png"`). `[tts] pronounce` fixes names the voice says wrong (`Kobe = "Koh-bee"`). Press the refresh button in the UI to apply changes, including model or voice swaps, without restarting.
 
 ## Speed
 
-Time from you finishing a sentence to hearing her is roughly speech recognition + the LLM's first clause + voicing that clause.
+Measured from the moment you stop talking to her first sound, on a 4-vCPU cloud machine with **no GPU**
+(Whisper small, Qwen3-0.6B, Kokoro fp32): **3.3 s**, of which speech recognition 1.3 s, the LLM's
+first clause 0.9 s, voicing it 0.7 s. No silent gaps between her sentences.
 
-- **GPU:** around a second with an 8B model.
-- **CPU-only:** expect several seconds.
-  - Whisper defaults to `base` on CPU.
-  - A 3–4B model helps.
-  - Measured in a 4-vCPU cloud sandbox with no GPU, using Whisper small, Qwen3-0.6B and Kokoro: about 4–8 s per reply.
-- The "replied in" readout under the orb shows your real numbers.
+What the code does to keep this low, on any hardware:
 
-Very small models (under ~3B) break character and mix up who is who; 4B+ is recommended for the persona to hold.
+- Starts transcribing and replying 160 ms into your pause, while the browser waits out its 600 ms
+  "are you done?" window; the reply is held until you're confirmed done and dropped if you carry on.
+- While you listen to her, the LLM pre-reads the conversation so your next turn costs only your new words.
+- Replies stream sentence by sentence and are capped at two sentences.
 
-## Tests
+With a GPU the same pipeline is far faster, but that was not measured here. On CPU, Whisper
+`model = "auto"` uses `base` (about 3× faster than `small`). Use the **fp32** Kokoro model the app downloads; the
+int8 one is 4× slower on CPU.
+
+## Scorecard
+
+`eval/` scores the whole experience 0–5 on six dimensions from measured numbers (rubric in
+`eval/RUBRIC.md`), with the real models, a real browser and synthetic speech:
 
 ```bash
-pip install pytest && python -m pytest -q
+python -m eval.run              # app (python -m server) and its LLM must be running
 ```
+
+It writes `eval/results/latest.md` (scores, every reply she gave, every transcript) and appends to
+`eval/results/history.md`. Unit tests: `pip install pytest && python -m pytest -q`.
 
 ## How it fits together
 
@@ -76,7 +86,9 @@ pip install pytest && python -m pytest -q
 | `server/tts.py` | Kokoro in-process (default), OpenAI-compatible TTS server, or browser voice |
 | `server/text.py` | cuts the token stream into speakable sentences; strips `<think>` and markdown |
 | `server/pipeline.py` | one turn: LLM → sentences → voice, overlapped; trims memory after interruptions |
-| `server/engine.py`, `session.py`, `app.py` | model loading and health, websocket session, routes |
-| `web/` | `audio.js` playback queue, `ui.js` rendering, `app.js` mic + interruption logic |
+| `server/engine.py`, `session.py`, `app.py` | model loading and health, websocket session (incl. speculative start), routes |
+| `server/assets.py` | first-run downloads: voice detector files and the Kokoro voice |
+| `web/` | `audio.js` playback queue, `ui.js` rendering, `app.js` mic, speculation and echo-aware interruption |
+| `eval/` | the scorecard: rubric, corpus, hearing/character/latency evaluators, browser checks |
 
 WebSocket `/ws`: the browser sends one utterance as Float32 PCM (16 kHz mono) or `{"type":"text"|"interrupt"|"reset"|"greet"}`. The server sends `state`, `user`, `sentence` (`text`, base64 WAV `audio`), `done` and `error`. Reply messages carry a `turn` number so the page can drop audio from a reply it already cut off.

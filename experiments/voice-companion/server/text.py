@@ -46,8 +46,15 @@ def _partial_tag_len(s: str, tag: str) -> int:
     return 0
 
 
+_SPEAKER = re.compile(r"^\s*[\w\u3400-\u9fff]{1,20}\s*(?::\s+|：\s*)")
+
+
+_STAGE = re.compile(r"\([^)]{0,40}\)|（[^）]{0,20}）|\*[^*]{0,40}\*")
+
+
 def clean(text: str) -> str:
-    text = _EMOJI.sub("", _MARKDOWN.sub("", text))
+    text = _STAGE.sub("", text)  # "(pouts)", "*smiles*": never read stage directions aloud
+    text = _SPEAKER.sub("", _EMOJI.sub("", _MARKDOWN.sub("", text)))
     return re.sub(r"\s+", " ", text).strip()
 
 
@@ -89,3 +96,47 @@ class SentenceChunker:
     def flush(self) -> list[str]:
         chunk, self.buf = clean(self.buf), ""
         return [chunk] if chunk and any(c.isalnum() for c in chunk) else []
+
+
+_OOC = re.compile(r"\b(as an ai|an ai\b|language model|(just|only|being) a (computer )?(model|program|machine)|"
+                  r"don'?t (really )?have (any |real |actual )?(feelings|emotions)|can'?t help with that|assist you|"
+                  r"anything else i can|how can i help)|人工智能|语言模型|大模型|是(个|一个)模型|我(只是)?(一个)?模型|我没有(感情|情绪)", re.I)
+
+
+def out_of_character(sentence: str) -> bool:
+    """Assistant-speak a companion should never say out loud."""
+    return bool(_OOC.search(sentence))
+
+
+def ends_sentence(chunk: str) -> bool:
+    chunk = chunk.rstrip()
+    if chunk.endswith(("...", "…")):
+        return False  # trailing off, not finished
+    return bool(chunk) and (chunk[-1] in TERMINAL or chunk[-1] == ".")
+
+
+def similar(a: str, b: str, threshold: float = 0.8) -> bool:
+    from difflib import SequenceMatcher
+    return SequenceMatcher(None, a.lower(), b.lower()).ratio() >= threshold
+
+
+def split_sentences(text: str) -> list[str]:
+    return [x.strip() for x in re.split(r"(?<=[.!?。！？])\s*", text) if len(x.strip()) > 3]
+
+
+def fix_roles(sentence: str, name: str, user_name: str) -> str:
+    """Small models sometimes call the user by the companion's own name ("I miss you, Aria.").
+    Swap it for the user's name unless she is introducing herself ("I'm Aria")."""
+    if not name or not user_name or name.lower() == user_name.lower():
+        return sentence
+    pattern = re.compile(rf"(?<!i'm )(?<!i am )(?<!it's )(?<!我是)\b{re.escape(name)}\b", re.I)
+    return pattern.sub(user_name, sentence)
+
+
+_LEADING_JOIN = re.compile(r"^(but|and|so|or|also|anyway)\b[\s,]*|^(但是|而且|所以|不过)[，,]?", re.I)
+
+
+def tidy_opening(sentence: str) -> str:
+    """When earlier sentences were dropped, don't start her reply mid-thought ("but I've been busy.")."""
+    s = _LEADING_JOIN.sub("", sentence.strip())
+    return s[:1].upper() + s[1:] if s else s

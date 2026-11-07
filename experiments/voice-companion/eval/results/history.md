@@ -1,0 +1,29 @@
+- 2026-11-07 13:15 baseline: 1.70/5 · R=1 · C=0 · H=2 · T=3 · B=3 · U=4
+- 2026-11-07 13:20 iter1: sentence cap, penalties, zh cue, few-shot: 4.00/5 · C=4
+- 2026-11-07 13:21 iter1 (v2 checks): 0.00/5 · C=0
+- 2026-11-07 13:22 iter2: reminder+repeat guard+OOC filter run1: 0.00/5 · C=0
+- 2026-11-07 13:23 iter2: reminder+repeat guard+OOC filter run2: 0.00/5 · C=0
+- 2026-11-07 13:28 iter3: compact history for small models, fixed repeat guard, prefix strip: 3.00/5 · C=3
+- 2026-11-07 13:29 iter4: sentence-level repeat guard, zh OOC: 3.00/5 · C=3
+- 2026-11-07 13:31 iter5: role repair: 4.00/5 · C=4
+- 2026-11-07 13:32 iter6: never silent (3rd try + fallback): 5.00/5 · C=5
+- 2026-11-07 13:34 iter7 (v3 checks): strip stage directions, role fix at end, EN cue: 5.00/5 · C=5
+- 2026-11-07 13:35 iter7 (v3 checks): strip stage directions, role fix at end, EN cue: 5.00/5 · C=5
+- 2026-11-07 13:37 iter8: no example copying, tidy openings, 'being a model' filter: 5.00/5 · C=5
+- 2026-11-07 13:38 iter8 R re-measure: 1.00/5 · R=1
+- 2026-11-07 13:47 iter9: speculative start during the silence window: 1.00/5 · R=1
+- 2026-11-07 13:51 iter10: float Kokoro (what users download): 2.00/5 · R=2
+- 2026-11-07 13:52 iter11: tiny first chunk: 2.00/5 · R=2
+- 2026-11-07 13:55 iter12: misaki Chinese voice (test clips regenerated): 4.00/5 · H=4
+- 2026-11-07 13:57 iter13: nicknames in STT hint: 4.00/5 · H=4
+- 2026-11-07 13:58 iter14: simplified-Chinese output: 5.00/5 · H=5
+- 2026-11-07 13:59 iter15: exact audio injection for turn-taking: 3.00/5 · T=3
+- 2026-11-07 14:19 iter16: echo-aware cut-in, sliding window: 4.00/5 · T=4
+- 2026-11-07 14:23 iter17: 7-of-12 frame cut-in: 5.00/5 · T=5
+- 2026-11-07 14:27 full run after 17 iterations: 4.00/5 · R=2 · C=4 · H=5 · T=5 · B=5 · U=5
+- 2026-11-07 14:32 iter18: repeat check on final chunk, don't-repeat note (run 1): 4.00/5 · C=4
+- 2026-11-07 14:33 iter18: repeat check on final chunk, don't-repeat note (run 2): 4.00/5 · C=4
+- 2026-11-07 14:35 iter19: history-free retry before allowing repeats (run 1): 5.00/5 · C=5
+- 2026-11-07 14:36 iter19: history-free retry before allowing repeats (run 2): 5.00/5 · C=5
+- 2026-11-07 14:39 iter20: prime LLM cache while user listens: 2.00/5 · R=2
+- 2026-11-07 14:41 final: 4.25/5 · R=2 · C=5 · H=5 · T=5 · B=5 · U=5

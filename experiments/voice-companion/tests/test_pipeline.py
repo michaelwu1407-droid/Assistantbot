@@ -13,7 +13,7 @@ class FakeLLM:
     def __init__(self, text, delay=0.0):
         self.text, self.delay, self.calls = text, delay, []
 
-    async def stream(self, messages):
+    async def stream(self, messages, temperature=None):
         self.calls.append(messages)
         for word in self.text.split(" "):
             await asyncio.sleep(self.delay)

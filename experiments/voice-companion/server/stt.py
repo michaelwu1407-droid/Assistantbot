@@ -54,6 +54,7 @@ class WhisperSTT:
         self.mode = cfg.language          # "", "every", or a language code
         self.language = cfg.language if cfg.language not in ("", "every") else None
         self.names: list[str] = []
+        self.chinese = cfg.chinese
         self.lock = threading.Lock()      # one transcription at a time per model
 
     def set_names(self, *names: str) -> None:
@@ -93,7 +94,16 @@ class WhisperSTT:
                 self.language = info.language
         if is_phantom(text, noisy):
             return ""
-        return text
+        return self._script(text)
+
+    def _script(self, text: str) -> str:
+        if self.chinese == "as-is" or not re.search(r"[\u3400-\u9fff]", text):
+            return text
+        try:
+            import zhconv
+        except ImportError:
+            return text
+        return zhconv.convert(text, "zh-tw" if self.chinese == "traditional" else "zh-cn")
 
 
 def _cuda_available() -> bool:

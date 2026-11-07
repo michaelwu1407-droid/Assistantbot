@@ -62,6 +62,16 @@ class Player {
 
   get busy() { return this.playing || this.queue.length > 0; }
 
+  // Loudness of what she is playing right now (after ducking): the source of any echo at the mic.
+  outputRms() {
+    if (!this.analyser || !this.playing) return 0;
+    const buf = this.rmsBuf || (this.rmsBuf = new Float32Array(this.analyser.fftSize));
+    this.analyser.getFloatTimeDomainData(buf);
+    let sum = 0;
+    for (const v of buf) sum += v * v;
+    return Math.sqrt(sum / buf.length);
+  }
+
   push(item) {
     if (item.id === 0) this.heard = 0;
     if (item.audio) { // decode now, while earlier sentences play
